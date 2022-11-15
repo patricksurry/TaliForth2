@@ -3,7 +3,7 @@
 
 # Notes: The manual is not automatically updated because not everybody
 # can be expected to have the asciidoc toolchain and ditaa installed.
-# Tali requires python 3.x, Ophis, and GNU make to build the 65C02
+# Tali requires python 3.x, 64tass, and GNU make to build the 65C02
 # binary image.
 
 # Example uses ($ is the prompt - yours might be C:\>):
@@ -40,10 +40,11 @@ taliforth-%.bin: platform/platform-%.asm $(COMMON_SOURCES)
 	$<
 
 taliforth-%.prg: platform/platform-%.asm $(COMMON_SOURCES)
-	ophis -l docs/$*-listing.txt \
-	-m docs/$*-labelmap.txt \
-	-o $@ \
-	-c $<
+	64tass --cbm-prg \
+	--list=docs/$*-listing.txt \
+	--labels=docs/$*-labelmap.txt \
+	--output $@ \
+	$<
 
 # Convert the high-level Forth words to ASCII files that Ophis can include
 %.asc: forth_code/%.fs
