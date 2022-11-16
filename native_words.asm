@@ -11586,7 +11586,9 @@ _loop:
                 bcc +
 
                 jsr xt_cr
-                lda #0
+
+                lda 0,x                 ; After going to next line, start
+                ina                     ; with length of this word.
 +
                 pha
                 jsr xt_type             ; ( nt )
