@@ -99,10 +99,10 @@ padoffset = $ff              ; offset from CP to PAD (holds number strings)
 ; For some applications, the user might not need certain words and would
 ; prefer to have the memory back instead.  Remove any of the items in
 ; TALI_OPTIONAL_WORDS to remove the associated words when Tali is
-; assembled.
+; assembled.  If TALI_OPTIONAL_WORDS is not defined in your platform file,
+; you will get all of the words.
 
-TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block",
-                         "environment?", "assembler", "wordlist" ]
+TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "wordlist" ]
 
 ; "ed" is a string editor. (~1.5K)
 ; "editor" is a block editor. (~0.25K)
@@ -134,8 +134,9 @@ TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block",
 
 ; Default kernel file for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
 ; First version: 19. Jan 2014
-; This version: 18. Feb 2018
+; This version: 04. Dec 2022
 ;
 ; This section attempts to isolate the hardware-dependent parts of Tali
 ; Forth 2 to make it easier for people to port it to their own machines.
@@ -213,7 +214,7 @@ platform_bye:
 ; is easier to see where the kernel ends in hex dumps. This string is
 ; displayed after a successful boot
 s_kernel_id:
-        .text "Tali Forth 2 default kernel for py65mon (18. Feb 2018)", AscLF, 0
+        .text "Tali Forth 2 default kernel for py65mon (04. Dec 2022)", AscLF, 0
 
 
 ; Add the interrupt vectors

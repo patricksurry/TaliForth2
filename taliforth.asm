@@ -1,13 +1,13 @@
 ; Tali Forth 2 for the 65c02
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
 ; First version: 19. Jan 2014 (Tali Forth 1)
-; This version: 03. Jan 2018 (Version 1.0)
+; This version: 04. Dec 2022 (Version 1.0)
 
 ; This is the main file for Tali Forth 2
 
 ; Assemble all words unless overridden in the platform file.
-TALI_OPTIONAL_WORDS :?= [ "ed", "editor", "ramdrive", "block",
-                          "environment?", "assembler", "wordlist" ]
+TALI_OPTIONAL_WORDS :?= [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "wordlist" ]
 
 ; Label used to calculate UNUSED. Silly for Tali Forth, where we assume
 ; 32 KiB RAM and 32 KiB ROM, but kept here to make the code more useful for
