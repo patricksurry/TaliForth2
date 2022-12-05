@@ -1,7 +1,7 @@
 # Tali Forth 2 for the 65c02  
-Scot W. Stevenson <scot.stevenson@gmail.com>
-Sam Colwell
-First version: (Tali Forth 1 ) 19. Jan 2014
+Scot W. Stevenson <scot.stevenson@gmail.com>  
+Sam Colwell  
+First version: (Tali Forth 1 ) 19. Jan 2014  
 This version: (Version 1.0.1 ) 04. Dec 2022
 
 ## Dude, I am the very model of a Salarian scientist, just let me start!
