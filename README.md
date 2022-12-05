@@ -1,7 +1,8 @@
 # Tali Forth 2 for the 65c02  
-Scot W. Stevenson <scot.stevenson@gmail.com>   
+Scot W. Stevenson <scot.stevenson@gmail.com>
+Sam Colwell
 First version: (Tali Forth 1 ) 19. Jan 2014
-This version: (Version 1.0 ) 08. Jan 2021
+This version: (Version 1.0.1 ) 04. Dec 2022
 
 ## Dude, I am the very model of a Salarian scientist, just let me start!
 
@@ -17,7 +18,7 @@ especially Single Board Computers (SBC), with little effort. It is free --
 released in the public domain -- but with absolutely _no warranty_ of any kind.
 Use at your own risk! (See `COPYING.txt` for details.) Tali Forth 2 is hosted at
 GitHub. You can find the most current version at
-[https://github.com/scotws/TaliForth2](https://github.com/scotws/TaliForth2).
+[https://github.com/SamCoVT/TaliForth2](https://github.com/SamCoVT/TaliForth2).
 
 
 ## A little more detail please
@@ -55,7 +56,7 @@ code simpler (like `FIND-NAME` or `BOUNDS`).
 
 The first Tali Forth was my first Forth ever. It is hosted at
 [https://github.com/scotws/TaliForth](https://github.com/scotws/TaliForth) and
-is superceded by this version. The second version was strongly influence by
+is superceded by this version. The second version was strongly influenced by
 what I learned writing Liara Forth for the 65816. Liara and Tali 2 share large
 parts of their internal logic. 
 
