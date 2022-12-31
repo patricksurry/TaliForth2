@@ -1,7 +1,8 @@
 ; Disassembler for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Updated by Sam Colwell
 ; First version: 28. Apr 2018
-; This version: 03. Jan 2019
+; This version: 31. Dec 2022
 
 ; This is the default disassembler for Tali Forth 2. Use by passing
 ; the address and length of the block of memory to be disassembled:
@@ -16,6 +17,9 @@
 ; more information. Because disassemblers are used interactively with slow
 ; humans, we don't care that much about speed and put the emphasis at being
 ; small.
+
+; Uses: tmp3, tmp2, tmp1 (xt_u_dot_r uses xt_type which uses tmp1)
+;       scratch (used for handling literals and JSRs)
 
 disassembler:
                 jsr xt_cr       ; ( addr u )
@@ -35,6 +39,7 @@ _byte_loop:
                 sta tmp2+1
 
                 lda (2,x)       ; get opcode that addr points to
+                sta scratch     ; Save opcode
 
                 asl             ; multiply by two for offset
                 bcc +
@@ -100,6 +105,7 @@ _byte_loop:
 
                 lda (4,x)
                 sta 0,x                 ; LSB of operand ( addr+1 u-1 LSB )
+                sta scratch+1           ; Save a copy in the scratch buffer
 
                 ; We still have a copy of the lengths byte in Y, which we use
                 ; to see if we have a one-byte operand (and are done already)
@@ -122,6 +128,7 @@ _byte_loop:
 
                 lda (4,x)
                 sta 1,x                 ; MSB of operand ( addr+2 u-2 opr )
+                sta scratch+2           ; Save a copy in the scratch buffer
 
                 ; fall through to _print_operand
 
@@ -178,6 +185,38 @@ _print_mnemonic:
                 sta 0,x
 
                 jsr xt_type             ; ( addr u )
+
+                ; Handle JSR by printing name of function, if available.
+                ; scratch has opcode ($20 for JSR)
+                ; scratch+1 and scratch+2 have address if it's a JSR.
+                lda #$20
+                cmp scratch
+                bne _printing_done
+
+                ; It's a JSR.  Print 5 spaces as an offset.
+                dex
+                dex
+                lda #5
+                sta 0,x
+                stz 1,x
+                jsr xt_spaces
+
+                ; Handle literals and variables specially.
+                lda #<literal_runtime
+                cmp scratch+1
+                bne _not_literal
+                lda #>literal_runtime
+                cmp scratch+2
+                bne _not_literal
+                ; It's a literal.
+                jsr disasm_literal
+                jmp _printing_done
+                
+_not_literal:
+                ; Try the generic JSR handler, which will use the target of the
+                ; JSR as an XT and print the name if it exists.
+                jsr disasm_jsr
+_printing_done:                
                 jsr xt_cr
 
                 ; Housekeeping: Next byte
@@ -198,6 +237,54 @@ _print_mnemonic:
 _done:
                 ; Clean up and leave
                 jmp xt_two_drop         ; JSR/RTS
+
+; Handlers for various special disassembled instructions:
+; Literal handler
+disasm_literal:
+                lda #13 ; string 13 is "LITERAL "
+                jsr print_string_no_lf
+                ; ( addr u ) address of last byte of JSR and bytes left on the stack.
+                ; We need to print the value just after the address and move along two bytes.
+                jsr xt_swap ; switch to (u addr)
+                jsr xt_one_plus
+                
+                jsr xt_dup
+                jsr xt_question ; Print the value at the adress
+                ; Move along two bytes (already moved address one) to skip over the constant.
+                jsr xt_one_plus
+                jsr xt_swap ; (addr+2 u)
+                jsr xt_one_minus
+                jsr xt_one_minus ; (addr+2 u-2)
+                rts
+
+; JSR handler
+disasm_jsr: 
+                ; The address of the JSR is in scratch+1 and scratch+2.
+                ; The current stack is already ( addr u ) where addr is the address of the last byte of
+                ; the JSR target address, and we want to leave it like that so moving on to the next byte
+                ; works properly.
+                ; Put the target address on the stack and see if it's an XT.
+                dex
+                dex
+                lda scratch+1
+                sta 0,x
+                lda scratch+2
+                sta 1,x
+                ; ( xt ) 
+                jsr xt_int_to_name
+                ; int>name returns zero if we just don't know.
+                lda 0,x
+                ora 1,x
+                beq _disasm_no_nt
+                ; We now have a name token ( nt ) on the stack.
+                ; Change it into the name and print it.
+                jsr xt_name_to_string
+                jsr xt_type
+                rts
+
+_disasm_no_nt:
+                jsr xt_drop ; the 0 indicating no name token
+                rts
 
 ; =========================================================
 oc_index_table:

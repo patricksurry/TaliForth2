@@ -3317,7 +3317,7 @@ here 5       ' blank         cycle_test            CYCLES:    325 ok
 5            ' chars         cycle_test drop       CYCLES:     28 ok
 pad here 5   ' cmove         cycle_test            CYCLES:    188 ok
 pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
-             ' :             cycle_test wrd ;      CYCLES:  15152 ok
+             ' :             cycle_test wrd ;      CYCLES:  15153 ok
              ' :noname       cycle_test ; drop     CYCLES:     50 ok
 5            ' ,             cycle_test            CYCLES:     66 ok
 ' aword      ' compile,      cycle_test            CYCLES:    786 ok
