@@ -201,7 +201,7 @@ _print_mnemonic:
                 stz 1,x
                 jsr xt_spaces
 
-                ; Handle literals and variables specially.
+                ; Handle literals specially.
                 lda #<literal_runtime
                 cmp scratch+1
                 bne _not_literal
