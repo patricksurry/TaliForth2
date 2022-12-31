@@ -30,6 +30,7 @@ string_table:
         .word s_ok, s_compiled, s_redefined, s_wid_forth, s_abc_lower ; 0-4
         .word s_abc_upper, s_wid_editor, s_wid_asm, s_wid_root        ; 5-8
         .word s_see_flags, s_see_nt, s_see_xt, s_see_size             ; 9-12
+        .word s_disasm_lit                                            ; 13
 
 s_ok:         .text " ok", 0         ; note space at beginning
 s_compiled:   .text " compiled", 0   ; note space at beginning
@@ -47,6 +48,8 @@ s_see_flags:  .text "flags (CO AN IM NN UF HC): ", 0
 s_see_nt:     .text "nt: ", 0
 s_see_xt:     .text "xt: ", 0
 s_see_size:   .text "size (decimal): ", 0
+
+s_disasm_lit: .text "LITERAL ", 0
 
 
 ; ## ERROR STRINGS
