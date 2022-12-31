@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.57.2900 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Sat Dec 31 13:54:16 2022
+; Sat Dec 31 15:17:19 2022
 
 ;Offset	;Hex		;Monitor	;Source
 
