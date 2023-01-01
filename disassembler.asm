@@ -189,9 +189,9 @@ _print_mnemonic:
                 ; Handle JSR by printing name of function, if available.
                 ; scratch has opcode ($20 for JSR)
                 ; scratch+1 and scratch+2 have address if it's a JSR.
-                lda #$20
-                cmp scratch
-                bne _printing_done
+                lda scratch
+                cmp #$20
+                bne _not_jsr
 
                 ; It's a JSR.  Print 5 spaces as an offset.
                 dex
@@ -213,9 +213,65 @@ _print_mnemonic:
                 jmp _printing_done
                 
 _not_literal:
+                ; Handle string literals specially.
+                lda #<sliteral_runtime
+                cmp scratch+1
+                bne _not_sliteral
+                lda #>sliteral_runtime
+                cmp scratch+2
+                bne _not_sliteral
+                ; It's a literal.
+                jsr disasm_sliteral
+                jmp _printing_done
+_not_sliteral:
                 ; Try the generic JSR handler, which will use the target of the
                 ; JSR as an XT and print the name if it exists.
                 jsr disasm_jsr
+                jmp _printing_done
+
+_not_jsr:
+                ; See if the instruction is a jump (instruction still in A)
+                ; (Strings start with a jump over the data.)
+                cmp #$4C
+                bne _printing_done
+
+                ; We have a branch.  See if it's a string by looking for
+                ; a JSR sliteral_runtime at the jump target address.
+                ; The target address is in scratch+1 and scratch+2
+                ; Use scratch+3 and scratch+4 here as we need to move
+                ; the pointer.
+                lda scratch+1   ; Copy the pointer.
+                sta scratch+3
+                lda scratch+2
+                sta scratch+4
+
+                ; Get the first byte at the jmp target address.
+                lda (scratch+3)
+
+                cmp #$20 ; check for JSR
+                bne _printing_done
+                ; Next byte
+                inc scratch+3
+                bne +
+                inc scratch+4
++
+                ; Check for string literal runtime
+                lda (scratch+3)
+
+                cmp #<sliteral_runtime
+                bne _printing_done
+                ; Next byte
+                inc scratch+3
+                bne +
+                inc scratch+4
++
+                lda (scratch+3)
+
+                cmp #>sliteral_runtime
+                bne _printing_done
+
+                ; It's a string literal jump.
+                jsr disasm_sliteral_jump
 _printing_done:                
                 jsr xt_cr
 
@@ -239,6 +295,84 @@ _done:
                 jmp xt_two_drop         ; JSR/RTS
 
 ; Handlers for various special disassembled instructions:
+; String literal handler (both for inline strings and sliteral)
+disasm_sliteral_jump:
+                ; If we get here, we are at the jump for a constant string.
+                ; Strings are compiled into the dictionary like so:
+                ;           jmp a
+                ;           <string data bytes>
+                ;  a -->    jsr sliteral_runtime
+                ;           <string address>
+                ;           <string length>
+                ;
+                ; We have ( addr n ) on the stack where addr is the last
+                ; byte of the address a in the above jmp instruction.
+                ; Address a is in scratch+1 scratch+2.
+
+                ; Determine the distance of the jump so we end on the byte
+                ; just before the JSR (sets us up for SLITERAL on next loop)
+                jsr xt_swap
+                dex
+                dex
+                lda scratch+1
+                sta 0,x
+                lda scratch+2
+                sta 1,x
+                jsr xt_swap
+                jsr xt_minus
+                jsr xt_one_minus
+                ; (n jump_distance)
+                ; Subtract the jump distance from the bytes left.
+                jsr xt_minus
+                ; ( new_n )
+                ; Move to one byte before the target address
+                dex
+                dex
+                lda scratch+1
+                sta 0,x
+                lda scratch+2
+                sta 1,x
+                jsr xt_one_minus
+                jsr xt_swap ; ( new_addr new_n )
+                rts
+                
+; String literal handler
+disasm_sliteral:
+                lda #'S'
+                jsr emit_a ; Print S before LITERAL so it becomes SLITERAL
+                lda #13 ; string 13 is "LITERAL "
+                jsr print_string_no_lf
+
+                ; ( addr u ) address of last byte of JSR and bytes left on the stack.
+                ; We need to print the two values just after the address and move along two bytes
+                ; for each value.
+                jsr xt_swap ; switch to (u addr)
+                jsr xt_one_plus
+                
+                jsr xt_dup
+                jsr xt_fetch
+                jsr xt_u_dot ; Print the address of the string
+                ; Move along two bytes (already moved address one) to skip over the constant.
+                jsr xt_two
+                jsr xt_plus
+                
+                jsr xt_dup
+                jsr xt_question ; Print the length of the string
+                ; Move along to the very last byte of the data.
+                jsr xt_one_plus
+
+                ; Fix up the number of bytes left.
+                jsr xt_swap ; (addr+4 u)
+                dex
+                dex
+                lda #4
+                sta 0,x
+                stz 1,x
+                jsr xt_minus ; (addr+4 u-4)
+                rts
+                
+                
+
 ; Literal handler
 disasm_literal:
                 lda #13 ; string 13 is "LITERAL "
