@@ -550,7 +550,7 @@ oc_table:
 ;      (oc02)
 ;      (oc03)
         oc04:   .text 2*64+5, "tsb.z"
-	oc05:	.text 2*64+5, "ord.z"
+	oc05:	.text 2*64+5, "ora.z"
 	oc06:	.text 2*64+5, "asl.z"
 ;      (oc07)
 	oc08:	.text 1*64+3, "php"

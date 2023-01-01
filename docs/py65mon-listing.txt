@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.57.2900 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Sun Jan 01 09:57:11 2023
+; Sun Jan 01 11:32:23 2023
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -7346,7 +7346,7 @@
 >b093	83 62 72 6b				oc00:	.text 2*64+3, "brk"              ; enforce the signature byte
 >b097	87 6f 72 61 2e 7a 78 69			oc01:	.text 2*64+7, "ora.zxi"
 >b09f	85 74 73 62 2e 7a		        oc04:   .text 2*64+5, "tsb.z"
->b0a5	85 6f 72 64 2e 7a			oc05:	.text 2*64+5, "ord.z"
+>b0a5	85 6f 72 61 2e 7a			oc05:	.text 2*64+5, "ora.z"
 >b0ab	85 61 73 6c 2e 7a			oc06:	.text 2*64+5, "asl.z"
 >b0b1	43 70 68 70				oc08:	.text 1*64+3, "php"
 >b0b5	85 6f 72 61 2e 23			oc09:	.text 2*64+5, "ora.#"
