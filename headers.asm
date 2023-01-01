@@ -1,7 +1,8 @@
 ; Dictionary Headers for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Updated by Sam Colwell
 ; First version: 05. Dec 2016 (Liara Forth)
-; This version: 29. Dec 2018
+; This version: 01. Jan 2023
 
 ; Dictionary headers are kept separately from the code, which allows various
 ; tricks in the code. We roughly follow the Gforth terminology: The Execution
@@ -256,8 +257,28 @@ nt_plus:
 
 nt_minus:
         .byte 1, UF
-        .word nt_abs, xt_minus, z_minus
+        .word nt_one_minus, xt_minus, z_minus
         .text "-"
+
+nt_one_minus:
+        .byte 2, UF
+        .word nt_one_plus, xt_one_minus, z_one_minus
+        .text "1-"
+
+nt_one_plus:
+        .byte 2, UF
+        .word nt_two_star, xt_one_plus, z_one_plus
+        .text "1+"
+
+nt_two_star:
+        .byte 2, UF
+        .word nt_two_slash, xt_two_star, z_two_star
+        .text "2*"
+
+nt_two_slash:
+        .byte 2, UF
+        .word nt_abs, xt_two_slash, z_two_slash
+        .text "2/"
 
 nt_abs:
         .byte 3, UF
@@ -331,28 +352,8 @@ nt_cell_plus:
 
 nt_here:
         .byte 4, 0
-        .word nt_one_minus, xt_here, z_here
+        .word nt_equal, xt_here, z_here
         .text "here"
-
-nt_one_minus:
-        .byte 2, UF
-        .word nt_one_plus, xt_one_minus, z_one_minus
-        .text "1-"
-
-nt_one_plus:
-        .byte 2, UF
-        .word nt_two_star, xt_one_plus, z_one_plus
-        .text "1+"
-
-nt_two_star:
-        .byte 2, UF
-        .word nt_two_slash, xt_two_star, z_two_star
-        .text "2*"
-
-nt_two_slash:
-        .byte 2, UF
-        .word nt_equal, xt_two_slash, z_two_slash
-        .text "2/"
 
 nt_equal:
         .byte 1, UF
