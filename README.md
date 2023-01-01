@@ -2,7 +2,7 @@
 Scot W. Stevenson <scot.stevenson@gmail.com>  
 Sam Colwell  
 First version: (Tali Forth 1 ) 19. Jan 2014  
-This version: (Version 1.0.1 ) 04. Dec 2022
+This version: (Version 1.0.2 ) 01. Jan 2023
 
 ## Dude, I am the very model of a Salarian scientist, just let me start!
 
@@ -46,7 +46,7 @@ Tali Forth 2 aims to be, roughly in order of priority:
 - **Standardized**. Most Forths available for the 65c02 are based on ancient,
   outdated templates such as FIG Forth. Learning Forth with them is like trying
   to learn modern English by reading Chaucer. Tali Forth (mostly) follows the
-  current ANS Standard, and ensures this passing an enhanced test suite.
+  current ANS Standard, and ensures this by passing an enhanced test suite.
   
 The functional reference for Tali is GNU Forth (Gforth,
 [https://www.gnu.org/software/gforth/](https://www.gnu.org/software/gforth/)).
