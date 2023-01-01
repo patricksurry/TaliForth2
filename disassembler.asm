@@ -340,7 +340,7 @@ disasm_sliteral_jump:
 disasm_sliteral:
                 lda #'S'
                 jsr emit_a ; Print S before LITERAL so it becomes SLITERAL
-                lda #13 ; string 13 is "LITERAL "
+                lda #str_disasm_lit     ; "LITERAL "
                 jsr print_string_no_lf
 
                 ; ( addr u ) address of last byte of JSR address and bytes left on the stack.
@@ -376,8 +376,8 @@ disasm_sliteral:
 
 ; Literal handler
 disasm_literal:
-                lda #13 ; string 13 is "LITERAL "
-                jsr print_string_no_lf
+                lda #str_disasm_lit
+                jsr print_string_no_lf ; "LITERAL "
                 ; ( addr u ) address of last byte of JSR and bytes left on the stack.
                 ; We need to print the value just after the address and move along two bytes.
                 jsr xt_swap ; switch to (u addr)
@@ -449,10 +449,8 @@ _disasm_jsr_uflow_check_upper:
                 bcc _disasm_jsr_unknown
 _disasm_jsr_soc:
                 ; It's an underflow check.
-                lda #15                 ; "INTERNAL "
-                jsr print_string_no_lf
-                lda #14
-                jsr print_string_no_lf  ; "STACK UNDERFLOW CHECK"
+                lda #str_disasm_sdc  
+                jsr print_string_no_lf  ; "STACK DEPTH CHECK"
 _disasm_jsr_unknown:
                 jsr xt_two_drop
                 rts
