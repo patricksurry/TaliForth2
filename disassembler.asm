@@ -343,32 +343,33 @@ disasm_sliteral:
                 lda #13 ; string 13 is "LITERAL "
                 jsr print_string_no_lf
 
-                ; ( addr u ) address of last byte of JSR and bytes left on the stack.
-                ; We need to print the two values just after the address and move along two bytes
+                ; ( addr u ) address of last byte of JSR address and bytes left on the stack.
+                ; We need to print the two values just after addr and move along two bytes
                 ; for each value.
-                jsr xt_swap ; switch to (u addr)
+                jsr xt_swap             ; switch to (u addr)
                 jsr xt_one_plus
                 
                 jsr xt_dup
                 jsr xt_fetch
-                jsr xt_u_dot ; Print the address of the string
+                jsr xt_u_dot            ; Print the address of the string
                 ; Move along two bytes (already moved address one) to skip over the constant.
                 jsr xt_two
                 jsr xt_plus
                 
                 jsr xt_dup
-                jsr xt_question ; Print the length of the string
+                jsr xt_question         ; Print the length of the string
                 ; Move along to the very last byte of the data.
                 jsr xt_one_plus
 
+                ; ( u addr+4 )
                 ; Fix up the number of bytes left.
-                jsr xt_swap ; (addr+4 u)
+                jsr xt_swap            ; ( addr+4 u )
                 dex
                 dex
                 lda #4
                 sta 0,x
                 stz 1,x
-                jsr xt_minus ; (addr+4 u-4)
+                jsr xt_minus            ; ( addr+4 u-4 )
                 rts
                 
                 
@@ -418,8 +419,45 @@ disasm_jsr:
 
 _disasm_no_nt:
                 jsr xt_drop ; the 0 indicating no name token
+                ; See if the address is between underflow_1 and underflow_4,
+                ; inclusive.
+                dex
+                dex
+                lda scratch+1
+                sta 0,x
+                lda scratch+2
+                sta 1,x
+                ; ( jsr_address )
+                ; Compare to lower underflow address
+                dex
+                dex
+                lda #<underflow_1
+                sta 0,x
+                lda #>underflow_1
+                sta 1,x
+                jsr compare_16bit
+                beq _disasm_jsr_uflow_check_upper
+                bcs _disasm_jsr_unknown
+_disasm_jsr_uflow_check_upper:                
+                ; Compare to upper underflow addresses
+                lda #<underflow_4
+                sta 0,x
+                lda #>underflow_4
+                sta 1,x
+                jsr compare_16bit
+                beq _disasm_jsr_soc
+                bcc _disasm_jsr_unknown
+_disasm_jsr_soc:
+                ; It's an underflow check.
+                lda #15                 ; "INTERNAL "
+                jsr print_string_no_lf
+                lda #14
+                jsr print_string_no_lf  ; "STACK UNDERFLOW CHECK"
+_disasm_jsr_unknown:
+                jsr xt_two_drop
                 rts
-
+                
+        
 ; =========================================================
 oc_index_table:
         ; Lookup table for the instruction data (length of instruction in
