@@ -25,6 +25,7 @@ str_see_xt         = 11
 str_see_size       = 12
 str_disasm_lit     = 13
 str_disasm_sdc     = 14
+str_disasm_0br     = 15    
     
 
 ; Since we can't fit a 16-bit address in a register, we use indexes as offsets
@@ -33,7 +34,7 @@ string_table:
         .word s_ok, s_compiled, s_redefined, s_wid_forth, s_abc_lower ; 0-4
         .word s_abc_upper, s_wid_editor, s_wid_asm, s_wid_root        ; 5-8
         .word s_see_flags, s_see_nt, s_see_xt, s_see_size             ; 9-12
-        .word s_disasm_lit, s_disasm_sdc                             ; 13-14
+        .word s_disasm_lit, s_disasm_sdc, s_disasm_bra                ; 13-15
 
 s_ok:         .text " ok", 0         ; note space at beginning
 s_compiled:   .text " compiled", 0   ; note space at beginning
@@ -54,7 +55,8 @@ s_see_size:   .text "size (decimal): ", 0
 
 s_disasm_lit: .text "LITERAL ", 0
 s_disasm_sdc: .text "STACK DEPTH CHECK", 0
-
+s_disasm_bra: .text "BRANCH ",0
+    
 ; ## ERROR STRINGS
 
 ; All error strings must be zero-terminated, all names start with "es_",

@@ -200,7 +200,8 @@ _print_mnemonic:
                 sta 0,x
                 stz 1,x
                 jsr xt_spaces
-
+                
+; Special handlers
                 ; Handle literals specially.
                 lda #<literal_runtime
                 cmp scratch+1
@@ -224,6 +225,28 @@ _not_literal:
                 jsr disasm_sliteral
                 jmp _printing_done
 _not_sliteral:
+                ; Handle 0branch
+                lda #<zero_branch_runtime
+                cmp scratch+1
+                bne _not_0branch
+                lda #>zero_branch_runtime
+                cmp scratch+2
+                bne _not_0branch
+                ; It's a 0branch.
+                jsr disasm_0branch
+                jmp _printing_done
+_not_0branch
+                ; Handle branch
+                lda #<branch_runtime
+                cmp scratch+1
+                bne _not_branch
+                lda #>branch_runtime
+                cmp scratch+2
+                bne _not_branch
+                ; It's a branch.
+                jsr disasm_branch
+                jmp _printing_done
+_not_branch
                 ; Try the generic JSR handler, which will use the target of the
                 ; JSR as an XT and print the name if it exists.
                 jsr disasm_jsr
@@ -372,17 +395,29 @@ disasm_sliteral:
                 jsr xt_minus            ; ( addr+4 u-4 )
                 rts
                 
-                
+
+; 0BRANCH handler
+disasm_0branch:
+                lda #'0'
+                jsr emit_a ; Print 0 before BRANCH so it becomes 0BRANCH
+                ; All other processing is identical, so fall into BRANCH handler
+; BRANCH handler
+disasm_branch:
+                lda #str_disasm_0br
+                jsr print_string_no_lf ; "BRANCH "
+                ; The address after the 0BRANCH is handled the same as a literal.
+                bra disasm_print_literal
 
 ; Literal handler
 disasm_literal:
                 lda #str_disasm_lit
                 jsr print_string_no_lf ; "LITERAL "
+disasm_print_literal:
                 ; ( addr u ) address of last byte of JSR and bytes left on the stack.
                 ; We need to print the value just after the address and move along two bytes.
                 jsr xt_swap ; switch to (u addr)
                 jsr xt_one_plus
-                
+
                 jsr xt_dup
                 jsr xt_question ; Print the value at the adress
                 ; Move along two bytes (already moved address one) to skip over the constant.
