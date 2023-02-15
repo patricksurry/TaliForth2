@@ -403,7 +403,7 @@ disasm_0branch:
                 ; All other processing is identical, so fall into BRANCH handler
 ; BRANCH handler
 disasm_branch:
-                lda #str_disasm_0br
+                lda #str_disasm_bra
                 jsr print_string_no_lf ; "BRANCH "
                 ; The address after the 0BRANCH is handled the same as a literal.
                 bra disasm_print_literal

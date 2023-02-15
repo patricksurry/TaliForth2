@@ -25,7 +25,7 @@ str_see_xt         = 11
 str_see_size       = 12
 str_disasm_lit     = 13
 str_disasm_sdc     = 14
-str_disasm_0br     = 15    
+str_disasm_bra     = 15    
     
 
 ; Since we can't fit a 16-bit address in a register, we use indexes as offsets

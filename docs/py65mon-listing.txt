@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.54.1900 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Wed Feb 15 16:04:15 2023
+; Wed Feb 15 16:46:38 2023
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -7243,7 +7243,7 @@
 .ae49	a9 30		lda #$30	                lda #'0'
 .ae4b	20 e6 8d	jsr $8de6	                jsr emit_a ; Print 0 before BRANCH so it becomes 0BRANCH
 .ae4e					disasm_branch:
-.ae4e	a9 0f		lda #$0f	                lda #str_disasm_0br
+.ae4e	a9 0f		lda #$0f	                lda #str_disasm_bra
 .ae50	20 36 d8	jsr $d836	                jsr print_string_no_lf ; "BRANCH "
 .ae53	80 05		bra $ae5a	                bra disasm_print_literal
 .ae55					disasm_literal:
@@ -10535,7 +10535,7 @@
 =12					str_see_size       = 12
 =13					str_disasm_lit     = 13
 =14					str_disasm_sdc     = 14
-=15					str_disasm_0br     = 15
+=15					str_disasm_bra     = 15
 .d3a1					string_table:
 >d3a1	c1 d3 c5 d3 cf d3 35 d4		        .word s_ok, s_compiled, s_redefined, s_wid_forth, s_abc_lower ; 0-4
 >d3a9	da d3
