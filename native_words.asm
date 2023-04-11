@@ -947,6 +947,13 @@ z_and:          rts
 xt_at_xy:
                 jsr underflow_2
 
+                ; Save the BASE and change to decimal as the ANSI escape code
+                ; values need to be in decimal.
+                lda base
+                pha
+                lda #10
+                sta base
+
                 lda #AscESC
                 jsr emit_a
                 lda #$5B        ; ASCII for "["
@@ -957,6 +964,10 @@ xt_at_xy:
                 jsr print_u
                 lda #'H'
                 jsr emit_a
+
+                ; Restore the base
+                pla
+                sta base
 
 z_at_xy:        rts
 
