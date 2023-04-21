@@ -6584,6 +6584,9 @@ xt_number:
                 lda base
                 pha
 
+                ; Make a copy of the addr u in case we need to print an error message.
+                jsr xt_two_dup
+
                 ; Look at the first character.
                 lda (2,x)
 _check_dec:                
@@ -6636,7 +6639,8 @@ _check_char:
                 lda (2,x)
                 sta 2,x
                 stz 3,x
-                jmp _single ; Single with drop the TOS for us.
+
+                jmp _drop_original_string ; Single flag will drop the TOS for us.
 _not_a_char:
                 ; This label was just a bit too far away for a single bra from
                 ; the character checking code, so we'll sneak it here and
@@ -6728,6 +6732,13 @@ _number_error:
                 ; so we print an error and abort. If the NUMBER was called
                 ; by INTERPRET, we've already checked for Forth words, so
                 ; we're in deep trouble one way or another
+                
+                ; Drop the addr u from >NUMBER and the double
+                ; (partially converted number) and print the unkown
+                ; word using the original addr u we saved at the beginning.
+                jsr xt_two_drop ; >NUMBER modified addr u
+                jsr xt_two_drop ; ud   (partially converted number)
+
                 lda #$3E        ; ASCII for ">"
                 jsr emit_a
                 jsr xt_type
@@ -6744,10 +6755,13 @@ _number_error:
 
 _all_converted:
                 ; We can drop the string info
+                inx ; Drop the current addr u
                 inx
                 inx
                 inx
-                inx
+_drop_original_string:                
+                jsr xt_two_swap  ; Drop the original addr u
+                jsr xt_two_drop  ; (was saved for unknown word error message)
 
                 ; We have a double-cell number on the Data Stack that might
                 ; actually have a minus and might actually be single-cell
