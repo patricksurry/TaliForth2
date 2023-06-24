@@ -958,9 +958,11 @@ xt_at_xy:
                 jsr emit_a
                 lda #$5B        ; ASCII for "["
                 jsr emit_a
+                jsr xt_one_plus ; AT-XY is zero based, but ANSI is 1 based
                 jsr print_u
                 lda #$3B        ; ASCII for ";"
                 jsr emit_a
+                jsr xt_one_plus ; AT-XY is zero based, but ANSI is 1 based
                 jsr print_u
                 lda #'H'
                 jsr emit_a
