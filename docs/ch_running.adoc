@@ -83,7 +83,7 @@ inside Tali Forth.
 Though the list might look unsorted, it actually reflects the priority in the
 dictionary(((dictionary))), that is, which words are found first. For instance,
 the native words (((native words))) -- those coded in assembler -- always start
-with `drop` and end with `bye`. This is the last word that Tali will find in
+with `drop` and end with `bye`. `bye` is the last word that Tali will find in
 the dictionary. footnote:[If you're going to quit anyway, speed can't be that
 important] The words before `drop` are those that are defined in high-level
 Forth. For more information on individual the words, use the `see` command.

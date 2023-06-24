@@ -3,6 +3,59 @@ After spending an entire weekend wrestling with blocks files, stacks, and
 the like, I was horrified and convinced that I had made a mistake. Who
 in their right mind would want to program in this godforsaken language! <<DH>>
 
+=== Required Tools
+
+To run Tali Forth 2 in a simulator, you will need `python3` and `py65` installed to be
+able to run `py65mon`.
+
+To assemble Tali Forth 2, you will need `64tass` and `make`.
+
+To compile the documentation for Tali Forth 2, you will need the following tools:
+
+`Ditaa` is used to generate the diagrams from text file descriptions and is
+available at https://ditaa.sourceforge.net/ Ditaa is not required if you are not
+going to change any of the diagrams.
+
+Ditaa is a java program, so I made a helper script (named just `ditaa`) to help
+run it.  You'll need to replace the path to the jar file for your system.
+
+----
+#!/bin/sh
+java -jar /path/to/jarfile/ditaa0_9.jar $@
+----
+
+`asciidoctor` and `asciidoctor-pdf` are used to generate the html and PDF versions
+of this manual.  These are rubygems are are installed by first installing ruby
+and then running the following commands:
+
+----
+sudo gem install asciidoctor
+sudo gem install asciidoctor-pdf
+----
+
+These tools have an annoying "feature" of having their version number in the
+executable name.  To work around this, I created symbolic links in my personal
+bin folder (eg. a folder in my path) as shown below.  You will need to adjust
+with the name of these utilities on your system.
+
+----
+ln -s /usr/bin/asciidoctor.ruby3.2 asciidoctor
+ln -s /usr/bin/asciidoctor-pdf.ruby3.2 asciidoctor-pdf
+----
+
+=== Optional Tools
+
+Generating the MarkDown and PDF versions of the manual is optional.  You will
+need `pandoc` (package was named `pandoc-cli` on my system) and `texlive`
+installed.  These versions of the manual are not compiled by default (only the
+HTML version is compiled by default).  If you would like the manual in these
+formats, you can use the following commands:
+
+----
+make docsmd
+make docspdf
+----
+
 === Adding New Words
 
 The simplest way to add new words to Tali Forth is to include them in the file

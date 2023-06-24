@@ -5,7 +5,7 @@ currently comes with one buffer.
 
 Before these words can be used, the user needs to write two routines: one for
 reading blocks into RAM and one for writing blocks out from RAM. Both of these
-should have the signature `( addr blk# -- )`. Once these have been written, they
+should have the signature ( addr blk# -- ). Once these have been written, they
 can be incorporated into the BLOCK word set by changing the vectors for words
 `block-read` and `block-write`. That might look like:
 
