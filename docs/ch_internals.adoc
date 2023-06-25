@@ -181,7 +181,7 @@ forms. There are four possible input sources:
 
 * The keyboard ("user input device", can be redirected)
 * A character string in memory
-* A block file
+* A block
 * A text file
 
 To check which one is being used, we first check `blk` which gives us the number
@@ -229,7 +229,7 @@ Keyboard entry::
 	This is the default. Get line of input via `accept` and return `true`
 	even if the input string was empty.
 `evaluate` string:: Return a `false` flag
-Input from a buffer:: _Not fully implemented at this time_
+Input from a block:: Blocks are evaluated as a 1024 byte string.
 Input from a file:: _Not implemented at this time_
 
 
@@ -630,14 +630,15 @@ compiled as subroutine jumps. Take a simple word such as
 when compiled with an `nc-limit` of 0 and check the actual code with `see`
 
 ----
-nt: 9AE  xt: 9B9
-flags (CO AN IM NN UF HC): 0 0 0 1 0 1
-size (decimal): 6
+see aaa
+nt: 800  xt: 80B 
+flags (CO AN IM NN UF HC): 0 0 0 1 0 1 
+size (decimal): 6 
 
-09B9  20 1C A7 20 80 8D   .. ..
+080B  20 A2 A7 20 2E 8D   .. ..
 
-9B9   A71C jsr
-9BC   8D80 jsr
+80B   A7A2 jsr     0
+80E   8D2E jsr     drop
 ----
 
 (The actual addresses might vary). Our word `aaa` consists of two subroutine
@@ -653,23 +654,23 @@ we get different code:
 
 ----
 see bbb 
-nt: 9C0  xt: 9CB 
+nt: 812  xt: 81D 
 flags (CO AN IM NN UF HC): 0 0 0 1 0 1 
 size (decimal): 11 
 
-09CB  CA CA 74 00 74 01 20 3D  D6 E8 E8  ..t.t. = ...
+081D  CA CA 74 00 74 01 20 29  D8 E8 E8  ..t.t. ) ...
 
-9CB        dex
-9CC        dex
-9CD      0 stz.zx
-9CF      1 stz.zx
-9D1   D63D jsr
-9D4        inx
-9D5        inx
+81D        dex
+81E        dex
+81F      0 stz.zx
+821      1 stz.zx
+823   D829 jsr     STACK DEPTH CHECK
+826        inx
+827        inx
 ----
 
 Even though the definition of `bbb` is the same as `aaa`, we have totally
-different code: The number 0001 is pushed to the Data Stack (the first six
+different code: The number 0000 is pushed to the Data Stack (the first six
 bytes), then we check for underflow (the next three), and finally we
 `drop` by moving X register, the Data Stack Pointer. Our word is definitely
 longer, but have just saved 12 cycles.
