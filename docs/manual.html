@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.18">
+<meta name="generator" content="Asciidoctor 2.0.20">
 <meta name="keywords" content="forth, 6502, assembler, programming, 8-bit, vintage, retro">
 <meta name="author" content="Sam Colwell, Scot W. Stevenson">
 <title>Manual for Tali Forth 2 for the 65c02</title>
@@ -210,13 +210,10 @@ table.tableblock.fit-content>caption.title{white-space:nowrap;width:0}
 .admonitionblock>table td.content{padding-left:1.125em;padding-right:1.25em;border-left:1px solid #dddddf;color:rgba(0,0,0,.6);word-wrap:anywhere}
 .admonitionblock>table td.content>:last-child>:last-child{margin-bottom:0}
 .exampleblock>.content{border:1px solid #e6e6e6;margin-bottom:1.25em;padding:1.25em;background:#fff;border-radius:4px}
-.exampleblock>.content>:first-child{margin-top:0}
-.exampleblock>.content>:last-child{margin-bottom:0}
 .sidebarblock{border:1px solid #dbdbd6;margin-bottom:1.25em;padding:1.25em;background:#f3f3f2;border-radius:4px}
-.sidebarblock>:first-child{margin-top:0}
-.sidebarblock>:last-child{margin-bottom:0}
 .sidebarblock>.content>.title{color:#7a2518;margin-top:0;text-align:center}
-.exampleblock>.content>:last-child>:last-child,.exampleblock>.content .olist>ol>li:last-child>:last-child,.exampleblock>.content .ulist>ul>li:last-child>:last-child,.exampleblock>.content .qlist>ol>li:last-child>:last-child,.sidebarblock>.content>:last-child>:last-child,.sidebarblock>.content .olist>ol>li:last-child>:last-child,.sidebarblock>.content .ulist>ul>li:last-child>:last-child,.sidebarblock>.content .qlist>ol>li:last-child>:last-child{margin-bottom:0}
+.exampleblock>.content>:first-child,.sidebarblock>.content>:first-child{margin-top:0}
+.exampleblock>.content>:last-child,.exampleblock>.content>:last-child>:last-child,.exampleblock>.content .olist>ol>li:last-child>:last-child,.exampleblock>.content .ulist>ul>li:last-child>:last-child,.exampleblock>.content .qlist>ol>li:last-child>:last-child,.sidebarblock>.content>:last-child,.sidebarblock>.content>:last-child>:last-child,.sidebarblock>.content .olist>ol>li:last-child>:last-child,.sidebarblock>.content .ulist>ul>li:last-child>:last-child,.sidebarblock>.content .qlist>ol>li:last-child>:last-child{margin-bottom:0}
 .literalblock pre,.listingblock>.content>pre{border-radius:4px;overflow-x:auto;padding:1em;font-size:.8125em}
 @media screen and (min-width:768px){.literalblock pre,.listingblock>.content>pre{font-size:.90625em}}
 @media screen and (min-width:1280px){.literalblock pre,.listingblock>.content>pre{font-size:1em}}
@@ -395,7 +392,7 @@ b.conum *{color:inherit!important}
 dt,th.tableblock,td.content,div.footnote{text-rendering:optimizeLegibility}
 h1,h2,p,td.content,span.alt,summary{letter-spacing:-.01em}
 p strong,td.content strong,div.footnote strong{letter-spacing:-.005em}
-p,blockquote,dt,td.content,span.alt,summary{font-size:1.0625rem}
+p,blockquote,dt,td.content,td.hdlist1,span.alt,summary{font-size:1.0625rem}
 p{margin-bottom:1.25rem}
 .sidebarblock p,.sidebarblock dt,.sidebarblock td.content,p.tableblock{font-size:1em}
 .exampleblock>.content{background:#fffef7;border-color:#e0e0dc;box-shadow:0 1px 4px #e0e0dc}
@@ -519,6 +516,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#_developing">Developing</a>
 <ul class="sectlevel2">
+<li><a href="#_required_tools">Required Tools</a></li>
+<li><a href="#_optional_tools">Optional Tools</a></li>
 <li><a href="#_adding_new_words">Adding New Words</a></li>
 <li><a href="#_deeper_changes">Deeper Changes</a></li>
 <li><a href="#_converting_forth_to_assembly">Converting Forth to Assembly</a></li>
@@ -969,7 +968,7 @@ interested, a later chapter will provide far more detail.</p>
 <h3 id="_downloading">Downloading</h3>
 <div class="paragraph">
 <p>Tali Forth 2 lives on GitHub at
-<a href="https://github.com/scotws/TaliForth2" class="bare">https://github.com/scotws/TaliForth2</a>. This is where you will always find the
+<a href="https://github.com/SamCoVT/TaliForth2" class="bare">https://github.com/SamCoVT/TaliForth2</a>. This is where you will always find the
 current version. You can either clone the code with git or simply
 download it. To just test Tali Forth, all you need is the binary file
 <code>taliforth-py65mon.bin</code>.</p>
@@ -999,8 +998,13 @@ sudo pip install -U py65</code></pre>
 </div>
 <div class="paragraph">
 <p>If you don&#8217;t have <code>pip</code> installed, you will have to add it first with
-something like <code>sudo apt-get install python-pip</code> (Ubuntu Linux). There is a
-<code>setup.py</code> script as part of the package.</p>
+something like <code>sudo apt-get install python-pip</code> (Ubuntu Linux).  Some systems
+use pip3 and you can run the above commands with pip3 instead of pip.</p>
+</div>
+<div class="paragraph">
+<p>If you are on windows, you will need to download and install Python 3
+first.  Once Python is installed, the above commands should work from
+a Windows command prompt.</p>
 </div>
 </div>
 <div class="sect3">
@@ -1166,28 +1170,29 @@ box:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>order .wid drop dup swap ! @ over &gt;r r&gt; r@ nip rot -rot tuck , c@ c! +! execute
-emit type . u. u.r .r d. d.r ud. ud.r ? false true space 0 1 2 2dup ?dup + - abs
-dabs and or xor rshift lshift pick char [char] char+ chars cells cell+ here 1-
-1+ 2* 2/ = &lt;&gt; &lt; u&lt; u&gt; &gt; 0= 0&lt;&gt; 0&gt; 0&lt; min max 2drop 2swap 2over 2! 2@ 2variable
-2constant 2literal 2r@ 2r&gt; 2&gt;r invert negate dnegate c, bounds spaces bl
--trailing -leading /string refill accept input&gt;r r&gt;input unused depth key allot
-create does&gt; variable constant value to s&gt;d d&gt;s d- d+ erase blank fill find-name
-' ['] name&gt;int int&gt;name name&gt;string &gt;body defer latestxt latestnt parse-name
-parse source source-id : ; :noname compile, [ ] literal sliteral ." s" s\"
-postpone immediate compile-only never-native always-native allow-native nc-limit
-strip-underflow abort abort" do ?do i j loop +loop exit unloop leave recurse
-quit begin again state evaluate base digit? number &gt;number hex decimal count m*
-um* * um/mod sm/rem fm/mod / /mod mod */mod */ \ move cmove&gt; cmove pad cleave
-hexstore within &gt;in &lt;# # #s #&gt; hold sign output input cr page at-xy marker words
-wordsize aligned align bell dump .s disasm compare search environment? find word
-( .( if then else repeat until while case of endof endcase defer@ defer! is
-action-of useraddr buffer: buffstatus buffblocknum blkbuffer scr blk block-write
-block-write-vector block-read block-read-vector save-buffers block update buffer
-empty-buffers flush load thru list block-ramdrive-init definitions wordlist
-search-wordlist set-current get-current set-order get-order root-wordlist
-assembler-wordlist editor-wordlist forth-wordlist only also previous &gt;order
-forth see ed cold bye</pre>
+<pre>drop dup swap ! @ over &gt;r r&gt; r@ nip rot -rot tuck , c@ c! +! execute emit
+type . u. u.r .r d. d.r ud. ud.r ? false true space 0 1 2 2dup ?dup + - 1- 1+
+2* 2/ abs dabs and or xor rshift lshift pick char [char] char+ chars cells
+cell+ here = &lt;&gt; &lt; u&lt; u&gt; &gt; 0= 0&lt;&gt; 0&gt; 0&lt; min max 2drop 2swap 2over 2! 2@
+2variable 2constant 2literal 2r@ 2r&gt; 2&gt;r invert negate dnegate c, bounds
+spaces bl -trailing -leading /string refill accept input&gt;r r&gt;input unused
+depth key allot create does&gt; variable constant value to s&gt;d d&gt;s d- d+ erase
+blank fill find-name ' ['] name&gt;int int&gt;name name&gt;string &gt;body defer latestxt
+latestnt parse-name parse execute-parsing source source-id : ; :noname
+compile, [ ] literal sliteral ." s" s\" postpone immediate compile-only
+never-native always-native allow-native nc-limit strip-underflow abort abort"
+do ?do i j loop +loop exit unloop leave recurse quit begin again state
+evaluate base digit? number &gt;number hex decimal count m* um* * um/mod sm/rem
+fm/mod / /mod mod */mod */ \ move cmove&gt; cmove pad cleave hexstore within &gt;in
+&lt;# # #s #&gt; hold sign output input cr page at-xy marker words wordsize aligned
+align bell dump .s disasm compare search environment? find word ( .( if then
+else repeat until while case of endof endcase defer@ defer! is action-of
+useraddr buffer: buffstatus buffblocknum blkbuffer scr blk block-write
+block-write-vector block-read block-read-vector save-buffers block update
+buffer empty-buffers flush load thru list block-ramdrive-init definitions
+wordlist search-wordlist set-current get-current set-order get-order
+root-wordlist assembler-wordlist editor-wordlist forth-wordlist only also
+previous &gt;order order forth see ed cold bye</pre>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -1207,7 +1212,7 @@ inside Tali Forth.
 <p>Though the list might look unsorted, it actually reflects the priority in the
 dictionary, that is, which words are found first. For instance,
 the native words &#8201;&#8212;&#8201;those coded in assembler&#8201;&#8212;&#8201;always start
-with <code>drop</code> and end with <code>bye</code>. This is the last word that Tali will find in
+with <code>drop</code> and end with <code>bye</code>. <code>bye</code> is the last word that Tali will find in
 the dictionary. <sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup> The words before <code>drop</code> are those that are defined in high-level
 Forth. For more information on individual the words, use the <code>see</code> command.</p>
 </div>
@@ -1230,6 +1235,24 @@ lowercased as they are created and entered into the dictionary.  There is a
 slight speed advantage during lookup to using lowercase words (because Tali
 doesn&#8217;t have to lowercase the entered text), so all of the tests for Tali are
 in lowercase.</p>
+</div>
+<div class="sect3">
+<h4 id="_numbers">Numbers</h4>
+<div class="paragraph">
+<p>If a word is not found in the dictionary, Tali Forth tries to turn it into a
+number using the current <code>base</code>.  Only if it can&#8217;t be turned into a number will
+Tali report an error.  Tali supports the ANS standard prefix characters for
+specifying binary, decimal, and hex shown below.  It is recommended to enter
+your numbers using these prefix characters when writing code that will be run
+later, as it makes the code insensitive to the current <code>base</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>%100 \ A binary number (decimal value 4)
+#100 \ A decimal number (decimal value 100)
+$100 \ A hexadecimal number (decimal value 256)</pre>
+</div>
+</div>
 </div>
 <div class="sect3">
 <h4 id="_the_ans_standard">The ANS Standard</h4>
@@ -1655,7 +1678,7 @@ currently comes with one buffer.</p>
 <div class="paragraph">
 <p>Before these words can be used, the user needs to write two routines: one for
 reading blocks into RAM and one for writing blocks out from RAM. Both of these
-should have the signature <code>( addr blk#&#8201;&#8212;&#8201;)</code>. Once these have been written, they
+should have the signature ( addr blk#&#8201;&#8212;&#8201;). Once these have been written, they
 can be incorporated into the BLOCK word set by changing the vectors for words
 <code>block-read</code> and <code>block-write</code>. That might look like:</p>
 </div>
@@ -2644,7 +2667,7 @@ instruction is coded.</p>
 </div>
 <div class="paragraph">
 <p><strong>The assembler instruction <code>and</code></strong> receives a dot for absolute addressing to avoid
-conflict with the Forth word of the same name: <code>and. 1000</code> is the correct form.</p>
+conflict with the Forth word of the same name: <code>1000. and</code> is the correct form.</p>
 </div>
 <div class="paragraph">
 <p><strong><code>brk</code> is a two-byte instruction</strong> because the assembler enforces the signature
@@ -2756,7 +2779,7 @@ makes it easier to correct typing errors. Adding our code:</p>
 </table>
 </div>
 <div class="paragraph">
-<p>Unless we ran <code>hex</code> before adding the word, the string is no stored at the
+<p>Unless we ran <code>hex</code> before adding the word, the string is now stored at the
 decimal addresss 5000. However, we&#8217;ve added the words as hexadecimal code. To
 call <code>hexstore</code>, we must switch at the right time:</p>
 </div>
@@ -2820,16 +2843,14 @@ LDA ($80)</pre>
 <div class="paragraph">
 <p>The disassembler prints the address of the instruction, followed by any operand
 and the mnemonic. To get the code of <code>drop</code>, for instance, we can use
-<code>' drop 10 disasm</code>:</p>
+<code>' drop 6 disasm</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>36204    119 cpx.#
-36206      3 bmi
-36208  56282 jmp
-36211        inx
-36212        inx
-36213        rts</pre>
+<pre>36142  55337 jsr     STACK DEPTH CHECK
+36145        inx
+36146        inx
+36147        rts</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2838,20 +2859,118 @@ base. So <code>see drop</code> produces:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre> nt: CF04  xt: 8D6C  UF
- size (decimal): 9
+<pre>nt: BC3E  xt: 8D2E
+flags (CO AN IM NN UF HC): 0 0 0 0 1 0
+size (decimal): 5
 
-8D6C  E0 77 30 03 4C DA DB E8  E8  .w0.L... .
+8D2E  20 29 D8 E8 E8   )...
 
-8D6C     77 cpx.#
-8D6E      3 bmi
-8D70   DBDA jmp
-8D73        inx
-8D74        inx</pre>
+8D2E   D829 jsr     STACK DEPTH CHECK
+8D31        inx
+8D32        inx</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Note that <code>see</code> does not print the final <code>rts</code> instruction.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_determining_address_labels">Determining address labels</h4>
+<div class="paragraph">
+<p>When disassembling, using either <code>disasm</code> or <code>see</code>, the dictionary is searched
+anytime a <code>jsr</code> is encountered and the name of the word will be printed if a
+word with that address is found.  Some interal routines in Tali are not in the
+Forth dictionary and so no name will be printed.  Here is an example when running
+<code>see order</code></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>nt: C9FF  xt: 9845
+flags (CO AN IM NN UF HC): 0 0 0 0 0 0
+size (decimal): 42
+
+9845  20 63 89 20 34 91 B5 00  F0 1E A8 E8 E8 B5 00 5A   c. 4... .......Z
+9855  20 70 98 7A 88 D0 F4 20  1E A1 20 1E A1 20 29 91   p.z...  .. .. ).
+9865  B5 00 20 70 98 20 63 89  E8 E8  .. p. c. ..
+
+9845   8963 jsr     cr
+9848   9134 jsr     get-order
+984B      0 lda.zx
+984D     1E beq
+984F        tay
+9850        inx
+9851        inx
+9852      0 lda.zx
+9854        phy
+9855   9870 jsr
+9858        ply
+9859        dey
+985A     F4 bne
+985C   A11E jsr     space
+985F   A11E jsr     space
+9862   9129 jsr     get-current
+9865      0 lda.zx
+9867   9870 jsr
+986A   8963 jsr     cr
+986D        inx
+986E        inx</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This word is a mixture of assembly and other forth words.  Note that the second
+to last jsr shows a destination address of 9870 (in hex).  To trace this
+further, consult the labelmap for your platform in the /docs folder.  In this
+case, searching for 9870 in the labelmap finds the following label and the
+assembly files can be searched to locate this routine if you need to see its
+source.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>order_print_wid_string= $9870</pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_literals_and_strings">Literals and Strings</h4>
+<div class="paragraph">
+<p>Tali compiles literals into words by saving a jsr to a helper
+routine followed immediately by the data for the literal.  During
+disassembly, the literal value will be printed and the disassembler will resume
+disassembling from just after the literal value.  Doubles are saved in memory as
+two single cell literal values.</p>
+</div>
+<div class="paragraph">
+<p>Strings are similar, however they are saved in memory as a jmp over the string
+data, then the string data, then a jsr to the string handling routine, and
+finally the address and length of the string (similar to how literals are
+handled).  When the disassembler encounters a string, it will print SLITERAL
+followed by the address and length of the string.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>: example s" This is a string" ;  ok
+see example
+nt: 800  xt: 80F
+flags (CO AN IM NN UF HC): 0 0 0 1 0 1
+size (decimal): 26
+
+080F  4C 22 08 54 68 69 73 20  69 73 20 61 20 73 74 72  L".This  is a str
+081F  69 6E 67 20 A9 A0 12 08  10 00  ing .... ..
+
+80F    822 jmp
+822   A0A9 jsr     SLITERAL 812 10
+ ok</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To see the value of the string, you can either look at the memory dump above the
+disassembly or you can <code>type</code> the string yourself (note that <code>see</code> will always
+give the values in hex while <code>disasm</code> will use the current <code>base</code>):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>hex 812 10 type</pre>
+</div>
 </div>
 </div>
 <div class="sect3">
@@ -3228,7 +3347,7 @@ forms. There are four possible input sources:</p>
 <p>A character string in memory</p>
 </li>
 <li>
-<p>A block file</p>
+<p>A block</p>
 </li>
 <li>
 <p>A text file</p>
@@ -3317,10 +3436,10 @@ even if the input string was empty.</p>
 </tr>
 <tr>
 <td class="hdlist1">
-Input from a buffer
+Input from a block
 </td>
 <td class="hdlist2">
-<p><em>Not fully implemented at this time</em></p>
+<p>Blocks are evaluated as a 1024 byte string.</p>
 </td>
 </tr>
 <tr>
@@ -3877,14 +3996,15 @@ compiled as subroutine jumps. Take a simple word such as</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>nt: 9AE  xt: 9B9
+<pre>see aaa
+nt: 800  xt: 80B
 flags (CO AN IM NN UF HC): 0 0 0 1 0 1
 size (decimal): 6
 
-09B9  20 1C A7 20 80 8D   .. ..
+080B  20 A2 A7 20 2E 8D   .. ..
 
-9B9   A71C jsr
-9BC   8D80 jsr</pre>
+80B   A7A2 jsr     0
+80E   8D2E jsr     drop</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -3904,24 +4024,24 @@ and define a new word with the same instructions with</p>
 <div class="listingblock">
 <div class="content">
 <pre>see bbb
-nt: 9C0  xt: 9CB
+nt: 812  xt: 81D
 flags (CO AN IM NN UF HC): 0 0 0 1 0 1
 size (decimal): 11
 
-09CB  CA CA 74 00 74 01 20 3D  D6 E8 E8  ..t.t. = ...
+081D  CA CA 74 00 74 01 20 29  D8 E8 E8  ..t.t. ) ...
 
-9CB        dex
-9CC        dex
-9CD      0 stz.zx
-9CF      1 stz.zx
-9D1   D63D jsr
-9D4        inx
-9D5        inx</pre>
+81D        dex
+81E        dex
+81F      0 stz.zx
+821      1 stz.zx
+823   D829 jsr     STACK DEPTH CHECK
+826        inx
+827        inx</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Even though the definition of <code>bbb</code> is the same as <code>aaa</code>, we have totally
-different code: The number 0001 is pushed to the Data Stack (the first six
+different code: The number 0000 is pushed to the Data Stack (the first six
 bytes), then we check for underflow (the next three), and finally we
 <code>drop</code> by moving X register, the Data Stack Pointer. Our word is definitely
 longer, but have just saved 12 cycles.</p>
@@ -4165,6 +4285,73 @@ in their right mind would want to program in this godforsaken language! <a href=
 <div class="attribution">
 &#8212; Doug Hoffman<br>
 <cite>Some notes on Forth from a novice user</cite>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_required_tools">Required Tools</h3>
+<div class="paragraph">
+<p>To run Tali Forth 2 in a simulator, you will need <code>python3</code> and <code>py65</code> installed to be
+able to run <code>py65mon</code>.</p>
+</div>
+<div class="paragraph">
+<p>To assemble Tali Forth 2, you will need <code>64tass</code> and <code>make</code>.</p>
+</div>
+<div class="paragraph">
+<p>To compile the documentation for Tali Forth 2, you will need the following tools:</p>
+</div>
+<div class="paragraph">
+<p><code>Ditaa</code> is used to generate the diagrams from text file descriptions and is
+available at <a href="https://ditaa.sourceforge.net/" class="bare">https://ditaa.sourceforge.net/</a> Ditaa is not required if you are not
+going to change any of the diagrams.</p>
+</div>
+<div class="paragraph">
+<p>Ditaa is a java program, so I made a helper script (named just <code>ditaa</code>) to help
+run it.  You&#8217;ll need to replace the path to the jar file for your system.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>#!/bin/sh
+java -jar /path/to/jarfile/ditaa0_9.jar $@</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>asciidoctor</code> and <code>asciidoctor-pdf</code> are used to generate the html and PDF versions
+of this manual.  These are rubygems are are installed by first installing ruby
+and then running the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>sudo gem install asciidoctor
+sudo gem install asciidoctor-pdf</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>These tools have an annoying "feature" of having their version number in the
+executable name.  To work around this, I created symbolic links in my personal
+bin folder (eg. a folder in my path) as shown below.  You will need to adjust
+with the name of these utilities on your system.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>ln -s /usr/bin/asciidoctor.ruby3.2 asciidoctor
+ln -s /usr/bin/asciidoctor-pdf.ruby3.2 asciidoctor-pdf</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_optional_tools">Optional Tools</h3>
+<div class="paragraph">
+<p>Generating the MarkDown and PDF versions of the manual is optional.  You will
+need <code>pandoc</code> (package was named <code>pandoc-cli</code> on my system) and <code>texlive</code>
+installed.  These versions of the manual are not compiled by default (only the
+HTML version is compiled by default).  If you would like the manual in these
+formats, you can use the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>make docsmd
+make docspdf</pre>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -4978,17 +5165,15 @@ ab pop# lda $00,x&lt;tab&gt;&lt;tab&gt;; pop&lt;cr&gt;sta $&lt;LSB&gt;&lt;cr&gt;
 <div class="sect1">
 <h2 id="_future_and_long_term_plans">Future and Long-Term plans</h2>
 <div class="sectionbody">
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
-</td>
-<td class="content">
-This section is missing. See the GitHub page for further details.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>Scot has moved on to bigger things (eg. processors with more bits).  Sam continues
+to provide support and bugfixes and maintains the current repository.  Help is
+also generally available at the 6502.org Users Forum in the Forth category.
+<a href="http://forum.6502.org/viewforum.php?f=9" class="bare">http://forum.6502.org/viewforum.php?f=9</a></p>
+</div>
+<div class="paragraph">
+<p>See the GitHub page for further details.
+<a href="https://github.com/SamCoVT/TaliForth2" class="bare">https://github.com/SamCoVT/TaliForth2</a></p>
 </div>
 </div>
 </div>
@@ -9416,7 +9601,7 @@ count the final RTS.</p>
 <div class="sectionbody">
 <div class="paragraph">
 <p>The best way to point out a bug or make any other form of a comment is on Tali
-Forth&#8217;s page on GitHub at <a href="https://github.com/scotws/TaliForth2" class="bare">https://github.com/scotws/TaliForth2</a> There, you can
+Forth&#8217;s page on GitHub at <a href="https://github.com/SamCoVT/TaliForth2" class="bare">https://github.com/SamCoVT/TaliForth2</a> There, you can
 "open an issue", which allows other people who might have the same problem to
 help even when the author is not available.</p>
 </div>
@@ -9877,7 +10062,7 @@ under <a href="https://www.ubuntu.com/">Ubuntu</a> Linux 16.04 LTS.</p>
 <div id="footer">
 <div id="footer-text">
 Version 1.0<br>
-Last updated 2022-11-22 19:20:51 -0500
+Last updated 2023-06-25 15:52:10 -0400
 </div>
 </div>
 </body>

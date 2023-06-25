@@ -93,5 +93,8 @@ docs: docs/manual.html docs-diagrams
 docsmd: docs/manual.html
 	cd docs && ./asciidoc_to_markdown.sh
 
+docspdf:	docs
+	cd docs && asciidoctor-pdf -v manual.adoc
+
 # A convenience target for preparing for a git commit.
 gitready: docs all tests

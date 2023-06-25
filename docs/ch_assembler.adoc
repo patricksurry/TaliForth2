@@ -294,7 +294,7 @@ backtracking to fill in the address that is not known when the jump or branch
 instruction is coded.
 
 *The assembler instruction `and`* receives a dot for absolute addressing to avoid
-conflict with the Forth word of the same name: `and. 1000` is the correct form.
+conflict with the Forth word of the same name: `1000. and` is the correct form.
 
 *`brk` is a two-byte instruction* because the assembler enforces the signature
 byte. You shouldn't use `brk` anyway.
@@ -373,7 +373,7 @@ makes it easier to correct typing errors. Adding our code:
 <1> Save string at address 5000
 <2> Shows us length of number string saved
 
-Unless we ran `hex` before adding the word, the string is no stored at the
+Unless we ran `hex` before adding the word, the string is now stored at the
 decimal addresss 5000. However, we've added the words as hexadecimal code. To
 call `hexstore`, we must switch at the right time:
 

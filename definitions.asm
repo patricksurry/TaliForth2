@@ -118,7 +118,7 @@ AscCP   = $10  ; CTRL-p (used to recall previous input history)
 AscCN   = $0e  ; CTRL-n (used to recall next input history)
 
 ; DICTIONARY FLAGS
-; The first three bits are currently unused
+; The first two bits are currently unused
 CO = 1  ; Compile Only
 AN = 2  ; Always Native Compile
 IM = 4  ; Immediate Word

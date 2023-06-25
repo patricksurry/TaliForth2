@@ -66,7 +66,13 @@ include::ch_internals.adoc[]
 include::ch_developing.adoc[]
 
 == Future and Long-Term plans
-WARNING: This section is missing. See the GitHub page for further details.
+Scot has moved on to bigger things (eg. processors with more bits).  Sam continues
+to provide support and bugfixes and maintains the current repository.  Help is
+also generally available at the 6502.org Users Forum in the Forth category.
+http://forum.6502.org/viewforum.php?f=9
+
+See the GitHub page for further details.
+https://github.com/SamCoVT/TaliForth2
 
 
 // --------------------------------------------------------
@@ -92,7 +98,7 @@ include::ch_glossary.adoc[]
 == Reporting Problems
 
 The best way to point out a bug or make any other form of a comment is on Tali
-Forth's page on GitHub at https://github.com/scotws/TaliForth2 There, you can
+Forth's page on GitHub at https://github.com/SamCoVT/TaliForth2 There, you can
 "open an issue", which allows other people who might have the same problem to
 help even when the author is not available.
 
