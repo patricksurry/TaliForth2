@@ -9731,6 +9731,11 @@ z_space:        rts
 xt_spaces:
                 jsr underflow_1
 
+                ; ANS says this word takes a signed value but prints no spaces
+                ; for negative values.
+                jsr xt_zero
+                jsr xt_max
+
                 ; catch any zero in TOS fast
                 lda 0,x
                 ora 1,x
