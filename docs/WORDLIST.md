@@ -23,7 +23,7 @@ RTS instruction at the end of each word.
 | ALWAYS_NATIVE | `always-native` | Tali Forth | 13 | **auto** |
 | AND | `and` | ANS core | 17 | **auto** |
 | ASSEMBLER_WORDLIST | `assembler-wordlist` | Tali Assembler | 8 | tested |
-| AT_XY | `at-xy` | ANS facility | 39 | tested |
+| AT_XY | `at-xy` | ANS facility | 45 | tested |
 | BACKSLASH | `\` | ANS core ext | 8 | **auto** |
 | BASE | `base` | ANS core | 8 | **auto** |
 | BEGIN | `begin` | ANS core | 3 | **auto** |
@@ -218,7 +218,7 @@ RTS instruction at the end of each word.
 | SOURCE | `source` | ANS core | 20 | **auto** |
 | SOURCE_ID | `source-id` | ANS core ext | 10 | tested |
 | SPACE | `space` | ANS core | 5 | **auto** |
-| SPACES | `spaces` | ANS core | 53 | **auto** |
+| SPACES | `spaces` | ANS core | 59 | **auto** |
 | STAR | `*` | ANS core | 8 | **auto** |
 | STAR_SLASH | `*/` | ANS core | 8 | **auto** |
 | STAR_SLASH_MOD | `*/mod` | ANS core | 15 | **auto** |
