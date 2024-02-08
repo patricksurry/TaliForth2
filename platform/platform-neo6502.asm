@@ -147,9 +147,6 @@ TALI_OPTION_CR_EOL := [ "cr" ]
 ;TALI_OPTION_CR_EOL := [ "cr" "lf" ]
 
 
-; Make sure the above options are set BEFORE this include.
-
-
 
 ; Put the kernel init first (at $8000)
 
@@ -194,6 +191,9 @@ kernel_putc = WriteCharacter
 
 platform_bye:
                 brk
+
+
+; Make sure the options are set BEFORE this include.
 
 ; Put the guts of Tali Forth 2 here.
 .include "../taliforth.asm" ; zero page variables, definitions
