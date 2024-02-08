@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.54.1900 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Wed Nov  1 09:15:42 2023
+; Thu Feb  8 09:04:37 2024
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -22,6 +22,7 @@
 =$ff					padoffset = $ff              ; offset from CP to PAD (holds number strings)
 =["ed","editor","ramdrive","block","environment?","assembler","wordlist"]
 					TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "wordlist" ]
+=["lf"]					TALI_OPTION_CR_EOL := [ "lf" ]
 
 ;******  Processing file: platform/../taliforth.asm
 
