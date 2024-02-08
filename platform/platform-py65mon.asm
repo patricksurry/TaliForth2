@@ -121,6 +121,19 @@ TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "a
 ;     be compiled into the FORTH wordlist. (~0.9K)
 
 
+; TALI_OPTION_CR_EOL sets the character(s) that are printed by the word
+; CR in order to move the cursor to the next line.  The default is "lf"
+; for a line feed character (#10).  "cr" will use a carriage return (#13).
+; Having both will use a carriage return followed by a line feed.  This
+; only affects output.  Either CR or LF can be used to terminate lines
+; on the input.
+
+TALI_OPTION_CR_EOL := [ "lf" ]
+;TALI_OPTION_CR_EOL := [ "cr" ]
+;TALI_OPTION_CR_EOL := [ "cr" "lf" ]
+
+
+; Make sure the above options are set BEFORE this include.
 
 .include "../taliforth.asm" ; zero page variables, definitions
 
