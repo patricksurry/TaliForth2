@@ -2436,8 +2436,14 @@ z_count:        rts
 ; ## "cr"  auto  ANS core
         ; """https://forth-standard.org/standard/core/CR"""
 xt_cr:
+.if "cr" in TALI_OPTION_CR_EOL        
+                lda #AscCR
+                jsr emit_a
+.endif
+.if "lf" in TALI_OPTION_CR_EOL        
                 lda #AscLF
                 jsr emit_a
+.endif
 z_cr:           rts
 
 

@@ -1719,6 +1719,7 @@ xt_min		= $9534
 nt_asm_push_a	= $d3b8
 z_r_fetch	= $9a91
 z_tick		= $a230
+TALI_OPTION_CR_EOL := ["lf"]
 str_see_nt	= 10
 z_hexstore	= $91d6
 ed_head		= 46
