@@ -11,7 +11,6 @@
 ( Public License, v. 2.0. If a copy of the MPL was not)
 ( distributed with this file, You can obtain)
 ( one at https://mozilla.org/MPL/2.0/.)
-( ---)
 ( Highly portable block editor )
 ( -- works under nearly every ANS Forth)
 ( I can think of, and with only a single screenful of words,)
@@ -21,7 +20,6 @@
 (        vi  --  From ed in Pygmy.  Re-edits last edited )
 (        block. BJC renamed ed to vi b/c of conflict with )
 (        Tali line editor )
-( ---)
 ( I use CREATE instead of VARIABLE because I can statically)
 ( initialize the variables at load-time with no overhead.)  
 ( Stole this idea from a7r in the #Forth IRC channel. )
@@ -32,12 +30,10 @@
 
 ( 2.1 -- Fixed stack overflow bugs; forgot to DROP in the)
 (  non-default key handlers. )
-( ---)
 
 ( BJC adds for Tali Forth )
 ( BJC: all comments converted to parens. )
 (      Tali does not support slash comments in blocks. )
-
 marker *vibe*
 char 0 constant '0
 : not 0= ; allow-native
@@ -46,9 +42,7 @@ char 0 constant '0
 : u>= u< not ; allow-native
 : u<= u> not ; allow-native
     
-( ---)
 ( Editor Constants )
-
 CHAR i CONSTANT 'i   ( Insert mode )
 CHAR r CONSTANT 'r   ( Replace mode )
 CHAR c CONSTANT 'c   ( Command mode )
@@ -60,7 +54,6 @@ CHAR A CONSTANT 'A
 CHAR Z CONSTANT 'Z
 CHAR $ CONSTANT '$
 
-( ---)
 ( Editor State )
  1 scr !   	  ( Current block )
  0 CREATE x ,     ( Cursor X position 0..63 )
@@ -70,9 +63,7 @@ CHAR $ CONSTANT '$
 ( GForth-specific )
 CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 
-( ---)
 ( Editor Display )
-
 : mode. 63 0 AT-XY mode @ EMIT ;
 : scr. 0 0 AT-XY ." Block: " scr @ . ."      " ;
 : header scr. mode. ;
@@ -86,19 +77,15 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : card 0 1 AT-XY border 16lines border ;
 : cursor x @ 1+ y @ 2 + AT-XY ;
 : screen header card cursor ;
-( ---)
-( Editor State Control )
 
+( Editor State Control )
 : insert 'i mode ! ;
 : replace 'r mode ! ;
 : cmd 'c mode ! ;
-
 : 0bounds scr @ 0 MAX 32767 MIN scr ! ;
 : prevblock -2 scr +! 0bounds ;
 : nextblock  2 scr +! 0bounds ;
 : toggleshadow 1 scr @ XOR scr ! ;
-
-( ---)
 
 ( Editor Cursor Control )
 : 64* 2* 2* 2* 2* 2* 2* ;
@@ -111,7 +98,6 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : flushRight 63 x ! seekLeft ;
 : boundX x @ 0 MAX 63 MIN x ! ;
 : boundY y @ 0 MAX 15 MIN y ! ;
-( ---)
 : 1bounds boundX boundY ;
 : left -1 x +! 1bounds ;
 : right 1 x +! 1bounds ;
@@ -121,9 +107,8 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : beep drop 7 EMIT ;
 : nextline y @ 15 < IF flushLeft down THEN ;
 : next x @ 63 = IF nextline EXIT THEN right ;
-( ---)
-( Editor Insert/Replace Text )
 
+( Editor Insert/Replace Text )
 : curln 0 y @ where ;
 : eol 63 y @ where ;
 : place wh C! UPDATE next ;
@@ -132,7 +117,7 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : openRight -eol? IF openr THEN ;
 : inserting? mode @ 'i = ;
 : chr inserting? IF openRight THEN place ;
-( ---)
+
 ( Editor Commands: Quit, cursor, block, et. al. )
 : $$c24 DROP flushright ;            ( $ )
 : $$c30 DROP flushLeft ;             ( 0 )
@@ -149,7 +134,7 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : $$c6B DROP up ;                    ( k )
 : $$c6C DROP right ;                 ( l )
 : $$i1B DROP cmd ;                   ( escape )
-( ---)
+
 ( Editor Backspace/Delete )
 : padding 32 eol C! UPDATE ;
 : del wh DUP 1+ SWAP 63 x @ - MOVE UPDATE ;
@@ -159,7 +144,7 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : nextln eol 1+ ;
 : #chrs scr @ BLOCK 1024 + nextln - ;
 : delline nextln curln #chrs MOVE  0 15 where 64 32 FILL ;
-( ---)
+
 ( Editor Carriage Return )
 : copydown y @ 14 < IF nextln DUP 64 + #chrs 64 - MOVE THEN ;
 : blankdown nextln 64 32 FILL UPDATE ;
@@ -170,7 +155,7 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : retrn inserting? IF splitline THEN flushleft nextline ;
 : return y @ 15 < IF retrn THEN ;
 : vacate flushleft splitline ;
-( ---)
+
 ( Editor Wipe Block )
 : msg 0 20 AT-XY ." Are you sure? (Y/N) " ;
 : valid? DUP 'n = OVER 'y = OR ;
@@ -181,7 +166,7 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : no? msg validkey clrmsg 'n = ;
 : ?confirm no? IF R> DROP THEN ;
 : wipe ?confirm scr @ BLOCK 1024 32 FILL UPDATE 0 x ! 0 y ! ;
-( ---)
+
 ( Editor Commands: backspace, delete, et. al. )
 : $$c44 DROP delline ;                   ( D )
 : $$c4F DROP vacate insert ;             ( O )
@@ -192,7 +177,7 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : $$i08 DROP backspace ;                 ( bs )
 : $$i0D DROP return ;                    ( cr )
 : $$i7F DROP backspace ;                 ( DEL -- for Unix )
-( ---)
+
 ( Editor Keyboard Handler )
 ( Word name key: $ $ _ _ _ )
 (                    | | | )
@@ -201,7 +186,6 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 (                      | | )
 ( Key code hex#.  -----+-+ )
 ( Called with  k -- where k is the ASCII key code. )
-( ---)
 : keyboard KEY ;
 : cmd? mode @ 'c = ;
 : ins? mode @ 'i = mode @ 'r = OR ;
@@ -216,5 +200,4 @@ CREATE wordname 5 C, '$ C, '$ C, 0 C, 0 C, 0 C,
 : editor BEGIN keyboard handler screen AGAIN ;
 : vi page screen editor ;
 : vibe scr ! vi ;
-( ---)
 
