@@ -7,8 +7,11 @@
 ; binary file in the "storage" folder and use the following commands to
 ; load and start Tali Forth 2.
 ;
-; load "taliforth-neo6502.bin", $8000
-; sys $8000
+; load "taliforth-neo6502.bin", $a000
+; sys $a000
+; 
+; simulator commandline:
+; neo taliforth-neo6502.bin@a000 run@a000
 
 
         ; 65C02 processor (Tali will not compile on older 6502)
