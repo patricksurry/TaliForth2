@@ -7,8 +7,11 @@
 ; binary file in the "storage" folder and use the following commands to
 ; load and start Tali Forth 2.
 ;
-; load "taliforth-neo6502.bin", $8000
-; sys $8000
+; load "taliforth-neo6502.bin", $a000
+; sys $a000
+; 
+; simulator commandline:
+; neo taliforth-neo6502.bin@a000 run@a000
 
 
         ; 65C02 processor (Tali will not compile on older 6502)
@@ -17,7 +20,7 @@
         .enc "none"
 
         ; Where to start Tali Forth 2 in ROM (or RAM if loading it) 
-        * = $8000
+        * = $a000
 
 ; I/O facilities are handled in these separate kernel files because of their
 ; hardware dependencies. See docs/memorymap.txt for a discussion of Tali's
@@ -67,11 +70,11 @@
 ;           |                   |
 ;           |                   |
 ;           |                   |
-;    $7C00  +-------------------+  hist_buff, cp_end
+;    $9C00  +-------------------+  hist_buff, cp_end
 ;           |   Input History   |
 ;           |    for ACCEPT     |
 ;           |  8x128B buffers   |
-;    $7fff  +-------------------+  ram_end
+;    $9fff  +-------------------+  ram_end
 
 
 ; HARD PHYSICAL ADDRESSES
@@ -82,7 +85,7 @@
 ; help people new to these things.
 
 ram_start = $0000          ; start of installed 32 KiB of RAM
-ram_end   = $8000-1        ; end of installed RAM
+ram_end   = $a000-1        ; end of installed RAM
 zpage     = ram_start      ; begin of Zero Page ($0000-$00ff)
 zpage_end = $7F            ; end of Zero Page used ($0000-$007f)	
 stack0    = $0100          ; begin of Return Stack ($0100-$01ff)
