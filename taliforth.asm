@@ -543,6 +543,24 @@ underflow_4:
                 rts
 
 underflow_error:
+        ; """Display return stack to help find where underflow occurred"""
+                lda #<es_underflow2
+                sta tmp3
+                lda #>es_underflow2
+                sta tmp3+1
+                jsr print_common
+
+                tsx
+_underflow_stack_trace:
+                inx         ; stack dump to help reconstruct calling words
+                beq +
+                jsr xt_space
+                lda $100,x
+                jsr byte_to_ascii
+                bra _underflow_stack_trace
++
+                jsr xt_cr
+
                 ; Entry for COLD/ABORT/QUIT
                 lda #err_underflow      ; fall through to error
 

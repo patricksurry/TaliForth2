@@ -25,8 +25,8 @@ str_see_xt         = 11
 str_see_size       = 12
 str_disasm_lit     = 13
 str_disasm_sdc     = 14
-str_disasm_bra     = 15    
-    
+str_disasm_bra     = 15
+
 
 ; Since we can't fit a 16-bit address in a register, we use indexes as offsets
 ; to tables as error and string numbers.
@@ -56,7 +56,7 @@ s_see_size:   .text "size (decimal): ", 0
 s_disasm_lit: .text "LITERAL ", 0
 s_disasm_sdc: .text "STACK DEPTH CHECK", 0
 s_disasm_bra: .text "BRANCH ",0
-    
+
 ; ## ERROR STRINGS
 
 ; All error strings must be zero-terminated, all names start with "es_",
@@ -81,7 +81,7 @@ error_table:
         .word es_allot, es_badsource, es_compileonly, es_defer  ;  0-3
         .word es_divzero, es_noname, es_refill, es_state        ;  4-7
         .word es_syntax, es_underflow, es_negallot, es_wordlist ;  8-11
-        .word es_blockwords                                    ; 12
+        .word es_blockwords                                     ; 12
 
 es_allot:       .text "ALLOT using all available memory", 0
 es_badsource:   .text "Illegal SOURCE-ID during REFILL", 0
@@ -92,10 +92,12 @@ es_noname:      .text "Parsing failure", 0
 es_refill:      .text "QUIT could not get input (REFILL returned -1)", 0
 es_state:       .text "Already in compile mode", 0
 es_syntax:      .text "Undefined word", 0
-es_underflow:   .text "Stack underflow", 0
+es_underflow:   .text "Data stack underflow", 0
 es_negallot:    .text "Max memory freed with ALLOT", 0
 es_wordlist:    .text "No wordlists available", 0
 es_blockwords:  .text "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR",0
+
+es_underflow2:  .text "Return stack:", 0    ; second string used in err_underflow
 
 ; ## ENVIRONMENT STRINGS
 
