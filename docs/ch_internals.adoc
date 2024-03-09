@@ -206,7 +206,7 @@ character in A, rather than on the stack.
 
 The output can similarly be redirected by storing the address of your
 routine in the memory location given by the word `output`.  Tali
-expects this routine to accept the character to out in A, rather than
+expects this routine to accept the character to output in A, rather than
 on the stack.
 
 Both the input routine and output routine may use the tmp1, tmp2, and tmp3
@@ -794,34 +794,37 @@ This word has _both_ native compile stripping and underflow detection. However,
 both can be removed from newly native code words, leaving only the eight byte
 core of the word to be compiled.
 
-==== Enabling Native Compling on New Words
+==== Enabling Native Compiling on New Words
 
 By default, user-defined words are flagged with the Never-Native (NN)
 flag.  While the words used in the definition of the new word might
 have been natively compiled into the new word, this new word will
 always be compiled with a JSR when used in future new words.  To
 override this behavior and allow a user-defined word to be natively
-compiled, the user can use the `always-native` word just after the
-definition has been completed (with a semicolon).  An example of doing
-this might be:
+compiled, the user can use `allow-native` word to remove the NN flag
+and allow native compiling if the word is smaller than
+`nc-limit`. Alternatively, the `always-native` word will set the
+Always-Native (AN) flag and force native compilation, regardless of
+`nc-limit`.  These modifiers go just after the definition has been
+completed (with a semicolon).  An example of doing this might be:
 
 ----
 : double dup + ; always-native
 ----
 
-Please note adding the always-native flag to a word overrides the
-never-native flag and it also causes the word to be natively compiled
-regardless of the setting of `nc_limit`.
+Please note that adding the always-native flag to a word overrides the
+never-native flag.
 
-WARNING: Do not apply always-native to a word that has any kind of
-control structures in it, such as `if`, `case` or any kind of loop.
-If these words ever get native compiled, the JMP instructions used in
-the control structures are copied verbatim, causing them to jump back
-into the original words.
+WARNING: Do not apply `allow-native` or `always-native` to a word that
+has any kind of control structures in it, such as `if`, `case` or any
+kind of loop.  If these words ever get native compiled, the JMP
+instructions used in the control structures are copied verbatim,
+causing them to jump back into the original words.
 
 WARNING: When adding your own words in assembly, if a word has a `jmp`
-instruction in it, it should have the NN (Never Native) flag set in the
-headers.asm file and should never have the AN (Always Native) flag set.
+instruction in it, it should have the NN (Never Native) flag set in
+the headers.asm file and should never have the AN (Always Native) flag
+set.
 
 === `cmove`, `cmove>` and `move`
 
