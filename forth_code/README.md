@@ -1,4 +1,4 @@
-# Raw Forth flies for Tali Forth 2 for the 65c02
+# Raw Forth files for Tali Forth 2 for the 65c02
 
 Scot W. Stevenson <scot.stevenson@gmail.com>
 First version: 27. Feb 2018

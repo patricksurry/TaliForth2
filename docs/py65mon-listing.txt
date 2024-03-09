@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Thu Mar  7 16:55:36 2024
+; Sat Mar  9 12:57:30 2024
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -186,7 +186,7 @@
 .80a3	b5 00		lda $00,x	                lda 0,x
 .80a5	d0 05		bne $80ac	                bne _success
 .80a7	a9 06		lda #$06	                lda #err_refill
-.80a9	4c 75 d8	jmp $d875	                jmp error
+.80a9	4c 58 d8	jmp $d858	                jmp error
 .80ac					_success:
 .80ac	e8		inx		                inx                     ; drop
 .80ad	e8		inx		                inx
@@ -200,7 +200,7 @@
 .80bc	f0 02		beq $80c0	                beq _print
 .80be	a9 01		lda #$01	                lda #1                  ; number for "compile" string
 .80c0					_print:
-.80c0	20 a5 d8	jsr $d8a5	                jsr print_string
+.80c0	20 ab d8	jsr $d8ab	                jsr print_string
 .80c3	80 cf		bra $8094	                bra _get_line
 .80c5					z_cold:
 .80c5					z_abort:
@@ -508,7 +508,7 @@
 .82cb	a9 7c		lda #$7c	                lda #>cp_end
 .82cd	85 01		sta $01		                sta cp+1
 .82cf	a9 00		lda #$00	                lda #err_allot
-.82d1	4c 75 d8	jmp $d875	                jmp error
+.82d1	4c 58 d8	jmp $d858	                jmp error
 .82d4					_release:
 .82d4	ca		dex		                dex
 .82d5	ca		dex		                dex
@@ -535,7 +535,7 @@
 .82fe	a9 bc		lda #$bc	                lda #>dictionary_start
 .8300	85 03		sta $03		                sta dp+1
 .8302	a9 0a		lda #$0a	                lda #err_negallot
-.8304	4c 75 d8	jmp $d875	                jmp error
+.8304	4c 58 d8	jmp $d858	                jmp error
 .8307					_nega_done:
 .8307	b5 02		lda $02,x	                lda 2,x
 .8309	85 00		sta $00		                sta cp
@@ -594,11 +594,11 @@
 .835f	a9 5b		lda #$5b	                lda #$5B        ; ASCII for "["
 .8361	20 f6 8d	jsr $8df6	                jsr emit_a
 .8364	20 1d 98	jsr $981d	                jsr xt_one_plus ; AT-XY is zero based, but ANSI is 1 based
-.8367	20 ab d8	jsr $d8ab	                jsr print_u
+.8367	20 b1 d8	jsr $d8b1	                jsr print_u
 .836a	a9 3b		lda #$3b	                lda #$3B        ; ASCII for ";"
 .836c	20 f6 8d	jsr $8df6	                jsr emit_a
 .836f	20 1d 98	jsr $981d	                jsr xt_one_plus ; AT-XY is zero based, but ANSI is 1 based
-.8372	20 ab d8	jsr $d8ab	                jsr print_u
+.8372	20 b1 d8	jsr $d8b1	                jsr print_u
 .8375	a9 48		lda #$48	                lda #'H'
 .8377	20 f6 8d	jsr $8df6	                jsr emit_a
 .837a	68		pla		                pla
@@ -757,7 +757,7 @@
 .855a	60		rts		                rts
 .855b					xt_block_word_error:
 .855b	a9 0c		lda #$0c	                lda #err_blockwords
-.855d	4c 75 d8	jmp $d875	                jmp error       ; no RTS needed
+.855d	4c 58 d8	jmp $d858	                jmp error       ; no RTS needed
 .8560					z_block_word_error:
 .8560					xt_block_write:
 .8560	a0 30		ldy #$30	                ldy #blockwrite_offset
@@ -897,7 +897,7 @@
 .8636	15 01		ora $01,x	                ora 1,x
 .8638	d0 05		bne $863f	                bne _not_empty
 .863a	a9 05		lda #$05	                lda #err_noname
-.863c	4c 75 d8	jmp $d875	                jmp error
+.863c	4c 58 d8	jmp $d858	                jmp error
 .863f					_not_empty:
 .863f	e8		inx		                inx             ; drop number of characters, leave addr
 .8640	e8		inx		                inx
@@ -1027,7 +1027,7 @@
 .8711	05 17		ora $17		                ora state+1
 .8713	f0 05		beq $871a	                beq +
 .8715	a9 07		lda #$07	                lda #err_state
-.8717	4c 75 d8	jmp $d875	                jmp error
+.8717	4c 58 d8	jmp $d858	                jmp error
 .871a					+
 .871a	c6 16		dec $16		                dec state
 .871c	c6 17		dec $17		                dec state+1
@@ -1064,7 +1064,7 @@
 .8754	05 17		ora $17		                ora state+1
 .8756	f0 05		beq $875d	                beq +
 .8758	a9 07		lda #$07	                lda #err_state
-.875a	4c 75 d8	jmp $d875	                jmp error
+.875a	4c 58 d8	jmp $d858	                jmp error
 .875d					+
 .875d	c6 16		dec $16		                dec state
 .875f	c6 17		dec $17		                dec state+1
@@ -1388,7 +1388,7 @@
 .896e	15 01		ora $01,x	                ora 1,x
 .8970	d0 05		bne $8977	                bne _got_name
 .8972	a9 05		lda #$05	                lda #err_noname
-.8974	4c 75 d8	jmp $d875	                jmp error
+.8974	4c 58 d8	jmp $d858	                jmp error
 .8977					_got_name:
 .8977	74 01		stz $01,x	                stz 1,x
 .8979	20 b8 a3	jsr $a3b8	                jsr xt_two_dup          ; ( addr u addr u )
@@ -1406,7 +1406,7 @@
 .8991	80 18		bra $89ab	                bra _process_name
 .8993					_redefined_name:
 .8993	a9 02		lda #$02	                lda #str_redefined
-.8995	20 8b d8	jsr $d88b	                jsr print_string_no_lf
+.8995	20 91 d8	jsr $d891	                jsr print_string_no_lf
 .8998	20 b8 a3	jsr $a3b8	                jsr xt_two_dup           ; ( addr u addr u )
 .899b	20 03 a5	jsr $a503	                jsr xt_type
 .899e	20 1e a1	jsr $a11e	                jsr xt_space
@@ -1881,7 +1881,7 @@
 .8cac	ca		dex		                dex
 .8cad	95 00		sta $00,x	                sta 0,x
 .8caf	74 01		stz $01,x	                stz 1,x
-.8cb1	20 ab d8	jsr $d8ab	                jsr print_u
+.8cb1	20 b1 d8	jsr $d8b1	                jsr print_u
 .8cb4	a9 3e		lda #$3e	                lda #$3e        ; ASCII for ">"
 .8cb6	20 f6 8d	jsr $8df6	                jsr emit_a
 .8cb9	a9 20		lda #$20	                lda #AscSP      ; ASCII for SPACE
@@ -3542,7 +3542,7 @@
 .9753	68		pla		                pla
 .9754	85 18		sta $18		                sta base
 .9756	a9 08		lda #$08	                lda #err_syntax
-.9758	4c 75 d8	jmp $d875	                jmp error
+.9758	4c 58 d8	jmp $d858	                jmp error
 .975b					_all_converted:
 .975b	e8		inx		                inx ; Drop the current addr u
 .975c	e8		inx		                inx
@@ -3720,7 +3720,7 @@
 .987d					_output_string:
 .987d	a8		tay		                tay
 .987e	b9 84 98	lda $9884,y	                lda _wid_data,y
-.9881	4c 8b d8	jmp $d88b	                jmp print_string_no_lf  ; JSR/RTS as this routine is not compiled
+.9881	4c 91 d8	jmp $d891	                jmp print_string_no_lf  ; JSR/RTS as this routine is not compiled
 .9884					_wid_data:
 >9884	03				        .byte str_wid_forth            ; WID 0: "Forth"
 >9885	06				        .byte str_wid_editor           ; WID 1: "Editor"
@@ -3971,12 +3971,12 @@
 .9a1b	15 01		ora $01,x	                ora 1,x
 .9a1d	d0 05		bne $9a24	                bne +
 .9a1f	a9 05		lda #$05	                lda #err_noname
-.9a21	4c 75 d8	jmp $d875	                jmp error
+.9a21	4c 58 d8	jmp $d858	                jmp error
 .9a24					+
 .9a24	20 db 8f	jsr $8fdb	                jsr xt_find_name                ; ( -- nt | 0 )
 .9a27	d0 05		bne $9a2e	                bne +
 .9a29	a9 05		lda #$05	                lda #err_noname
-.9a2b	4c 75 d8	jmp $d875	                jmp error
+.9a2b	4c 58 d8	jmp $d858	                jmp error
 .9a2e					+
 .9a2e	b5 00		lda $00,x	                lda 0,x
 .9a30	85 24		sta $24		                sta tmp1
@@ -4147,7 +4147,7 @@
 .9b32	80 05		bra $9b39	                bra z_refill
 .9b34					_src_not_string:
 .9b34	a9 01		lda #$01	                lda #err_badsource
-.9b36	4c 75 d8	jmp $d875	                jmp error
+.9b36	4c 58 d8	jmp $d858	                jmp error
 .9b39					_done:
 .9b39	60		rts		z_refill:       rts
 .9b3a					xt_repeat:
@@ -4368,26 +4368,26 @@
 .9c89	15 01		ora $01,x	                ora 1,x
 .9c8b	d0 05		bne $9c92	                bne +
 .9c8d	a9 05		lda #$05	                lda #err_noname
-.9c8f	4c 75 d8	jmp $d875	                jmp error
+.9c8f	4c 58 d8	jmp $d858	                jmp error
 .9c92					+
 .9c92	20 63 89	jsr $8963	                jsr xt_cr
 .9c95	a5 18		lda $18		                lda base
 .9c97	48		pha		                pha
 .9c98	20 7d 91	jsr $917d	                jsr xt_hex
 .9c9b	a9 0a		lda #$0a	                lda #str_see_nt
-.9c9d	20 8b d8	jsr $d88b	                jsr print_string_no_lf
+.9c9d	20 91 d8	jsr $d891	                jsr print_string_no_lf
 .9ca0	20 af 8d	jsr $8daf	                jsr xt_dup              ; ( nt nt )
 .9ca3	20 2e a5	jsr $a52e	                jsr xt_u_dot
 .9ca6	20 1e a1	jsr $a11e	                jsr xt_space            ; ( nt )
 .9ca9	20 af 8d	jsr $8daf	                jsr xt_dup              ; ( nt nt )
 .9cac	20 e1 95	jsr $95e1	                jsr xt_name_to_int      ; ( nt xt )
 .9caf	a9 0b		lda #$0b	                lda #str_see_xt
-.9cb1	20 8b d8	jsr $d88b	                jsr print_string_no_lf
+.9cb1	20 91 d8	jsr $d891	                jsr print_string_no_lf
 .9cb4	20 af 8d	jsr $8daf	                jsr xt_dup              ; ( nt xt xt )
 .9cb7	20 2e a5	jsr $a52e	                jsr xt_u_dot
 .9cba	20 63 89	jsr $8963	                jsr xt_cr               ; ( nt xt )
 .9cbd	a9 09		lda #$09	                lda #str_see_flags
-.9cbf	20 8b d8	jsr $d88b	                jsr print_string_no_lf
+.9cbf	20 91 d8	jsr $d891	                jsr print_string_no_lf
 .9cc2	20 93 98	jsr $9893	                jsr xt_over             ; ( nt xt nt )
 .9cc5	20 1d 98	jsr $981d	                jsr xt_one_plus         ; ( nt xt nt+1 )
 .9cc8	20 80 8f	jsr $8f80	                jsr xt_fetch            ; ( nt xt flags )
@@ -4408,7 +4408,7 @@
 .9ce3	e8		inx		                inx
 .9ce4	e8		inx		                inx                     ; ( nt xt )
 .9ce5	a9 0c		lda #$0c	                lda #str_see_size
-.9ce7	20 8b d8	jsr $d88b	                jsr print_string_no_lf
+.9ce7	20 91 d8	jsr $d891	                jsr print_string_no_lf
 .9cea	20 ae a1	jsr $a1ae	                jsr xt_swap             ; ( xt nt )
 .9ced	20 75 a7	jsr $a775	                jsr xt_wordsize         ; ( xt u )
 .9cf0	20 af 8d	jsr $8daf	                jsr xt_dup              ; ( xt u u ) for DUMP and DISASM
@@ -4505,7 +4505,7 @@
 .9d8d	15 01		ora $01,x	                ora 1,x
 .9d8f	d0 05		bne $9d96	                bne _refill_ok
 .9d91	a9 06		lda #$06	                lda #err_refill
-.9d93	4c 75 d8	jmp $d875	                jmp error
+.9d93	4c 58 d8	jmp $d858	                jmp error
 .9d96					_refill_ok:
 .9d96	e8		inx		                inx
 .9d97	e8		inx		                inx
@@ -4843,7 +4843,7 @@
 .9fc4	69 00		adc #$00	                adc #0                  ; only want carry
 .9fc6	95 03		sta $03,x	                sta 3,x
 .9fc8	a9 02		lda #$02	                lda #str_redefined       ; address of string "redefined"
-.9fca	20 8b d8	jsr $d88b	                jsr print_string_no_lf
+.9fca	20 91 d8	jsr $d891	                jsr print_string_no_lf
 .9fcd	20 03 a5	jsr $a503	                jsr xt_type
 .9fd0	20 1e a1	jsr $a11e	                jsr xt_space
 .9fd3	a9 80		lda #$80	                lda #%10000000
@@ -5211,14 +5211,14 @@
 .a216	15 01		ora $01,x	                ora 1,x
 .a218	d0 05		bne $a21f	                bne +
 .a21a	a9 05		lda #$05	                lda #err_noname
-.a21c	4c 75 d8	jmp $d875	                jmp error
+.a21c	4c 58 d8	jmp $d858	                jmp error
 .a21f					+
 .a21f	20 db 8f	jsr $8fdb	                jsr xt_find_name        ; ( addr u -- nt )
 .a222	b5 00		lda $00,x	                lda 0,x
 .a224	15 01		ora $01,x	                ora 1,x
 .a226	d0 05		bne $a22d	                bne +
 .a228	a9 08		lda #$08	                lda #err_syntax
-.a22a	4c 75 d8	jmp $d875	                jmp error
+.a22a	4c 58 d8	jmp $d858	                jmp error
 .a22d					+
 .a22d	20 e1 95	jsr $95e1	                jsr xt_name_to_int      ; ( nt -- xt )
 .a230	60		rts		z_tick:         rts
@@ -5681,7 +5681,7 @@
 .a52d	60		rts		z_type:         rts
 .a52e					xt_u_dot:
 .a52e	20 42 d8	jsr $d842	                jsr underflow_1
-.a531	20 ab d8	jsr $d8ab	                jsr print_u
+.a531	20 b1 d8	jsr $d8b1	                jsr print_u
 .a534	a9 20		lda #$20	                lda #AscSP
 .a536	20 f6 8d	jsr $8df6	                jsr emit_a
 .a539	60		rts		z_u_dot:        rts
@@ -5750,7 +5750,7 @@
 .a5bf	15 01		ora $01,x	                ora 1,x
 .a5c1	d0 05		bne $a5c8	                bne _not_zero
 .a5c3	a9 04		lda #$04	                lda #err_divzero
-.a5c5	4c 75 d8	jmp $d875	                jmp error
+.a5c5	4c 58 d8	jmp $d858	                jmp error
 .a5c8					_not_zero:
 .a5c8	a9 11		lda #$11	                lda #17
 .a5ca	85 2c		sta $2c		                sta tmptos
@@ -5944,7 +5944,7 @@
 .a705	c9 0c		cmp #$0c	                cmp #max_wordlists
 .a707	d0 05		bne $a70e	                bne _ok
 .a709	a9 0b		lda #$0b	                lda #err_wordlist
-.a70b	4c 75 d8	jmp $d875	                jmp error
+.a70b	4c 58 d8	jmp $d858	                jmp error
 .a70e					_ok:
 .a70e	1a		inc a		                ina             ; Increment the wordlist#
 .a70f	91 1e		sta ($1e),y	                sta (up),y      ; Save it into byte variable #wordlists
@@ -7236,7 +7236,7 @@
 .ae37	a9 53		lda #$53	                lda #'S'
 .ae39	20 f6 8d	jsr $8df6	                jsr emit_a ; Print S before LITERAL so it becomes SLITERAL
 .ae3c	a9 0d		lda #$0d	                lda #str_disasm_lit     ; "LITERAL "
-.ae3e	20 8b d8	jsr $d88b	                jsr print_string_no_lf
+.ae3e	20 91 d8	jsr $d891	                jsr print_string_no_lf
 .ae41	20 ae a1	jsr $a1ae	                jsr xt_swap             ; switch to (u addr)
 .ae44	20 1d 98	jsr $981d	                jsr xt_one_plus
 .ae47	20 af 8d	jsr $8daf	                jsr xt_dup
@@ -7260,11 +7260,11 @@
 .ae70	20 f6 8d	jsr $8df6	                jsr emit_a ; Print 0 before BRANCH so it becomes 0BRANCH
 .ae73					disasm_branch:
 .ae73	a9 0f		lda #$0f	                lda #str_disasm_bra
-.ae75	20 8b d8	jsr $d88b	                jsr print_string_no_lf ; "BRANCH "
+.ae75	20 91 d8	jsr $d891	                jsr print_string_no_lf ; "BRANCH "
 .ae78	80 05		bra $ae7f	                bra disasm_print_literal
 .ae7a					disasm_literal:
 .ae7a	a9 0d		lda #$0d	                lda #str_disasm_lit
-.ae7c	20 8b d8	jsr $d88b	                jsr print_string_no_lf ; "LITERAL "
+.ae7c	20 91 d8	jsr $d891	                jsr print_string_no_lf ; "LITERAL "
 .ae7f					disasm_print_literal:
 .ae7f	20 ae a1	jsr $a1ae	                jsr xt_swap ; switch to (u addr)
 .ae82	20 1d 98	jsr $981d	                jsr xt_one_plus
@@ -7316,7 +7316,7 @@
 .aedd	90 05		bcc $aee4	                bcc _disasm_jsr_unknown
 .aedf					_disasm_jsr_soc:
 .aedf	a9 0e		lda #$0e	                lda #str_disasm_sdc
-.aee1	20 8b d8	jsr $d88b	                jsr print_string_no_lf  ; "STACK DEPTH CHECK"
+.aee1	20 91 d8	jsr $d891	                jsr print_string_no_lf  ; "STACK DEPTH CHECK"
 .aee4					_disasm_jsr_unknown:
 .aee4	20 b0 a3	jsr $a3b0	                jsr xt_two_drop
 .aee7	60		rts		                rts
@@ -10712,7 +10712,7 @@
 .d723	6c 26 00	jmp ($0026)	                jmp (tmp2)      ; This is actually a jump to the new target
 .d726					defer_error:
 .d726	a9 03		lda #$03	                lda #err_defer
-.d728	4c 75 d8	jmp $d875	                jmp error
+.d728	4c 58 d8	jmp $d858	                jmp error
 .d72b					dodoes:
 .d72b	7a		ply		                ply             ; LSB
 .d72c	68		pla		                pla             ; MSB
@@ -10858,7 +10858,7 @@
 .d806	29 01		and #$01	                and #CO                 ; mask everything but Compile Only bit
 .d808	f0 05		beq $d80f	                beq _interpret
 .d80a	a9 02		lda #$02	                lda #err_compileonly
-.d80c	4c 75 d8	jmp $d875	                jmp error
+.d80c	4c 58 d8	jmp $d858	                jmp error
 .d80f					_interpret:
 .d80f	20 3d 8f	jsr $8f3d	                jsr xt_execute
 .d812	4c aa d7	jmp $d7aa	                jmp _loop
@@ -10914,60 +10914,65 @@
 .d853	10 01		bpl $d856	                bpl underflow_error
 .d855	60		rts		                rts
 .d856					underflow_error:
-.d856	a9 57		lda #$57	                lda #<es_underflow2
-.d858	85 28		sta $28		                sta tmp3
-.d85a	a9 d6		lda #$d6	                lda #>es_underflow2
-.d85c	85 29		sta $29		                sta tmp3+1
-.d85e	20 98 d8	jsr $d898	                jsr print_common
-.d861	ba		tsx		                tsx
-.d862					_underflow_stack_trace:
-.d862	e8		inx		                inx         ; stack dump to help reconstruct calling words
-.d863	f0 0b		beq $d870	                beq +
-.d865	20 1e a1	jsr $a11e	                jsr xt_space
-.d868	bd 00 01	lda $0100,x	                lda $100,x
-.d86b	20 52 d7	jsr $d752	                jsr byte_to_ascii
-.d86e	80 f2		bra $d862	                bra _underflow_stack_trace
-.d870					+
-.d870	20 63 89	jsr $8963	                jsr xt_cr
-.d873	a9 09		lda #$09	                lda #err_underflow      ; fall through to error
-.d875					error:
-.d875	0a		asl a		                asl
-.d876	a8		tay		                tay
-.d877	b9 c1 d4	lda $d4c1,y	                lda error_table,y
-.d87a	85 28		sta $28		                sta tmp3                ; LSB
-.d87c	c8		iny		                iny
-.d87d	b9 c1 d4	lda $d4c1,y	                lda error_table,y
-.d880	85 29		sta $29		                sta tmp3+1              ; MSB
-.d882	20 98 d8	jsr $d898	                jsr print_common
-.d885	20 63 89	jsr $8963	                jsr xt_cr
-.d888	4c 81 80	jmp $8081	                jmp xt_abort            ; no jsr, as we clobber return stack
-.d88b					print_string_no_lf:
-.d88b	0a		asl a		                asl
-.d88c	a8		tay		                tay
-.d88d	b9 c6 d3	lda $d3c6,y	                lda string_table,y
-.d890	85 28		sta $28		                sta tmp3                ; LSB
-.d892	c8		iny		                iny
+.d856	a9 09		lda #$09	                lda #err_underflow      ; fall through to error
+.d858					error:
+.d858	48		pha		                pha                     ; save error number
+.d859	0a		asl a		                asl
+.d85a	a8		tay		                tay
+.d85b	b9 c1 d4	lda $d4c1,y	                lda error_table,y
+.d85e	85 28		sta $28		                sta tmp3                ; LSB
+.d860	c8		iny		                iny
+.d861	b9 c1 d4	lda $d4c1,y	                lda error_table,y
+.d864	85 29		sta $29		                sta tmp3+1              ; MSB
+.d866	20 9e d8	jsr $d89e	                jsr print_common
+.d869	20 63 89	jsr $8963	                jsr xt_cr
+.d86c	68		pla		                pla                     ; recover error number
+.d86d	c9 09		cmp #$09	                cmp #err_underflow
+.d86f	d0 1d		bne $d88e	                bne _no_underflow
+.d871	a9 57		lda #$57	                lda #<es_underflow2
+.d873	85 28		sta $28		                sta tmp3
+.d875	a9 d6		lda #$d6	                lda #>es_underflow2
+.d877	85 29		sta $29		                sta tmp3+1
+.d879	20 9e d8	jsr $d89e	                jsr print_common
+.d87c	ba		tsx		                tsx
+.d87d					-
+.d87d	e8		inx		                inx         ; stack dump to help reconstruct calling words
+.d87e	f0 0b		beq $d88b	                beq +
+.d880	20 1e a1	jsr $a11e	                jsr xt_space
+.d883	bd 00 01	lda $0100,x	                lda $100,x
+.d886	20 52 d7	jsr $d752	                jsr byte_to_ascii
+.d889	80 f2		bra $d87d	                bra -
+.d88b					+
+.d88b	20 63 89	jsr $8963	                jsr xt_cr
+.d88e					_no_underflow:
+.d88e	4c 81 80	jmp $8081	                jmp xt_abort            ; no jsr, as we clobber return stack
+.d891					print_string_no_lf:
+.d891	0a		asl a		                asl
+.d892	a8		tay		                tay
 .d893	b9 c6 d3	lda $d3c6,y	                lda string_table,y
-.d896	85 29		sta $29		                sta tmp3+1              ; MSB
-.d898					print_common:
-.d898	a0 00		ldy #$00	                ldy #0
-.d89a					_loop:
-.d89a	b1 28		lda ($28),y	                lda (tmp3),y
-.d89c	f0 06		beq $d8a4	                beq _done               ; strings are zero-terminated
-.d89e	20 f6 8d	jsr $8df6	                jsr emit_a              ; allows vectoring via output
-.d8a1	c8		iny		                iny
-.d8a2	80 f6		bra $d89a	                bra _loop
-.d8a4					_done:
-.d8a4	60		rts		                rts
-.d8a5					print_string:
-.d8a5	20 8b d8	jsr $d88b	                jsr print_string_no_lf
-.d8a8	4c 63 89	jmp $8963	                jmp xt_cr               ; JSR/RTS because never compiled
-.d8ab					print_u:
-.d8ab	20 a8 a7	jsr $a7a8	                jsr xt_zero                     ; 0
-.d8ae	20 5a 93	jsr $935a	                jsr xt_less_number_sign         ; <#
-.d8b1	20 de 97	jsr $97de	                jsr xt_number_sign_s            ; #S
-.d8b4	20 bc 97	jsr $97bc	                jsr xt_number_sign_greater      ; #>
-.d8b7	4c 03 a5	jmp $a503	                jmp xt_type                     ; JSR/RTS because never compiled
+.d896	85 28		sta $28		                sta tmp3                ; LSB
+.d898	c8		iny		                iny
+.d899	b9 c6 d3	lda $d3c6,y	                lda string_table,y
+.d89c	85 29		sta $29		                sta tmp3+1              ; MSB
+.d89e					print_common:
+.d89e	a0 00		ldy #$00	                ldy #0
+.d8a0					_loop:
+.d8a0	b1 28		lda ($28),y	                lda (tmp3),y
+.d8a2	f0 06		beq $d8aa	                beq _done               ; strings are zero-terminated
+.d8a4	20 f6 8d	jsr $8df6	                jsr emit_a              ; allows vectoring via output
+.d8a7	c8		iny		                iny
+.d8a8	80 f6		bra $d8a0	                bra _loop
+.d8aa					_done:
+.d8aa	60		rts		                rts
+.d8ab					print_string:
+.d8ab	20 91 d8	jsr $d891	                jsr print_string_no_lf
+.d8ae	4c 63 89	jmp $8963	                jmp xt_cr               ; JSR/RTS because never compiled
+.d8b1					print_u:
+.d8b1	20 a8 a7	jsr $a7a8	                jsr xt_zero                     ; 0
+.d8b4	20 5a 93	jsr $935a	                jsr xt_less_number_sign         ; <#
+.d8b7	20 de 97	jsr $97de	                jsr xt_number_sign_s            ; #S
+.d8ba	20 bc 97	jsr $97bc	                jsr xt_number_sign_greater      ; #>
+.d8bd	4c 03 a5	jmp $a503	                jmp xt_type                     ; JSR/RTS because never compiled
 
 ;******  Return to file: platform/platform-py65mon.asm
 

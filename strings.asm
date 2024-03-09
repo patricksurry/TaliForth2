@@ -81,7 +81,7 @@ error_table:
         .word es_allot, es_badsource, es_compileonly, es_defer  ;  0-3
         .word es_divzero, es_noname, es_refill, es_state        ;  4-7
         .word es_syntax, es_underflow, es_negallot, es_wordlist ;  8-11
-        .word es_blockwords                                     ; 12
+        .word es_blockwords, es_returnstack                     ; 12-13
 
 es_allot:       .text "ALLOT using all available memory", 0
 es_badsource:   .text "Illegal SOURCE-ID during REFILL", 0
@@ -96,8 +96,7 @@ es_underflow:   .text "Data stack underflow", 0
 es_negallot:    .text "Max memory freed with ALLOT", 0
 es_wordlist:    .text "No wordlists available", 0
 es_blockwords:  .text "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR",0
-
-es_underflow2:  .text "Return stack:", 0    ; second string used in err_underflow
+es_returnstack: .text "Return stack:", 0
 
 ; ## ENVIRONMENT STRINGS
 

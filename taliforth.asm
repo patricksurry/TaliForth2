@@ -543,24 +543,6 @@ underflow_4:
                 rts
 
 underflow_error:
-        ; """Display return stack to help find where underflow occurred"""
-                lda #<es_underflow2
-                sta tmp3
-                lda #>es_underflow2
-                sta tmp3+1
-                jsr print_common
-
-                tsx
-_underflow_stack_trace:
-                inx         ; stack dump to help reconstruct calling words
-                beq +
-                jsr xt_space
-                lda $100,x
-                jsr byte_to_ascii
-                bra _underflow_stack_trace
-+
-                jsr xt_cr
-
                 ; Entry for COLD/ABORT/QUIT
                 lda #err_underflow      ; fall through to error
 
@@ -568,6 +550,7 @@ error:
         ; """Given the error number in a, print the associated error string and
         ; call abort. Uses tmp3.
         ; """
+                pha                     ; save error number
                 asl
                 tay
                 lda error_table,y
@@ -578,6 +561,28 @@ error:
 
                 jsr print_common
                 jsr xt_cr
+                pla                     ; recover error number
+
+                cmp #err_underflow      ; should we display return stack?
+                bne _no_underflow
+
+                lda #err_returnstack
+                jsr error               ; self call safe with different error number
+
+                ; dump return stack from SP...$1FF to help debug source of underflow
+                ; the data stack pointer in X is already corrupted so safe to reuse here
+                tsx
+-
+                inx
+                beq +
+                jsr xt_space
+                lda $100,x
+                jsr byte_to_ascii
+                bra -
++
+                jsr xt_cr
+
+_no_underflow:
                 jmp xt_abort            ; no jsr, as we clobber return stack
 
 
