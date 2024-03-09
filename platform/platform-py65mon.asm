@@ -79,16 +79,19 @@ hist_buff = ram_end-$03ff  ; begin of history buffers
 ; SOFT PHYSICAL ADDRESSES
 
 ; Tali currently doesn't have separate user variables for multitasking. To
-; prepare for this, though, we've already named the location of the user
-; variables user0. Note cp0 starts one byte further down so that it currently
-; has the address $300 and not $2FF. This avoids crossing the page boundry when
-; accessing the user table, which would cost an extra cycle.
+; prepare for this, though, we've already named the location of the user's
+; Zero-Page System Variables user0. Note cp0 starts one byte further down so
+; that it currently has the address $300 and not $2FF. This avoids crossing
+; the page boundry when accessing the RAM System Variables table, which would
+; cost an extra cycle.
 
-user0     = zpage            ; user and system variables
+user0     = zpage            ; TaliForth2 system variables
 rsp0      = $ff              ; initial Return Stack Pointer (65c02 stack)
 bsize     = $ff              ; size of input/output buffers
 buffer0   = stack0+$100      ; input buffer ($0200-$027f)
 cp0       = buffer0+bsize+1  ; Dictionary starts after last buffer
+                             ; The RAM System Variables and BLOCK buffer are 
+                             ; placed right at the beginning of the dictionary.
 cp_end    = hist_buff        ; Last RAM byte available for code
 padoffset = $ff              ; offset from CP to PAD (holds number strings)
 
