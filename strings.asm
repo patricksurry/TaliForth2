@@ -76,6 +76,7 @@ err_underflow    = 9
 err_negallot     = 10
 err_wordlist     = 11
 err_blockwords   = 12
+err_returnstack  = 13
 
 error_table:
         .word es_allot, es_badsource, es_compileonly, es_defer  ;  0-3
