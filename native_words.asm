@@ -95,8 +95,6 @@ _load_user_vars_loop:
 
                 jsr xt_evaluate
 
-es_allot:       .text "ALLOT using all available memory", 0
-
                 ; Initialize all of the history buffers by putting a zero in
                 ; each length byte.
                 stz hist_buff
