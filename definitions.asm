@@ -73,7 +73,7 @@ scratch   = user0+54  ; 8 byte scratchpad (see UM/MOD)
 ; Zero Page:
 ; Bytes used for variables: 62 ($0000-$003D)
 ; First usable Data Stack location: $003E (decimal 62)
-; Bytes avaible for Data Stack: 128-62 = 66 --> 33 16-bit cells
+; Bytes available for Data Stack: 128-62 = 66 --> 33 16-bit cells
 
 dsp0      = zpage_end-7    ; initial Data Stack Pointer
 
