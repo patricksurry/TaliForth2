@@ -294,7 +294,7 @@ backtracking to fill in the address that is not known when the jump or branch
 instruction is coded.
 
 *The assembler instruction `and`* receives a dot for absolute addressing to avoid
-conflict with the Forth word of the same name: `1000. and` is the correct form.
+conflict with the Forth word of the same name: `1000 and.` is the correct form.
 
 *`brk` is a two-byte instruction* because the assembler enforces the signature
 byte. You shouldn't use `brk` anyway.
