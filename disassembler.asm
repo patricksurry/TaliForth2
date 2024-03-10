@@ -22,6 +22,7 @@
 ;       scratch (used for handling literals and JSRs)
 
 disassembler:
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 jsr xt_cr       ; ( addr u )
 _byte_loop:
                 ; Print address at start of the line. Note we use whatever
@@ -200,7 +201,7 @@ _print_mnemonic:
                 sta 0,x
                 stz 1,x
                 jsr xt_spaces
-                
+
 ; Special handlers
                 ; Handle literals specially.
                 lda #<literal_runtime
@@ -212,7 +213,7 @@ _print_mnemonic:
                 ; It's a literal.
                 jsr disasm_literal
                 jmp _printing_done
-                
+
 _not_literal:
                 ; Handle string literals specially.
                 lda #<sliteral_runtime
@@ -295,7 +296,7 @@ _not_jsr:
 
                 ; It's a string literal jump.
                 jsr disasm_sliteral_jump
-_printing_done:                
+_printing_done:
                 jsr xt_cr
 
                 ; Housekeeping: Next byte
@@ -358,7 +359,7 @@ disasm_sliteral_jump:
                 jsr xt_one_minus
                 jsr xt_swap ; ( new_addr new_n )
                 rts
-                
+
 ; String literal handler
 disasm_sliteral:
                 lda #'S'
@@ -371,14 +372,14 @@ disasm_sliteral:
                 ; for each value.
                 jsr xt_swap             ; switch to (u addr)
                 jsr xt_one_plus
-                
+
                 jsr xt_dup
                 jsr xt_fetch
                 jsr xt_u_dot            ; Print the address of the string
                 ; Move along two bytes (already moved address one) to skip over the constant.
                 jsr xt_two
                 jsr xt_plus
-                
+
                 jsr xt_dup
                 jsr xt_question         ; Print the length of the string
                 ; Move along to the very last byte of the data.
@@ -394,7 +395,7 @@ disasm_sliteral:
                 stz 1,x
                 jsr xt_minus            ; ( addr+4 u-4 )
                 rts
-                
+
 
 ; 0BRANCH handler
 disasm_0branch:
@@ -428,7 +429,7 @@ disasm_print_literal:
                 rts
 
 ; JSR handler
-disasm_jsr: 
+disasm_jsr:
                 ; The address of the JSR is in scratch+1 and scratch+2.
                 ; The current stack is already ( addr u ) where addr is the address of the last byte of
                 ; the JSR target address, and we want to leave it like that so moving on to the next byte
@@ -440,7 +441,7 @@ disasm_jsr:
                 sta 0,x
                 lda scratch+2
                 sta 1,x
-                ; ( xt ) 
+                ; ( xt )
                 jsr xt_int_to_name
                 ; int>name returns zero if we just don't know.
                 lda 0,x
@@ -473,7 +474,7 @@ _disasm_no_nt:
                 jsr compare_16bit
                 beq _disasm_jsr_uflow_check_upper
                 bcs _disasm_jsr_unknown
-_disasm_jsr_uflow_check_upper:                
+_disasm_jsr_uflow_check_upper:
                 ; Compare to upper underflow addresses
                 lda #<underflow_4
                 sta 0,x
@@ -484,13 +485,13 @@ _disasm_jsr_uflow_check_upper:
                 bcc _disasm_jsr_unknown
 _disasm_jsr_soc:
                 ; It's an underflow check.
-                lda #str_disasm_sdc  
+                lda #str_disasm_sdc
                 jsr print_string_no_lf  ; "STACK DEPTH CHECK"
 _disasm_jsr_unknown:
                 jsr xt_two_drop
                 rts
-                
-        
+
+
 ; =========================================================
 oc_index_table:
         ; Lookup table for the instruction data (length of instruction in
@@ -855,5 +856,6 @@ oc_table:
         ; Common routine for opcodes that are not supported by the 65c02
 	oc__:	.text 1, "?"
 
+.endif
 ; used to calculate size of assembled disassembler code
 disassembler_end:
