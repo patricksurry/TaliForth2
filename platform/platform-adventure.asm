@@ -124,8 +124,8 @@ padoffset = $ff              ; offset from CP to PAD (holds number strings)
 ; assembled.  If TALI_OPTIONAL_WORDS is not defined in your platform file,
 ; you will get all of the words.
 
-; TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassebler", "wordlist" ]
-TALI_OPTIONAL_WORDS := [ ]
+; TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
+TALI_OPTIONAL_WORDS := [ "adventure" ]
 
 ; "ed" is a string editor. (~1.5K)
 ; "editor" is a block editor. (~0.25K)
@@ -214,6 +214,11 @@ kernel_init:
                 ; do it from scratch. Sorry.
                 sei             ; Disable interrupts
 
+                ; custom initialization,
+                lda #42
+                sta rand16          ; seed random number generator with non-zero word
+                stz rand16+1
+
                 ; We've successfully set everything up, so print the kernel
                 ; string
                 ldx #0
@@ -253,7 +258,7 @@ platform_bye:
 ; is easier to see where the kernel ends in hex dumps. This string is
 ; displayed after a successful boot
 s_kernel_id:
-        .text "Tali Forth 2 adventure 26Feb2024", 0
+        .text "Tali Forth 2 Adventure 26Feb2024", 0
 
 
 ; Add the interrupt vectors

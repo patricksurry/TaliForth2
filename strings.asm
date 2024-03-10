@@ -99,6 +99,7 @@ es_wordlist:    .text "No wordlists available", 0
 es_blockwords:  .text "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR",0
 es_returnstack: .text "Return stack:", 0
 
+.if "environment?" in TALI_OPTIONAL_WORDS
 ; ## ENVIRONMENT STRINGS
 
 ; These are used by the ENVIRONMENT? word and stored in the old string format:
@@ -122,5 +123,7 @@ envs_wl:        .text 9, "WORDLISTS"
 ; These return a double-cell number
 envs_max_d:     .text 5, "MAX-D"
 envs_max_ud:    .text 6, "MAX-UD"
+
+.endif
 
 ; END

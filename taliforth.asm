@@ -32,6 +32,9 @@ forth:
 .include "assembler.asm"        ; SAN assembler
 .include "disassembler.asm"     ; SAN disassembler
 .include "ed.asm"               ; Line-based editor ed6502
+.if "adventure" in TALI_OPTIONAL_WORDS
+.include "kernel/kernel.asm"
+.endif
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
