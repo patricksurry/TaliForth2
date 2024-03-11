@@ -72,9 +72,10 @@ _load_user_vars_loop:
                 sta (up)
                 jsr xt_cr
 
-                ; Define high-level words in forth_words.asm via EVALUATE. If
-                ; you do not have any high-level words, this part can be
-                ; commented out.
+                ; Define high-level words in forth_words.asc via EVALUATE,
+                ; followed by any user-defined words from user_words.asc.
+                ; These are stored sequentially in ROM so we can evaluate them together.
+                ; If you have neither, this section can be commented out.
                 dex
                 dex
                 dex
@@ -86,40 +87,10 @@ _load_user_vars_loop:
                 lda #>forth_words_start
                 sta 3,x
 
-                ; length goes TOS
-                lda #<forth_words_end
-                sec
-                sbc #<forth_words_start
+                ; length goes TOS; let the assembler do the math
+                lda #<(user_words_end-forth_words_start)
                 sta 0,x
-
-                lda #>forth_words_end
-                sbc #>forth_words_start
-                sta 1,x
-
-                jsr xt_evaluate
-
-                ; Now define any user words via EVALUATE. If you do not have
-                ; any user-defined words, this part can be commented out as
-                ; well.
-                dex
-                dex
-                dex
-                dex
-
-                ; start address goes NOS
-                lda #<user_words_start
-                sta 2,x
-                lda #>user_words_start
-                sta 3,x
-
-                ; length goes TOS
-                lda #<user_words_end
-                sec
-                sbc #<user_words_start
-                sta 0,x
-
-                lda #>user_words_end
-                sbc #>user_words_start
+                lda #>(user_words_end-forth_words_start)
                 sta 1,x
 
                 jsr xt_evaluate
@@ -242,7 +213,7 @@ z_quit:         ; no RTS required
 
 
 ; This table holds all of the initial values for the variables in zero page.
-; This table is used by COLD.
+; This table is used by COLD.  This must match the zp offsets in definitions.asm
 cold_zp_table:
         .word cp0+256+1024      ; cp moved to make room for user vars and
                                 ; block buffer
@@ -268,25 +239,26 @@ cold_zp_table_end:
 ; No further ZP variables are initialized. The variables past this point are
 ; all temporaries.
 
-; This table holds the inital values for the user variables. This table is
-; used by COLD.
+; This table holds the initial values for forth user variables. This table is
+; used by COLD.  This must match the user variable offsets in definitions.aasm
 cold_user_table:
-        .word 0                         ; BLK
-        .word 0                         ; SCR
-        .byte 0                         ; CURRENT = FORTH-WORDLIST
-        .byte 4                         ; #WORDLISTS (FORTH EDITOR ASSEMBLER ROOT)
-        .word dictionary_start          ; FORTH-WORDLIST
-        .word editor_dictionary_start   ; EDITOR-WORDLIST
-        .word assembler_dictionary_start ; ASSEMBLER-WORDLIST
-        .word root_dictionary_start     ; ROOT-WORDLIST
-        .word 0,0,0,0,0,0,0,0           ; User wordlists
-        .byte 1                         ; #ORDER
-        .byte 0,0,0,0,0,0,0,0,0         ; search-order
-        .word cp0+256                   ; Address of buffer (right after USER vars)
-        .word 0                         ; block in buffer
-        .word 0                         ; buffer status (not in use)
-        .word xt_block_word_error       ; block-read vector
-        .word xt_block_word_error       ; block-write vector
+        .word 0                         ;  0 BLK
+        .word 0                         ;  2 SCR
+        .byte 0                         ;  4 CURRENT = FORTH-WORDLIST
+        .byte 4                         ;  5 #WORDLISTS (FORTH EDITOR ASSEMBLER ROOT)
+        .word dictionary_start          ;  6 FORTH-WORDLIST
+        .word editor_dictionary_start   ;  8 EDITOR-WORDLIST
+        .word assembler_dictionary_start ; a ASSEMBLER-WORDLIST
+        .word root_dictionary_start     ;  c ROOT-WORDLIST
+        .word 0,0,0,0,0,0,0,0           ;  e User wordlists
+        .byte 1                         ; 1e #ORDER
+        .byte 0,0,0,0,0,0,0,0,0         ; 1f search-order
+        .word cp0+256                   ; 28 Address of buffer (right after USER vars)
+        .word 0                         ; 2a block in buffer
+        .word 0                         ; 2c buffer status (not in use)
+        .word xt_block_word_error       ; 2e block-read vector
+        .word xt_block_word_error       ; 30 block-write vector
+        .word 0                         ; 32 'COLD
 cold_user_table_end:
 
 
@@ -2436,11 +2408,11 @@ z_count:        rts
 ; ## "cr"  auto  ANS core
         ; """https://forth-standard.org/standard/core/CR"""
 xt_cr:
-.if "cr" in TALI_OPTION_CR_EOL        
+.if "cr" in TALI_OPTION_CR_EOL
                 lda #AscCR
                 jsr emit_a
 .endif
-.if "lf" in TALI_OPTION_CR_EOL        
+.if "lf" in TALI_OPTION_CR_EOL
                 lda #AscLF
                 jsr emit_a
 .endif
@@ -3677,7 +3649,7 @@ xt_dup:
 z_dup:          rts
 
 
-.if "ed" in TALI_OPTIONAL_WORDS        
+.if "ed" in TALI_OPTIONAL_WORDS
 ; ## ED ( -- u ) "Line-based editor"
 ; ## "ed"  fragment  Tali Forth
         ; """Start the line-based editor ed6502. See separate file
@@ -6597,7 +6569,7 @@ xt_number:
 
                 ; Look at the first character.
                 lda (2,x)
-_check_dec:                
+_check_dec:
                 cmp #$23        ; ASCII for "#"
                 bne _check_hex
                 ; Switch temporarily to decimal
@@ -6615,7 +6587,7 @@ _check_binary:
                 ; Switch temporarily to hexadecimal
                 lda #$02
                 bra _base_changed
-_check_char:                
+_check_char:
                 cmp #$27        ; ASCII for "'"
                 bne _check_minus
                 ; Character constants should have a length of 3
@@ -6663,9 +6635,9 @@ _base_changed:
 +
                 dec 0,x         ; decrease string length by one
 
-    
+
                 lda (2,x)       ; Load the first char again
-_check_minus:                
+_check_minus:
                 ; If the first character is a minus, strip it off and set
                 ; the flag
                 cmp #$2D        ; ASCII for "-"
@@ -6734,13 +6706,13 @@ _main:
                 ; test length of returned string, which should be zero
                 lda 0,x
                 beq _all_converted
-                
+
 _number_error:
                 ; Something went wrong, we still have characters left over,
                 ; so we print an error and abort. If the NUMBER was called
                 ; by INTERPRET, we've already checked for Forth words, so
                 ; we're in deep trouble one way or another
-                
+
                 ; Drop the addr u from >NUMBER and the double
                 ; (partially converted number) and print the unkown
                 ; word using the original addr u we saved at the beginning.
@@ -6767,7 +6739,7 @@ _all_converted:
                 inx
                 inx
                 inx
-_drop_original_string:                
+_drop_original_string:
                 jsr xt_two_swap  ; Drop the original addr u
                 jsr xt_two_drop  ; (was saved for unknown word error message)
 
@@ -11927,7 +11899,7 @@ xt_editor_el:
 z_editor_el:    rts
 .endif
 
-; "l" needs special handling as it's used by LIST in the block words.  
+; "l" needs special handling as it's used by LIST in the block words.
 .if "block" in TALI_OPTIONAL_WORDS
 ; ## EDITOR_L ( -- ) "List the current screen"
 ; ## "l"  tested  Tali Editor
