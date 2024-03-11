@@ -8,7 +8,6 @@ txt_col     = txt_tmp
 txt_row     = txt_tmp+1
 
 
-
 txt_putc:       ; (A) -> nil
     ; write a chr to output buffer and inc position
         sta (txt_outz)
