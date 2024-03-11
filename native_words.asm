@@ -74,7 +74,7 @@ _load_user_vars_loop:
 
                 ; Define high-level words in forth_words.asc via EVALUATE,
                 ; followed by any user-defined words from user_words.asc.
-                ; These are stored sequentially in ROM so we can evaluaet them together.
+                ; These are stored sequentially in ROM so we can evaluate them together.
                 ; If you have neither, this section can be commented out.
                 dex
                 dex
@@ -239,7 +239,7 @@ cold_zp_table_end:
 ; No further ZP variables are initialized. The variables past this point are
 ; all temporaries.
 
-; This table holds the inital values for forth user variables. This table is
+; This table holds the initial values for forth user variables. This table is
 ; used by COLD.  This must match the user variable offsets in definitions.aasm
 cold_user_table:
         .word 0                         ;  0 BLK
