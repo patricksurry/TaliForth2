@@ -35,7 +35,9 @@ forth:
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
+.if len(TALI_OPTIONAL_WORDS) > 0
 .binary "forth_words.asc"
+.endif
 forth_words_end:
 
 ; User-defined Forth words, see forth_code/README.md

@@ -3,8 +3,15 @@
         ; No special text encoding (eg. ASCII)
         .enc "none"
 
-        ; Where to start Tali Forth 2 in ROM (or RAM if loading it)
-        * = $8000
+; This illustrates a minimal configuration of TaliForth requiring a little under 12K of ROM.
+; The 16K image leaves $f000-$ffff is empty other than py65mon I/O andthe interrupt vectors.
+; Build and run like:
+
+;       make taliforth-minimal.bin
+;       py65mon -m 65c02 -r taliforth-py65mon.bin
+
+; Where to start Tali Forth 2 in ROM (or RAM if loading it)
+        * = $c000
 
 ; I/O facilities are handled in these separate kernel files because of their
 ; hardware dependencies. See docs/memorymap.txt for a discussion of Tali's
@@ -57,11 +64,11 @@
 ;           |                   |
 ;           |                   |
 ;           |                   |
-;    $7C00  +-------------------+  hist_buff, cp_end
+;    $bc00  +-------------------+  hist_buff, cp_end
 ;           |   Input History   |
 ;           |    for ACCEPT     |
 ;           |  8x128B buffers   |
-;    $7fff  +-------------------+  ram_end
+;    $bfff  +-------------------+  ram_end
 
 
 ; HARD PHYSICAL ADDRESSES
@@ -72,7 +79,7 @@
 ; help people new to these things.
 
 ram_start = $0000          ; start of installed 32 KiB of RAM
-ram_end   = $8000-1        ; end of installed RAM
+ram_end   = $c000-1        ; end of installed RAM
 zpage     = ram_start      ; begin of Zero Page ($0000-$00ff)
 zpage_end = $7F            ; end of Zero Page used ($0000-$007f)
 stack0    = $0100          ; begin of Return Stack ($0100-$01ff)
@@ -91,7 +98,7 @@ hist_buff = ram_end-$03ff  ; begin of history buffers
 user0     = zpage            ; TaliForth2 system variables
 rsp0      = $ff              ; initial Return Stack Pointer (65c02 stack)
 bsize     = $ff              ; size of input/output buffers
-buffer0   = stack0+$100      ; input buffer ($0200-$027f)
+buffer0   = stack0+$100      ; input buffer ($0200-$02ff)
 cp0       = buffer0+bsize+1  ; Dictionary starts after last buffer
                              ; The RAM System Variables and BLOCK buffer are
                              ; placed right at the beginning of the dictionary.
@@ -108,7 +115,8 @@ padoffset = $ff              ; offset from CP to PAD (holds number strings)
 ; assembled.  If TALI_OPTIONAL_WORDS is not defined in your platform file,
 ; you will get all of the words.
 
-TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
+; TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
+TALI_OPTIONAL_WORDS := [ ]
 
 ; "ed" is a string editor. (~1.5K)
 ; "editor" is a block editor. (~0.25K)
@@ -171,11 +179,7 @@ TALI_OPTION_CR_EOL := [ "lf" ]
 ; This default version Tali ships with is written for the py65mon machine
 ; monitor (see docs/MANUAL.md for details).
 
-; The main file of Tali got us to $e000. However, py65mon by default puts
-; the basic I/O routines at the beginning of $f000. We don't want to change
-; that because it would make using it out of the box harder, so we just
-; advance past the virtual hardware addresses.
-* = $f010
+; The minimal config just sneaks under $f000 where the default py65mon IO lives
 
 ; All vectors currently end up in the same place - we restart the system
 ; hard. If you want to use them on actual hardware, you'll have to redirect
@@ -234,7 +238,7 @@ platform_bye:
 ; is easier to see where the kernel ends in hex dumps. This string is
 ; displayed after a successful boot
 s_kernel_id:
-        .text "Tali Forth 2 default kernel for py65mon (04. Dec 2022)", AscLF, 0
+        .text "Tali Forth 2", AscLF, 0
 
 
 ; Add the interrupt vectors

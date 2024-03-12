@@ -1107,13 +1107,17 @@ nt_dump:
 
 nt_dot_s:
         .byte 2, 0
-        .word nt_disasm, xt_dot_s, z_dot_s
+        .word +, xt_dot_s, z_dot_s
         .text ".s"
++
 
+.if "disassembler" in TALI_OPTIONAL_WORDS
 nt_disasm:
         .byte 6, UF
-        .word nt_compare, xt_disasm, z_disasm
+        .word +, xt_disasm, z_disasm
         .text "disasm"
++
+.endif
 
 nt_compare:
         .byte 7, UF
@@ -1430,10 +1434,12 @@ nt_forth:
 +
 .endif
 
+.if "disassembler" in TALI_OPTIONAL_WORDS
 nt_see: .byte 3, NN
         .word +, xt_see, z_see
         .text "see"
 +
+.endif
 
 .if "ed" in TALI_OPTIONAL_WORDS
 nt_ed:                  ; ed6502

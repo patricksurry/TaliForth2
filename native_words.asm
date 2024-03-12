@@ -2764,7 +2764,6 @@ _done:
 z_dabs:         rts
 
 
-
 ; ## DECIMAL ( -- ) "Change radix base to decimal"
 ; ## "decimal"  auto  ANS core
         ; """https://forth-standard.org/standard/core/DECIMAL"""
@@ -2955,6 +2954,7 @@ z_digit_question:
                 rts
 
 
+.if "disassembler" in TALI_OPTIONAL_WORDS
 ; ## DISASM ( addr u -- ) "Disassemble a block of memory"
 ; ## "disasm"  tested  Tali Forth
         ; """Convert a segment of memory to assembler output. This
@@ -2969,6 +2969,7 @@ xt_disasm:
                 jsr disassembler
 
 z_disasm:       rts
+.endif
 
 
 ; ## DNEGATE ( d -- d ) "Negate double cell number"
@@ -3442,7 +3443,6 @@ _done:
 z_dot_s:        rts
 
 
-
 ; ## D_DOT ( d -- ) "Print double"
 ; ## "d."  tested  ANS double
         ; """http://forth-standard.org/standard/double/Dd"""
@@ -3465,7 +3465,6 @@ xt_d_dot:
                 jsr xt_space
 
 z_d_dot:        rts
-
 
 
 ; ## D_DOT_R ( d u -- ) "Print double right-justified u wide"
@@ -3493,7 +3492,6 @@ xt_d_dot_r:
                 jsr xt_type
 
 z_d_dot_r:      rts
-
 
 
 ; ## DROP ( u -- ) "Pop top entry on Data Stack"
@@ -4632,7 +4630,6 @@ _multiply:
                 dex
 _done:
 z_fm_slash_mod: rts
-
 
 
 .if "wordlist" in TALI_OPTIONAL_WORDS
@@ -5892,7 +5889,6 @@ _done:
 z_lshift:       rts
 
 
-
 ; ## M_STAR ( n n -- d ) "16 * 16 --> 32"
 ; ## "m*"  auto  ANS core
         ; """https://forth-standard.org/standard/core/MTimes
@@ -5930,7 +5926,6 @@ xt_m_star:
                 jsr xt_dnegate
 _done:
 z_m_star:       rts
-
 
 
 ; ## MARKER ( "name" -- ) "Create a deletion boundry"
@@ -6275,7 +6270,6 @@ _loop:
 _done:
 z_minus_trailing:
                 rts
-
 
 
 ; ## MOD ( n1 n2 -- n ) "Divide NOS by TOS and return the remainder"
@@ -6898,7 +6892,6 @@ _loop:
 
 z_number_sign_s:
                 rts
-
 
 
 ; ## OF (C: -- of-sys) (x1 x2 -- |x1) "Conditional flow control"
@@ -8385,7 +8378,7 @@ z_search_wordlist:
 .endif
 
 
-
+.if "disassembler" in TALI_OPTIONAL_WORDS
 ; ## SEE ( "name" -- ) "Print information about a Forth word"
 ; ## "see" tested  ANS tools
         ; """https://forth-standard.org/standard/tools/SEE
@@ -8486,7 +8479,7 @@ _flag_loop:
                 sta base
 
 z_see:          rts
-
+.endif
 
 
 .if "wordlist" in TALI_OPTIONAL_WORDS
@@ -8956,7 +8949,6 @@ _done:
 z_s_quote:      rts
 
 
-
 ; ## S_TO_D ( u -- d ) "Convert single cell number to double cell"
 ; ## "s>d"  auto  ANS core
         ; """https://forth-standard.org/standard/core/StoD"""
@@ -9374,7 +9366,6 @@ z_slash_mod:
 z_slash:        rts
 
 
-
 ; ## SLASH_MOD ( n1 n2 -- n3 n4 ) "Divide NOS by TOS with a remainder"
 ; ## "/mod"  auto  ANS core
         ; """https://forth-standard.org/standard/core/DivMOD
@@ -9593,10 +9584,10 @@ sliteral_runtime:
 
 
 
-; ## SM_SLASH_REM ( d n1 -- n2 n3 ) "Symmetic signed division"
+; ## SM_SLASH_REM ( d n1 -- n2 n3 ) "Symmetric signed division"
 ; ## "sm/rem"  auto  ANS core
         ; """https://forth-standard.org/standard/core/SMDivREM
-        ; Symmetic signed division. Compare FM/MOD. Based on F-PC 3.6
+        ; Symmetric signed division. Compare FM/MOD. Based on F-PC 3.6
         ; by Ulrich Hoffmann. See http://www.xlerb.de/uho/ansi.seq
         ;
         ; Forth:
@@ -10401,7 +10392,6 @@ _done:
                 sta 5,x
 
 z_to_number:    rts
-
 
 
 .if "wordlist" in TALI_OPTIONAL_WORDS

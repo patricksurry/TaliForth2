@@ -15,10 +15,13 @@ str_compile        =  1
 str_redefined      =  2
 str_wid_forth      =  3
 str_abc_lower      =  4
-str_abc_upper      =  5
+str_abc_upper      =  5                     ; note unused
+.if "wordlist" in TALI_OPTIONAL_WORDS
 str_wid_editor     =  6
 str_wid_assembler  =  7
 str_wid_root       =  8
+.endif
+.if "disassembler" in TALI_OPTIONAL_WORDS
 str_see_flags      =  9
 str_see_nt         = 10
 str_see_xt         = 11
@@ -26,28 +29,41 @@ str_see_size       = 12
 str_disasm_lit     = 13
 str_disasm_sdc     = 14
 str_disasm_bra     = 15
-
+.endif
 
 ; Since we can't fit a 16-bit address in a register, we use indexes as offsets
 ; to tables as error and string numbers.
 string_table:
         .word s_ok, s_compiled, s_redefined, s_wid_forth, s_abc_lower ; 0-4
         .word s_abc_upper, s_wid_editor, s_wid_asm, s_wid_root        ; 5-8
+.if "disassembler" in TALI_OPTIONAL_WORDS
         .word s_see_flags, s_see_nt, s_see_xt, s_see_size             ; 9-12
         .word s_disasm_lit, s_disasm_sdc, s_disasm_bra                ; 13-15
+.endif
 
 s_ok:         .text " ok", 0         ; note space at beginning
 s_compiled:   .text " compiled", 0   ; note space at beginning
 s_redefined:  .text "redefined ", 0  ; note space at end
 
 s_abc_lower:  .text "0123456789abcdefghijklmnopqrstuvwxyz"
-s_abc_upper:  .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+s_abc_upper:
+.if len(TALI_OPTIONAL_WORDS) > 0
+    .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+.endif
 
+.if "wordlist" in TALI_OPTIONAL_WORDS
 s_wid_asm:    .text "Assembler ", 0  ; Wordlist ID 2, note space at end
 s_wid_editor: .text "Editor ", 0     ; Wordlist ID 1, note space at end
 s_wid_forth:  .text "Forth ", 0      ; Wordlist ID 0, note space at end
 s_wid_root:   .text "Root ", 0       ; Wordlist ID 3, note space at end
+.else
+s_wid_asm:
+s_wid_editor:
+s_wid_forth:
+s_wid_root:
+.endif
 
+.if "disassembler" in TALI_OPTIONAL_WORDS
 s_see_flags:  .text "flags (CO AN IM NN UF HC): ", 0
 s_see_nt:     .text "nt: ", 0
 s_see_xt:     .text "xt: ", 0
@@ -56,6 +72,7 @@ s_see_size:   .text "size (decimal): ", 0
 s_disasm_lit: .text "LITERAL ", 0
 s_disasm_sdc: .text "STACK DEPTH CHECK", 0
 s_disasm_bra: .text "BRANCH ",0
+.endif
 
 ; ## ERROR STRINGS
 
@@ -84,6 +101,7 @@ error_table:
         .word es_syntax, es_underflow, es_negallot, es_wordlist ;  8-11
         .word es_blockwords, es_returnstack                     ; 12-13
 
+.if len(TALI_OPTIONAL_WORDS) > 0
 es_allot:       .text "ALLOT using all available memory", 0
 es_badsource:   .text "Illegal SOURCE-ID during REFILL", 0
 es_compileonly: .text "Interpreting a compile-only word", 0
@@ -98,7 +116,24 @@ es_negallot:    .text "Max memory freed with ALLOT", 0
 es_wordlist:    .text "No wordlists available", 0
 es_blockwords:  .text "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR",0
 es_returnstack: .text "Return stack:", 0
+.else
+es_allot:       .text "nomem", 0
+es_badsource:   .text "badsrc", 0
+es_compileonly: .text "conly", 0
+es_defer:       .text "defer", 0
+es_divzero:     .text "div0", 0
+es_noname:      .text "noname", 0
+es_refill:      .text "refill", 0
+es_state:       .text "state", 0
+es_syntax:      .text "syntax", 0
+es_underflow:   .text "under", 0
+es_negallot:    .text "-allot", 0
+es_wordlist:    .text "", 0
+es_blockwords:  .text "",0
+es_returnstack: .text "rstk", 0
+.endif
 
+.if "environment?" in TALI_OPTIONAL_WORDS
 ; ## ENVIRONMENT STRINGS
 
 ; These are used by the ENVIRONMENT? word and stored in the old string format:
@@ -122,5 +157,6 @@ envs_wl:        .text 9, "WORDLISTS"
 ; These return a double-cell number
 envs_max_d:     .text 5, "MAX-D"
 envs_max_ud:    .text 6, "MAX-UD"
+.endif
 
 ; END

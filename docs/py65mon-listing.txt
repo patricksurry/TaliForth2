@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Sun Mar 10 21:44:50 2024
+; Tue Mar 12 18:10:17 2024
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -20,7 +20,7 @@
 =768					cp0       = buffer0+bsize+1  ; Dictionary starts after last buffer
 =31744					cp_end    = hist_buff        ; Last RAM byte available for code
 =$ff					padoffset = $ff              ; offset from CP to PAD (holds number strings)
-=					TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "wordlist" ]
+=					TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
 =["lf"]					TALI_OPTION_CR_EOL := [ "lf" ]
 
 ;******  Processing file: platform/../taliforth.asm
@@ -9267,12 +9267,14 @@
 >c645	64 75 6d 70			        .text "dump"
 .c649					nt_dot_s:
 >c649	02 00				        .byte 2, 0
->c64b	53 c6 81 8c c4 8c		        .word nt_disasm, xt_dot_s, z_dot_s
+>c64b	53 c6 81 8c c4 8c		        .word +, xt_dot_s, z_dot_s
 >c651	2e 73				        .text ".s"
+.c653					+
 .c653					nt_disasm:
 >c653	06 10				        .byte 6, UF
->c655	61 c6 1b 8b 21 8b		        .word nt_compare, xt_disasm, z_disasm
+>c655	61 c6 1b 8b 21 8b		        .word +, xt_disasm, z_disasm
 >c65b	64 69 73 61 73 6d		        .text "disasm"
+.c661					+
 .c661					nt_compare:
 >c661	07 10				        .byte 7, UF
 >c663	70 c6 69 87 cd 87		        .word nt_search, xt_compare, z_compare
