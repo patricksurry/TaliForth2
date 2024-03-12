@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Tue Mar 12 18:10:17 2024
+; Tue Mar 12 19:48:29 2024
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -10525,7 +10525,7 @@
 =2					str_redefined      =  2
 =3					str_wid_forth      =  3
 =4					str_abc_lower      =  4
-=5					str_abc_upper      =  5
+=5					str_abc_upper      =  5                     ; note unused
 =6					str_wid_editor     =  6
 =7					str_wid_assembler  =  7
 =8					str_wid_root       =  8
@@ -10550,7 +10550,8 @@
 >d3e0	30 31 32 33 34 35 36 37		s_abc_lower:  .text "0123456789abcdefghijklmnopqrstuvwxyz"
 >d3e8	38 39 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e
 >d3f8	6f 70 71 72 73 74 75 76 77 78 79 7a
->d404	30 31 32 33 34 35 36 37		s_abc_upper:  .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+.d404					s_abc_upper:
+>d404	30 31 32 33 34 35 36 37		    .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 >d40c	38 39 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e
 >d41c	4f 50 51 52 53 54 55 56 57 58 59 5a
 >d428	41 73 73 65 6d 62 6c 65		s_wid_asm:    .text "Assembler ", 0  ; Wordlist ID 2, note space at end
