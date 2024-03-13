@@ -203,7 +203,7 @@ RTS instruction at the end of each word.
 | SEE | `see` | ANS tools | 141 | tested |
 | SET_CURRENT | `set-current` | ANS search | 11 | **auto** |
 | SET_ORDER | `set-order` | ANS search | 51 | **auto** |
-| S_QUOTE | `s"` | ANS core | 348 | **auto** |
+| S_QUOTE | `s"` | ANS core | 301 | **auto** |
 | S_TO_D | `s>d` | ANS core | 17 | **auto** |
 | SAVE_BUFFERS | `save-buffers` | ANS block | 26 | tested |
 | SCR | `scr` | ANS block ext | 15 | **auto** |
