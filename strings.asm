@@ -117,20 +117,20 @@ es_wordlist:    .text "No wordlists available", 0
 es_blockwords:  .text "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR",0
 es_returnstack: .text "Return stack:", 0
 .else
-es_allot:       .text "nomem", 0
-es_badsource:   .text "badsrc", 0
-es_compileonly: .text "conly", 0
-es_defer:       .text "defer", 0
-es_divzero:     .text "div0", 0
-es_noname:      .text "noname", 0
-es_refill:      .text "refill", 0
-es_state:       .text "state", 0
-es_syntax:      .text "syntax", 0
-es_underflow:   .text "under", 0
-es_negallot:    .text "-allot", 0
+es_allot:       .text "EALLT", 0
+es_badsource:   .text "ESRC", 0
+es_compileonly: .text "ECMPL", 0
+es_defer:       .text "EDEFR", 0
+es_divzero:     .text "EDIV0", 0
+es_noname:      .text "ENAME", 0
+es_refill:      .text "EREFL", 0
+es_state:       .text "ESTAT", 0
+es_syntax:      .text "ESNTX", 0
+es_underflow:   .text "EUNDR", 0
+es_negallot:    .text "ENALT", 0
 es_wordlist:    .text "", 0
 es_blockwords:  .text "",0
-es_returnstack: .text "rstk", 0
+es_returnstack: .text "RS", 0
 .endif
 
 .if "environment?" in TALI_OPTIONAL_WORDS
