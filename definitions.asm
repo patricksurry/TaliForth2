@@ -78,7 +78,7 @@ scratch   = user0+54  ; 8 byte scratchpad (see UM/MOD)
 dsp0      = zpage_end-7    ; initial Data Stack Pointer
 turnkey   = zpage_end-1    ; word to resume in pre-compiled image
 
-; User Variables: this must match cold_user_table in native_words.asm
+; RAM System Variables: this must match cold_user_table in native_words.asm
 ; Block variables
 blk_offset = 0        ; BLK : UP + 0
 scr_offset = 2        ; SCR : UP + 2

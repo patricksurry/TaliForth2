@@ -29,7 +29,7 @@ COMMON_SOURCES=taliforth.asm definitions.asm native_words.asm headers.asm string
 TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
     tests/facility.fs tests/ed.fs tests/asm.fs tests/tali.fs \
     tests/tools.fs tests/block.fs tests/search.fs tests/user.fs tests/cycles.fs
-TEST_SOURCES=tests/talitest.py
+TEST_SOURCES=tests/talitest.py $(TEST_SUITE)
 
 all: taliforth-py65mon.bin docs/WORDLIST.md
 clean:
@@ -65,8 +65,13 @@ docs/WORDLIST.md: taliforth-py65mon.bin
 # Convenience target for regular tests.
 tests:	tests/results.txt
 
-ctests: $(test_files)
-	cat tests/tester.fs $(TEST_SUITE) tests/bye.fs | c65/c65 -r taliforth-py65mon.bin > tests/results.txt
+ctests: $(TEST_SOURCES)
+	(  cat tests/tester.fs; \
+	   for f in $(notdir $(TEST_SUITE)); do \
+	       echo "\n ( Running test '$${f%.fs}' from file '$$f' )"; \
+		   cat tests/$$f; \
+	   done; \
+	) | c65/c65 -r taliforth-py65mon.bin | grep -v c65: > tests/results.txt
 
 tests/results.txt:	taliforth-py65mon.bin $(TEST_SOURCES)
 	cd tests && $(PYTHON) ./talitest.py
