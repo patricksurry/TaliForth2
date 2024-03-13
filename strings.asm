@@ -14,8 +14,8 @@ str_ok             =  0
 str_compile        =  1
 str_redefined      =  2
 str_wid_forth      =  3
-str_abc_lower      =  4
-str_abc_upper      =  5                     ; note unused
+str_abc_lower      =  4                     ; note unused
+str_abc_upper      =  5
 .if "wordlist" in TALI_OPTIONAL_WORDS
 str_wid_editor     =  6
 str_wid_assembler  =  7
@@ -45,11 +45,11 @@ s_ok:         .text " ok", 0         ; note space at beginning
 s_compiled:   .text " compiled", 0   ; note space at beginning
 s_redefined:  .text "redefined ", 0  ; note space at end
 
-s_abc_lower:  .text "0123456789abcdefghijklmnopqrstuvwxyz"
-s_abc_upper:
+s_abc_lower:
 .if len(TALI_OPTIONAL_WORDS) > 0
-    .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    .text "0123456789abcdefghijklmnopqrstuvwxyz"
 .endif
+s_abc_upper:  .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 .if "wordlist" in TALI_OPTIONAL_WORDS
 s_wid_asm:    .text "Assembler ", 0  ; Wordlist ID 2, note space at end
