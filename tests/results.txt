@@ -3288,7 +3288,7 @@ decimal  ok
 \ skipping     quit  ok
 \ skipping     abort"  ok
 5            ' abs           cycle_test drop       CYCLES:     35 ok
-pad 20       ' accept        cycle_test some text  CYCLES:   1286 ok
+pad 20       ' accept        cycle_test some text  CYCLES:   1310 ok
 drop \ accept test complete  ok
              ' align         cycle_test            CYCLES:     12 ok
 5            ' aligned       cycle_test drop       CYCLES:     12 ok
@@ -3301,7 +3301,7 @@ drop \ accept test complete  ok
 \ skipping     begin  ok
              ' bell          cycle_test            CYCLES:     36 ok
              ' bl            cycle_test drop       CYCLES:     26 ok
-here 5       ' blank         cycle_test            CYCLES:    330 ok
+here 5       ' blank         cycle_test            CYCLES:    332 ok
 5 5          ' bounds        cycle_test 2drop      CYCLES:     70 ok
 \ skipping     [char]  ok
 \ skipping     [']  ok
@@ -3312,17 +3312,17 @@ here 5       ' blank         cycle_test            CYCLES:    330 ok
 5 here       ' c!            cycle_test            CYCLES:     46 ok
 5            ' cell+         cycle_test drop       CYCLES:     46 ok
 5            ' cells         cycle_test drop       CYCLES:     40 ok
-             ' char          cycle_test w drop     CYCLES:    451 ok
+             ' char          cycle_test w drop     CYCLES:    455 ok
 5            ' char+         cycle_test drop       CYCLES:     37 ok
 5            ' chars         cycle_test drop       CYCLES:     28 ok
 pad here 5   ' cmove         cycle_test            CYCLES:    188 ok
 pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
-             ' :             cycle_test wrd ;      CYCLES:  15732 ok
+             ' :             cycle_test wrd ;      CYCLES:  15736 ok
              ' :noname       cycle_test ; drop     CYCLES:     50 ok
 5            ' ,             cycle_test            CYCLES:     66 ok
-' aword      ' compile,      cycle_test            CYCLES:    785 ok
+' aword      ' compile,      cycle_test            CYCLES:    801 ok
 : bword ;    ' compile-only  cycle_test            CYCLES:     72 ok
-5            ' constant      cycle_test mycnst     CYCLES:  16236 ok
+5            ' constant      cycle_test mycnst     CYCLES:  16240 ok
 here         ' count         cycle_test 2drop      CYCLES:     59 ok
 \ skipping     cr  ok
 \ skipping     create  ok
@@ -3346,10 +3346,10 @@ char w       ' digit?        cycle_test 2drop      CYCLES:     86 ok
 \ skipping     dump  ok
 5            ' dup           cycle_test 2drop      CYCLES:     48 ok
 42           ' emit          cycle_test           *CYCLES:     46 ok
-5 5          ' =             cycle_test drop       CYCLES:     64 ok
+5 5          ' =             cycle_test drop       CYCLES:     66 ok
 here 5       ' erase         cycle_test            CYCLES:    326 ok
 here 5 5     ' fill          cycle_test            CYCLES:    314 ok
-s" 5"        ' evaluate      cycle_test drop       CYCLES:  17238 ok
+s" 5"        ' evaluate      cycle_test drop       CYCLES:  17242 ok
 5 ' drop     ' execute       cycle_test            CYCLES:     84 ok
 \ skipping     exit  ok
              ' false         cycle_test drop       CYCLES:     24 ok
@@ -3357,9 +3357,9 @@ here         ' @             cycle_test drop       CYCLES:     59 ok
 \ making counted string for find  ok
 here 5 c, char a c, char w c, char o c,  ok
 char r c, char d c,  ok
-             ' find          cycle_test 2drop      CYCLES:    788 ok
-s" aword"    ' find-name     cycle_test drop       CYCLES:    456 ok
-5. 5         ' fm/mod        cycle_test 2drop      CYCLES:   1311 ok
+             ' find          cycle_test 2drop      CYCLES:    792 ok
+s" aword"    ' find-name     cycle_test drop       CYCLES:    458 ok
+5. 5         ' fm/mod        cycle_test 2drop      CYCLES:   1313 ok
 5 5          ' >             cycle_test drop       CYCLES:     81 ok
              ' here          cycle_test drop       CYCLES:     30 ok
              ' hex           cycle_test decimal    CYCLES:     14 ok
@@ -3367,7 +3367,7 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:    456 ok
 \ skipping     i  ok
 : cword ;    ' immediate     cycle_test            CYCLES:     72 ok
              ' input         cycle_test drop       CYCLES:     28 ok
-' dup        ' int>name      cycle_test drop       CYCLES:   1676 ok
+' dup        ' int>name      cycle_test drop       CYCLES:   1722 ok
 5            ' invert        cycle_test drop       CYCLES:     48 ok
 \ skipping     j  ok
              ' key           cycle_test drop       CYCLES:     48 ok
@@ -3381,13 +3381,13 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:    456 ok
 \ skipping     loop  ok
 \ skipping     +loop  ok
 5 5          ' lshift        cycle_test drop       CYCLES:    126 ok
-5 5          ' m*            cycle_test 2drop      CYCLES:    679 ok
-             ' marker        cycle_test marka      CYCLES:  17898 ok
+5 5          ' m*            cycle_test 2drop      CYCLES:    681 ok
+             ' marker        cycle_test marka      CYCLES:  17902 ok
              ' marka         cycle_test            CYCLES:    848 ok
 5 5          ' max           cycle_test drop       CYCLES:     69 ok
 5 5          ' min           cycle_test drop       CYCLES:     54 ok
 5 5          ' -             cycle_test drop       CYCLES:     58 ok
-s" txt   "   ' -trailing     cycle_test 2drop      CYCLES:    222 ok
+s" txt   "   ' -trailing     cycle_test 2drop      CYCLES:    228 ok
 here s" a"   ' move          cycle_test            CYCLES:    148 ok
 ' + int>name ' name>int      cycle_test drop       CYCLES:     71 ok
 ' + int>name ' name>string   cycle_test 2drop      CYCLES:     70 ok
@@ -3395,9 +3395,9 @@ here s" a"   ' move          cycle_test            CYCLES:    148 ok
 5            ' negate        cycle_test drop       CYCLES:     50 ok
 : dword ;    ' never-native  cycle_test            CYCLES:     74 ok
 5 5          ' nip           cycle_test drop       CYCLES:     48 ok
-5 5          ' <>            cycle_test drop       CYCLES:     68 ok
+5 5          ' <>            cycle_test drop       CYCLES:     70 ok
 5 5 5        ' -rot          cycle_test 2drop drop CYCLES:     76 ok
-s" 5"        ' number        cycle_test drop       CYCLES:   1710 ok
+s" 5"        ' number        cycle_test drop       CYCLES:   1714 ok
 \ skipping     #  ok
 \ skipping     #>  ok
 \ skipping     #s  ok
@@ -3409,17 +3409,17 @@ s" 5"        ' number        cycle_test drop       CYCLES:   1710 ok
 5 5          ' over          cycle_test 2drop drop CYCLES:     48 ok
              ' pad           cycle_test drop       CYCLES:     36 ok
 \ skipping     page  ok
-             ' parse-name    cycle_test a 2drop    CYCLES:    410 ok
+             ' parse-name    cycle_test a 2drop    CYCLES:    414 ok
 char "       ' parse         cycle_test " 2drop    CYCLES:    215 ok
 5 0          ' pick          cycle_test 2drop      CYCLES:     42 ok
 5 5          ' +             cycle_test drop       CYCLES:     58 ok
 5 here       ' +!            cycle_test            CYCLES:     86 ok
 \ skipping     postpone  ok
-myvar        ' ?             cycle_test          5 CYCLES:   3897 ok
+myvar        ' ?             cycle_test          5 CYCLES:   3901 ok
 5            ' ?dup          cycle_test 2drop      CYCLES:     58 ok
 \ skipping     r>  ok
 \ skipping     recurse  ok
-             ' refill        cycle_test            CYCLES:    333 ok
+             ' refill        cycle_test            CYCLES:    339 ok
 drop \ refill  ok
 \ skipping     ]  ok
 5 5 5        ' rot           cycle_test 2drop drop CYCLES:     76 ok
@@ -3430,20 +3430,20 @@ drop \ refill  ok
 \ skipping     sign  ok
 s" abc" 1    ' /string       cycle_test 2drop      CYCLES:     84 ok
 \ skipping     sliteral  ok
-5. 5         ' sm/rem        cycle_test 2drop      CYCLES:   1398 ok
+5. 5         ' sm/rem        cycle_test 2drop      CYCLES:   1400 ok
              ' source        cycle_test 2drop      CYCLES:     48 ok
              ' source-id     cycle_test drop       CYCLES:     30 ok
              ' space         cycle_test            CYCLES:     36 ok
 1            ' spaces        cycle_test            CYCLES:    159 ok
-5 5          ' *             cycle_test drop       CYCLES:    535 ok
+5 5          ' *             cycle_test drop       CYCLES:    537 ok
              ' state         cycle_test drop       CYCLES:     28 ok
 5 here       ' !             cycle_test            CYCLES:     65 ok
 5 5          ' swap          cycle_test 2drop      CYCLES:     60 ok
-             ' '             cycle_test aword drop CYCLES:   1344 ok
+             ' '             cycle_test aword drop CYCLES:   1350 ok
 \ postponing   to ( see value )  ok
-' aword      ' >body         cycle_test drop       CYCLES:    591 ok
+' aword      ' >body         cycle_test drop       CYCLES:    601 ok
              ' >in           cycle_test drop       CYCLES:     28 ok
-0. s" 55"    ' >number       cycle_test 4drop      CYCLES:   2548 ok
+0. s" 55"    ' >number       cycle_test 4drop      CYCLES:   2556 ok
 \ skipping     >r  ok
              ' true          cycle_test drop       CYCLES:     26 ok
 5 5          ' tuck          cycle_test 2drop drop CYCLES:     72 ok
@@ -3459,32 +3459,30 @@ here         ' 2@            cycle_test 2drop      CYCLES:     88 ok
 5. here      ' 2!            cycle_test            CYCLES:     99 ok
 5 5 5 5      ' 2swap         cycle_test 4drop      CYCLES:     92 ok
 \ skipping     2>r  ok
-             ' 2variable     cycle_test eword      CYCLES:  16521 ok
+             ' 2variable     cycle_test eword      CYCLES:  16525 ok
              ' eword         cycle_test drop       CYCLES:     45 ok
-s" *"        ' type          cycle_test           *CYCLES:    124 ok
-5            ' u.            cycle_test          5 CYCLES:   3618 ok
+s" *"        ' type          cycle_test           *CYCLES:    126 ok
+5            ' u.            cycle_test          5 CYCLES:   3620 ok
 5 5          ' u>            cycle_test drop       CYCLES:     60 ok
 5 5          ' u<            cycle_test drop       CYCLES:     60 ok
              ' strip-underflow   cycle_test drop       CYCLES:     28 ok
-5. 5         ' um/mod        cycle_test 2drop      CYCLES:   1260 ok
-5 5          ' um*           cycle_test 2drop      CYCLES:    503 ok
+5. 5         ' um/mod        cycle_test 2drop      CYCLES:   1262 ok
+5 5          ' um*           cycle_test 2drop      CYCLES:    505 ok
 \ skipping     unloop  ok
              ' unused        cycle_test drop       CYCLES:     36 ok
-5            ' value         cycle_test fword      CYCLES:  16742 ok
+5            ' value         cycle_test fword      CYCLES:  16746 ok
              ' fword         cycle_test drop       CYCLES:     58 ok
-5            ' to            cycle_test fword      CYCLES:   1138 ok
-             ' variable      cycle_test gword      CYCLES:  16524 ok
+5            ' to            cycle_test fword      CYCLES:   1144 ok
+             ' variable      cycle_test gword      CYCLES:  16528 ok
              ' gword         cycle_test drop       CYCLES:     45 ok
-char "       ' word          cycle_test "txt" drop CYCLES:    676 ok
+char "       ' word          cycle_test "txt" drop CYCLES:    678 ok
 \ skipping     words  ok
 ' aword      ' wordsize      cycle_test drop       CYCLES:     84 ok
 5 5          ' xor           cycle_test drop       CYCLES:     56 ok
              ' 0             cycle_test drop       CYCLES:     24 ok
 \ skipping     0branch  ok
-5            ' 0=            cycle_test drop       CYCLES:     50 ok
+5            ' 0=            cycle_test drop       CYCLES:     52 ok
 5            ' 0>            cycle_test drop       CYCLES:     54 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     52 ok
   ok
-  ok
-bye 
