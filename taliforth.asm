@@ -547,21 +547,33 @@ underflow_error:
                 lda #err_underflow      ; fall through to error
 
 error:
-        ; """Given the error number in a, print the associated error string and
-        ; call abort. Uses tmp3.
+        ; """Given the error number in a, display the error and call abort. Uses tmp3.
         ; """
-                asl
-                tay
-                lda error_table,y
-                sta tmp3                ; LSB
-                iny
-                lda error_table,y
-                sta tmp3+1              ; MSB
-
-                jsr print_common
+                pha                     ; save error
+                jsr print_error
                 jsr xt_cr
-                jmp xt_abort            ; no jsr, as we clobber return stack
+                pla
+                cmp #err_underflow      ; should we display return stack?
+                bne _no_underflow
 
+                lda #err_returnstack
+                jsr print_error
+
+                ; dump return stack from SP...$1FF to help debug source of underflow
+                ; the data stack pointer in X is already corrupted so safe to reuse here
+                tsx
+-
+                inx
+                beq +
+                jsr xt_space
+                lda $100,x
+                jsr byte_to_ascii
+                bra -
++
+                jsr xt_cr
+
+_no_underflow:
+                jmp xt_abort            ; no jsr, as we clobber return stack
 
 ; =====================================================================
 ; PRINTING ROUTINES
@@ -608,6 +620,22 @@ _loop:
                 bra _loop
 _done:
                 rts
+
+
+print_error:
+        ; """Given the error number in a, print the associated error string. Uses tmp3.
+        ; """
+                asl
+                tay
+                lda error_table,y
+                sta tmp3                ; LSB
+                iny
+                lda error_table,y
+                sta tmp3+1              ; MSB
+
+                jsr print_common
+                rts
+
 
 print_string:
         ; """Print a zero-terminated string to the console/screen, adding a LF.

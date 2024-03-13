@@ -38,14 +38,14 @@ all those things.
 It is a well-established fact that humanity reached the apex of processor design
 with the 6502<span class="indexterm" primary="6502"></span> in 1976.
 
-<figure>
-<img src="pics/W65c02.jpg" id="img_65c02" alt="by Anthony King, public domain" />
-<figcaption aria-hidden="true">by Anthony King, public domain</figcaption>
+<figure id="img_65c02">
+<img src="pics/W65c02.jpg" alt="W65c02" />
+<figcaption>by Anthony King, public domain</figcaption>
 </figure>
 
 Created by a team including Chuck Peddle<span class="indexterm" primary="Peddle, Chuck"></span> and Bill
 Mensch<span class="indexterm" primary="Mensch, Bill"></span>, it was the engine that powered the 8-bit home
-computer revolution of the 1980s.[1] The
+computer revolution of the 1980s.[^1] The
 VIC-20<span class="indexterm" primary="VIC-20"></span>, Commodore PET<span class="indexterm" primary="Commodore PET"></span>, Apple II<span class="indexterm" primary="Apple II"></span>,
 and Atari 800<span class="indexterm" primary="Atari 800"></span> all used the 6502, among others.
 
@@ -65,8 +65,12 @@ But why program in 8-bit assembler at all? The 65c02 is fun to work with
 because of its clean instruction set architecture (ISA)<span class="indexterm" primary="instruction set architecture (ISA)"></span> This is not the place to explain the joys of assembler.
 The official handbook for the 65c02 is *Programming the 65816* [\[EnL\]](#EnL).
 
+<div class="tip">
+
 Garth Wilson<span class="indexterm" primary="Wilson, Garth"></span> answers this question in greater
 detail as part of his 6502 primer at <http://wilsonminesco.com/6502primer/> .
+
+</div>
 
 ### Forth
 
@@ -82,8 +86,12 @@ invented by Charles "Chuck" H. Moore<span class="indexterm" primary="Moore, Char
 work with radio astronomy, way before there were modern operating systems or
 programming languages.
 
+<div class="tip">
+
 A brief history of Forth can be found at
 <https://www.forth.com/resources/forth-programming-language>
+
+</div>
 
 As a language for people who actually need to get things done, it lets you run
 with scissors, play with fire, and cut corners until you’ve turned a square
@@ -112,11 +120,15 @@ dated) *Starting Forth* by Leo Brodie.<span class="indexterm" primary="Brodie, L
 Gforth,<span class="indexterm" primary="Gforth"></span> one of the more powerful free Forths, comes with its own
 [tutorial](http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Tutorial.html).
 
+<div class="tip">
+
 Once you have understood the basics of the language, do yourself a favor
 and read *Thinking Forth* by Brodie<span class="indexterm" primary="Brodie, Leo"></span>[\[LB2\]](#LB2) which deals with
 the philosophy of the language. Even if you never code a line of Forth in your
 life, exposure to Forth will change the way you think about programming, much
 like Lisp<span class="indexterm" primary="Lisp"></span>.
+
+</div>
 
 ### Writing Your Own Forth
 
@@ -155,9 +167,13 @@ commented and this document tries to explain the internals in more detail.
 When creating a new Forth, there are a bunch of design decisions to be
 made.
 
+<div class="note">
+
 Probably the best introduction to these questions is found in "Design
 Decisions in the Forth Kernel" at
 <http://www.bradrodriguez.com/papers/moving1.htm> by Brad Rodriguez.
+
+</div>
 
 Spoiler alert: Tali Forth is a subroutine-threaded (STC) variant with a 16-bit
 cell size and a dictionary that keeps headers and code separate. If you don’t
@@ -260,7 +276,7 @@ interested, a later chapter will provide far more detail.
 ### Downloading
 
 Tali Forth 2 lives on GitHub<span class="indexterm" primary="GitHub"></span> at
-<https://github.com/scotws/TaliForth2>. This is where you will always find the
+<https://github.com/SamCoVT/TaliForth2>. This is where you will always find the
 current version. You can either clone the code with git<span class="indexterm" primary="git"></span> or simply
 download it. To just test Tali Forth, all you need is the binary file
 `taliforth-py65mon.bin`.
@@ -285,8 +301,12 @@ sudo pip install -U py65
 ```
 
 If you don’t have `pip`<span class="indexterm" primary="pip"></span> installed, you will have to add it first with
-something like `sudo apt-get install python-pip` (Ubuntu Linux). There is a
-`setup.py` script as part of the package.
+something like `sudo apt-get install python-pip` (Ubuntu Linux). Some systems
+use pip3 and you can run the above commands with pip3 instead of pip.
+
+If you are on windows, you will need to download and install Python 3
+first. Once Python is installed, the above commands should work from
+a Windows command prompt.
 
 #### Running the Binary
 
@@ -307,9 +327,9 @@ computer, the Übersquirrel<span class="indexterm" primary="Übersquirrel"></spa
 its own, a central aim of the project is to provide a working, modern Forth that
 people can install on their projects.
 
-<figure>
-<img src="pics/uebersquirrel.jpg" id="img_uebersquirrel" alt="The functioning Übersquirrel Mark Zero prototype, August 2013. Photo by Scot W. Stevenson" />
-<figcaption aria-hidden="true">The functioning Übersquirrel Mark Zero prototype, August 2013. Photo by Scot W. Stevenson</figcaption>
+<figure id="img_uebersquirrel">
+<img src="pics/uebersquirrel.jpg" alt="uebersquirrel" />
+<figcaption>The functioning Übersquirrel Mark Zero prototype, August 2013. Photo by Scot W. Stevenson</figcaption>
 </figure>
 
 #### The Platform Files
@@ -339,13 +359,13 @@ named your platform.
 This is a list of projects known to run Tali Forth 2. Please let me know if you
 want to have your project added to the list.
 
--   **Steckschwein** (<https://steckschwein.de/>) by Thomas Woinke and Marko
-    Lauke. A multi-board 8 MHz 65c02 system. Platform file:
-    `platform-steckschwein.asm` (26. Oct 2018)
+- **Steckschwein** (<https://steckschwein.de/>) by Thomas Woinke and Marko
+  Lauke. A multi-board 8 MHz 65c02 system. Platform file:
+  `platform-steckschwein.asm` (26. Oct 2018)
 
--   **SamCo’s SBC** (<https://github.com/SamCoVT/SBC>) by Sam Colwell. A
-    single-board computer running at 4MHz. Platform file:
-    `platform-sbc.asm` (29. Oct 2018)
+- **SamCo’s SBC** (<https://github.com/SamCoVT/SBC>) by Sam Colwell. A
+  single-board computer running at 4MHz. Platform file:
+  `platform-sbc.asm` (29. Oct 2018)
 
 There are various benchmarks of Tali Forth 2 running different hardware at *The
 Ultimate Forth Benchmark* (<https://theultimatebenchmark.org/#sec-7>).
@@ -405,47 +425,69 @@ entry, press `CONTROL-n`.
 Tali Forth comes with the following Forth words out of the
 box:
 
-    order .wid drop dup swap ! @ over >r r> r@ nip rot -rot tuck , c@ c! +! execute
-    emit type . u. u.r .r d. d.r ud. ud.r ? false true space 0 1 2 2dup ?dup + - abs
-    dabs and or xor rshift lshift pick char [char] char+ chars cells cell+ here 1-
-    1+ 2* 2/ = <> < u< u> > 0= 0<> 0> 0< min max 2drop 2swap 2over 2! 2@ 2variable
-    2constant 2literal 2r@ 2r> 2>r invert negate dnegate c, bounds spaces bl
-    -trailing -leading /string refill accept input>r r>input unused depth key allot
-    create does> variable constant value to s>d d>s d- d+ erase blank fill find-name
-    ' ['] name>int int>name name>string >body defer latestxt latestnt parse-name
-    parse source source-id : ; :noname compile, [ ] literal sliteral ." s" s\"
-    postpone immediate compile-only never-native always-native allow-native nc-limit
-    strip-underflow abort abort" do ?do i j loop +loop exit unloop leave recurse
-    quit begin again state evaluate base digit? number >number hex decimal count m*
-    um* * um/mod sm/rem fm/mod / /mod mod */mod */ \ move cmove> cmove pad cleave
-    hexstore within >in <# # #s #> hold sign output input cr page at-xy marker words
-    wordsize aligned align bell dump .s disasm compare search environment? find word
-    ( .( if then else repeat until while case of endof endcase defer@ defer! is
-    action-of useraddr buffer: buffstatus buffblocknum blkbuffer scr blk block-write
-    block-write-vector block-read block-read-vector save-buffers block update buffer
-    empty-buffers flush load thru list block-ramdrive-init definitions wordlist
-    search-wordlist set-current get-current set-order get-order root-wordlist
-    assembler-wordlist editor-wordlist forth-wordlist only also previous >order
-    forth see ed cold bye
+    drop dup swap ! @ over >r r> r@ nip rot -rot tuck , c@ c! +! execute emit
+    type . u. u.r .r d. d.r ud. ud.r ? false true space 0 1 2 2dup ?dup + - 1- 1+
+    2* 2/ abs dabs and or xor rshift lshift pick char [char] char+ chars cells
+    cell+ here = <> < u< u> > 0= 0<> 0> 0< min max 2drop 2swap 2over 2! 2@
+    2variable 2constant 2literal 2r@ 2r> 2>r invert negate dnegate c, bounds
+    spaces bl -trailing -leading /string refill accept input>r r>input unused
+    depth key allot create does> variable constant value to s>d d>s d- d+ erase
+    blank fill find-name ' ['] name>int int>name name>string >body defer latestxt
+    latestnt parse-name parse execute-parsing source source-id : ; :noname
+    compile, [ ] literal sliteral ." s" s\" postpone immediate compile-only
+    never-native always-native allow-native nc-limit strip-underflow abort abort"
+    do ?do i j loop +loop exit unloop leave recurse quit begin again state
+    evaluate base digit? number >number hex decimal count m* um* * um/mod sm/rem
+    fm/mod / /mod mod */mod */ \ move cmove> cmove pad cleave hexstore within >in
+    <# # #s #> hold sign output input cr page at-xy marker words wordsize aligned
+    align bell dump .s disasm compare search environment? find word ( .( if then
+    else repeat until while case of endof endcase defer@ defer! is action-of
+    useraddr buffer: buffstatus buffblocknum blkbuffer scr blk block-write
+    block-write-vector block-read block-read-vector save-buffers block update
+    buffer empty-buffers flush load thru list block-ramdrive-init definitions
+    wordlist search-wordlist set-current get-current set-order get-order
+    root-wordlist assembler-wordlist editor-wordlist forth-wordlist only also
+    previous >order order forth see ed cold bye
+
+<div class="note">
 
 This list might be outdated. To get the current list, run `words` from
 inside Tali Forth.
 
+</div>
+
 Though the list might look unsorted, it actually reflects the priority in the
 dictionary<span class="indexterm" primary="dictionary"></span>, that is, which words are found first. For instance,
 the native words <span class="indexterm" primary="native words"></span> — those coded in assembler — always start
-with `drop` and end with `bye`. This is the last word that Tali will find in
-the dictionary. [2] The words before `drop` are those that are defined in high-level
+with `drop` and end with `bye`. `bye` is the last word that Tali will find in
+the dictionary. [^2] The words before `drop` are those that are defined in high-level
 Forth. For more information on individual the words, use the `see` command.
+
+<div class="tip">
 
 To find out if a given word is available, you can use the sequence
 `s" myword" find-name 0<>` which will return a `true` or `false` flag.
+
+</div>
 
 Note that the built-in words are lower case. While Tali is not case sensitive — `KASUMI` is the same word as `Kasumi` <span class="indexterm" primary="Kasumi"></span> — newly defined words will be
 lowercased as they are created and entered into the dictionary. There is a
 slight speed advantage during lookup to using lowercase words (because Tali
 doesn’t have to lowercase the entered text), so all of the tests for Tali are
 in lowercase.
+
+#### Numbers
+
+If a word is not found in the dictionary, Tali Forth tries to turn it into a
+number using the current `base`. Only if it can’t be turned into a number will
+Tali report an error. Tali supports the ANS standard prefix characters for
+specifying binary, decimal, and hex shown below. It is recommended to enter
+your numbers using these prefix characters when writing code that will be run
+later, as it makes the code insensitive to the current `base`.
+
+    %100 \ A binary number (decimal value 4)
+    #100 \ A decimal number (decimal value 100)
+    $100 \ A hexadecimal number (decimal value 256)
 
 #### The ANS Standard
 
@@ -701,7 +743,11 @@ Some things to look out for when using Tali Forth.
 
 Tali has a 16-bit cell size.
 
+<div class="note">
+
 Use `1 cells 8 * .` to get the cell size in bits with any Forth.
+
+</div>
 
 This can trip up calculations when compared to the *de facto* standard Gforth
 with 64 bits. Take this example:
@@ -714,7 +760,7 @@ the result, while Gforth doesn’t. If the conversion from double to single is
 only via a `drop` instruction, this will produce different results.
 
 There is a similar effect with the Gforth word `bounds`: Because of Tali’s 16
-bit address space, it wraps the upper address if we go beyond $FFFF:
+bit address space, it wraps the upper address if we go beyond \$FFFF:
 
     ( Gforth )      hex FFFF 2 bounds  swap u. u.  ( returns 10001 ffff  ok  )
     ( Tali )        hex FFFF 2 bounds  swap u. u.  ( returns     1 ffff  ok )
@@ -756,7 +802,7 @@ currently comes with one buffer.
 
 Before these words can be used, the user needs to write two routines: one for
 reading blocks into RAM and one for writing blocks out from RAM. Both of these
-should have the signature `( addr blk# — )`. Once these have been written, they
+should have the signature ( addr blk# — ). Once these have been written, they
 can be incorporated into the BLOCK word set by changing the vectors for words
 `block-read` and `block-write`. That might look like:
 
@@ -882,9 +928,13 @@ with blocks.
 Tali Forth 2 currently ships with a clone of the `ed` line-based editor of Unix
 fame. It is envoked with `ed`, though the formal name is `ed6502`.
 
+<div class="tip">
+
 `ed` uses about 2 KB of ROM in the default setup. If you know for certain
 you are not going to be using it, you can reclaim that space by removing "ed"
 from the TALI_OPTIONAL_WORDS list in your platform file.
+
+</div>
 
 For those not familiar with `ed`, there is [a tutorial](#ed-tutorial) included
 in this manual. This section is a brief overview of the currently available
@@ -914,7 +964,7 @@ The following parameters are currently available:
 | .   | Current line number                             |
 | ,   | When alone: All lines, the same as `1,$` or `%` |
 | ;   | Range from current line to end, same as `.,$`   |
-| $   | Last line                                       |
+| \$  | Last line                                       |
 | %   | All lines, the same as `1,$` or `,` alone       |
 
 An empty line (pressing the ENTER key) will advance by one line and print it. A
@@ -943,13 +993,17 @@ additions.
 
 Apart from missing about 90 percent of the features:
 
--   The `w` (write) command takes its parameter before and not after the word.
-    Where Unix ed uses the format `w <FILENAME>`, ed6502 takes the address
-    to write the text to as `7000w`.
+- The `w` (write) command takes its parameter before and not after the word.
+  Where Unix ed uses the format `w <FILENAME>`, ed6502 takes the address
+  to write the text to as `7000w`.
+
+<div class="warning">
 
 `ed` currently only works with decimal numbers. It saves and
 restores BASE, but all numbers inside ed will be decimal. This includes
 the address used with `w`.
+
+</div>
 
 #### Using `ed` for programming
 
@@ -964,9 +1018,9 @@ instance, a session to add a small string could look something like this:
             22    
             q
 
--   Address we save the command to
+- Address we save the command to
 
--   Number of characters saved including final line feed
+- Number of characters saved including final line feed
 
 It is a common mistake to forget the `.` (dot) to end the input, and try to
 go immediately to saving the text. Then, we can run the program:
@@ -988,11 +1042,11 @@ using more memory, you probably will want to set a marker first.
             ed              
             pre-edit        
 
--   Set marker at current value of `here`
+- Set marker at current value of `here`
 
--   Edit normally
+- Edit normally
 
--   Call marker, releasing memory
+- Call marker, releasing memory
 
 This issue might be taken care of in a future release.
 
@@ -1007,7 +1061,9 @@ The "buffer" of `ed` is a simple single-linked list of nodes, consisting of a po
 to the next entry, a pointer to the string address, and the length of that
 string.
 
-![ed node](pics/ed_node.png)
+<figure>
+<img src="pics/ed_node.png" alt="ed node" />
+</figure>
 
 Each entry is two bytes, making six bytes in total for each node. A
 value of 0000 in the pointer to the next address signals the end of the list.
@@ -1019,9 +1075,13 @@ and is only saved to the given location when the `w` command is given.
 Tali Forth is shipped with a built-in assembler that uses the Simpler Assembler
 Format (SAN). See the Appendix for an introduction to SAN.
 
+<div class="note">
+
 The code was originally part of a stand-alone 65c02 assembler in Forth
 named tasm65c02. See <https://github.com/scotws/tasm65c02> for details. Tasm65c02
 is in the public domain.
+
+</div>
 
 #### Adding assembler code at the command line
 
@@ -1064,7 +1124,11 @@ The last line in our code, `previous`, removes the assembler wordlist again.
 In the example above, it is important to use `rts` and not `brk` as the last
 instruction to return to the command line.
 
+<div class="warning">
+
 Seriously. Never use `brk` inside Tali Forth assembler code!
+
+</div>
 
 Note you can freely mix Forth high-level words and assembler instructions. For
 example, this will work:
@@ -1105,9 +1169,13 @@ problem, we can use the `[` and `]` words:
             [ push-a ]  compiled
             u. ;  ok
 
+<div class="note">
+
 We do not need to add an explicit `rts` instruction when compiling new
 words with assembler because the `;` does it automatically. This is because Tali
 Forth uses Subroutine Threaded Code (STC).
+
+</div>
 
 Running `print-a-one` prints the number `1`. We can use a slightly simpler variant:
 
@@ -1140,11 +1208,11 @@ Looking at our new word with `see` gives us (addresses may vary):
             A4A     20 lda.#
             A4C   8E30 jsr
 
--   The `1 lda.#` as a single line;
+- The `1 lda.#` as a single line;
 
--   Four lines of code for `push-a`;
+- Four lines of code for `push-a`;
 
--   Four lines from `u.`
+- Four lines from `u.`
 
 Some Forths add the words `code` and `end-code` to mark the beginning and end of
 an assembler blocks. In our case, these would just be simple synonyms for `[`
@@ -1163,9 +1231,9 @@ subroutine jump to the word’s execution token (xt). This we can get with `'`
             rts
             execute
 
--   Push the value from A to TOS
+- Push the value from A to TOS
 
--   Code a subroutine jump to `u.`
+- Code a subroutine jump to `u.`
 
 This will print `10`.
 
@@ -1207,9 +1275,9 @@ Disassembling `.nums` shows how this code works (addresses may vary):
             9B2        pla
             9B3    99F jmp     
 
--   Address specified by label `->` is `$099F`
+- Address specified by label `->` is `$099F`
 
--   Address was picked up by `jmp` instruction
+- Address was picked up by `jmp` instruction
 
 Branches work similar. Instead of `<j` as a "back jump", we use `<b` as a "back
 branch". For example, this word takes a number of "a" to print (in slightly
@@ -1234,12 +1302,12 @@ different notation):
             ]
             ;
 
--   `LDA 0,X` in traditional notation
+- `LDA 0,X` in traditional notation
 
--   Assembler version of `drop`
+- Assembler version of `drop`
 
 Looking at the assembler code with `see`, we can see that the branch instruction
-takes $F2 as an operand.
+takes \$F2 as an operand.
 
 Currently, there is no mechanism that checks to see if the operand is in the
 correct range for a branch. It is assumed that the assembler will be used only
@@ -1287,7 +1355,7 @@ backtracking to fill in the address that is not known when the jump or branch
 instruction is coded.
 
 **The assembler instruction `and`** receives a dot for absolute addressing to avoid
-conflict with the Forth word of the same name: `and. 1000` is the correct form.
+conflict with the Forth word of the same name: `1000 and.` is the correct form.
 
 **`brk` is a two-byte instruction** because the assembler enforces the signature
 byte. You shouldn’t use `brk` anyway.
@@ -1315,7 +1383,7 @@ bytes stored.
            drop     
            6000 execute
 
--   Get rid of return value bytes stored
+- Get rid of return value bytes stored
 
 This word can be tricky to use with `here` because the string storage command
 `s"` uses memory. The current address must be chosen *before* the string is
@@ -1352,11 +1420,11 @@ makes it easier to correct typing errors. Adding our code:
             27     
             q
 
--   Save string at address 5000
+- Save string at address 5000
 
--   Shows us length of number string saved
+- Shows us length of number string saved
 
-Unless we ran `hex` before adding the word, the string is no stored at the
+Unless we ran `hex` before adding the word, the string is now stored at the
 decimal addresss 5000. However, we’ve added the words as hexadecimal code. To
 call `hexstore`, we must switch at the right time:
 
@@ -1402,30 +1470,107 @@ See the Appendix for a more detailed discussion of the format.
 
 The disassembler prints the address of the instruction, followed by any operand
 and the mnemonic. To get the code of `drop`, for instance, we can use
-`' drop 10 disasm`:
+`' drop 6 disasm`:
 
-    36204    119 cpx.#
-    36206      3 bmi
-    36208  56282 jmp
-    36211        inx
-    36212        inx
-    36213        rts
+    36142  55337 jsr     STACK DEPTH CHECK
+    36145        inx
+    36146        inx
+    36147        rts
 
 The Forth word `see` calls the disassembler while using a hexadecimal number
 base. So `see drop` produces:
 
-     nt: CF04  xt: 8D6C  UF
-     size (decimal): 9
+    nt: BC3E  xt: 8D2E
+    flags (CO AN IM NN UF HC): 0 0 0 0 1 0
+    size (decimal): 5
 
-    8D6C  E0 77 30 03 4C DA DB E8  E8  .w0.L... .
+    8D2E  20 29 D8 E8 E8   )...
 
-    8D6C     77 cpx.#
-    8D6E      3 bmi
-    8D70   DBDA jmp
-    8D73        inx
-    8D74        inx
+    8D2E   D829 jsr     STACK DEPTH CHECK
+    8D31        inx
+    8D32        inx
 
 Note that `see` does not print the final `rts` instruction.
+
+#### Determining address labels
+
+When disassembling, using either `disasm` or `see`, the dictionary is searched
+anytime a `jsr` is encountered and the name of the word will be printed if a
+word with that address is found. Some interal routines in Tali are not in the
+Forth dictionary and so no name will be printed. Here is an example when running
+`see order`
+
+    nt: C9FF  xt: 9845
+    flags (CO AN IM NN UF HC): 0 0 0 0 0 0
+    size (decimal): 42
+
+    9845  20 63 89 20 34 91 B5 00  F0 1E A8 E8 E8 B5 00 5A   c. 4... .......Z
+    9855  20 70 98 7A 88 D0 F4 20  1E A1 20 1E A1 20 29 91   p.z...  .. .. ).
+    9865  B5 00 20 70 98 20 63 89  E8 E8  .. p. c. ..
+
+    9845   8963 jsr     cr
+    9848   9134 jsr     get-order
+    984B      0 lda.zx
+    984D     1E beq
+    984F        tay
+    9850        inx
+    9851        inx
+    9852      0 lda.zx
+    9854        phy
+    9855   9870 jsr
+    9858        ply
+    9859        dey
+    985A     F4 bne
+    985C   A11E jsr     space
+    985F   A11E jsr     space
+    9862   9129 jsr     get-current
+    9865      0 lda.zx
+    9867   9870 jsr
+    986A   8963 jsr     cr
+    986D        inx
+    986E        inx
+
+This word is a mixture of assembly and other forth words. Note that the second
+to last jsr shows a destination address of 9870 (in hex). To trace this
+further, consult the labelmap for your platform in the /docs folder. In this
+case, searching for 9870 in the labelmap finds the following label and the
+assembly files can be searched to locate this routine if you need to see its
+source.
+
+    order_print_wid_string= $9870
+
+#### Literals and Strings
+
+Tali compiles literals into words by saving a jsr to a helper
+routine followed immediately by the data for the literal. During
+disassembly, the literal value will be printed and the disassembler will resume
+disassembling from just after the literal value. Doubles are saved in memory as
+two single cell literal values.
+
+Strings are similar, however they are saved in memory as a jmp over the string
+data, then the string data, then a jsr to the string handling routine, and
+finally the address and length of the string (similar to how literals are
+handled). When the disassembler encounters a string, it will print SLITERAL
+followed by the address and length of the string.
+
+    : example s" This is a string" ;  ok
+    see example
+    nt: 800  xt: 80F
+    flags (CO AN IM NN UF HC): 0 0 0 1 0 1
+    size (decimal): 26
+
+    080F  4C 22 08 54 68 69 73 20  69 73 20 61 20 73 74 72  L".This  is a str
+    081F  69 6E 67 20 A9 A0 12 08  10 00  ing .... ..
+
+    80F    822 jmp
+    822   A0A9 jsr     SLITERAL 812 10
+     ok
+
+To see the value of the string, you can either look at the memory dump above the
+disassembly or you can `type` the string yourself (note that `see` will always
+give the values in hex while `disasm` will use the current `base`):
+
+    hex 812 10 type
 
 #### Gotchas and known issues
 
@@ -1449,7 +1594,7 @@ assembler instructions that were **assigned an operand by mistake**. Take this
     nop
     rts
 
--   Error: DEX does not take an operand!
+- Error: DEX does not take an operand!
 
 The disassembler will output this code (addresses might vary):
 
@@ -1458,7 +1603,7 @@ The disassembler will output this code (addresses might vary):
     4663        nop
     4664        rts
 
--   Incorrect operand for DEX was silently ignored
+- Incorrect operand for DEX was silently ignored
 
 The 10 we had passed as an operand are still on the stack, as `.s` will show. A
 `dump` of the code will show that the number was ignored, leading to code that
@@ -1486,7 +1631,9 @@ Tali Forth can be configured to work with various memory layouts and amounts of
 RAM and ROM. Out of the box, the version that runs with the py65 emulator looks
 like this:
 
-![memory map](pics/memory_map.png)
+<figure>
+<img src="pics/memory_map.png" alt="memory map" />
+</figure>
 
 Note that some of these values are hard-coded into the test suite; see the file
 `definitions.asm` for details.
@@ -1495,22 +1642,26 @@ Note that some of these values are hard-coded into the test suite; see the file
 
 Tali Forth uses half of Zero Page<span class="indexterm" primary="Zero Page"></span> for the system variables and
 Data Stack (DS). In the default py65mon platform, this is the address range
-$00-$7F (it can be adjusted by changing `zpage` and `zpage_end` in the platform
+\$00-\$7F (it can be adjusted by changing `zpage` and `zpage_end` in the platform
 file). This leaves the other half of the Zero Page for any kernel stuff the
 user might require. The DS grows from the end of Tali’s space down towards the
 initial system variables. See the file `definitions.asm` for details. Because of
 the danger of underflow,<span class="indexterm" primary="underflow"></span> it is recommended that the user kernel’s
-variables are kept closer to $0100 than to $007F.
+variables are kept closer to \$0100 than to \$007F.
 
 The X register<span class="indexterm" primary="X register"></span> is used as the Data Stack Pointer (DSP). It
 points to the least significant byte of the current top element of the stack
 ("Top of the Stack", TOS).
 
+<div class="note">
+
 In the first versions of Tali Forth 1, the DSP pointed to the next *free*
 element of the stack. The new system makes detecting underflow easier and
 follows the convention in Liara Forth.<span class="indexterm" primary="Liara"></span>
 
-Initially, the DSP points to $78, not $7F as might be expected. This provides a
+</div>
+
+Initially, the DSP points to \$78, not \$7F as might be expected. This provides a
 few bytes as a "floodplain" for underflow.<span class="indexterm" primary="underflow"></span> The initial value of
 the DSP is defined as `dsp0` in the code.
 
@@ -1518,7 +1669,7 @@ the DSP is defined as `dsp0` in the code.
 
 Since the cell size is 16 bits, each stack entry consists of two bytes. They are
 stored little endian (least significant byte first). Therefore, the DSP points
-to the LSB of the current TOS. [3]
+to the LSB of the current TOS. [^3]
 
 Because the DSP points to the current top of the stack, the byte it points to
 after boot — `dsp0` — will never be accessed: The DSP is decremented first
@@ -1526,7 +1677,10 @@ with two `dex` instructions, and then the new value is placed on the stack.
 This means that the initial byte is garbage and can be considered part of the
 floodplain.
 
-![Snapshot of the Data Stack with one entry as TOS. The DSP has been increased by one and the value written.](pics/stack_diagram.png)
+<figure>
+<img src="pics/stack_diagram.png" alt="stack diagram" />
+<figcaption>Snapshot of the Data Stack with one entry as TOS. The DSP has been increased by one and the value written.</figcaption>
+</figure>
 
 Note that the 65c02 system stack — used as the Return Stack (RS) by Tali — pushes the MSB on first and then the LSB (preserving little endian), so the
 basic structure is the same for both stacks.
@@ -1554,7 +1708,9 @@ to justify the computing expense.
 
 The double cell is stored on top of the single cell.
 
-![double cell](pics/double_cell.png)
+<figure>
+<img src="pics/double_cell.png" alt="double cell" />
+</figure>
 
 Note this places the sign bit of the double cell number (**S**) at the beginning
 of the byte below the DSP.
@@ -1569,7 +1725,9 @@ to allow various tricks in the code.
 
 Each header is at least eight bytes long:
 
-![header diagram](pics/header_diagram.png)
+<figure>
+<img src="pics/header_diagram.png" alt="header diagram" />
+</figure>
 
 Each word has a `name token` (nt, `nt_word` in the code) that points to the
 first byte of the header. This is the length of the word’s name string, which
@@ -1579,7 +1737,7 @@ The second byte in the header (index 1) is the status byte. It is created by
 the flags defined in the file `definitions.asm`:
 
 |     |                                                                                      |
-|------------|------------------------------------------------------------|
+|-----|--------------------------------------------------------------------------------------|
 | CO  | **Compile Only.** This word may only be used inside definitions of new words.        |
 | IM  | **Immediate.** This Word is executed immediately during definitions of new words.    |
 | NN  | **Never Native.** This Word is never inlined. Usually means that the return address  
@@ -1603,9 +1761,13 @@ This is followed by the current word’s **execution token** (xt, `xt_word`) tha
 points to the start of the actual code. Some words that have the same
 functionality point to the same code block.
 
+<div class="note">
+
 Because Tali uses a subroutine threaded model (STC), the classic Forth
 distinction between the Code Field Area (CFA) and the Parameter Field Area
 (PFA, also Data Field Area) is meaningless — it’s all "payload".
+
+</div>
 
 The next pointer is for the **end of the code** (`z_word`) to enable native
 compilation of the word (if allowed and requested).
@@ -1642,13 +1804,13 @@ the Forth words worked.
 Tali Forth follows the ANS Forth input model with `refill` instead of older
 forms. There are four possible input sources:
 
--   The keyboard ("user input device", can be redirected)
+- The keyboard ("user input device", can be redirected)
 
--   A character string in memory
+- A character string in memory
 
--   A block file
+- A block
 
--   A text file
+- A text file
 
 To check which one is being used, we first check `blk` which gives us the number
 of a mass storage block being used, or 0 for the one of the other input sources.
@@ -1669,7 +1831,7 @@ character in A, rather than on the stack.
 
 The output can similarly be redirected by storing the address of your
 routine in the memory location given by the word `output`. Tali
-expects this routine to accept the character to out in A, rather than
+expects this routine to accept the character to output in A, rather than
 on the stack.
 
 Both the input routine and output routine may use the tmp1, tmp2, and tmp3
@@ -1687,13 +1849,13 @@ The initial commands after reboot flow into each other: `cold` to `abort` to
 `refill` to get the input. `refill` does different things based on which of the
 four input sources (see above) is active:
 
-|                     |                                                                       |
-|------------|------------------------------------------------------------|
-| Keyboard entry      | This is the default. Get line of input via `accept` and return `true` 
-                       even if the input string was empty.                                    |
-| `evaluate` string   | Return a `false` flag                                                 |
-| Input from a buffer | *Not fully implemented at this time*                                  |
-| Input from a file   | *Not implemented at this time*                                        |
+|                    |                                                                       |
+|--------------------|-----------------------------------------------------------------------|
+| Keyboard entry     | This is the default. Get line of input via `accept` and return `true` 
+                      even if the input string was empty.                                    |
+| `evaluate` string  | Return a `false` flag                                                 |
+| Input from a block | Blocks are evaluated as a 1024 byte string.                           |
+| Input from a file  | *Not implemented at this time*                                        |
 
 #### The Command Line Interface (CLI)
 
@@ -1723,9 +1885,13 @@ powerful part of Forth. Understanding how it works in Tali Forth is important
 if you want to be able to modify the code. In this text, we walk through the
 generation process for a subroutine threaded code (STC) such as Tali Forth.
 
+<div class="note">
+
 For a more general explanation, see Brad Rodriguez' series of articles at
 <http://www.bradrodriguez.com/papers/moving3.htm> There is a discussion of this
 walkthrough at <http://forum.6502.org/viewtopic.php?f=9&t=3153>
+
+</div>
 
 We start with the following standard example, a high-level Forth version of the
 word `constant`.
@@ -1750,9 +1916,13 @@ ignoring any compilation to native 65c02 assembler, the above compiles to:
 To make things easier to explain later, we’ve added the labels `a` and
 `b` in the listing.
 
+<div class="note">
+
 This example uses the traditional word `(does>)`, which in Tali Forth 2
 is actually an internal routine that does not appear as a separate word. This
 version is easier to explain.
+
+</div>
 
 `does>` is an immediate word that adds not one, but two subroutine jumps, one
 to `(does>)` and one to `dodoes`, which is a pre-defined system routine like
@@ -1904,10 +2074,14 @@ of `if`. This is put on the Data Stack, so that `then` knows where to compile
 it’s address in the second step. Until then, a dummy value is compiled after
 `0branch` to reserve the space we need.
 
+<div class="note">
+
 This section and the next one are based on a discussion at
-[http://forum.6502.org/viewtopic.php?f=9\\&t=3176](http://forum.6502.org/viewtopic.php?f=9\&t=3176) see there for more details.
+[http://forum.6502.org/viewtopic.php?f=9\\t=3176](http://forum.6502.org/viewtopic.php?f=9\&t=3176) see there for more details.
 Another take on this subject that handles things a bit differently is at
 <http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx>
+
+</div>
 
 In Forth, this can be realized by
 
@@ -1946,44 +2120,44 @@ start with a simple `do`-`loop`.
 
 ##### `do` at compile-time:
 
--   Remember current address (in other words, `here`) on the Return Stack (!) so
-    we can later compile the code for the post-loop address to the Return Stack
+- Remember current address (in other words, `here`) on the Return Stack (!) so
+  we can later compile the code for the post-loop address to the Return Stack
 
--   Compile some dummy values to reserve the space for said code
+- Compile some dummy values to reserve the space for said code
 
--   Compile the run-time code; we’ll call that fragment (`do`)
+- Compile the run-time code; we’ll call that fragment (`do`)
 
--   Push the current address (the new `here`) to the Data Stack so `loop` knows
-    where the loop contents begin
+- Push the current address (the new `here`) to the Data Stack so `loop` knows
+  where the loop contents begin
 
 ##### `do` at run-time:
 
--   Take limit and start off Data Stack and push them to the Return Stack
+- Take limit and start off Data Stack and push them to the Return Stack
 
 Since `loop` is just a special case of `+loop` with an index of one, we can get
 away with considering them at the same time.
 
 ##### `loop` at compile time:
 
--   Compile the run-time part `(+loop)`
+- Compile the run-time part `(+loop)`
 
--   Consume the address that is on top of the Data Stack as the jump target for
-    normal looping and compile it
+- Consume the address that is on top of the Data Stack as the jump target for
+  normal looping and compile it
 
--   Compile `unloop` for when we’re done with the loop, getting rid of the
-    limit/start and post-loop addresses on the Return Stack
+- Compile `unloop` for when we’re done with the loop, getting rid of the
+  limit/start and post-loop addresses on the Return Stack
 
--   Get the address on the top of the Return Stack which points to
-    the dummy code compiled by `do`
+- Get the address on the top of the Return Stack which points to
+  the dummy code compiled by `do`
 
--   At that address, compile the code that pushes the address after the list
-    construct to the Return Stack at run-time
+- At that address, compile the code that pushes the address after the list
+  construct to the Return Stack at run-time
 
 ##### `loop` at run-time (which is `(+loop)`)
 
--   Add loop step to count
+- Add loop step to count
 
--   Loop again if we haven’t crossed the limit, otherwise continue after loop
+- Loop again if we haven’t crossed the limit, otherwise continue after loop
 
 At one glance, we can see that the complicated stuff happens at compile-time.
 This is good, because we only have to do that once for each loop.
@@ -2038,14 +2212,15 @@ compiled as subroutine jumps. Take a simple word such as
 
 when compiled with an `nc-limit` of 0 and check the actual code with `see`
 
-    nt: 9AE  xt: 9B9
+    see aaa
+    nt: 800  xt: 80B
     flags (CO AN IM NN UF HC): 0 0 0 1 0 1
     size (decimal): 6
 
-    09B9  20 1C A7 20 80 8D   .. ..
+    080B  20 A2 A7 20 2E 8D   .. ..
 
-    9B9   A71C jsr
-    9BC   8D80 jsr
+    80B   A7A2 jsr     0
+    80E   8D2E jsr     drop
 
 (The actual addresses might vary). Our word `aaa` consists of two subroutine
 jumps, one to zero and one to `drop`. Now, if we increase the threshold to 20
@@ -2057,22 +2232,22 @@ and define a new word with the same instructions with
 we get different code:
 
     see bbb
-    nt: 9C0  xt: 9CB
+    nt: 812  xt: 81D
     flags (CO AN IM NN UF HC): 0 0 0 1 0 1
     size (decimal): 11
 
-    09CB  CA CA 74 00 74 01 20 3D  D6 E8 E8  ..t.t. = ...
+    081D  CA CA 74 00 74 01 20 29  D8 E8 E8  ..t.t. ) ...
 
-    9CB        dex
-    9CC        dex
-    9CD      0 stz.zx
-    9CF      1 stz.zx
-    9D1   D63D jsr
-    9D4        inx
-    9D5        inx
+    81D        dex
+    81E        dex
+    81F      0 stz.zx
+    821      1 stz.zx
+    823   D829 jsr     STACK DEPTH CHECK
+    826        inx
+    827        inx
 
 Even though the definition of `bbb` is the same as `aaa`, we have totally
-different code: The number 0001 is pushed to the Data Stack (the first six
+different code: The number 0000 is pushed to the Data Stack (the first six
 bytes), then we check for underflow (the next three), and finally we
 `drop` by moving X register, the Data Stack Pointer. Our word is definitely
 longer, but have just saved 12 cycles.
@@ -2190,32 +2365,43 @@ This word has *both* native compile stripping and underflow detection. However,
 both can be removed from newly native code words, leaving only the eight byte
 core of the word to be compiled.
 
-#### Enabling Native Compling on New Words
+#### Enabling Native Compiling on New Words
 
 By default, user-defined words are flagged with the Never-Native (NN)
 flag. While the words used in the definition of the new word might
 have been natively compiled into the new word, this new word will
 always be compiled with a JSR when used in future new words. To
 override this behavior and allow a user-defined word to be natively
-compiled, the user can use the `always-native` word just after the
-definition has been completed (with a semicolon). An example of doing
-this might be:
+compiled, the user can use `allow-native` word to remove the NN flag
+and allow native compiling if the word is smaller than
+`nc-limit`. Alternatively, the `always-native` word will set the
+Always-Native (AN) flag and force native compilation, regardless of
+`nc-limit`. These modifiers go just after the definition has been
+completed (with a semicolon). An example of doing this might be:
 
     : double dup + ; always-native
 
-Please note adding the always-native flag to a word overrides the
-never-native flag and it also causes the word to be natively compiled
-regardless of the setting of `nc_limit`.
+Please note that adding the always-native flag to a word overrides the
+never-native flag.
 
-Do not apply always-native to a word that has any kind of
-control structures in it, such as `if`, `case` or any kind of loop.
-If these words ever get native compiled, the JMP instructions used in
-the control structures are copied verbatim, causing them to jump back
-into the original words.
+<div class="warning">
+
+Do not apply `allow-native` or `always-native` to a word that
+has any kind of control structures in it, such as `if`, `case` or any
+kind of loop. If these words ever get native compiled, the JMP
+instructions used in the control structures are copied verbatim,
+causing them to jump back into the original words.
+
+</div>
+
+<div class="warning">
 
 When adding your own words in assembly, if a word has a `jmp`
-instruction in it, it should have the NN (Never Native) flag set in the
-headers.asm file and should never have the AN (Always Native) flag set.
+instruction in it, it should have the NN (Never Native) flag set in
+the headers.asm file and should never have the AN (Always Native) flag
+set.
+
+</div>
 
 ### `cmove`, `cmove>` and `move`
 
@@ -2253,6 +2439,51 @@ In practice, `move` is usually what you want to use.
 > Doug Hoffman
 > Some notes on Forth from a novice user
 
+### Required Tools
+
+To run Tali Forth 2 in a simulator, you will need `python3` and `py65` installed to be
+able to run `py65mon`.
+
+To assemble Tali Forth 2, you will need `64tass` and `make`.
+
+To compile the documentation for Tali Forth 2, you will need the following tools:
+
+`Ditaa` is used to generate the diagrams from text file descriptions and is
+available at <https://ditaa.sourceforge.net/> Ditaa is not required if you are not
+going to change any of the diagrams.
+
+Ditaa is a java program, so I made a helper script (named just `ditaa`) to help
+run it. You’ll need to replace the path to the jar file for your system.
+
+    #!/bin/sh
+    java -jar /path/to/jarfile/ditaa0_9.jar $@
+
+`asciidoctor` and `asciidoctor-pdf` are used to generate the html and PDF versions
+of this manual. These are rubygems are are installed by first installing ruby
+and then running the following commands:
+
+    sudo gem install asciidoctor
+    sudo gem install asciidoctor-pdf
+
+These tools have an annoying "feature" of having their version number in the
+executable name. To work around this, I created symbolic links in my personal
+bin folder (eg. a folder in my path) as shown below. You will need to adjust
+with the name of these utilities on your system.
+
+    ln -s /usr/bin/asciidoctor.ruby3.2 asciidoctor
+    ln -s /usr/bin/asciidoctor-pdf.ruby3.2 asciidoctor-pdf
+
+### Optional Tools
+
+Generating the MarkDown and PDF versions of the manual is optional. You will
+need `pandoc` (package was named `pandoc-cli` on my system) and `texlive`
+installed. These versions of the manual are not compiled by default (only the
+HTML version is compiled by default). If you would like the manual in these
+formats, you can use the following commands:
+
+    make docsmd
+    make docspdf
+
 ### Adding New Words
 
 The simplest way to add new words to Tali Forth is to include them in the file
@@ -2266,33 +2497,33 @@ they look, and they make experimenting a lot easier.
 
 During development, Tali Forth tends to follow a sequence of steps for new words:
 
--   If it is an ANS Forth word, first review the standard online. In some cases,
-    there is a reference implementation that can be used.
+- If it is an ANS Forth word, first review the standard online. In some cases,
+  there is a reference implementation that can be used.
 
--   Otherwise, check other sources for a high-level realization of the word, for
-    instance Jonesforth or Gforth. A direct copy is usually not possible (or legally
-    allowed, given different licenses), but studying the code provides hints for
-    a Tali Forth version.
+- Otherwise, check other sources for a high-level realization of the word, for
+  instance Jonesforth or Gforth. A direct copy is usually not possible (or legally
+  allowed, given different licenses), but studying the code provides hints for
+  a Tali Forth version.
 
--   Write the word in Forth in the interpreter. After it has been tested
-    interactively, add a high-level version to the file `forth_code/forth_words.fs`.
+- Write the word in Forth in the interpreter. After it has been tested
+  interactively, add a high-level version to the file `forth_code/forth_words.fs`.
 
--   Add automatic tests for the new word to the test suite. Ideally, there will
-    be test code included in the ANS Forth specification. If not, document what
-    the test does.
+- Add automatic tests for the new word to the test suite. Ideally, there will
+  be test code included in the ANS Forth specification. If not, document what
+  the test does.
 
--   In a further step, if appropriate, convert the word to
-    assembler. This requires adding an entry to `headers.asm` and the
-    code itself to `native_words.asm`. In this first step, it will
-    usually be a simple 1:1 sequence of `jsr` subroutine jumps to the
-    existing native Forth words. Some special consideration is needed
-    for immediate words, postponed words and the word `does>` (see the
-    section on Converting Forth to Assembly for help with these
-    situations).
+- In a further step, if appropriate, convert the word to
+  assembler. This requires adding an entry to `headers.asm` and the
+  code itself to `native_words.asm`. In this first step, it will
+  usually be a simple 1:1 sequence of `jsr` subroutine jumps to the
+  existing native Forth words. Some special consideration is needed
+  for immediate words, postponed words and the word `does>` (see the
+  section on Converting Forth to Assembly for help with these
+  situations).
 
--   If appropriate, rewrite all or some of the subroutine jumps in direct
-    assembler. Because we have the automatic tests in place, we can be confident
-    that the assembly version is correct as well.
+- If appropriate, rewrite all or some of the subroutine jumps in direct
+  assembler. Because we have the automatic tests in place, we can be confident
+  that the assembly version is correct as well.
 
 However, if you are contributing code, feel free to happily ignore this sequence
 and just submit whatever you have.
@@ -2326,47 +2557,47 @@ installed). This also updates the file listings in the `docs` folder.
 
 #### General Notes
 
--   The X register is used as the Data Stack Pointer (DSP) and should only be used
-    if there is no other alternative.
+- The X register is used as the Data Stack Pointer (DSP) and should only be used
+  if there is no other alternative.
 
--   The Y register, however, is free to be changed by subroutines. This also means
-    it should not be expected to survive subroutines unchanged.
+- The Y register, however, is free to be changed by subroutines. This also means
+  it should not be expected to survive subroutines unchanged.
 
--   Natively coded words generally should have exactly one point of entry — the
-    `xt_word` link — and exactly one point of exit at `z_word`. In may cases,
-    this requires a branch to an internal label `_done` right before `z_word`.
+- Natively coded words generally should have exactly one point of entry — the
+  `xt_word` link — and exactly one point of exit at `z_word`. In may cases,
+  this requires a branch to an internal label `_done` right before `z_word`.
 
--   Because of the way native compiling works, the trick of combining
-    `jsr`-`rts` pairs to a single `jmp` instruction (usually) doesn’t work.
+- Because of the way native compiling works, the trick of combining
+  `jsr`-`rts` pairs to a single `jmp` instruction (usually) doesn’t work.
 
 #### Coding Style
 
 Until there is a tool for 64tass assembly code that formats the source file the
 way gofmt does for Go (golang), the following format is suggested.
 
--   Tabs are **eight characters long** and converted to spaces.
+- Tabs are **eight characters long** and converted to spaces.
 
--   Opcodes are indented by **two tabs**.
+- Opcodes are indented by **two tabs**.
 
--   Function-like routines are followed by a one-tab indented "function doc string"
-    based on the Python 3 format: Three quotation marks at the start, three at the
-    end in their own line, unless it is a one-liner. This should make it easier to
-    automatically extract the docs for them at some point.
+- Function-like routines are followed by a one-tab indented "function doc string"
+  based on the Python 3 format: Three quotation marks at the start, three at the
+  end in their own line, unless it is a one-liner. This should make it easier to
+  automatically extract the docs for them at some point.
 
--   The native words have a special comment format with lines that start with `##`
-    that allows the automatic generation of word lists by a tool in the tools
-    folder, see there for details.
+- The native words have a special comment format with lines that start with `##`
+  that allows the automatic generation of word lists by a tool in the tools
+  folder, see there for details.
 
--   Assembler mnemonics are lower case. I get enough uppercase insanity writing German,
-    thank you very much.
+- Assembler mnemonics are lower case. I get enough uppercase insanity writing German,
+  thank you very much.
 
--   Hex numbers are, however, upper case, such as `$FFFE`.
+- Hex numbers are, however, upper case, such as `$FFFE`.
 
--   Numbers in mnemonics are a stripped-down as possible to reduce
-    visual clutter: use `lda 0,x` instead of `lda $00,x`.
+- Numbers in mnemonics are a stripped-down as possible to reduce
+  visual clutter: use `lda 0,x` instead of `lda $00,x`.
 
--   Comments are included like popcorn to help readers who are new both to Forth
-    and 6502 assembler.
+- Comments are included like popcorn to help readers who are new both to Forth
+  and 6502 assembler.
 
 ### Converting Forth to Assembly
 
@@ -2410,7 +2641,7 @@ words that need to be close to each other.
 
 The header above the code is in a special format used to track where words come
 from and their current status. It is parsed by a tool that helps to track
-information about the words, so the format (including the ##s) is important.
+information about the words, so the format (including the \##s) is important.
 The first line has the name (which is uppercase, but needs to match whatever
 comes after the xt\_ and z\_ in the labels below it), the input and output stack
 parameters in standard Forth format, and a string that has a short description
@@ -2556,7 +2787,7 @@ subdirectory) that automatically test this word. There is also a link in the
 comments (not technically part of the header) to the ANS standard for this word.
 
 The `STATE @ IF` portion of the definition is replaced by checking the state
-directly. The state variable is 0 for interpreting and -1 ($FFFF) for
+directly. The state variable is 0 for interpreting and -1 (\$FFFF) for
 compiling. This assembly looks directly in the state variable (it’s a 16-bit
 variable, so both halves are used to check for 0). In order to keep the
 assembly in the same order as the Forth code, we branch on zero (the `if` would
@@ -2685,7 +2916,7 @@ them together (with +) here to form the status byte. The table below gives the
 constants you will use and a brief description of when to use them.
 
 |     |                                                                                       |
-|------------|------------------------------------------------------------|
+|-----|---------------------------------------------------------------------------------------|
 | CO  | Compile Only. Add this if your word should only be allowed when compiling             
        other words. Tali will print an error message if the user tries to run this            
        word in interpreted mode.                                                              |
@@ -2783,7 +3014,9 @@ here in the dictionary header.
 
 This is your friend and should probably go on your wall or something.
 
-![stack diagram](pics/stack_diagram.png)
+<figure>
+<img src="pics/stack_diagram.png" alt="stack diagram" />
+</figure>
 
 #### Coding Idioms
 
@@ -2803,15 +3036,15 @@ value" version, which could increment the DSP twice before storing a value. We
 try to keep these in the same sequence (a "dialect" or "code mannerism" if you
 will) so we have the option of adding code analysis tools later.
 
--   `drop` cell of top of the Data Stack
+- `drop` cell of top of the Data Stack
 
 <!-- -->
 
                     inx
                     inx
 
--   `push` a value to the Data Stack. Remember the Data Stack Pointer (DSP, the
-    X register of the 65c02) points to the LSB of the TOS value.
+- `push` a value to the Data Stack. Remember the Data Stack Pointer (DSP, the
+  X register of the 65c02) points to the LSB of the TOS value.
 
 <!-- -->
 
@@ -2822,7 +3055,7 @@ will) so we have the option of adding code analysis tools later.
                     lda <MSB>      ; or pla, jsr key_a, etc.
                     sta 1,x
 
--   `pop` a value off the Data Stack
+- `pop` a value off the Data Stack
 
 <!-- -->
 
@@ -2847,7 +3080,13 @@ words. My `~/.vimrc` file contains the following lines for work on `.asm` files:
 
 ## Future and Long-Term plans
 
-This section is missing. See the GitHub page for further details.
+Scot has moved on to bigger things (eg. processors with more bits). Sam continues
+to provide support and bugfixes and maintains the current repository. Help is
+also generally available at the 6502.org Users Forum in the Forth category.
+<http://forum.6502.org/viewforum.php?f=9>
+
+See the GitHub page for further details.
+<https://github.com/SamCoVT/TaliForth2>
 
 # Tutorials
 
@@ -2954,7 +3193,7 @@ being edited.
 The following words can be used to edit a screen:
 
 |              |                                                                                     |
-|------------|------------------------------------------------------------|
+|--------------|-------------------------------------------------------------------------------------|
 | list         | `( scr# — )` List the block in screen (16 lines of 64 chars) format. This word also 
                 select the given block for futher editing if desired.                                |
 | l            | `( — )` List the current screen (previously listead with `list`)                    |
@@ -3053,7 +3292,7 @@ good assumption for Tali, as it currently only has 1 block buffer.
 The following words will be used to deal with blocks:
 
 |               |                                                                                 |
-|------------|------------------------------------------------------------|
+|---------------|---------------------------------------------------------------------------------|
 | block         | `( block# — addr )` Load the given block into a buffer. If the buffer           
                  has been updated, it will save the contents out to block storage before loading  
                  the new block. Returns the address of the buffer.                                |
@@ -3072,7 +3311,7 @@ The following words will be used to deal with blocks:
 The following variables are used with blocks:
 
 |     |                                                                          |
-|------------|------------------------------------------------------------|
+|-----|--------------------------------------------------------------------------|
 | BLK | The block number currently being interpreted by a `load` or `thru`       
        command. BLK is 0 when interpreting from the keyboard or from a string.   |
 | SCR | The screen number currently being edited. Set by `list`, but you can set 
@@ -3080,7 +3319,9 @@ The following variables are used with blocks:
 
 #### A simple block example
 
-![blocks block](pics/blocks-block.png)
+<figure>
+<img src="pics/blocks-block.png" alt="blocks block" />
+</figure>
 
 To load a block, just give the block number to the `block` word like so:
 
@@ -3097,7 +3338,9 @@ Note: On larger forths with multiple buffers, using block again may bring the
 requested block into a different buffer. Tali only has a single buffer, so the
 buffer contents will be replaced every time.
 
-![blocks update](pics/blocks-update.png)
+<figure>
+<img src="pics/blocks-update.png" alt="blocks update" />
+</figure>
 
 Let’s modify the data in block 1. The editor words handle the blocks behind the
 scenes, so we will use `move` to copy some strings into the buffer.
@@ -3114,7 +3357,9 @@ These commands put the string "Hello!" onto line 2, which can be seen by running
 storage yet. If power were lost or the processor reset at this point, the data
 would be lost.
 
-![blocks newblock](pics/blocks-newblock.png)
+<figure>
+<img src="pics/blocks-newblock.png" alt="blocks newblock" />
+</figure>
 
 We also want to make a change to block 3, so we will bring that block in next.
 
@@ -3125,7 +3370,9 @@ no longer a clean copy because it has been updated. This will cause Tali to
 write block 1 back to mass storage before bringing in block 3. Once block 3 is
 in the buffer, it will be marked as "in-use" with block 3 and "clean".
 
-![blocks update3](pics/blocks-update3.png)
+<figure>
+<img src="pics/blocks-update3.png" alt="blocks update3" />
+</figure>
 
 Let’s modify the data in block 3 now.
 
@@ -3140,7 +3387,9 @@ After this code is run, the buffer will be modified, marked as updated/dirty,
 but once again it won’t actually be saved back to mass storage right at this
 point.
 
-![blocks flush](pics/blocks-flush.png)
+<figure>
+<img src="pics/blocks-flush.png" alt="blocks flush" />
+</figure>
 
 To force the updated version of block 3 to be written back to mass storage, we
 can use the command:
@@ -3367,9 +3616,13 @@ reputation for being completely unhelpful. Any error is just signaled with a
 question mark (`?`). There isn’t even a prompt unless it is explicitly turned
 on.
 
+<div class="note">
+
 Newer versions of `ed` allow an option to display an explanation of the
 last error, but Tali doesn’t have space for that. Error messages are for wimps.
 And who really needs a prompt anyway?
+
+</div>
 
 Commands in `ed` are single-letter commands like `a` or `p`. They can be
 prefixed with a combination of letters and special characters to designate the
@@ -3386,7 +3639,7 @@ modes, except that `ed` is so small it only has two. We start out in the
 The first important thing is about how to get out of command mode: You type `.`
 (the period or dot) at the beginning of the line as the only character to return
 to command mode. A typical `ed` session will look something like
-this:[4]
+this:[^4]
 
             ed      
             a       
@@ -3397,15 +3650,15 @@ this:[4]
             .       
                     
 
--   Start the editor from Tali Forth. It doesn’t take anything on the stack.
+- Start the editor from Tali Forth. It doesn’t take anything on the stack.
 
--   Switch to insert mode and type the text.
+- Switch to insert mode and type the text.
 
--   The dot alone on the line signals the end of the text. We return to command
-    mode.
+- The dot alone on the line signals the end of the text. We return to command
+  mode.
 
--   The cursor moves down to the next line, without printing any confirmation.
-    This is where you continue typing.
+- The cursor moves down to the next line, without printing any confirmation.
+  This is where you continue typing.
 
 When you first use `ed`, you’ll spend lots of time printing what you’ve written
 and trying to figure out what the line numbers are. The commands for this are
@@ -3421,9 +3674,9 @@ apply to the whole text.
             I will return to where I began.
                     
 
--   This could also be `,p`
+- This could also be `,p`
 
--   Note again we return to an empty line.
+- Note again we return to an empty line.
 
 The `%n` (or `,n`) command is usually more helpful because it gives you line
 numbers:
@@ -3434,7 +3687,7 @@ numbers:
             3       And through shoals of dust
             4       I will return to where I began.
 
--   This could also be `%n`
+- This could also be `%n`
 
 Line numbers are indented automatically by one tab. Note we start counting with
 1, not 0, because this is an editor for real humans, not computer science types.
@@ -3443,7 +3696,11 @@ Just entering the command directly without a line number will print the
 *current line*, which `ed` adjusts depending on what you are doing. After `a` it
 is the last line.
 
+<div class="tip">
+
 To find out which is the current line, type the `=` (equal sign) command.
+
+</div>
 
 This session could continue as such:
 
@@ -3466,8 +3723,12 @@ call `%n` (or `,n`) again if we are unsure:
 Note that lines three and four have moved up — they are now lines two and
 three.
 
+<div class="tip">
+
 To avoid confusion, when you have to delete a large number of lines, start
 at the bottom and move upwards towards the beginning of the text.
+
+</div>
 
 We can also use comma-separated numbers to indicate a range of lines (say,
 `1,2d`). As you probably will have guessed, or the `,` (or `%`) prefix can be
@@ -3484,11 +3745,11 @@ paste the line we have just deleted. If we can’t remember it, we’re in troub
             .       
                     
 
--   Add text *after* the first line.
+- Add text *after* the first line.
 
--   The dot takes us out again.
+- The dot takes us out again.
 
--   Still no feedback.
+- Still no feedback.
 
 Displaying our whole text with `%n` again, we get:
 
@@ -3506,8 +3767,12 @@ a preference for `a` or `i`. This is easy because `ed` accepts `0a` as a way to
 add new lines *before* the first line. In most other circumstances, line `0` is
 illegal. There is also the `$` prefix for the last line.
 
+<div class="tip">
+
 The combination `$=` will print the number of the last line. Just `=` will
 print the current line.
+
+</div>
 
 ### Saving Your Text
 
@@ -3517,13 +3782,17 @@ a location in memory.
             7000w   
             128     
 
--   The address in memory comes immediately before the `w` command with no
-    space.
+- The address in memory comes immediately before the `w` command with no
+  space.
 
--   `ed` returns the number of characters written, including the end-of-line
-    characters. Yes, this is actually feedback of sorts. But don’t get cocky!
+- `ed` returns the number of characters written, including the end-of-line
+  characters. Yes, this is actually feedback of sorts. But don’t get cocky!
+
+<div class="warning">
 
 `ed` currently only works with decimal numbers.
+
+</div>
 
 The `w` command was originally created for files. Tali doesn’t have files, just
 addresses. This means that you can write anything anywhere, at the risk of
@@ -3547,10 +3816,10 @@ you can just use it directly.
             I will return to where I began.
              ok                     
 
--   Place the `cr` word before the `type` word to prevent the first line of the
-    text being placed right after the Forth command.
+- Place the `cr` word before the `type` word to prevent the first line of the
+  text being placed right after the Forth command.
 
--   We’re back to the helpful Forth interpreter.
+- We’re back to the helpful Forth interpreter.
 
 You can also use `dump` to show how compact `ed` stores the text:
 
@@ -3565,9 +3834,9 @@ You can also use `dump` to show how compact `ed` stores the text:
     1BC8  20 77 68 65 72 65 20 49  20 62 65 67 61 6E 2E 0A   where I  began..
     1BD8   ok
 
--   The dot in the text part of the hexdump at address $157A is not the period at
-    the end of the line, but the way `dump` displays the non-printable $0A
-    character. This control character marks the end of the line.
+- The dot in the text part of the hexdump at address \$157A is not the period at
+  the end of the line, but the way `dump` displays the non-printable \$0A
+  character. This control character marks the end of the line.
 
 Note this text uses 128 bytes, in the block editor it would use one block of
 1024 bytes.
@@ -3587,9 +3856,9 @@ You can use `ed` to write and save programs. Fire it up as usual:
         48
         q
 
--   Type normally as you would with any other editor.
+- Type normally as you would with any other editor.
 
--   Any indentation has to be provided by hand. There is no auto-indent.
+- Any indentation has to be provided by hand. There is no auto-indent.
 
 Running `evaluate` will now print the numbers from 1 to 100.
 
@@ -3598,15 +3867,15 @@ Running `evaluate` will now print the numbers from 1 to 100.
 This tutorial will be expanded as new commands become available. In the meantime,
 there are other sources:
 
--   <https://en.wikipedia.org/wiki/Ed_(text_editor>) Background and history
+- <https://en.wikipedia.org/wiki/Ed_(text_editor>) Background and history
 
--   <https://www.gnu.org/software/ed/ed.html> The official GNU ed page
+- <https://www.gnu.org/software/ed/ed.html> The official GNU ed page
 
--   <https://www.gnu.org/software/ed/manual/ed_manual.html> The official GNU ed manual
+- <https://www.gnu.org/software/ed/manual/ed_manual.html> The official GNU ed manual
 
--   <https://sanctum.geek.nz/arabesque/actually-using-ed/> Small tutorial of Unix ed
+- <https://sanctum.geek.nz/arabesque/actually-using-ed/> Small tutorial of Unix ed
 
--   <http://www.psue.uni-hannover.de/wise2017_2018/material/ed.pdf> A tutorial by B. W. Kernighan (yes, *that* Kernighan).
+- <http://www.psue.uni-hannover.de/wise2017_2018/material/ed.pdf> A tutorial by B. W. Kernighan (yes, *that* Kernighan).
 
 ## Wordlists and the Search Order
 
@@ -3646,7 +3915,7 @@ accessable to the user, but rather are manipulated with the following set of
 words:
 
 |                 |                                                                                 |
-|------------|------------------------------------------------------------|
+|-----------------|---------------------------------------------------------------------------------|
 | order           | ( — ) Display the current search order and current wordlist. The search order   
                    is printed with the first wordlist on the left and the last wordlist on the      
                    right. After the search order, the current (compilation) wordlist is printed.    |
@@ -3860,7 +4129,7 @@ order if you run it too many times.
 ## Glossary
 
 |                       |                                                                                        |
-|------------|------------------------------------------------------------|
+|-----------------------|----------------------------------------------------------------------------------------|
 | `!`                   | *ANS core* ( n addr — ) "Store TOS in memory"                                          
                          <https://forth-standard.org/standard/core/Store>                                        |
 | `#`                   | *ANS core* ( ud — ud ) "Add character to pictured output string"                       
@@ -4230,7 +4499,7 @@ order if you run it too many times.
 | `d.r`                 | *ANS double* ( d u — ) "Print double right-justified u wide"                           
                          <http://forth-standard.org/standard/double/DDotR>                                       
                          Based on the Forth code                                                                 
-                         : D.R \>R TUCK DABS \<# #S ROT SIGN #\> R\> OVER - SPACES TYPE                          |
+                         : D.R \>R TUCK DABS \<# \#S ROT SIGN \#\> R\> OVER - SPACES TYPE                        |
 | `d>s`                 | *ANS double* ( d — n ) "Convert a double number to single"                             
                          <https://forth-standard.org/standard/double/DtoS>                                       
                          Though this is basically just DROP, we keep it                                          
@@ -4643,7 +4912,7 @@ order if you run it too many times.
 | `source-id`           | *ANS core ext* ( — n ) "Return source identifier"                                      
                          <https://forth-standard.org/standard/core/SOURCE-ID> Identify the                       
                          input source unless it is a block (s. Conklin & Rather p. 156). This                    
-                         will give the input source: 0 is keyboard, -1 ($FFFF) is character                      
+                         will give the input source: 0 is keyboard, -1 (\$FFFF) is character                     
                          string, and a text file gives the fileid.                                               |
 | `space`               | *ANS core* ( — ) "Print a single space"                                                
                          <https://forth-standard.org/standard/core/SPACE>                                        |
@@ -4704,7 +4973,7 @@ order if you run it too many times.
                          <https://forth-standard.org/standard/core/UNUSED>                                       
                          UNUSED does not include the ACCEPT history buffers. Total RAM                           
                          should be HERE + UNUSED + \<history buffer size\>, the last of which                    
-                         defaults to $400                                                                        |
+                         defaults to \$400                                                                       |
 | `update`              | *ANS block* ( — ) "Mark current block as dirty"                                        
                          <https://forth-standard.org/standard/block/UPDATE>                                      |
 | `useraddr`            | *Tali Forth* ( — addr ) "Push address of base address of user variables"               |
@@ -4747,7 +5016,7 @@ order if you run it too many times.
 ## Reporting Problems
 
 The best way to point out a bug or make any other form of a comment is on Tali
-Forth’s page on GitHub at <https://github.com/scotws/TaliForth2> There, you can
+Forth’s page on GitHub at <https://github.com/SamCoVT/TaliForth2> There, you can
 "open an issue", which allows other people who might have the same problem to
 help even when the author is not available.
 
@@ -4760,9 +5029,9 @@ it online at GitHub<span class="indexterm" primary="GitHub"></span> at <https://
 Tali Forth 2 entered BETA, Tali Forth was discontinued. It does not
 receive bug fixes. In fact, new bugs are not even documented.
 
-<figure>
-<img src="pics/tali_forth_alpha003.png" id="img_talialpha" alt="Screenshot of the Tali Forth 1 boot screen, version Alpha 3, April 2014" />
-<figcaption aria-hidden="true">Screenshot of the Tali Forth 1 boot screen, version Alpha 3, April 2014</figcaption>
+<figure id="img_talialpha">
+<img src="pics/tali_forth_alpha003.png" alt="tali forth alpha003" />
+<figcaption>Screenshot of the Tali Forth 1 boot screen, version Alpha 3, April 2014</figcaption>
 </figure>
 
 Who’s "Tali"?  
@@ -4771,7 +5040,7 @@ it to. If it sounds vaguely familiar, you’re probably thinking of Tali’Zorah
 Normandy<span class="indexterm" primary="vas Normandy, Tali’Zorah"></span> a character in the *Mass
 Effect* <span class="indexterm" primary="Mass Effect"></span> universe created by BioWare<span class="indexterm" primary="BioWare"></span>. This
 software has absolutely nothing to do with neither the game nor the companies and
-neither do I, expect that I’ve played the whole series and enjoyed it.[5]
+neither do I, expect that I’ve played the whole series and enjoyed it.[^5]
 
 And who is "Liara"?<span class="indexterm" primary="Liara Forth"></span>  
 Liara Forth is another STC Forth for the big sibling of the 6502, the
@@ -4847,14 +5116,22 @@ for more information.
 
 ### Old Tests
 
+<div class="note">
+
 During early development, testing was done by hand with a list of words that has
 since been placed in the `old` <span class="indexterm" primary="old"></span> folder. These tests might be still useful if you
 are in the very early stages of developing your own Forth.
 
+</div>
+
 ## The Simpler Assembler Notation (SAN) format
+
+<div class="note">
 
 This is a condensed version of the main SAN Guide at
 <https://github.com/scotws/SAN> , see there for more detail.)
+
+</div>
 
 ### Background
 
@@ -4980,7 +5257,7 @@ March/April 1992
 [https://www.forth.com/starting-forth/}{https://www.forth.com/starting-forth/](https://www.forth.com/starting-forth/}{https://www.forth.com/starting-forth/)
 
 \[<span id="LB2"></span>\] *Thinking Forth*, Leo Brodie, 1984,
-[http://thinking-forth.sourceforge.net/\\#21CENTURY](http://thinking-forth.sourceforge.net/\#21CENTURY)
+[http://thinking-forth.sourceforge.net/\\21CENTURY](http://thinking-forth.sourceforge.net/\#21CENTURY)
 
 \[<span id="LL"></span>\] *6502 Assembly Language Programming*, Lance A. Leventhal,
 OSBORNE/McGRAW-HILL 1979
@@ -4995,12 +5272,12 @@ under [Ubuntu](https://www.ubuntu.com/) Linux 16.04 LTS.
 
 Authors' names are listed alphabetically based on last name.
 
-[1] Rumor has it that there was another MPU called "Z80",<span class="indexterm" primary="Z80"></span> but it ended up being a mere footnote.
+[^1]: Rumor has it that there was another MPU called "Z80",<span class="indexterm" primary="Z80"></span> but it ended up being a mere footnote.
 
-[2] If you’re going to quit anyway, speed can’t be that important
+[^2]: If you’re going to quit anyway, speed can’t be that important
 
-[3] Try reading that last sentence to a friend who isn’t into computers. Aren’t abbreviations fun?
+[^3]: Try reading that last sentence to a friend who isn’t into computers. Aren’t abbreviations fun?
 
-[4] All quotes in the `ed` tutorial are taken from the *Mass Effect* games by BioWare/EA. As stated already, they hold the rights to all characters and whatnot.
+[^4]: All quotes in the `ed` tutorial are taken from the *Mass Effect* games by BioWare/EA. As stated already, they hold the rights to all characters and whatnot.
 
-[5] Though I do wish they would tell us what happened to the quarian ark in *Andromeda*.
+[^5]: Though I do wish they would tell us what happened to the quarian ark in *Andromeda*.

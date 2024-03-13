@@ -18,6 +18,7 @@
 
 ; The four variables insrc, cib, ciblen, and toin must stay together in this
 ; sequence for the words INPUT>R and R>INPUT to work correctly.
+; The offsets here must match the cold_zp_table defined in native_words.asm
 
 cp        = user0+0   ; Compiler Pointer
 dp        = user0+2   ; Dictionary Pointer
@@ -72,11 +73,11 @@ scratch   = user0+54  ; 8 byte scratchpad (see UM/MOD)
 ; Zero Page:
 ; Bytes used for variables: 62 ($0000-$003D)
 ; First usable Data Stack location: $003E (decimal 62)
-; Bytes avaible for Data Stack: 128-62 = 66 --> 33 16-bit cells
+; Bytes available for Data Stack: 128-62 = 66 --> 33 16-bit cells
 
 dsp0      = zpage_end-7    ; initial Data Stack Pointer
 
-; User Variables:
+; RAM System Variables: this must match cold_user_table in native_words.asm
 ; Block variables
 blk_offset = 0        ; BLK : UP + 0
 scr_offset = 2        ; SCR : UP + 2
@@ -103,7 +104,6 @@ buffstatus_offset   = 44   ; Status of buffer (bit 0 = used, bit 1 = dirty)
 ; Block I/O vectors
 blockread_offset    = 46   ; Vector to block reading routine
 blockwrite_offset   = 48   ; Vector to block writing routine
-
 
 ; ASCII CHARACTERS
 AscCC   = $03  ; break (CTRL-c)

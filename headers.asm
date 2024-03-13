@@ -1440,7 +1440,7 @@ nt_ed:                  ; ed6502
         .byte 2, NN
         .word +, xt_ed, z_ed
         .text "ed"
-+        
++
 .endif
 
 nt_cold:
