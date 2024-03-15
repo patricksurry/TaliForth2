@@ -146,6 +146,13 @@ xt_quit:
                 stz insrc
                 stz insrc+1
 
+                ; BLK is zero
+                lda #0
+                ldy #blk_offset
+                sta (up),y
+                iny
+                sta (up),y
+
                 ; STATE is zero (interpret, not compile)
                 stz state
                 stz state+1
@@ -947,9 +954,43 @@ z_at_xy:        rts
 
 
 ; ## BACKSLASH ( -- ) "Ignore rest of line"
-; ## "\"  auto  ANS core ext
-        ; """https://forth-standard.org/standard/core/bs"""
+; ## "\"  auto  ANS block ext
+        ; """https://forth-standard.org/standard/block/bs"""
 xt_backslash:
+                ; Check BLK to see if we are interpreting a block
+                ldy #blk_offset
+                lda (up),y
+                iny
+                ora (up),y
+                beq backslash_not_block
+
+                ; We are in a block.  Move toin to next multiple of 64.
+
+                ; First, however, we have to see if we are at an exact
+                ; multiple of 64+1, which happens when a \ is at the end
+                ; of a line (in which case we do nothing).  We also have
+                ; to check for exact multiple of 64, which will happen with
+                ; a backslash at the very end of a block.
+                lda toin
+                and #$3F
+                beq z_backslash
+                cmp #$01
+                beq z_backslash
+
+                ; Not at the end of the line (beginning of next line,
+                ; after parsing the \, technically), so move to the
+                ; next line.
+                lda toin
+                and #$C0        ; Clear lower bits to move to beginning of line.
+
+                clc             ; Add $40 (64 decimal) to move to next line.
+                adc #$40
+                sta toin
+                bcc z_backslash
+                inc toin+1
+                bra z_backslash
+                
+backslash_not_block:
                 lda ciblen
                 sta toin
                 lda ciblen+1
@@ -2408,6 +2449,7 @@ z_count:        rts
 ; ## "cr"  auto  ANS core
         ; """https://forth-standard.org/standard/core/CR"""
 xt_cr:
+
 .if "cr" in TALI_OPTION_CR_EOL
                 lda #AscCR
                 jsr emit_a
