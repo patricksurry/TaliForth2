@@ -1,7 +1,7 @@
 TEST        = 0                 ; compile unit tests?
 
-SCR_WIDTH   = 40                ; sreen width, < 256
-SCR_HEIGHT  = 8
+SCR_WIDTH   = 72                ; sreen width, < 256
+SCR_HEIGHT  = 16
 
 AscFF       = $0f               ; form feed
 
