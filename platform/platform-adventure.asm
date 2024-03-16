@@ -214,10 +214,9 @@ kernel_init:
                 ; do it from scratch. Sorry.
                 sei             ; Disable interrupts
 
-                ; custom initialization,
-                lda #42
-                sta rand16          ; seed random number generator with non-zero word
-                stz rand16+1
+                ; custom initialization
+                jsr txt_init
+                jsr util_init
 
                 ; We've successfully set everything up, so print the kernel
                 ; string
@@ -230,9 +229,10 @@ kernel_init:
 _done:
                 jmp forth
 
+
 kernel_getc:
-        ; """Get a single character from the keyboard. By default, py65mon
-        ; is set to $f004, which we just keep. Note that py65mon's getc routine
+        ; """Get a single character from the keyboard. We redirect to py65mon's
+        ; magic address. Note that py65mon's getc routine
         ; is non-blocking, so it will return '00' even if no key has been
         ; pressed. We turn this into a blocking version by waiting for a
         ; non-zero character.
@@ -244,8 +244,8 @@ _loop:
 
 
 kernel_putc:
-        ; """Print a single character to the console. By default, py65mon
-        ; is set to $f001, which we just keep.
+        ; """Print a single character to the console.  We redirect to
+        ; py650mon's magic address.
         ; """
                 sta py65_putc
                 rts

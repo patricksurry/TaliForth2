@@ -1,130 +1,170 @@
+txt_init:
+        ; bhead/tail are 600/700
+        stz cb_head
+        stz cb_tail
+        stz cb_head+2
+        stz cb_tail+2
 
-
-; woozy temps
-txt_repeat  = txt_tmp
-
-; unwrap temps
-txt_col     = txt_tmp
-txt_row     = txt_tmp+1
-
-
-txt_putc:       ; (A) -> nil
-    ; write a chr to output buffer and inc position
-        sta (txt_outz)
-        inc txt_outz
-        bne _done
-        inc txt_outz+1
-_done:  rts
-
-
-txt_inc_strz:
-        inc txt_strz    ; inc pointer
-        bne txt_rts
-txt_inc_strz1:
-        inc txt_strz+1
-txt_rts:   rts
-
-txt_iny_strz:
-        iny
-        bne txt_rts
-        beq txt_inc_strz1
-
-
-txt_wrap:   ; (txt_strz) -> nil
-    ; replace selected whitespace chrs with newline / formfeed
-    ; to give nicer wrapping on a small screen
-    ; modifies string at txt_strz in place
-
-        ; txt_strz points at current char, with screen coord (txt_col, txt_row)
-        stz txt_col
-        stz txt_row
-
-_scan:  ldy #0          ; seek forward within row for next natural break
-        ldx txt_col     ; y tracks char offset, x tracks updated txt_col
-
-        bit txt_rts     ; set overflow with RTS = #$60 (first pass V=1, second V=0)
-
-_skip:  cpx #SCR_WIDTH      ; skip past sequence of ws (first pass) then non-ws (second pass)
-        bpl _eol
-        lda (txt_strz),y
-        beq _end        ; end of string?
-        cmp #' '+1      ; is char whitespace (' ' or below)
-        bvc _chk2       ; second pass?
-        bmi _cont       ; continue first pass on ws
-        clv             ; else start second pass
-        bra _skip
-
-_chk2:  bmi _adv        ; end second pass on ws
-                        ;TODO handle tab which could bump col more than one
-_cont:  inx             ; update col and offset
-        iny
-        bne _skip       ;TODO what happens with y overflow?
-
-        ; advance natural break point
-_adv:   tya         ; add offset y to txt_strz
-        clc
-        adc txt_strz
-        sta txt_strz
-        bcc _chknl
-        inc txt_strz+1
-_chknl: lda (txt_strz)  ; if curr chr is NL, force a break
-        cmp #AscCR
-        beq _eol
-        cmp #AscLF
-        beq _eol
-        stx txt_col     ; update current natural break
-        bra _scan       ; keep looking
-
-_eol:   stz txt_col     ; reset txt_col, increment txt_row
-        ldx #AscLF      ; normally insert LF, but FF at end of page
-        lda txt_row
+        lda #6
+        sta cb_head+1
+        sta cb_tail+1
         ina
-        cmp #SCR_HEIGHT
-        bne _nopg
-        lda #0
-        ldx #AscFF      ; new page insert FF
-_nopg:  sta txt_row     ; current txt_row
-        phx             ; stash brk chr
-        lda (txt_strz)
-        cmp #' '+1
-        bmi _soft
+        sta cb_head+3
+        sta cb_tail+3
 
-        ; hard break, skip ahead y and carry on
-        plx         ; discard brk chr
+        jsr wrp_init              ; initialize buffered output
+
+txt_noop:
+        rts
+
+; buffer 0 is a push buffer to output
+; buffer 1 is a pull buffer for intermediate dizzy decompression
+
+cb_src: .word txt_noop
+        .word txt_undizzy       ; undizzy fills buffer 1
+
+cb_snk: .word wrp_putc          ; buffer 0 feeds to ouput
+        .word txt_noop
+
+
+; Simple circular buffer implementation, with optional src/snk handlers
+
+; puts a character into a circular buffer, updating head
+cb1_put:    ; (A) -> circular buffer and notify sink
+        ldx #2
+        bra +
+cb0_put:
         ldx #0
-        bra _adv    ; advance breakpoint with offset y, at column x=0
-
-_soft:  pla         ; insert our break char and skip past it
-        sta (txt_strz)
-        jsr txt_inc_strz
-        bra _scan
-
-_end:   rts
++       sta (cb_head,x)
+        inc cb_head,x        ; wrap is OK in circular buffer
+        jmp (cb_snk,x)       ; notify sink and return from there
 
 
-txt_unwoozy:                ; (txt_strz, txt_outz) -> nil
-    ; undo woozy prep for dizzy
-        ldy #0
-        ldx #0              ; shift state, 0 = none, 1 = capitalize, 2 = all caps
-        lda #1
-        sta txt_repeat      ; repeat count for output
+; returns the next character and advances tail of a circular buffer,
+; first refilling if needed to advance head past tail
+cb1_get:    ; (circular buffer) -> A
+        ldx #2
+        bra +
+cb0_get:
+        ldx #0
++       lda cb_tail,x
+        cmp cb_head,x
+        bne _fetch      ; if tail is at head we need to refill
+        phx
+        jsr _refill
+        plx
+_fetch: lda (cb_tail,x)
+        inc cb_tail,x
+        rts
+_refill:
+        jmp (cb_src,x)
 
-_loop:  lda (txt_strz),y
-        beq _done
+
+wrp_init:
+        ; txt_col tracks number of buffered chars, aka current col position 0,1,2...
+        stz txt_col
+wrp_new_page:
+        lda #SCR_HEIGHT
+        sta txt_row
+wrp_new_line:
+        lda #$ff
+        sta wrp_col         ; col index of latest break
+        sta wrp_flg         ; set flg to -1 (skip leading ws)
+        rts
+
+
+wrp_putc:   ; buffer output via cb0 to kernel_putc
+        cmp #0
+        beq _force          ; force break if done
+        cmp #AscLF          ; hard LF?
+        bne _chkws
+
+_force: lda txt_col         ; wrap at this col
+        bra _putln
+
+_chkws: sec
+        sbc #' '+1
+        eor wrp_flg         ; flg 0 is no-op, -1 flips sign of comparison
+        bpl _cont           ; mode 0 skips non-ws looking for break, flg -1 skips ws
+
+        lda wrp_flg         ; hit; either way switch mode
+        eor #$ff
+        sta wrp_flg
+        beq _cont           ; if flg is 0 (was -1) we were just skipping ws
+
+        lda txt_col         ; else we found ws, update break point
+        sta wrp_col
+
+_cont:  lda txt_col
+        cmp #SCR_WIDTH-1    ; end of line?
+        beq _flush
+
+        inc txt_col         ; otherwise just advance col and wait for next chr
+        rts
+
+_flush: lda wrp_col         ; did we find a break?
+        cmp #$ff
+        bne _putln
+        lda #SCR_WIDTH-1    ; else force one at col w-1
+
+        ; A contains the column index to wrap at.  We'll consume A+1
+        ; characters, with the last one getting special treatment
+
+_putln: tay
+        eor #$ff
+        sec                 ; new column will be txt_col - A = ~A + 1 + col
+        adc txt_col
+        sta txt_col
+
+_out:   jsr cb0_get         ; consume wrp_col+1 chars
+        dey
+        bmi _last           ; handle last one specialy
+        jsr kernel_putc
+        bra _out
+
+_last:  cmp #' '+1          ; is final char ws (incl terminator) ?
+        bmi _nl
+        jsr kernel_putc     ; else emit the non-ws character first
+_nl:    lda #AscLF          ; either way add a NL
+        jsr kernel_putc
+
+        dec txt_row         ; count the row
+        beq _page
+
+        jmp wrp_new_line    ; set state for new line and return
+
+;TODO for debugging only
+_page:  lda #42
+        jsr kernel_putc
+
+        jsr kernel_getc     ; press a key...
+
+        jmp wrp_new_page    ; set state for next page
+
+
+txt_typez:   ;  (txt_strz, txt_digrams via buf1) -> buf0
+    ; undo woozy prep for dizzy, pulls from buf1 (dizzy), pushes to buf0 (output
+        stz txt_shift       ; shift state, 0 = none, 1 = capitalize, 2 = all caps
+        stz txt_repeat      ; repeat count for output (0 means once)
+
+_loop:  jsr cb1_get
+        cmp #0
+        beq _rput           ; return after writing terminator
         cmp #$0d            ; $b,c: set shift status
         bpl _out
         cmp #$0b
         bmi _nobc
         sbc #$0a
-        tax                 ; save shift state
-        bra _next
+        sta txt_shift       ; save shift state
+        bra _loop
 
 _nobc:  cmp #$09            ; $3-8: rle next char
         bpl _out
         cmp #$03
         bmi _out
+        dea
         sta txt_repeat
-        bra _next
+        bra _loop
 
 _out:   cmp #'A'
         bmi _notuc
@@ -133,79 +173,68 @@ _out:   cmp #'A'
         ora #%0010_0000     ; lowercase
         pha
         lda #' '            ; add a space
-        jsr _repeat_putc
+        jsr _rput
         pla
 
-_notuc: cpx #0
-        beq _putc
+_notuc: ldx txt_shift
+        beq _next
         cmp #'a'
-        bmi _notlc
+        bmi _noshf
         cmp #'z'+1
-        bpl _notlc
+        bpl _noshf
         and #%0101_1111     ; capitalize
         cpx #2              ; all caps?
-        beq _putc
-_notlc: ldx #0              ; else end shift
-
-_putc:  jsr _repeat_putc
-
-_next:  jsr txt_iny_strz
+        beq _next
+_noshf: stz txt_shift       ; else end shift
+_next:  jsr _rput
         bra _loop
 
-_done:  jsr txt_putc        ; store the nul terminator
-        rts
-
-_repeat_putc:
-_rpt:   jsr txt_putc
+_rput:  sta txt_chr
+_r:     jsr cb0_put
+        lda txt_repeat
+        beq _done
         dec txt_repeat
-        bne _rpt
-        inc txt_repeat      ; reset to 1
-        rts
+        lda txt_chr
+        bra _r
+_done:  rts
 
 
-txt_undizzy:                ; (txt_strz, txt_digrams, txt_outz) -> nil
+txt_undizzy:                ; (txt_strz, txt_digrams) -> buf1
     ; uncompress a zero-terminated dizzy string at txt_strz using txt_digrams lookup
-    ; writes uncompressed data to txt_outz (including the terminator)
-    ; outz is left pointing past the terminator
+    ; writes next character(s) from input stream to circular buf0
 
-        ldx #0              ; track stack depth
-_nextz: lda (txt_strz)      ; get encoded char
-_chk7:  bmi _subst          ; is it a digraph (bit 7 set)?
-        beq _done           ; if 0 we're done
-        jsr txt_putc
-_stk:   cpx #0              ; any stacked items?
-        beq _cont
-        dex
-        pla                 ; pop latest
-        bra _chk7
+        stz txt_stack       ; track stack depth
+        lda (txt_strz)      ; get encoded char
 
-_subst: sec
+_chk7:  bpl _asc7           ; 7-bit char or digram (bit 7 set)?
+        sec
         rol                 ; index*2+1 for second char in digram
         tay
         lda (txt_digrams),y
-        inx                 ; track stack depth
+        inc txt_stack       ; track stack depth
         pha                 ; stack the second char
         dey
         lda (txt_digrams),y ; fetch the first char of the digram
         bra _chk7           ; keep going
 
-_cont:  jsr txt_inc_strz
-        bra _nextz
+_asc7:  jsr cb1_put
+_stk:   lda txt_stack       ; any stacked items?
+        beq _done
+        dec txt_stack
+        pla                 ; pop latest
+        bra _chk7
 
-_done:  jsr txt_putc         ; store the terminator
-        rts
+_done:  inc txt_strz        ; inc pointer
+        bne _rts
+        inc txt_strz+1
+
+_rts:   rts
+
 
 
 .if TEST
 
-test_buf = $400
-
-PUTC:   sta $f001            ; pymon character output, or could write buffer etc
-        rts
-
 test_start:
-
-test_undizzy:
         lda #<test_digrams
         sta txt_digrams
         lda #>test_digrams
@@ -217,60 +246,11 @@ test_undizzy:
         lda #>test_dzy
         sta txt_strz+1
 
-        lda #<test_buf
-        sta txt_outz
-        lda #>test_buf
-        sta txt_outz+1
+        jsr txt_wrapz
 
-        jsr txt_undizzy
-
-        ; unwoozy: buf -> dzy
-
-        lda #<test_buf
-        sta txt_strz
-        lda #>test_buf
-        sta txt_strz+1
-
-        lda #<test_dzy
-        sta txt_outz
-        lda #>test_dzy
-        sta txt_outz+1
-
-        jsr txt_unwoozy
-
-        ; wrap: dzy
-
-        lda #<test_dzy
-        sta txt_strz
-        lda #>test_dzy
-        sta txt_strz+1
-
-        jsr txt_wrap        ; wrap it
-
-        lda #<test_dzy
-        sta txt_strz
-        lda #>test_dzy
-        sta txt_strz+1
-
-        ldy #0              ; print it
-_loop:  lda (txt_strz),y
-        beq _done
-        cmp #AscFF
-        bne _putc
-        lda #AscLF
-        jsr PUTC
-        lda #'*'
-        jsr PUTC
-        lda #LF
-_putc:  jsr PUTC
-        iny
-        bne _loop
-        inc txt_strz+1
-        bra _loop
 _done:  brk
 
 
-    .data
 test_digrams:
         .byte $68, $65, $72, $65, $6f, $75, $54, $80, $69, $6e, $73, $74, $84, $67, $6e, $64
         .byte $69, $74, $6c, $6c, $49, $6e, $65, $72, $61, $72, $2e, $0b, $4f, $66, $0b, $79

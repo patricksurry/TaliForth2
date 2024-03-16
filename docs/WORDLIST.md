@@ -286,12 +286,8 @@ RTS instruction at the end of each word.
 | EDITOR_L | `l` | Tali Editor | 123 | tested |
 | EDITOR_LINE | `line` | Tali Editor | 24 | tested |
 | EDITOR_O | `o` | Tali Editor | 69 | tested |
-| TOLOWER | `tolower` | ad hoc | missing | tested |
-| unpack | `unpack` | ad hoc | missing | tested |
-| pack | `pack` | ad hoc | missing | tested |
-| asciiz> | `asciiz` | ad hoc | missing | tested |
 
-Found **283** native words in `native_words.asm`.
+Found **279** native words in `native_words.asm`.
 Of those, **231** were automatically tested and
           **1** are not marked as tested at all.
 

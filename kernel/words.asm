@@ -49,7 +49,8 @@ _tolower_done:  pla
 
 z_tolower:      rts
 
-; ## unpack ( u -- lo hi ) "unpack uint16 to lo and hi bytes"
+
+; ## UNPACK ( u -- lo hi ) "unpack uint16 to lo and hi bytes"
 ; ## "unpack"  tested ad hoc
 xt_unpack:
                 dex
@@ -61,7 +62,8 @@ xt_unpack:
 
 z_unpack:       rts
 
-; ## pack ( lo hi  -- u ) "pack two char vals to uint16"
+
+; ## PACK ( lo hi  -- u ) "pack two char vals to uint16"
 ; ## "pack"  tested ad hoc
 xt_pack:
                 lda 0,x     ; pop hi byte
@@ -71,7 +73,8 @@ xt_pack:
 
 z_pack:         rts
 
-; ## asciiz> ( c-addr -- addr u ) "count a zero-terminated string; uses tmp1"
+
+; ## ASCIIZ> ( c-addr -- addr u ) "count a zero-terminated string; uses tmp1"
 ; ## "asciiz"  tested ad hoc
 xt_asciiz:
         lda 0,x
@@ -103,55 +106,27 @@ xt_asciiz:
 z_asciiz:
         rts
 
-; ## DECODE ( strz digrams outz -- addr n ) "decode a dizzy+woozy encoded string"
-; ## "decode"  tested ad hoc
 
-xt_decode:
+; ## typez ( strz digrams -- ) "emit a wrapped dizzy+woozy encoded string"
+; ## "typez"  tested ad hoc
+xt_typez:
         lda 0,x
-        sta txt_outz
-        lda 1,x
-        sta txt_outz+1
-
-        lda 2,x
         sta txt_digrams
-        lda 3,x
+        lda 1,x
         sta txt_digrams+1
 
-        lda 4,x
+        lda 2,x
         sta txt_strz
-        lda 5,x
+        lda 3,x
         sta txt_strz+1
 
         phx
-        jsr txt_undizzy
+        jsr txt_typez
         plx
-
-        lda 0,x             ; undizzy output becomes woozy input
-        sta txt_strz
-        lda 1,x
-        sta txt_strz+1
-
-        inx                 ; drop
+        inx
+        inx
+        inx
         inx
 
-        ; txt_outz points to free space where we'll output
-        lda txt_outz
-        sta 2,x
-        lda txt_outz+1
-        sta 3,x
-
-        phx
-        jsr txt_unwoozy
-        plx
-
-        lda txt_outz    ; new pointer including terminator
-        sta 0,x
-        lda txt_outz+1
-        sta 1,x
-
-        jsr xt_over     ; n = p2 - p1 - 1
-        jsr xt_minus
-        jsr xt_one_minus
-
-z_decode:
+z_typez:
         rts

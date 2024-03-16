@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
   const char *romfile = NULL, *blkfile = NULL;
   int addr = -1, reset = -1, max_ticks = -1, errflg = 0, sz = 0, c;
 
-  while ((c = getopt(argc, argv, ":r:a:g:t:i:o:x:b:")) != -1) {
+  while ((c = getopt(argc, argv, ":r:a:g:t:i:o:x:c:b:")) != -1) {
     switch (c) {
     case 'r':
       romfile = optarg;
@@ -127,6 +127,11 @@ int main(int argc, char *argv[]) {
     case 'x':
       blkio_addr = strtol(optarg, NULL, 0);
       break;
+    case 'c':
+      tstart_addr = strtol(optarg, NULL, 0);
+      tstop_addr = tstart_addr + 1;
+      timer_addr = tstart_addr + 2;
+      break;
     case ':': /* -f or -o without operand */
       fprintf(stderr, "Option -%c requires an argument\n", optopt);
       errflg++;
@@ -140,18 +145,20 @@ int main(int argc, char *argv[]) {
     errflg++;
 
   if (errflg) {
-    fprintf(stderr,
-            "Usage: c65 -r file.rom [...]\n"
-            "Options:\n"
-            "-?              : Show this message\n"
-            "-r <file>       : Load file to memory and reset into it\n"
-            "-a <address>    : Address to load (default top of address space)\n"
-            "-g <address>    : Set reset vector @ 0xfffc to <address>\n"
-            "-t <ticks>      : Run for max ticks (default forever)\n"
-            "-i <address>    : magic read for getc (default 0xf004)\n"
-            "-o <address>    : magic write for putc (default 0xf001)\n"
-            "-x <address>    : magic blk device (default 0xf010)\n"
-            "-b <file>       : binary block file backing blk device");
+    fprintf(
+        stderr,
+        "Usage: c65 -r file.rom [...]\n"
+        "Options:\n"
+        "-?              : Show this message\n"
+        "-r <file>       : Load file to memory and reset into it\n"
+        "-a <address>    : Address to load (default top of address space)\n"
+        "-g <address>    : Set reset vector @ 0xfffc to <address>\n"
+        "-t <ticks>      : Run for max ticks (default forever)\n"
+        "-i <address>    : magic read for getc (default 0xf004)\n"
+        "-o <address>    : magic write for putc (default 0xf001)\n"
+        "-c <address>    : magic r/w for cycle counting (default 0xf006...b) 0x"
+        "-x <address>    : magic blk device (default 0xf010...5)\n"
+        "-b <file>       : binary block file backing blk device");
     exit(2);
   }
 

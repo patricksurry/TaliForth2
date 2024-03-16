@@ -20,11 +20,11 @@ nt_unpack:
 
 nt_pack:
         .byte 4, 0
-        .word nt_decode, xt_pack, z_pack
+        .word nt_typez, xt_pack, z_pack
         .text "pack"
 
-nt_decode:
-        .byte 6, 0
-        .word +, xt_decode, z_decode
-        .text "decode"
+nt_typez:
+        .byte 5, 0
+        .word +, xt_typez, z_typez
+        .text "typez"
 +

@@ -127,12 +127,12 @@
         \          i dorow cr "
         \          loop ; "
 
-\ boot from a block device if present
-
+\ block read/write
 : blkrw ( blk buf action -- )
     -rot $c014 ! $c012 ! $c010 c!
 ;
 
+\ boot from a block device if present
 :noname ( -- )
     -1 $c011 c! 0 $c010 c! $c011 c@ 0= if       \ block device available?
         0 $400 1 blkrw

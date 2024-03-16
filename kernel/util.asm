@@ -1,3 +1,10 @@
+util_init:
+        lda #42
+        sta rand16          ; seed random number generator with non-zero word
+        stz rand16+1
+        rts
+
+
 delay:  ; (A, Y) -> nil; X const
     ; delay 9*(256*A+Y)+12 cycles = 2304 A + 9 Y + 12 cycles
     ; at 1MHz about 2.3 A ms + (9Y + 12) us
