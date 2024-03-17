@@ -18,6 +18,9 @@ TALI_OPTIONAL_WORDS :?= [ "ed", "editor", "ramdrive", "block", "environment?", "
 ; Default line ending is line feed.
 TALI_OPTION_CR_EOL :?= [ "lf" ]
 
+; Default to verbose strings
+TALI_OPTION_TERSE :?= 0
+
 ; Label used to calculate UNUSED. Silly for Tali Forth, where we assume
 ; 32 KiB RAM and 32 KiB ROM, but kept here to make the code more useful for
 ; other hardware configurations
@@ -35,7 +38,9 @@ forth:
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
+.if ! TALI_OPTION_TERSE         ; omit startup strings if terse
 .binary "forth_words.asc"
+.endif
 forth_words_end:
 
 ; User-defined Forth words, see forth_code/README.md

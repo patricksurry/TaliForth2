@@ -95,6 +95,7 @@ _load_user_vars_loop:
 
                 jsr xt_evaluate
 
+.if TALI_OPTION_HISTORY
                 ; Initialize all of the history buffers by putting a zero in
                 ; each length byte.
                 stz hist_buff
@@ -105,7 +106,7 @@ _load_user_vars_loop:
                 stz hist_buff+$280
                 stz hist_buff+$300
                 stz hist_buff+$380
-
+.endif
                 ; fall through to ABORT
 
 
@@ -408,12 +409,13 @@ accept_loop:
                 cmp #AscDEL     ; (CTRL-h)
                 beq _backspace
 
+.if TALI_OPTION_HISTORY
                 ; Check for CTRL-p and CTRL-n to recall input history
                 cmp #AscCP
                 beq _ctrl_p
                 cmp #AscCN
                 beq _ctrl_n
-
+.endif
                 ; That's enough for now. Save and echo character.
                 sta (tmp1),y
                 iny
@@ -455,6 +457,7 @@ _backspace:
 
                 bra accept_loop
 
+.if TALI_OPTION_HISTORY
 _ctrl_p:
                 ; CTRL-p was pressed. Recall the previous input buffer.
 
@@ -597,9 +600,14 @@ _save_history_loop:
                 bra _save_history_loop
 
 _save_history_done:
+.else
+accept_done:            ; nothing to do if we're not saving history
+.endif
+
 z_accept:
                 rts
 
+.if TALI_OPTION_HISTORY
 accept_total_recall:
         ; """Internal subroutine for ACCEPT that recalls history entry"""
 
@@ -637,7 +645,7 @@ accept_total_recall:
                 lda #$7F
 +
                 rts
-
+.endif
 
 
 ; ## ACTION_OF ( "name" -- xt ) "Get named deferred word's xt"
@@ -2806,7 +2814,6 @@ _done:
 z_dabs:         rts
 
 
-
 ; ## DECIMAL ( -- ) "Change radix base to decimal"
 ; ## "decimal"  auto  ANS core
         ; """https://forth-standard.org/standard/core/DECIMAL"""
@@ -2997,6 +3004,7 @@ z_digit_question:
                 rts
 
 
+.if "disassembler" in TALI_OPTIONAL_WORDS
 ; ## DISASM ( addr u -- ) "Disassemble a block of memory"
 ; ## "disasm"  tested  Tali Forth
         ; """Convert a segment of memory to assembler output. This
@@ -3011,6 +3019,7 @@ xt_disasm:
                 jsr disassembler
 
 z_disasm:       rts
+.endif
 
 
 ; ## DNEGATE ( d -- d ) "Negate double cell number"
@@ -3484,7 +3493,6 @@ _done:
 z_dot_s:        rts
 
 
-
 ; ## D_DOT ( d -- ) "Print double"
 ; ## "d."  tested  ANS double
         ; """http://forth-standard.org/standard/double/Dd"""
@@ -3507,7 +3515,6 @@ xt_d_dot:
                 jsr xt_space
 
 z_d_dot:        rts
-
 
 
 ; ## D_DOT_R ( d u -- ) "Print double right-justified u wide"
@@ -3535,7 +3542,6 @@ xt_d_dot_r:
                 jsr xt_type
 
 z_d_dot_r:      rts
-
 
 
 ; ## DROP ( u -- ) "Pop top entry on Data Stack"
@@ -4674,7 +4680,6 @@ _multiply:
                 dex
 _done:
 z_fm_slash_mod: rts
-
 
 
 .if "wordlist" in TALI_OPTIONAL_WORDS
@@ -5934,7 +5939,6 @@ _done:
 z_lshift:       rts
 
 
-
 ; ## M_STAR ( n n -- d ) "16 * 16 --> 32"
 ; ## "m*"  auto  ANS core
         ; """https://forth-standard.org/standard/core/MTimes
@@ -5972,7 +5976,6 @@ xt_m_star:
                 jsr xt_dnegate
 _done:
 z_m_star:       rts
-
 
 
 ; ## MARKER ( "name" -- ) "Create a deletion boundry"
@@ -6317,7 +6320,6 @@ _loop:
 _done:
 z_minus_trailing:
                 rts
-
 
 
 ; ## MOD ( n1 n2 -- n ) "Divide NOS by TOS and return the remainder"
@@ -6940,7 +6942,6 @@ _loop:
 
 z_number_sign_s:
                 rts
-
 
 
 ; ## OF (C: -- of-sys) (x1 x2 -- |x1) "Conditional flow control"
@@ -8427,7 +8428,6 @@ z_search_wordlist:
 .endif
 
 
-
 ; ## SEE ( "name" -- ) "Print information about a Forth word"
 ; ## "see" tested  ANS tools
         ; """https://forth-standard.org/standard/tools/SEE
@@ -8519,16 +8519,18 @@ _flag_loop:
                 jsr xt_cr
 
                 ; Dump hex and disassemble
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 jsr xt_two_dup          ; ( xt u xt u )
+.endif
                 jsr xt_dump
                 jsr xt_cr
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 jsr xt_disasm
-
+.endif
                 pla
                 sta base
 
 z_see:          rts
-
 
 
 .if "wordlist" in TALI_OPTIONAL_WORDS
@@ -8948,7 +8950,6 @@ _done:
 z_s_quote:      rts
 
 
-
 ; ## S_TO_D ( u -- d ) "Convert single cell number to double cell"
 ; ## "s>d"  auto  ANS core
         ; """https://forth-standard.org/standard/core/StoD"""
@@ -9366,7 +9367,6 @@ z_slash_mod:
 z_slash:        rts
 
 
-
 ; ## SLASH_MOD ( n1 n2 -- n3 n4 ) "Divide NOS by TOS with a remainder"
 ; ## "/mod"  auto  ANS core
         ; """https://forth-standard.org/standard/core/DivMOD
@@ -9585,10 +9585,10 @@ sliteral_runtime:
 
 
 
-; ## SM_SLASH_REM ( d n1 -- n2 n3 ) "Symmetic signed division"
+; ## SM_SLASH_REM ( d n1 -- n2 n3 ) "Symmetric signed division"
 ; ## "sm/rem"  auto  ANS core
         ; """https://forth-standard.org/standard/core/SMDivREM
-        ; Symmetic signed division. Compare FM/MOD. Based on F-PC 3.6
+        ; Symmetric signed division. Compare FM/MOD. Based on F-PC 3.6
         ; by Ulrich Hoffmann. See http://www.xlerb.de/uho/ansi.seq
         ;
         ; Forth:
@@ -10393,7 +10393,6 @@ _done:
                 sta 5,x
 
 z_to_number:    rts
-
 
 
 .if "wordlist" in TALI_OPTIONAL_WORDS

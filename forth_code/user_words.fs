@@ -2,7 +2,7 @@
 \ Scot W. Stevenson <scot.stevenson@gmail.com>
 \ This version: 18. Dec 2018
 
-\ When changing these words, edit them here and then use the 
+\ When changing these words, edit them here and then use the
 \ forth_to_ophisbin.py tool to convert them to the required format
 \ for inclusion in Ophis. This is handled automatically by "make"
 \ when run from the top level. See forth_words/README.md for details
@@ -22,9 +22,9 @@
 \ http://forum.6502.org/viewtopic.php?f=9&t=2926&start=90#p58899
 \ Prints fibonacci numbers up to and including 28657
          \ : fib ( -- ) 0 1 begin dup . swap over + dup 0< until 2drop ;
-        
+
 \ -------------------------------------------------------
-\ FACTORIAL from 
+\ FACTORIAL from
 \ https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Recursion-Tutorial.html
         \ : fact ( n -- n! )
         \  dup 0> if
@@ -32,7 +32,7 @@
         \     drop 1 then ;
 
 \ -------------------------------------------------------
-\ PRIMES from 
+\ PRIMES from
 \ https://www.youtube.com/watch?v=V5VGuNTrDL8 (Forth Freak)
         \  : primes ( n -- )
         \      2 . 3 .
@@ -44,7 +44,7 @@
         \            if i . then
         \      2 +loop
         \    drop ;
-        
+
 \ -------------------------------------------------------
 \ MANDELBROT by Martin Heermance
 \ https://github.com/Martin-H1/Forth-CS-101/blob/master/mandelbrot.fs
@@ -126,5 +126,5 @@
         \          maxval minval do "
         \          i dorow cr "
         \          loop ; "
-        
-\ END 
+
+\ END
