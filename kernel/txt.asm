@@ -137,9 +137,7 @@ _nl:    lda #AscLF          ; either way add a NL
 _page:  lda #42
         jsr kernel_putc
 
-        jsr kernel_getc     ; press a key...
-
-        jmp wrp_new_page    ; set state for next page
+        jmp kernel_getc     ; press a key and reset page wrap...
 
 
 txt_typez:   ;  (txt_strz, txt_digrams via buf1) -> buf0

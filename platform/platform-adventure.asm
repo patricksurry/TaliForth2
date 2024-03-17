@@ -240,6 +240,9 @@ kernel_getc:
 _loop:
                 lda py65_getc
                 beq _loop
+                pha
+                jsr wrp_new_page
+                pla
                 rts
 
 
