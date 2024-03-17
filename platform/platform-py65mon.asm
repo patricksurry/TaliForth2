@@ -3,7 +3,7 @@
         ; No special text encoding (eg. ASCII)
         .enc "none"
 
-        ; Where to start Tali Forth 2 in ROM (or RAM if loading it) 
+        ; Where to start Tali Forth 2 in ROM (or RAM if loading it)
         * = $8000
 
 ; I/O facilities are handled in these separate kernel files because of their
@@ -71,7 +71,7 @@
 ram_start = $0000          ; start of installed 32 KiB of RAM
 ram_end   = $8000-1        ; end of installed RAM
 zpage     = ram_start      ; begin of Zero Page ($0000-$00ff)
-zpage_end = $7F            ; end of Zero Page used ($0000-$007f)	
+zpage_end = $7F            ; end of Zero Page used ($0000-$007f)
 stack0    = $0100          ; begin of Return Stack ($0100-$01ff)
 hist_buff = ram_end-$03ff  ; begin of history buffers
 
@@ -90,7 +90,7 @@ rsp0      = $ff              ; initial Return Stack Pointer (65c02 stack)
 bsize     = $ff              ; size of input/output buffers
 buffer0   = stack0+$100      ; input buffer ($0200-$027f)
 cp0       = buffer0+bsize+1  ; Dictionary starts after last buffer
-                             ; The RAM System Variables and BLOCK buffer are 
+                             ; The RAM System Variables and BLOCK buffer are
                              ; placed right at the beginning of the dictionary.
 cp_end    = hist_buff        ; Last RAM byte available for code
 padoffset = $ff              ; offset from CP to PAD (holds number strings)
@@ -133,7 +133,7 @@ TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "a
 
 TALI_OPTION_CR_EOL := [ "lf" ]
 ;TALI_OPTION_CR_EOL := [ "cr" ]
-;TALI_OPTION_CR_EOL := [ "cr" "lf" ]
+;TALI_OPTION_CR_EOL := [ "cr", "lf" ]
 
 
 ; Make sure the above options are set BEFORE this include.
@@ -241,4 +241,3 @@ s_kernel_id:
 .word v_irq
 
 ; END
-

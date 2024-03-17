@@ -8630,7 +8630,7 @@ z_set_order:    rts
 xt_s_quote:
                 ; tmp2 will be used to determine if we are handling
                 ; escaped characters or not.  In this case, we are
-                ; not, so set it to zero.
+                ; not, so set it to zero.  (cf S_BACKSLASH_QUOTE)
                 stz tmp2
                 stz tmp2+1
 
@@ -8775,110 +8775,60 @@ _esc_x_second_digit:
 
                 jmp _save_character
 
+_esc_tr_table:
+    ; 26 character translation for simple escapes
+    ; 0 indicates no translation, hi bit indicates special
+    .byte   7               ; a -> BEL (ASCII value 7)
+    .byte   8               ; b -> Backspace (ASCII value 8)
+    .byte   0,0             ; c, d no escape
+    .byte   27              ; e -> ESC (ASCII value 27)
+    .byte   12              ; f -> FF (ASCII value 12)
+    .byte   0,0,0,0,0       ; g,h,i,j,k
+    .byte   10              ; l -> LF (ASCII value 10)
+    .byte   13+128          ; m -> CR/LF pair (ASCII values 13, 10)
+    ; n has configurable behavior which we hard-code in the table
+.if "cr" in TALI_OPTION_CR_EOL
+.if "lf" in TALI_OPTION_CR_EOL
+    .byte   13+128          ; n behaves like m --> cr/lf
+.else
+    .byte   13              ; n behaves like r --> cr
+.endif
+.else
+    .byte   10              ; n behaves like l --> lf
+.endif
+    .byte   0,0             ; o,p
+    .byte   34              ; q -> Double quote (ASCII value 34)
+    .byte   13              ; r ->  CR (ASCII value 13)
+    .byte   0               ; s
+    .byte   9               ; t -> Horizontal TAB (ASCII value 9)
+    .byte   0               ; u
+    .byte   11              ; v -> Vertical TAB (ASCII value 11)
+    .byte   0,0,0           ; w,x,y   (x is a special case later)
+    .byte   0+128           ; z -> NULL (ASCII value 0)
+
 _check_esc_chars:
                 ; Clear the escaped character flag (because we are
                 ; handling it right here)
                 stz tmp2+1
 
-                ; Process the escaped character
-_check_esc_a:
+                ; is it character a-z ?
                 cmp #'a'
-                bne _check_esc_b
+                bmi _check_esc_quote
+                cmp #'z'+1
+                bpl _check_esc_quote
+                ; check translation table
+                tay
+                lda _esc_tr_table - 'a',y   ; fake base address to index with a-z directly
+                bne _esc_replace
+                tya                     ; revert if no translation
+                bra _check_esc_quote
 
-                ; BEL (ASCII value 7)
-                lda #7
-                jmp _save_character
-
-_check_esc_b:
-                cmp #'b'
-                bne _check_esc_e
-
-                ; Backspace (ASCII value 8)
-                lda #8
-                jmp _save_character
-
-_check_esc_e:
-                cmp #'e'
-                bne _check_esc_f
-
-                ; ESC (ASCII value 27)
-                lda #27
-                bra _save_character
-
-_check_esc_f:
-                cmp #'f'
-                bne _check_esc_l
-
-                ; FF (ASCII value 12)
-                lda #12
-                bra _save_character
-
-_check_esc_l:
-                cmp #'l'
-                bne _check_esc_m
-
-                ; LF (ASCII value 10)
-                lda #10
-                bra _save_character
-
-_check_esc_m:
-                ; This one is not like the others because we save two
-                ; characters
-                cmp #'m'
-                bne _check_esc_n
-
-                ; CR/LF pair (ASCII values 13, 10)
-                lda #13
-                jsr cmpl_a
-                lda #10
-                bra _save_character
-
-_check_esc_n:
-                cmp #'n'
-                bne _check_esc_q
-
-                ; newline, impl. dependant, using LF (ASCII values 10)
-                lda #10
-                bra _save_character
-
-_check_esc_q:
-                cmp #'q'
-                bne _check_esc_r
-
-                ; Double quote (ASCII value 34)
-                lda #34
-                bra _save_character
-
-_check_esc_r:
-                cmp #'r'
-                bne _check_esc_t
-
-                ; CR (ASCII value 13)
-                lda #13
-                bra _save_character
-
-_check_esc_t:
-                cmp #'t'
-                bne _check_esc_v
-
-                ; Horizontal TAB (ASCII value 9)
-                lda #9
-                bra _save_character
-
-_check_esc_v:
-                cmp #'v'
-                bne _check_esc_z
-
-                ; Vertical TAB (ASCII value 11)
-                lda #11
-                bra _save_character
-
-_check_esc_z:
-                cmp #'z'
-                bne _check_esc_quote
-
-                ; NULL (ASCII value 0)
-                lda #0
+_esc_replace:   bpl _save_character     ; simple replacement
+                ; handle specials with hi bit set (NUL and CR/LF)
+                and #$7f                ; clear hi bit
+                beq _save_character     ; NUL we can just output
+                jsr cmpl_a              ; else output first char (CR)
+                lda #10                 ; followed by LF
                 bra _save_character
 
 _check_esc_quote:

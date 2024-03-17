@@ -103,7 +103,7 @@ _done:
 ram_start = $0000          ; start of installed 32 KiB of RAM
 ram_end   = $8000-1        ; end of installed RAM
 zpage     = ram_start      ; begin of Zero Page ($0000-$00ff)
-zpage_end = $7F            ; end of Zero Page used ($0000-$007f)	
+zpage_end = $7F            ; end of Zero Page used ($0000-$007f)
 stack0    = $0100          ; begin of Return Stack ($0100-$01ff)
 hist_buff = ram_end-$03ff  ; begin of history buffers
 
