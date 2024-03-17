@@ -21,6 +21,9 @@ TALI_OPTION_CR_EOL :?= [ "lf" ]
 ; Default to verbose strings
 TALI_OPTION_TERSE :?= 0
 
+; Default to ctrl-n/p accept history
+TALI_OPTION_HISTORY :?= 1
+
 ; Label used to calculate UNUSED. Silly for Tali Forth, where we assume
 ; 32 KiB RAM and 32 KiB ROM, but kept here to make the code more useful for
 ; other hardware configurations
