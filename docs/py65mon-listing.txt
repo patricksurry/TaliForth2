@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Wed Mar 13 07:11:42 2024
+; Sun Mar 17 07:28:26 2024
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -4537,7 +4537,7 @@
 >9dc2	00 00 00 00 00			    .byte   0,0,0,0,0       ; g,h,i,j,k
 >9dc7	0a				    .byte   10              ; l -> LF (ASCII value 10)
 >9dc8	8d				    .byte   13+128          ; m -> CR/LF pair (ASCII values 13, 10)
->9dc9	0a				    .byte   10              ; n -> newline, impl. dependant, using LF (ASCII values 10)
+>9dc9	0a				    .byte   10              ; n behaves like l --> lf
 >9dca	00 00				    .byte   0,0             ; o,p
 >9dcc	22				    .byte   34              ; q -> Double quote (ASCII value 34)
 >9dcd	0d				    .byte   13              ; r ->  CR (ASCII value 13)

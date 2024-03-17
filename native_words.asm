@@ -8588,7 +8588,7 @@ z_set_order:    rts
 xt_s_quote:
                 ; tmp2 will be used to determine if we are handling
                 ; escaped characters or not.  In this case, we are
-                ; not, so set it to zero.
+                ; not, so set it to zero.  (cf S_BACKSLASH_QUOTE)
                 stz tmp2
                 stz tmp2+1
 
@@ -8744,8 +8744,16 @@ _esc_tr_table:
     .byte   0,0,0,0,0       ; g,h,i,j,k
     .byte   10              ; l -> LF (ASCII value 10)
     .byte   13+128          ; m -> CR/LF pair (ASCII values 13, 10)
-    ; should this respect TALI_OPTION_CR_EOL ?
-    .byte   10              ; n -> newline, impl. dependant, using LF (ASCII values 10)
+    ; n has configurable behavior which we hard-code in the table
+.if "cr" in TALI_OPTION_CR_EOL
+.if "lf" in TALI_OPTION_CR_EOL
+    .byte   13+128          ; n behaves like m --> cr/lf
+.else
+    .byte   13              ; n behaves like r --> cr
+.endif
+.else
+    .byte   10              ; n behaves like l --> lf
+.endif
     .byte   0,0             ; o,p
     .byte   34              ; q -> Double quote (ASCII value 34)
     .byte   13              ; r ->  CR (ASCII value 13)
