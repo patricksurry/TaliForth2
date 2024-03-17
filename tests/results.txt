@@ -3349,7 +3349,7 @@ char w       ' digit?        cycle_test 2drop      CYCLES:     86 ok
 5 5          ' =             cycle_test drop       CYCLES:     64 ok
 here 5       ' erase         cycle_test            CYCLES:    326 ok
 here 5 5     ' fill          cycle_test            CYCLES:    314 ok
-s" 5"        ' evaluate      cycle_test drop       CYCLES:  17238 ok
+s" 5"        ' evaluate      cycle_test drop       CYCLES:  17237 ok
 5 ' drop     ' execute       cycle_test            CYCLES:     84 ok
 \ skipping     exit  ok
              ' false         cycle_test drop       CYCLES:     24 ok

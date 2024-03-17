@@ -4,11 +4,15 @@
         .enc "none"
 
 ; This illustrates a minimal configuration of TaliForth requiring a little under 12K of ROM.
-; The 16K image leaves $f000-$ffff is empty other than py65mon I/O andthe interrupt vectors.
-; Build and run like:
+; The 16K image leaves $f000-$ffff empty other than py65mon I/O and the interrupt vectors.
+; Build and run in the py65mon simulator like:
 
 ;       make taliforth-minimal.bin
 ;       py65mon -m 65c02 -r taliforth-py65mon.bin
+
+; If you want to customize this to run on your own hardware or simulator,
+; simply rewrite the kernel_getc and kernel_putc routines below so that they
+; respectively fetch a key and display a character within your environment.
 
 ; Where to start Tali Forth 2 in ROM (or RAM if loading it)
         * = $c000
@@ -108,12 +112,7 @@ padoffset = $ff              ; offset from CP to PAD (holds number strings)
 
 ; OPTIONAL WORDSETS
 
-; Tali Forth 2 is a bit of a beast, expecting about 24K of ROM space.
-; For some applications, the user might not need certain words and would
-; prefer to have the memory back instead.  Remove any of the items in
-; TALI_OPTIONAL_WORDS to remove the associated words when Tali is
-; assembled.  If TALI_OPTIONAL_WORDS is not defined in your platform file,
-; you will get all of the words.
+; For our minimal build, we'll drop all the optional words
 
 ; TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
 TALI_OPTIONAL_WORDS := [ ]
@@ -135,7 +134,6 @@ TALI_OPTIONAL_WORDS := [ ]
 ;     by also removing "editor" and "assembler"), and all new words will
 ;     be compiled into the FORTH wordlist. (~0.9K)
 
-
 ; TALI_OPTION_CR_EOL sets the character(s) that are printed by the word
 ; CR in order to move the cursor to the next line.  The default is "lf"
 ; for a line feed character (#10).  "cr" will use a carriage return (#13).
@@ -145,8 +143,15 @@ TALI_OPTIONAL_WORDS := [ ]
 
 TALI_OPTION_CR_EOL := [ "lf" ]
 ;TALI_OPTION_CR_EOL := [ "cr" ]
-;TALI_OPTION_CR_EOL := [ "cr" "lf" ]
+;TALI_OPTION_CR_EOL := [ "cr", "lf" ]
 
+; The history option enables editable input history buffers via ctrl-n/ctrl-p
+TALI_OPTION_HISTORY := 0
+;TALI_OPTION_HISTORY := 1
+
+; The terse option strips or shortens various strings to reduce the memory footprint
+;TALI_OPTION_TERSE := 0
+TALI_OPTION_TERSE := 1
 
 ; Make sure the above options are set BEFORE this include.
 
@@ -155,10 +160,9 @@ TALI_OPTION_CR_EOL := [ "lf" ]
 ; =====================================================================
 ; FINALLY
 
-; Of the 32 KiB we use, 24 KiB are reserved for Tali (from $8000 to $DFFF)
-; and the last eight (from $E000 to $FFFF) are left for whatever the user
-; wants to use them for.
-
+; We define a few kernel routines to manage I/O
+; The minimal config just sneaks under $f000 where the default py65mon IO lives
+; leaving almost 4K empty (from $f016 thru $fffa) for whatever you need
 
 ; Default kernel file for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
@@ -178,8 +182,6 @@ TALI_OPTION_CR_EOL := [ "lf" ]
 ;
 ; This default version Tali ships with is written for the py65mon machine
 ; monitor (see docs/MANUAL.md for details).
-
-; The minimal config just sneaks under $f000 where the default py65mon IO lives
 
 ; All vectors currently end up in the same place - we restart the system
 ; hard. If you want to use them on actual hardware, you'll have to redirect
@@ -240,6 +242,7 @@ platform_bye:
 s_kernel_id:
         .text "Tali Forth 2", AscLF, 0
 
+.cwarn * > $f000, "ROM image overlaps default py65mon IO locations"
 
 ; Add the interrupt vectors
 * = $fffa

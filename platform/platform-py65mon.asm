@@ -139,6 +139,13 @@ TALI_OPTION_CR_EOL := [ "lf" ]
 ;TALI_OPTION_CR_EOL := [ "cr" ]
 ;TALI_OPTION_CR_EOL := [ "cr" "lf" ]
 
+; The history option enables editable input history buffers via ctrl-n/ctrl-p
+;TALI_OPTION_HISTORY := 0
+TALI_OPTION_HISTORY := 1
+
+; The terse option strips or shortens various strings to reduce the memory footprint
+TALI_OPTION_TERSE := 0
+;TALI_OPTION_TERSE := 1
 
 ; Make sure the above options are set BEFORE this include.
 

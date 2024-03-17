@@ -490,8 +490,9 @@ _disasm_jsr_soc:
 _disasm_jsr_unknown:
                 jsr xt_two_drop
                 rts
+.endif
 
-
+.if "disassembler" in TALI_OPTIONAL_WORDS || "assembler" in TALI_OPTIONAL_WORDS
 ; =========================================================
 oc_index_table:
         ; Lookup table for the instruction data (length of instruction in

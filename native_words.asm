@@ -95,6 +95,7 @@ _load_user_vars_loop:
 
                 jsr xt_evaluate
 
+.if TALI_OPTION_HISTORY
                 ; Initialize all of the history buffers by putting a zero in
                 ; each length byte.
                 stz hist_buff
@@ -105,7 +106,7 @@ _load_user_vars_loop:
                 stz hist_buff+$280
                 stz hist_buff+$300
                 stz hist_buff+$380
-
+.endif
                 ; fall through to ABORT
 
 
@@ -401,12 +402,13 @@ accept_loop:
                 cmp #AscDEL     ; (CTRL-h)
                 beq _backspace
 
+.if TALI_OPTION_HISTORY
                 ; Check for CTRL-p and CTRL-n to recall input history
                 cmp #AscCP
                 beq _ctrl_p
                 cmp #AscCN
                 beq _ctrl_n
-
+.endif
                 ; That's enough for now. Save and echo character.
                 sta (tmp1),y
                 iny
@@ -448,6 +450,7 @@ _backspace:
 
                 bra accept_loop
 
+.if TALI_OPTION_HISTORY
 _ctrl_p:
                 ; CTRL-p was pressed. Recall the previous input buffer.
 
@@ -590,9 +593,14 @@ _save_history_loop:
                 bra _save_history_loop
 
 _save_history_done:
+.else
+accept_done:            ; nothing to do if we're not saving history
+.endif
+
 z_accept:
                 rts
 
+.if TALI_OPTION_HISTORY
 accept_total_recall:
         ; """Internal subroutine for ACCEPT that recalls history entry"""
 
@@ -630,7 +638,7 @@ accept_total_recall:
                 lda #$7F
 +
                 rts
-
+.endif
 
 
 ; ## ACTION_OF ( "name" -- xt ) "Get named deferred word's xt"
@@ -8378,7 +8386,6 @@ z_search_wordlist:
 .endif
 
 
-.if "disassembler" in TALI_OPTIONAL_WORDS
 ; ## SEE ( "name" -- ) "Print information about a Forth word"
 ; ## "see" tested  ANS tools
         ; """https://forth-standard.org/standard/tools/SEE
@@ -8470,16 +8477,18 @@ _flag_loop:
                 jsr xt_cr
 
                 ; Dump hex and disassemble
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 jsr xt_two_dup          ; ( xt u xt u )
+.endif
                 jsr xt_dump
                 jsr xt_cr
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 jsr xt_disasm
-
+.endif
                 pla
                 sta base
 
 z_see:          rts
-.endif
 
 
 .if "wordlist" in TALI_OPTIONAL_WORDS

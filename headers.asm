@@ -1434,12 +1434,10 @@ nt_forth:
 +
 .endif
 
-.if "disassembler" in TALI_OPTIONAL_WORDS
 nt_see: .byte 3, NN
         .word +, xt_see, z_see
         .text "see"
 +
-.endif
 
 .if "ed" in TALI_OPTIONAL_WORDS
 nt_ed:                  ; ed6502
