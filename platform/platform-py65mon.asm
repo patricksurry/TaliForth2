@@ -119,8 +119,11 @@ TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "a
 ;     for ANS-2012, it uses a lot of strings and therefore takes up a lot
 ;     of memory. (~0.2K)
 ; "assembler" is an assembler. (~3.2K)
-;     The ASSEMBLER-WORDLIST will also be removed.
-; "diassembler" removes the words DISASM and SEE
+;     The ASSEMBLER-WORDLIST will also be removed if the assembler is removed.
+; "disassembler" is the disassembler word DISASM. (~0.6K)
+;     If both the assembler and dissasembler are removed, the tables
+;     (used for both assembling and disassembling) will be removed
+;     for additional memory savings. (extra ~1.6K)
 ; "wordlist" is for the optional SEARCH-ORDER words (eg. wordlists)
 ;     Note: Without "wordlist", you will not be able to use any words from
 ;     the EDITOR or ASSEMBLER wordlists (they should probably be disabled
@@ -140,10 +143,12 @@ TALI_OPTION_CR_EOL := [ "lf" ]
 ;TALI_OPTION_CR_EOL := [ "cr" "lf" ]
 
 ; The history option enables editable input history buffers via ctrl-n/ctrl-p
+; These buffers are disabled when set to 0 (~0.2K Tali, 1K RAM)
 ;TALI_OPTION_HISTORY := 0
 TALI_OPTION_HISTORY := 1
 
-; The terse option strips or shortens various strings to reduce the memory footprint
+; The terse option strips or shortens various strings to reduce the memory
+; footprint when set to 1 (~0.5K)
 TALI_OPTION_TERSE := 0
 ;TALI_OPTION_TERSE := 1
 
