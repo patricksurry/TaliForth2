@@ -5,6 +5,7 @@
 
 ; modified to move py65mon getc/putc below forth at c001/c004, try:
 ;       py65mon -m 65c02 -r taliforth-py65mon.bin -i c004 -o c001
+
 ; or interactively
 ;       py65mon -m 65c02 -i c004 -o c001
 ;       . al f7b4 forth
@@ -14,7 +15,7 @@
 ;       > $7000 6 evaluate
 ;       > bye
 
-        ; Where to start Tali Forth 2 in ROM (or RAM if loading it)
+; Where to start Tali Forth 2 in ROM (or RAM if loading it)
         * = $c100
 
 ; I/O facilities are handled in these separate kernel files because of their
@@ -32,7 +33,7 @@
 
 
 ;    $0000  +-------------------+  ram_start, zpage, user0
-;           |  Tali zp vars     |
+;           |   Tali zp vars    |
 ;           +-------------------+
 ;           |                   |
 ;           |                   |
@@ -40,10 +41,11 @@
 ;           |                   |
 ;           |  ^  Data Stack    |
 ;           |  |                |
-;    $007F  +-------------------+  dsp0, stack
+;    $0078  +-------------------+  dsp0, stack
+;           |    flood plain    |
+;    $007F  +-------------------+
 ;           |                   |
-;           |   (Reserved for   |
-;           |      kernel)      |
+;           |   (free space)    |
 ;           |                   |
 ;    $0100  +-------------------+
 ;           |                   |
@@ -51,37 +53,24 @@
 ;           |  |                |
 ;    $0200  +-------------------+  rsp0, buffer, buffer0
 ;           |    Input Buffer   |
-;    $0300  +-------------------+  cp0
+;    $0300  +-------------------+
 ;           | Native forth vars |
 ;    $0400  +-------------------+
 ;           |  1K block buffer  |
-;           |                   |
-;    $0800  +-------------------+  initial cp
+;    $0800  +-------------------+  cp0
 ;           |  |                |
 ;           |  v  Dictionary    |
 ;           |       (RAM)       |
 ;           |                   |
 ;   (...)   ~~~~~~~~~~~~~~~~~~~~~  <-- cp aka HERE
 ;           |                   |
-;           |    free space     |
 ;           |                   |
-;    $52xx  +-------------------+
-;           |    advent.dat     |
-;    $BC00  +-------------------+  hist_buff, cp_end
-;           |   Input History   |
-;           |    for ACCEPT     |
-;           |  8x128B buffers   |
-;    $C000  +-------------------+  ^ ram_end
-;           |        I/O        +
-;    $C100  +-------------------|
 ;           |                   |
-;           |    TaliForth      |
-;           |                   |  $f7f2
-;    $F800  +-------------------|
-;           |     helpers       |
-;    $FFFA  +-------------------|
-;           |     vectors       |
-;    $FFFF  +-------------------|
+;           |                   |
+;           |                   |
+;           |                   |
+;    $bfff  +-------------------+  cp_end, ram_end
+
 
 ; HARD PHYSICAL ADDRESSES
 
@@ -101,10 +90,11 @@ hist_buff = ram_end-$03ff  ; begin of history buffers
 ; SOFT PHYSICAL ADDRESSES
 
 ; Tali currently doesn't have separate user variables for multitasking. To
-; prepare for this, though, we've already named the location of the user
-; variables user0. Note cp0 starts one byte further down so that it currently
-; has the address $300 and not $2FF. This avoids crossing the page boundry when
-; accessing the user table, which would cost an extra cycle.
+; prepare for this, though, we've already named the location of the user's
+; Zero-Page System Variables user0. Note cp0 starts one byte further down so
+; that it currently has the address $300 and not $2FF. This avoids crossing
+; the page boundry when accessing the RAM System Variables table, which would
+; cost an extra cycle.
 
 user0     = zpage            ; user and system variables
 rsp0      = $ff              ; initial Return Stack Pointer (65c02 stack)
@@ -117,12 +107,7 @@ padoffset = $ff              ; offset from CP to PAD (holds number strings)
 
 ; OPTIONAL WORDSETS
 
-; Tali Forth 2 is a bit of a beast, expecting about 24K of ROM space.
-; For some applications, the user might not need certain words and would
-; prefer to have the memory back instead.  Remove any of the items in
-; TALI_OPTIONAL_WORDS to remove the associated words when Tali is
-; assembled.  If TALI_OPTIONAL_WORDS is not defined in your platform file,
-; you will get all of the words.
+; For our minimal build, we'll drop all the optional words
 
 ; TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
 TALI_OPTIONAL_WORDS := [ "adventure" ]
@@ -137,6 +122,10 @@ TALI_OPTIONAL_WORDS := [ "adventure" ]
 ;     of memory. (~0.2K)
 ; "assembler" is an assembler. (~3.2K)
 ;     The ASSEMBLER-WORDLIST will also be removed.
+; "disassembler" is the disassembler word DISASM. (~0.6K)
+;     If both the assembler and dissasembler are removed, the tables
+;     (used for both assembling and disassembling) will be removed
+;     for additional memory savings. (extra ~1.6K)
 ; "wordlist" is for the optional SEARCH-ORDER words (eg. wordlists)
 ;     Note: Without "wordlist", you will not be able to use any words from
 ;     the EDITOR or ASSEMBLER wordlists (they should probably be disabled
@@ -155,6 +144,15 @@ TALI_OPTION_CR_EOL := [ "lf" ]
 ;TALI_OPTION_CR_EOL := [ "cr" ]
 ;TALI_OPTION_CR_EOL := [ "cr" "lf" ]
 
+; The history option enables editable input history buffers via ctrl-n/ctrl-p
+; These buffers are disabled when set to 0 (~0.2K Tali, 1K RAM)
+TALI_OPTION_HISTORY := 0
+;TALI_OPTION_HISTORY := 1
+
+; The terse option strips or shortens various strings to reduce the memory
+; footprint when set to 1 (~0.5K)
+;TALI_OPTION_TERSE := 0
+TALI_OPTION_TERSE := 1
 
 ; Make sure the above options are set BEFORE this include.
 
