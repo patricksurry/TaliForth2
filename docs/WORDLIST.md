@@ -7,9 +7,9 @@ RTS instruction at the end of each word.
 
 | NAME | FORTH WORD | SOURCE | BYTES | STATUS |
 | :--- | :--------- | :---   | ----: | :----  |
-| COLD | `cold` | Tali Forth | 180 | tested |
-| ABORT | `abort` | ANS core | 68 | tested |
-| QUIT | `quit` | ANS core | 66 | tested |
+| COLD | `cold` | Tali Forth | 173 | tested |
+| ABORT | `abort` | ANS core | 77 | tested |
+| QUIT | `quit` | ANS core | 75 | tested |
 | ABORT_QUOTE | `abort"` | ANS core | 10 | tested |
 | ABS | `abs` | ANS core | 20 | **auto** |
 | ACCEPT | `accept` | ANS core | 248 | **auto** |
@@ -24,7 +24,7 @@ RTS instruction at the end of each word.
 | AND | `and` | ANS core | 17 | **auto** |
 | ASSEMBLER_WORDLIST | `assembler-wordlist` | Tali Assembler | 8 | tested |
 | AT_XY | `at-xy` | ANS facility | 45 | tested |
-| BACKSLASH | `\` | ANS core ext | 8 | **auto** |
+| BACKSLASH | `\` | ANS block ext | 42 | **auto** |
 | BASE | `base` | ANS core | 8 | **auto** |
 | BEGIN | `begin` | ANS core | 3 | **auto** |
 | BELL | `bell` | Tali Forth | 5 | tested |
@@ -203,7 +203,7 @@ RTS instruction at the end of each word.
 | SEE | `see` | ANS tools | 141 | tested |
 | SET_CURRENT | `set-current` | ANS search | 11 | **auto** |
 | SET_ORDER | `set-order` | ANS search | 51 | **auto** |
-| S_QUOTE | `s"` | ANS core | 348 | **auto** |
+| S_QUOTE | `s"` | ANS core | 301 | **auto** |
 | S_TO_D | `s>d` | ANS core | 17 | **auto** |
 | SAVE_BUFFERS | `save-buffers` | ANS block | 26 | tested |
 | SCR | `scr` | ANS block ext | 15 | **auto** |

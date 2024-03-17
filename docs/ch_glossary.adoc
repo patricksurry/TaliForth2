@@ -248,8 +248,8 @@ https://forth-standard.org/standard/core/BracketCHAR
 Compile the ASCII value of a character as a literal. This is an
 immediate, compile-only word.
 
-`\`:: _ANS core ext_ ( -- ) "Ignore rest of line"
-https://forth-standard.org/standard/core/bs
+`\`:: _ANS block ext_ ( -- ) "Ignore rest of line"
+https://forth-standard.org/standard/block/bs
 
 `]`:: _ANS core_ ( -- ) "Enter the compile state"
 https://forth-standard.org/standard/right-bracket

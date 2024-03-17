@@ -133,7 +133,7 @@ TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "a
 
 TALI_OPTION_CR_EOL := [ "lf" ]
 ;TALI_OPTION_CR_EOL := [ "cr" ]
-;TALI_OPTION_CR_EOL := [ "cr" "lf" ]
+;TALI_OPTION_CR_EOL := [ "cr", "lf" ]
 
 
 ; Make sure the above options are set BEFORE this include.
