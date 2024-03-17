@@ -1109,6 +1109,7 @@ nt_dot_s:
         .word +, xt_dot_s, z_dot_s
         .text ".s"
 +
+
 .if "disassembler" in TALI_OPTIONAL_WORDS
 nt_disasm:
         .byte 6, UF
@@ -1116,6 +1117,7 @@ nt_disasm:
         .text "disasm"
 +
 .endif
+
 nt_compare:
         .byte 7, UF
         .word nt_search, xt_compare, z_compare

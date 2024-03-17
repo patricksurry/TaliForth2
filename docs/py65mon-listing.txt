@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.57.2900 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Sun Mar 17 15:54:49 2024
+; Sun Mar 17 17:03:38 2024
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -20,8 +20,10 @@
 =768					cp0       = buffer0+bsize+1  ; Dictionary starts after last buffer
 =31744					cp_end    = hist_buff        ; Last RAM byte available for code
 =$ff					padoffset = $ff              ; offset from CP to PAD (holds number strings)
-=					TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "wordlist" ]
+=					TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
 =["lf"]					TALI_OPTION_CR_EOL := [ "lf" ]
+=1					TALI_OPTION_HISTORY := 1
+=0					TALI_OPTION_TERSE := 0
 
 ;******  Processing file: platform/../taliforth.asm
 
@@ -172,21 +174,21 @@
 .808b	b5 00		lda $00,x	                lda 0,x
 .808d	d0 05		bne $8094	                bne _success
 .808f	a9 06		lda #$06	                lda #err_refill
-.8091	4c 37 d8	jmp $d837	                jmp error
+.8091	4c 11 d8	jmp $d811	                jmp error
 .8094					_success:
 .8094	e8		inx		                inx                     ; drop
 .8095	e8		inx		                inx
-.8096	20 89 d7	jsr $d789	                jsr interpret
+.8096	20 63 d7	jsr $d763	                jsr interpret
 .8099	e0 78		cpx #$78	                cpx #dsp0
 .809b	f0 05		beq $80a2	                beq _stack_ok
 .809d	90 03		bcc $80a2	                bcc _stack_ok           ; DSP must always be smaller than DSP0
-.809f	4c 35 d8	jmp $d835	                jmp underflow_error
+.809f	4c 0f d8	jmp $d80f	                jmp underflow_error
 .80a2					_stack_ok:
 .80a2	a5 16		lda $16		                lda state
 .80a4	f0 02		beq $80a8	                beq _print
 .80a6	a9 01		lda #$01	                lda #1                  ; number for "compile" string
 .80a8					_print:
-.80a8	20 88 d8	jsr $d888	                jsr print_string
+.80a8	20 62 d8	jsr $d862	                jsr print_string
 .80ab	80 cf		bra $807c	                bra _get_line
 .80ad					z_cold:
 .80ad					z_abort:
@@ -235,7 +237,7 @@
 .8103	20 5b 9d	jsr $9d5b	                jsr xt_s_quote          ; S"
 .8106	a0 81		ldy #$81	                ldy #>abort_quote_runtime
 .8108	a9 0e		lda #$0e	                lda #<abort_quote_runtime
-.810a	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine     ; may not be JMP as JSR/RTS
+.810a	20 9e d6	jsr $d69e	                jsr cmpl_subroutine     ; may not be JMP as JSR/RTS
 .810d	60		rts		z_abort_quote:  rts
 .810e					abort_quote_runtime:
 .810e	b5 04		lda $04,x	                lda 4,x
@@ -251,7 +253,7 @@
 .8121	aa		tax		                tax
 .8122	60		rts		                rts
 .8123					xt_abs:
-.8123	20 21 d8	jsr $d821	                jsr underflow_1
+.8123	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8126	b5 01		lda $01,x	                lda 1,x
 .8128	10 0d		bpl $8137	                bpl _done       ; positive number, easy money!
 .812a	38		sec		                sec
@@ -264,7 +266,7 @@
 .8137					_done:
 .8137	60		rts		z_abs:          rts
 .8138					xt_accept:
-.8138	20 26 d8	jsr $d826	                jsr underflow_2
+.8138	20 00 d8	jsr $d800	                jsr underflow_2
 .813b	b5 00		lda $00,x	                lda 0,x
 .813d	15 01		ora $01,x	                ora 1,x
 .813f	d0 09		bne $814a	                bne _not_zero
@@ -442,7 +444,7 @@
 .8260	20 aa 85	jsr $85aa	                jsr xt_bracket_tick
 .8263	a0 8a		ldy #$8a	                ldy #>xt_defer_fetch
 .8265	a9 eb		lda #$eb	                lda #<xt_defer_fetch
-.8267	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.8267	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .826a	80 06		bra $8272	                bra _done
 .826c					_interpreting:
 .826c	20 ee a1	jsr $a1ee	                jsr xt_tick
@@ -450,7 +452,7 @@
 .8272					_done:
 .8272	60		rts		z_action_of:           rts
 .8273					xt_again:
-.8273	20 21 d8	jsr $d821	                jsr underflow_1
+.8273	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8276	a0 00		ldy #$00	                ldy #0
 .8278	a9 4c		lda #$4c	                lda #$4C        ; JMP
 .827a	91 00		sta ($00),y	                sta (cp),y
@@ -476,7 +478,7 @@
 .8294					z_align:
 .8294	60		rts		z_aligned:      rts             ; stripped out during native compile
 .8295					xt_allot:
-.8295	20 21 d8	jsr $d821	                jsr underflow_1
+.8295	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8298	b5 01		lda $01,x	                lda 1,x
 .829a	30 22		bmi $82be	                bmi _release
 .829c	18		clc		                clc
@@ -495,7 +497,7 @@
 .82b5	a9 7c		lda #$7c	                lda #>cp_end
 .82b7	85 01		sta $01		                sta cp+1
 .82b9	a9 00		lda #$00	                lda #err_allot
-.82bb	4c 37 d8	jmp $d837	                jmp error
+.82bb	4c 11 d8	jmp $d811	                jmp error
 .82be					_release:
 .82be	ca		dex		                dex
 .82bf	ca		dex		                dex
@@ -510,7 +512,7 @@
 .82cf	95 00		sta $00,x	                sta 0,x
 .82d1	a9 03		lda #$03	                lda #>cp0
 .82d3	95 01		sta $01,x	                sta 1,x                         ; CP0 is TOS
-.82d5	20 48 d7	jsr $d748	                jsr compare_16bit               ; still ( CP CP0 )
+.82d5	20 22 d7	jsr $d722	                jsr compare_16bit               ; still ( CP CP0 )
 .82d8	f0 17		beq $82f1	                beq _nega_done
 .82da	30 15		bmi $82f1	                bmi _nega_done
 .82dc	a9 00		lda #$00	                lda #<cp0
@@ -522,7 +524,7 @@
 .82e8	a9 bc		lda #$bc	                lda #>dictionary_start
 .82ea	85 03		sta $03		                sta dp+1
 .82ec	a9 0a		lda #$0a	                lda #err_negallot
-.82ee	4c 37 d8	jmp $d837	                jmp error
+.82ee	4c 11 d8	jmp $d811	                jmp error
 .82f1					_nega_done:
 .82f1	b5 02		lda $02,x	                lda 2,x
 .82f3	85 00		sta $00		                sta cp
@@ -536,7 +538,7 @@
 .82fd					z_allot:
 .82fd	60		rts		                rts
 .82fe					xt_allow_native:
-.82fe	20 63 d7	jsr $d763	                jsr current_to_dp
+.82fe	20 3d d7	jsr $d73d	                jsr current_to_dp
 .8301	a0 01		ldy #$01	                ldy #1          ; offset for status byte
 .8303	b1 02		lda ($02),y	                lda (dp),y
 .8305	29 f5		and #$f5	                and #$ff-NN-AN  ; AN and NN flag is clear.
@@ -551,7 +553,7 @@
 .8316	20 27 9d	jsr $9d27	                jsr xt_set_order
 .8319	60		rts		z_also:         rts
 .831a					xt_always_native:
-.831a	20 63 d7	jsr $d763	                jsr current_to_dp
+.831a	20 3d d7	jsr $d73d	                jsr current_to_dp
 .831d	a0 01		ldy #$01	                ldy #1          ; offset for status byte
 .831f	b1 02		lda ($02),y	                lda (dp),y
 .8321	09 02		ora #$02	                ora #AN         ; Make sure AN flag is set
@@ -560,7 +562,7 @@
 .8327					z_always_native:
 .8327	60		rts		                rts
 .8328					xt_and:
-.8328	20 26 d8	jsr $d826	                jsr underflow_2
+.8328	20 00 d8	jsr $d800	                jsr underflow_2
 .832b	b5 00		lda $00,x	                lda 0,x
 .832d	35 02		and $02,x	                and 2,x
 .832f	95 02		sta $02,x	                sta 2,x
@@ -571,7 +573,7 @@
 .8338	e8		inx		                inx
 .8339	60		rts		z_and:          rts
 .833a					xt_at_xy:
-.833a	20 26 d8	jsr $d826	                jsr underflow_2
+.833a	20 00 d8	jsr $d800	                jsr underflow_2
 .833d	a5 18		lda $18		                lda base
 .833f	48		pha		                pha
 .8340	a9 0a		lda #$0a	                lda #10
@@ -581,11 +583,11 @@
 .8349	a9 5b		lda #$5b	                lda #$5B        ; ASCII for "["
 .834b	20 02 8e	jsr $8e02	                jsr emit_a
 .834e	20 29 98	jsr $9829	                jsr xt_one_plus ; AT-XY is zero based, but ANSI is 1 based
-.8351	20 8e d8	jsr $d88e	                jsr print_u
+.8351	20 68 d8	jsr $d868	                jsr print_u
 .8354	a9 3b		lda #$3b	                lda #$3B        ; ASCII for ";"
 .8356	20 02 8e	jsr $8e02	                jsr emit_a
 .8359	20 29 98	jsr $9829	                jsr xt_one_plus ; AT-XY is zero based, but ANSI is 1 based
-.835c	20 8e d8	jsr $d88e	                jsr print_u
+.835c	20 68 d8	jsr $d868	                jsr print_u
 .835f	a9 48		lda #$48	                lda #'H'
 .8361	20 02 8e	jsr $8e02	                jsr emit_a
 .8364	68		pla		                pla
@@ -704,7 +706,7 @@
 .841d	95 01		sta $01,x	                sta 1,x
 .841f	60		rts		z_block:        rts
 .8420					xt_block_ramdrive_init:
-.8420	20 21 d8	jsr $d821	                jsr underflow_1
+.8420	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8423	4c 3e 85	jmp $853e	                jmp _after_ramdrive_code
 .8426					_ramdrive_code:
 >8426	62 61 73 65 20 40 20 73		        .text "base @ swap decimal"
@@ -763,7 +765,7 @@
 .8566	60		rts		                rts
 .8567					xt_block_word_error:
 .8567	a9 0c		lda #$0c	                lda #err_blockwords
-.8569	4c 37 d8	jmp $d837	                jmp error       ; no RTS needed
+.8569	4c 11 d8	jmp $d811	                jmp error       ; no RTS needed
 .856c					z_block_word_error:
 .856c					xt_block_write:
 .856c	a0 30		ldy #$30	                ldy #blockwrite_offset
@@ -787,7 +789,7 @@
 .8589					z_block_write_vector:
 .8589	60		rts		                rts
 .858a					xt_bounds:
-.858a	20 26 d8	jsr $d826	                jsr underflow_2
+.858a	20 00 d8	jsr $d800	                jsr underflow_2
 .858d	18		clc		                clc
 .858e	b5 00		lda $00,x	                lda 0,x                 ; LSB u
 .8590	b4 02		ldy $02,x	                ldy 2,x                 ; LSB addr
@@ -865,20 +867,20 @@
 .8609	4c 2b f0	jmp $f02b	                jmp platform_bye
 .860c					z_bye:
 .860c					xt_c_comma:
-.860c	20 21 d8	jsr $d821	                jsr underflow_1
+.860c	20 fb d7	jsr $d7fb	                jsr underflow_1
 .860f	b5 00		lda $00,x	                lda 0,x
-.8611	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.8611	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .8614	e8		inx		                inx
 .8615	e8		inx		                inx
 .8616	60		rts		z_c_comma:      rts
 .8617					xt_c_fetch:
-.8617	20 21 d8	jsr $d821	                jsr underflow_1
+.8617	20 fb d7	jsr $d7fb	                jsr underflow_1
 .861a	a1 00		lda ($00,x)	                lda (0,x)
 .861c	95 00		sta $00,x	                sta 0,x
 .861e	74 01		stz $01,x	                stz 1,x         ; Ignore LSB
 .8620	60		rts		z_c_fetch:      rts
 .8621					xt_c_store:
-.8621	20 26 d8	jsr $d826	                jsr underflow_2
+.8621	20 00 d8	jsr $d800	                jsr underflow_2
 .8624	b5 02		lda $02,x	                lda 2,x
 .8626	81 00		sta ($00,x)	                sta (0,x)
 .8628	e8		inx		                inx
@@ -887,7 +889,7 @@
 .862b	e8		inx		                inx
 .862c	60		rts		z_c_store:      rts
 .862d					xt_cell_plus:
-.862d	20 21 d8	jsr $d821	                jsr underflow_1
+.862d	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8630	f6 00		inc $00,x	                inc 0,x
 .8632	d0 02		bne $8636	                bne +
 .8634	f6 01		inc $01,x	                inc 1,x
@@ -903,7 +905,7 @@
 .8642	15 01		ora $01,x	                ora 1,x
 .8644	d0 05		bne $864b	                bne _not_empty
 .8646	a9 05		lda #$05	                lda #err_noname
-.8648	4c 37 d8	jmp $d837	                jmp error
+.8648	4c 11 d8	jmp $d811	                jmp error
 .864b					_not_empty:
 .864b	e8		inx		                inx             ; drop number of characters, leave addr
 .864c	e8		inx		                inx
@@ -912,10 +914,10 @@
 .8651	74 01		stz $01,x	                stz 1,x         ; MSB is always zero
 .8653	60		rts		z_char:         rts
 .8654					xt_chars:
-.8654	20 21 d8	jsr $d821	                jsr underflow_1
+.8654	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8657	60		rts		z_chars:        rts
 .8658					xt_cleave:
-.8658	20 26 d8	jsr $d826	                jsr underflow_2
+.8658	20 00 d8	jsr $d800	                jsr underflow_2
 .865b	20 6f 95	jsr $956f	                jsr xt_minus_leading    ; -LEADING ( addr u )
 .865e	20 6e 92	jsr $926e	                jsr xt_input_to_r       ; save old imput state
 .8661	b5 00		lda $00,x	                lda 0,x         ; u is new ciblen
@@ -953,7 +955,7 @@
 .86a1	20 af 9a	jsr $9aaf	                jsr xt_r_to_input
 .86a4	60		rts		z_cleave:       rts
 .86a5					xt_cmove:
-.86a5	20 2b d8	jsr $d82b	                jsr underflow_3
+.86a5	20 05 d8	jsr $d805	                jsr underflow_3
 .86a8	b5 02		lda $02,x	                lda 2,x
 .86aa	85 26		sta $26		                sta tmp2        ; use tmp2 because easier to remember
 .86ac	b5 03		lda $03,x	                lda 3,x
@@ -990,7 +992,7 @@
 .86de	aa		tax		                tax
 .86df	60		rts		z_cmove:        rts
 .86e0					xt_cmove_up:
-.86e0	20 2b d8	jsr $d82b	                jsr underflow_3
+.86e0	20 05 d8	jsr $d805	                jsr underflow_3
 .86e3	b5 02		lda $02,x	                lda 2,x
 .86e5	85 26		sta $26		                sta tmp2        ; use tmp2 because easier to remember
 .86e7	b5 03		lda $03,x	                lda 3,x
@@ -1033,13 +1035,13 @@
 .871d	05 17		ora $17		                ora state+1
 .871f	f0 05		beq $8726	                beq +
 .8721	a9 07		lda #$07	                lda #err_state
-.8723	4c 37 d8	jmp $d837	                jmp error
+.8723	4c 11 d8	jmp $d811	                jmp error
 .8726					+
 .8726	c6 16		dec $16		                dec state
 .8728	c6 17		dec $17		                dec state+1
 .872a	a9 40		lda #$40	                lda #%01000000
 .872c	04 20		tsb $20		                tsb status
-.872e	20 63 d7	jsr $d763	                jsr current_to_dp
+.872e	20 3d d7	jsr $d73d	                jsr current_to_dp
 .8731	a5 03		lda $03		                lda dp+1            ; CREATE uses a lot of variables
 .8733	48		pha		                pha
 .8734	a5 02		lda $02		                lda dp
@@ -1047,7 +1049,7 @@
 .8737	a9 80		lda #$80	                lda #%10000000
 .8739	04 20		tsb $20		                tsb status
 .873b	20 75 89	jsr $8975	                jsr xt_create
-.873e	20 63 d7	jsr $d763	                jsr current_to_dp   ; This might be able to be omitted
+.873e	20 3d d7	jsr $d73d	                jsr current_to_dp   ; This might be able to be omitted
 .8741	a5 02		lda $02		                lda dp
 .8743	85 04		sta $04		                sta workword
 .8745	a5 03		lda $03		                lda dp+1
@@ -1056,7 +1058,7 @@
 .874a	85 02		sta $02		                sta dp
 .874c	68		pla		                pla
 .874d	85 03		sta $03		                sta dp+1
-.874f	20 76 d7	jsr $d776	                jsr dp_to_current
+.874f	20 50 d7	jsr $d750	                jsr dp_to_current
 .8752	a5 00		lda $00		                lda cp
 .8754	38		sec		                sec
 .8755	e9 03		sbc #$03	                sbc #3
@@ -1070,7 +1072,7 @@
 .8760	05 17		ora $17		                ora state+1
 .8762	f0 05		beq $8769	                beq +
 .8764	a9 07		lda #$07	                lda #err_state
-.8766	4c 37 d8	jmp $d837	                jmp error
+.8766	4c 11 d8	jmp $d811	                jmp error
 .8769					+
 .8769	c6 16		dec $16		                dec state
 .876b	c6 17		dec $17		                dec state+1
@@ -1083,7 +1085,7 @@
 .8779					_done:
 .8779	60		rts		z_colon_noname:        rts
 .877a					xt_comma:
-.877a	20 21 d8	jsr $d821	                jsr underflow_1
+.877a	20 fb d7	jsr $d7fb	                jsr underflow_1
 .877d	b5 00		lda $00,x	                lda 0,x
 .877f	92 00		sta ($00)	                sta (cp)
 .8781	e6 00		inc $00		                inc cp
@@ -1100,7 +1102,7 @@
 .8792	e8		inx		                inx
 .8793	60		rts		z_comma:        rts
 .8794					xt_compare:
-.8794	20 30 d8	jsr $d830	                jsr underflow_4
+.8794	20 0a d8	jsr $d80a	                jsr underflow_4
 .8797	b5 02		lda $02,x	                lda 2,x
 .8799	85 26		sta $26		                sta tmp2
 .879b	b5 03		lda $03,x	                lda 3,x
@@ -1165,7 +1167,7 @@
 .87f7	aa		tax		                tax
 .87f8	60		rts		z_compare:      rts
 .87f9					xt_compile_comma:
-.87f9	20 21 d8	jsr $d821	                jsr underflow_1
+.87f9	20 fb d7	jsr $d7fb	                jsr underflow_1
 .87fc	b5 01		lda $01,x	                lda 1,x                 ; MSB
 .87fe	48		pha		                pha
 .87ff	b5 00		lda $00,x	                lda 0,x
@@ -1329,7 +1331,7 @@
 .8910					z_compile_comma:
 .8910	60		rts		                rts
 .8911					xt_compile_only:
-.8911	20 63 d7	jsr $d763	                jsr current_to_dp
+.8911	20 3d d7	jsr $d73d	                jsr current_to_dp
 .8914	a0 01		ldy #$01	                ldy #1          ; offset for status byte
 .8916	b1 02		lda ($02),y	                lda (dp),y
 .8918	09 01		ora #$01	                ora #CO        ; make sure bit 7 is set
@@ -1337,7 +1339,7 @@
 .891c	60		rts		z_compile_only: rts
 .891d					xt_value:
 .891d					xt_constant:
-.891d	20 21 d8	jsr $d821	                jsr underflow_1
+.891d	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8920	20 75 89	jsr $8975	                jsr xt_create
 .8923	38		sec		                sec
 .8924	a5 00		lda $00		                lda cp
@@ -1346,7 +1348,7 @@
 .892a	a5 01		lda $01		                lda cp+1
 .892c	e9 00		sbc #$00	                sbc #0
 .892e	85 25		sta $25		                sta tmp1+1
-.8930	a9 dd		lda #$dd	                lda #<doconst           ; LSB of DOCONST
+.8930	a9 b7		lda #$b7	                lda #<doconst           ; LSB of DOCONST
 .8932	92 24		sta ($24)	                sta (tmp1)
 .8934	a0 01		ldy #$01	                ldy #1
 .8936	a9 d6		lda #$d6	                lda #>doconst           ; MSB of DOCONST
@@ -1372,7 +1374,7 @@
 .895a					z_value:
 .895a	60		rts		z_constant:     rts
 .895b					xt_count:
-.895b	20 21 d8	jsr $d821	                jsr underflow_1
+.895b	20 fb d7	jsr $d7fb	                jsr underflow_1
 .895e	a1 00		lda ($00,x)	                lda (0,x)       ; Get number of characters (255 max)
 .8960	a8		tay		                tay
 .8961	f6 00		inc $00,x	                inc 0,x         ; LSB
@@ -1394,7 +1396,7 @@
 .897a	15 01		ora $01,x	                ora 1,x
 .897c	d0 05		bne $8983	                bne _got_name
 .897e	a9 05		lda #$05	                lda #err_noname
-.8980	4c 37 d8	jmp $d837	                jmp error
+.8980	4c 11 d8	jmp $d811	                jmp error
 .8983					_got_name:
 .8983	74 01		stz $01,x	                stz 1,x
 .8985	20 95 a3	jsr $a395	                jsr xt_two_dup          ; ( addr u addr u )
@@ -1412,7 +1414,7 @@
 .899d	80 18		bra $89b7	                bra _process_name
 .899f					_redefined_name:
 .899f	a9 02		lda #$02	                lda #str_redefined
-.89a1	20 5d d8	jsr $d85d	                jsr print_string_no_lf
+.89a1	20 37 d8	jsr $d837	                jsr print_string_no_lf
 .89a4	20 95 a3	jsr $a395	                jsr xt_two_dup           ; ( addr u addr u )
 .89a7	20 e0 a4	jsr $a4e0	                jsr xt_type
 .89aa	20 fb a0	jsr $a0fb	                jsr xt_space
@@ -1439,7 +1441,7 @@
 .89cd	95 00		sta $00,x	                sta 0,x
 .89cf	74 01		stz $01,x	                stz 1,x         ; max header size is 255 chars
 .89d1	20 95 82	jsr $8295	                jsr xt_allot    ; ( addr )
-.89d4	20 63 d7	jsr $d763	                jsr current_to_dp
+.89d4	20 3d d7	jsr $d73d	                jsr current_to_dp
 .89d7	a0 00		ldy #$00	                ldy #0
 .89d9	a5 26		lda $26		                lda tmp2
 .89db	91 24		sta ($24),y	                sta (tmp1),y
@@ -1501,17 +1503,17 @@
 .8a36	a9 20		lda #$20	                lda #$20        ; opcode of JSR
 .8a38	91 24		sta ($24),y	                sta (tmp1),y
 .8a3a	c8		iny		                iny
-.8a3b	a9 23		lda #$23	                lda #<dovar
+.8a3b	a9 fd		lda #$fd	                lda #<dovar
 .8a3d	91 24		sta ($24),y	                sta (tmp1),y
 .8a3f	c8		iny		                iny
-.8a40	a9 d7		lda #$d7	                lda #>dovar
+.8a40	a9 d6		lda #$d6	                lda #>dovar
 .8a42	91 24		sta ($24),y	                sta (tmp1),y
-.8a44	20 76 d7	jsr $d776	                jsr dp_to_current
+.8a44	20 50 d7	jsr $d750	                jsr dp_to_current
 .8a47	e8		inx		                inx
 .8a48	e8		inx		                inx
 .8a49	60		rts		z_create:       rts
 .8a4a					xt_d_minus:
-.8a4a	20 30 d8	jsr $d830	                jsr underflow_4 ; two double numbers
+.8a4a	20 0a d8	jsr $d80a	                jsr underflow_4 ; two double numbers
 .8a4d	38		sec		                sec
 .8a4e	b5 06		lda $06,x	                lda 6,x         ; LSB of lower word
 .8a50	f5 02		sbc $02,x	                sbc 2,x
@@ -1531,7 +1533,7 @@
 .8a69	e8		inx		                inx
 .8a6a	60		rts		z_d_minus:      rts
 .8a6b					xt_d_plus:
-.8a6b	20 30 d8	jsr $d830	                jsr underflow_4 ; two double numbers
+.8a6b	20 0a d8	jsr $d80a	                jsr underflow_4 ; two double numbers
 .8a6e	18		clc		                clc
 .8a6f	b5 02		lda $02,x	                lda 2,x         ; LSB of lower word
 .8a71	75 06		adc $06,x	                adc 6,x
@@ -1551,12 +1553,12 @@
 .8a8a	e8		inx		                inx
 .8a8b	60		rts		z_d_plus:       rts
 .8a8c					xt_d_to_s:
-.8a8c	20 26 d8	jsr $d826	                jsr underflow_2
+.8a8c	20 00 d8	jsr $d800	                jsr underflow_2
 .8a8f	e8		inx		                inx
 .8a90	e8		inx		                inx
 .8a91	60		rts		z_d_to_s:       rts
 .8a92					xt_dabs:
-.8a92	20 26 d8	jsr $d826	                jsr underflow_2 ; double number
+.8a92	20 00 d8	jsr $d800	                jsr underflow_2 ; double number
 .8a95	b5 01		lda $01,x	                lda 1,x         ; MSB of high cell
 .8a97	10 17		bpl $8ab0	                bpl _done       ; positive, we get off light
 .8a99	a0 00		ldy #$00	                ldy #0
@@ -1590,18 +1592,18 @@
 .8ac4	e9 00		sbc #$00	                sbc #0          ; we only care about the borrow
 .8ac6	85 25		sta $25		                sta tmp1+1
 .8ac8	a0 00		ldy #$00	                ldy #0
-.8aca	a9 f1		lda #$f1	                lda #<dodefer   ; LSB
+.8aca	a9 cb		lda #$cb	                lda #<dodefer   ; LSB
 .8acc	91 24		sta ($24),y	                sta (tmp1),y
 .8ace	c8		iny		                iny
 .8acf	a9 d6		lda #$d6	                lda #>dodefer   ; MSB
 .8ad1	91 24		sta ($24),y	                sta (tmp1),y
-.8ad3	a9 05		lda #$05	                lda #<defer_error
+.8ad3	a9 df		lda #$df	                lda #<defer_error
 .8ad5	92 00		sta ($00)	                sta (cp)
 .8ad7	e6 00		inc $00		                inc cp
 .8ad9	d0 02		bne $8add	                bne +
 .8adb	e6 01		inc $01		                inc cp+1
 .8add					+
-.8add	a9 d7		lda #$d7	                lda #>defer_error
+.8add	a9 d6		lda #$d6	                lda #>defer_error
 .8adf	92 00		sta ($00)	                sta (cp)
 .8ae1	e6 00		inc $00		                inc cp
 .8ae3	d0 02		bne $8ae7	                bne +
@@ -1635,7 +1637,7 @@
 .8b0e	74 01		stz $01,x	                stz 1,x
 .8b10	60		rts		z_depth:        rts
 .8b11					xt_digit_question:
-.8b11	20 21 d8	jsr $d821	                jsr underflow_1
+.8b11	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8b14	ca		dex		                dex
 .8b15	ca		dex		                dex
 .8b16	74 00		stz $00,x	                stz 0,x                 ; default flag is failure
@@ -1669,11 +1671,11 @@
 .8b45					z_digit_question:
 .8b45	60		rts		                rts
 .8b46					xt_disasm:
-.8b46	20 26 d8	jsr $d826	                jsr underflow_2
+.8b46	20 00 d8	jsr $d800	                jsr underflow_2
 .8b49	20 b4 ac	jsr $acb4	                jsr disassembler
 .8b4c	60		rts		z_disasm:       rts
 .8b4d					xt_dnegate:
-.8b4d	20 26 d8	jsr $d826	                jsr underflow_2 ; double number
+.8b4d	20 00 d8	jsr $d800	                jsr underflow_2 ; double number
 .8b50	a0 00		ldy #$00	     		ldy #0
 .8b52	38		sec		                sec
 .8b53	98		tya		                tya
@@ -1797,10 +1799,10 @@
 .8c01					xt_does:
 .8c01	a0 8c		ldy #$8c	                ldy #>does_runtime
 .8c03	a9 10		lda #$10	                lda #<does_runtime
-.8c05	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
-.8c08	a0 d7		ldy #$d7	                ldy #>dodoes
-.8c0a	a9 0a		lda #$0a	                lda #<dodoes
-.8c0c	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.8c05	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
+.8c08	a0 d6		ldy #$d6	                ldy #>dodoes
+.8c0a	a9 e4		lda #$e4	                lda #<dodoes
+.8c0c	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .8c0f	60		rts		z_does:         rts
 .8c10					does_runtime:
 .8c10	7a		ply		                ply             ; LSB
@@ -1811,7 +1813,7 @@
 .8c16					+
 .8c16	84 24		sty $24		                sty tmp1
 .8c18	85 25		sta $25		                sta tmp1+1
-.8c1a	20 63 d7	jsr $d763	                jsr current_to_dp   ; Grab the DP from the CURRENT wordlist.
+.8c1a	20 3d d7	jsr $d73d	                jsr current_to_dp   ; Grab the DP from the CURRENT wordlist.
 .8c1d	a5 02		lda $02		                lda dp
 .8c1f	18		clc		                clc
 .8c20	69 04		adc #$04	                adc #4
@@ -1833,7 +1835,7 @@
 .8c3f	91 28		sta ($28),y	                sta (tmp3),y    ; Y is still 1
 .8c41	60		rts		                rts
 .8c42					xt_dot:
-.8c42	20 21 d8	jsr $d821	                jsr underflow_1
+.8c42	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8c45	20 bb 8d	jsr $8dbb	                jsr xt_dup                      ; ( n n )
 .8c48	20 23 81	jsr $8123	                jsr xt_abs                      ; ( n u )
 .8c4b	20 85 a7	jsr $a785	                jsr xt_zero                     ; ( n u 0 )
@@ -1858,10 +1860,10 @@
 .8c73	20 5b 9d	jsr $9d5b	                jsr xt_s_quote
 .8c76	a0 a4		ldy #$a4	                ldy #>xt_type
 .8c78	a9 e0		lda #$e0	                lda #<xt_type
-.8c7a	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.8c7a	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .8c7d	60		rts		z_dot_quote:    rts
 .8c7e					xt_dot_r:
-.8c7e	20 26 d8	jsr $d826	                jsr underflow_2
+.8c7e	20 00 d8	jsr $d800	                jsr underflow_2
 .8c81	20 4d a3	jsr $a34d	                jsr xt_to_r
 .8c84	20 bb 8d	jsr $8dbb	                jsr xt_dup
 .8c87	20 23 81	jsr $8123	                jsr xt_abs
@@ -1887,7 +1889,7 @@
 .8cb8	ca		dex		                dex
 .8cb9	95 00		sta $00,x	                sta 0,x
 .8cbb	74 01		stz $01,x	                stz 1,x
-.8cbd	20 8e d8	jsr $d88e	                jsr print_u
+.8cbd	20 68 d8	jsr $d868	                jsr print_u
 .8cc0	a9 3e		lda #$3e	                lda #$3e        ; ASCII for ">"
 .8cc2	20 02 8e	jsr $8e02	                jsr emit_a
 .8cc5	a9 20		lda #$20	                lda #AscSP      ; ASCII for SPACE
@@ -1920,7 +1922,7 @@
 .8cee	68		pla		                pla
 .8cef	60		rts		z_dot_s:        rts
 .8cf0					xt_d_dot:
-.8cf0	20 26 d8	jsr $d826	                jsr underflow_2
+.8cf0	20 00 d8	jsr $d800	                jsr underflow_2
 .8cf3	20 6a a3	jsr $a36a	                jsr xt_tuck
 .8cf6	20 92 8a	jsr $8a92	                jsr xt_dabs
 .8cf9	20 66 93	jsr $9366	                jsr xt_less_number_sign
@@ -1932,7 +1934,7 @@
 .8d0b	20 fb a0	jsr $a0fb	                jsr xt_space
 .8d0e	60		rts		z_d_dot:        rts
 .8d0f					xt_d_dot_r:
-.8d0f	20 2b d8	jsr $d82b	                jsr underflow_3
+.8d0f	20 05 d8	jsr $d805	                jsr underflow_3
 .8d12	20 4d a3	jsr $a34d	                jsr xt_to_r
 .8d15	20 6a a3	jsr $a36a	                jsr xt_tuck
 .8d18	20 92 8a	jsr $8a92	                jsr xt_dabs
@@ -1948,20 +1950,20 @@
 .8d36	20 e0 a4	jsr $a4e0	                jsr xt_type
 .8d39	60		rts		z_d_dot_r:      rts
 .8d3a					xt_drop:
-.8d3a	20 21 d8	jsr $d821	                jsr underflow_1
+.8d3a	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8d3d	e8		inx		                inx
 .8d3e	e8		inx		                inx
 .8d3f	60		rts		z_drop:         rts
 .8d40					xt_dump:
-.8d40	20 26 d8	jsr $d826	                jsr underflow_2
+.8d40	20 00 d8	jsr $d800	                jsr underflow_2
 .8d43					_row:
 .8d43	a0 10		ldy #$10	                ldy #16
 .8d45	64 26		stz $26		                stz tmp2
 .8d47	20 6f 89	jsr $896f	                jsr xt_cr
 .8d4a	b5 03		lda $03,x	                lda 3,x
-.8d4c	20 31 d7	jsr $d731	                jsr byte_to_ascii
+.8d4c	20 0b d7	jsr $d70b	                jsr byte_to_ascii
 .8d4f	b5 02		lda $02,x	                lda 2,x
-.8d51	20 31 d7	jsr $d731	                jsr byte_to_ascii
+.8d51	20 0b d7	jsr $d70b	                jsr byte_to_ascii
 .8d54	20 fb a0	jsr $a0fb	                jsr xt_space
 .8d57	20 fb a0	jsr $a0fb	                jsr xt_space
 .8d5a					_loop:
@@ -1970,10 +1972,10 @@
 .8d5e	f0 39		beq $8d99	                beq _all_printed
 .8d60	a1 02		lda ($02,x)	                lda (2,x)
 .8d62	48		pha		                pha                     ; byte_to_ascii destroys A
-.8d63	20 31 d7	jsr $d731	                jsr byte_to_ascii
+.8d63	20 0b d7	jsr $d70b	                jsr byte_to_ascii
 .8d66	20 fb a0	jsr $a0fb	                jsr xt_space
 .8d69	68		pla		                pla
-.8d6a	20 07 d8	jsr $d807	                jsr is_printable
+.8d6a	20 e1 d7	jsr $d7e1	                jsr is_printable
 .8d6d	b0 02		bcs $8d71	                bcs _printable
 .8d6f	a9 2e		lda #$2e	                lda #'.'                 ; Print dot if not printable
 .8d71					_printable:
@@ -2022,7 +2024,7 @@
 .8db8	d0 ef		bne $8da9	                bne _ascii_loop
 .8dba	60		rts		                rts
 .8dbb					xt_dup:
-.8dbb	20 21 d8	jsr $d821	                jsr underflow_1
+.8dbb	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8dbe	ca		dex		                dex
 .8dbf	ca		dex		                dex
 .8dc0	b5 02		lda $02,x	                lda 2,x         ; LSB
@@ -2037,7 +2039,7 @@
 .8dcd					xt_endof:
 .8dcd	a0 8d		ldy #$8d	                ldy #>branch_runtime
 .8dcf	a9 e7		lda #$e7	                lda #<branch_runtime
-.8dd1	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.8dd1	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .8dd4	20 7e 91	jsr $917e	                jsr xt_here
 .8dd7	20 85 a7	jsr $a785	                jsr xt_zero
 .8dda	20 7a 87	jsr $877a	                jsr xt_comma
@@ -2060,7 +2062,7 @@
 .8df6	85 25		sta $25		                sta tmp1+1
 .8df8	6c 24 00	jmp ($0024)	                jmp (tmp1)
 .8dfb					xt_emit:
-.8dfb	20 21 d8	jsr $d821	                jsr underflow_1
+.8dfb	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8dfe	b5 00		lda $00,x	                lda 0,x
 .8e00	e8		inx		                inx
 .8e01	e8		inx		                inx
@@ -2076,7 +2078,7 @@
 .8e0c					xt_endcase:
 .8e0c	a0 8d		ldy #$8d	                ldy #>xt_drop
 .8e0e	a9 3a		lda #$3a	                lda #<xt_drop
-.8e10	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.8e10	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .8e13					_endcase_loop:
 .8e13	b5 00		lda $00,x	                lda 0,x
 .8e15	15 01		ora $01,x	                ora 1,x
@@ -2088,7 +2090,7 @@
 .8e1f	e8		inx		                inx
 .8e20	60		rts		z_endcase:      rts
 .8e21					xt_environment_q:
-.8e21	20 21 d8	jsr $d821	                jsr underflow_1
+.8e21	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8e24	a0 00		ldy #$00	                ldy #00                 ; counter for table
 .8e26	5a		phy		                phy
 .8e27					_table_loop:
@@ -2170,12 +2172,12 @@
 .8e9d					z_environment_q:
 .8e9d	60		rts		                rts
 .8e9e					env_table_single:
->8e9e	44 d6 54 d6 5a d6 5f d6		        .word envs_cs, envs_hold, envs_pad, envs_aub, envs_floored
->8ea6	71 d6
->8ea8	79 d6 82 d6 88 d6 8e d6		        .word envs_max_char, envs_max_n, envs_max_u, envs_rsc
->8eb0	a1 d6 ad d6 00 00		        .word envs_sc, envs_wl, 0000
+>8e9e	1e d6 2e d6 34 d6 39 d6		        .word envs_cs, envs_hold, envs_pad, envs_aub, envs_floored
+>8ea6	4b d6
+>8ea8	53 d6 5c d6 62 d6 68 d6		        .word envs_max_char, envs_max_n, envs_max_u, envs_rsc
+>8eb0	7b d6 87 d6 00 00		        .word envs_sc, envs_wl, 0000
 .8eb6					env_table_double:
->8eb6	b7 d6 bd d6 00 00		        .word envs_max_d, envs_max_ud, 0000
+>8eb6	91 d6 97 d6 00 00		        .word envs_max_d, envs_max_ud, 0000
 .8ebc					env_results_single:
 >8ebc	ff 7f				        .word $7FFF     ; /COUNTED-STRING
 >8ebe	ff 00				        .word $00FF     ; /HOLD
@@ -2192,7 +2194,7 @@
 >8ed2	ff 7f ff ff			        .word $7FFF, $FFFF      ; MAX-D
 >8ed6	ff ff ff ff			        .word $FFFF, $FFFF      ; MAX-UD
 .8eda					xt_equal:
-.8eda	20 26 d8	jsr $d826	                jsr underflow_2
+.8eda	20 00 d8	jsr $d800	                jsr underflow_2
 .8edd	b5 00		lda $00,x	                lda 0,x                 ; LSB
 .8edf	d5 02		cmp $02,x	                cmp 2,x
 .8ee1	d0 0a		bne $8eed	                bne _false
@@ -2220,7 +2222,7 @@
 .8f02	74 00		stz $00,x	                stz 0,x
 .8f04	74 01		stz $01,x	                stz 1,x
 .8f06					xt_fill:
-.8f06	20 2b d8	jsr $d82b	                jsr underflow_3
+.8f06	20 05 d8	jsr $d805	                jsr underflow_3
 .8f09	b5 04		lda $04,x	                lda 4,x         ; LSB
 .8f0b	85 24		sta $24		                sta tmp1
 .8f0d	b5 05		lda $05,x	                lda 5,x
@@ -2262,7 +2264,7 @@
 .8f48					z_erase:
 .8f48	60		rts		z_fill:         rts
 .8f49					xt_execute:
-.8f49	20 21 d8	jsr $d821	                jsr underflow_1
+.8f49	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8f4c	20 50 8f	jsr $8f50	                jsr doexecute   ; do not combine to JMP (native coding)
 .8f4f	60		rts		z_execute:      rts
 .8f50					doexecute:
@@ -2274,7 +2276,7 @@
 .8f59	e8		inx		                inx
 .8f5a	6c 0e 00	jmp ($000e)	                jmp (ip)
 .8f5d					xt_execute_parsing:
-.8f5d	20 2b d8	jsr $d82b	                jsr underflow_3
+.8f5d	20 05 d8	jsr $d805	                jsr underflow_3
 .8f60	20 6e 92	jsr $926e	                jsr xt_input_to_r       ; save normal input for later
 .8f63	20 7a 96	jsr $967a	                jsr xt_not_rote         ; -ROT ( xt addr u )
 .8f66	b5 00		lda $00,x	                lda 0,x                 ; TOS is new ciblen
@@ -2302,7 +2304,7 @@
 .8f89	74 01		stz $01,x	                stz 1,x
 .8f8b	60		rts		z_false:        rts
 .8f8c					xt_fetch:
-.8f8c	20 21 d8	jsr $d821	                jsr underflow_1
+.8f8c	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8f8f	a1 00		lda ($00,x)	                lda (0,x)               ; LSB
 .8f91	a8		tay		                tay
 .8f92	f6 00		inc $00,x	                inc 0,x
@@ -2314,7 +2316,7 @@
 .8f9c	94 00		sty $00,x	                sty 0,x
 .8f9e	60		rts		z_fetch:        rts
 .8f9f					xt_find:
-.8f9f	20 21 d8	jsr $d821	                jsr underflow_1
+.8f9f	20 fb d7	jsr $d7fb	                jsr underflow_1
 .8fa2	b5 01		lda $01,x	                lda 1,x                 ; MSB
 .8fa4	48		pha		                pha
 .8fa5	b5 00		lda $00,x	                lda 0,x                 ; LSB
@@ -2355,7 +2357,7 @@
 .8fe6					_done:
 .8fe6	60		rts		z_find:         rts
 .8fe7					xt_find_name:
-.8fe7	20 26 d8	jsr $d826	                jsr underflow_2
+.8fe7	20 00 d8	jsr $d800	                jsr underflow_2
 .8fea	b5 00		lda $00,x	                lda 0,x
 .8fec	15 01		ora $01,x	                ora 1,x
 .8fee	d0 03		bne $8ff3	                bne _nonempty
@@ -2473,7 +2475,7 @@
 .909c					z_flush:
 .909c	60		rts		                rts
 .909d					xt_fm_slash_mod:
-.909d	20 2b d8	jsr $d82b	                jsr underflow_3
+.909d	20 05 d8	jsr $d805	                jsr underflow_3
 .90a0	64 26		stz $26		                stz tmp2        ; default: n is positive
 .90a2	b5 01		lda $01,x	                lda 1,x         ; MSB of n1
 .90a4	10 0e		bpl $90b4	                bpl _check_d
@@ -2514,7 +2516,7 @@
 .90dd	85 24		sta $24		                sta tmp1
 .90df	80 11		bra $90f2	                bra load_evaluate_start
 .90e1					xt_evaluate:
-.90e1	20 26 d8	jsr $d826	                jsr underflow_2
+.90e1	20 00 d8	jsr $d800	                jsr underflow_2
 .90e4	64 24		stz $24		                stz tmp1
 .90e6	b5 00		lda $00,x	                lda 0,x
 .90e8	15 01		ora $01,x	                ora 1,x
@@ -2556,7 +2558,7 @@
 .9122	e8		inx		                inx
 .9123	e8		inx		                inx
 .9124	e8		inx		                inx
-.9125	20 89 d7	jsr $d789	                jsr interpret   ; ( -- )
+.9125	20 63 d7	jsr $d763	                jsr interpret   ; ( -- )
 .9128	20 af 9a	jsr $9aaf	                jsr xt_r_to_input
 .912b	a0 00		ldy #$00	                ldy #blk_offset
 .912d	68		pla		                pla
@@ -2602,9 +2604,9 @@
 .9166	74 01		stz $01,x	                stz 1,x         ; We only support 8 wordlists.
 .9168	60		rts		z_get_order:    rts
 .9169					xt_greater_than:
-.9169	20 26 d8	jsr $d826	                jsr underflow_2
+.9169	20 00 d8	jsr $d800	                jsr underflow_2
 .916c	a0 00		ldy #$00	                ldy #0          ; default false
-.916e	20 48 d7	jsr $d748	                jsr compare_16bit
+.916e	20 22 d7	jsr $d722	                jsr compare_16bit
 .9171	f0 03		beq $9176	                beq _false
 .9173	10 01		bpl $9176	                bpl _false
 .9175	88		dey		                dey
@@ -2631,7 +2633,7 @@
 .918d	64 19		stz $19		                stz base+1              ; paranoid
 .918f	60		rts		z_hex:          rts
 .9190					xt_hexstore:
-.9190	20 2b d8	jsr $d82b	                jsr underflow_3
+.9190	20 05 d8	jsr $d805	                jsr underflow_3
 .9193	20 bb 8d	jsr $8dbb	                jsr xt_dup              ; Save copy of original address
 .9196	20 7f a4	jsr $a47f	                jsr xt_two_to_r         ; ( addr1 u1 ) ( R: addr2 addr2 )
 .9199					_loop:
@@ -2671,7 +2673,7 @@
 .91df	20 5c 95	jsr $955c	                jsr xt_minus            ; ( n )
 .91e2	60		rts		z_hexstore:     rts
 .91e3					xt_hold:
-.91e3	20 21 d8	jsr $d821	                jsr underflow_1
+.91e3	20 fb d7	jsr $d7fb	                jsr underflow_1
 .91e6	a5 34		lda $34		                lda tohold
 .91e8	d0 02		bne $91ec	                bne +
 .91ea	c6 35		dec $35		                dec tohold+1
@@ -2700,7 +2702,7 @@
 .920f					xt_if:
 .920f	a0 92		ldy #$92	                ldy #>zero_branch_runtime
 .9211	a9 20		lda #$20	                lda #<zero_branch_runtime
-.9213	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.9213	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .9216	20 7e 91	jsr $917e	                jsr xt_here
 .9219	20 85 a7	jsr $a785	                jsr xt_zero
 .921c	20 7a 87	jsr $877a	                jsr xt_comma
@@ -2742,7 +2744,7 @@
 .9255	e8		inx		                inx
 .9256	60		rts		                rts
 .9257					xt_immediate:
-.9257	20 63 d7	jsr $d763	                jsr current_to_dp
+.9257	20 3d d7	jsr $d73d	                jsr current_to_dp
 .925a	a0 01		ldy #$01	                ldy #1          ; offset for status byte
 .925c	b1 02		lda ($02),y	                lda (dp),y
 .925e	09 04		ora #$04	                ora #IM        ; make sure bit 7 is set
@@ -2773,7 +2775,7 @@
 .9282	48		pha		                pha
 .9283	60		rts		z_input_to_r: 	rts
 .9284					xt_int_to_name:
-.9284	20 21 d8	jsr $d821	                jsr underflow_1
+.9284	20 fb d7	jsr $d7fb	                jsr underflow_1
 .9287	ca		dex		                dex
 .9288	ca		dex		                dex
 .9289	74 00		stz $00,x	                stz 0,x
@@ -2846,7 +2848,7 @@
 .92f4	95 01		sta $01,x	                sta 1,x
 .92f6	60		rts		z_int_to_name:  rts
 .92f7					xt_invert:
-.92f7	20 21 d8	jsr $d821	                jsr underflow_1
+.92f7	20 fb d7	jsr $d7fb	                jsr underflow_1
 .92fa	a9 ff		lda #$ff	                lda #$FF
 .92fc	55 00		eor $00,x	                eor 0,x         ; LSB
 .92fe	95 00		sta $00,x	                sta 0,x
@@ -2862,7 +2864,7 @@
 .930d	20 aa 85	jsr $85aa	                jsr xt_bracket_tick
 .9310	a0 8a		ldy #$8a	                ldy #>xt_defer_store
 .9312	a9 f2		lda #$f2	                lda #<xt_defer_store
-.9314	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.9314	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .9317	80 06		bra $931f	                bra _done
 .9319					_interpreting:
 .9319	20 ee a1	jsr $a1ee	                jsr xt_tick
@@ -2896,7 +2898,7 @@
 .9347					xt_latestnt:
 .9347	ca		dex		                dex
 .9348	ca		dex		                dex
-.9349	20 63 d7	jsr $d763	                jsr current_to_dp
+.9349	20 3d d7	jsr $d73d	                jsr current_to_dp
 .934c	a5 02		lda $02		                lda dp
 .934e	95 00		sta $00,x	                sta 0,x
 .9350	a5 03		lda $03		                lda dp+1
@@ -2928,9 +2930,9 @@
 .9373					z_less_number_sign:
 .9373	60		rts		                rts
 .9374					xt_less_than:
-.9374	20 26 d8	jsr $d826	                jsr underflow_2
+.9374	20 00 d8	jsr $d800	                jsr underflow_2
 .9377	a0 00		ldy #$00	                ldy #0          ; default false
-.9379	20 48 d7	jsr $d748	                jsr compare_16bit
+.9379	20 22 d7	jsr $d722	                jsr compare_16bit
 .937c	f0 03		beq $9381	                beq _false
 .937e	30 01		bmi $9381	                bmi _false
 .9380	88		dey		                dey
@@ -2942,16 +2944,16 @@
 .9386	95 01		sta $01,x	                sta 1,x
 .9388	60		rts		z_less_than:    rts
 .9389					xt_list:
-.9389	20 21 d8	jsr $d821	                jsr underflow_1
+.9389	20 fb d7	jsr $d7fb	                jsr underflow_1
 .938c	20 b6 9e	jsr $9eb6	                jsr xt_scr
 .938f	20 6a a1	jsr $a16a	                jsr xt_store
 .9392	20 23 a8	jsr $a823	                jsr xt_editor_l
 .9395	60		rts		z_list:         rts
 .9396					xt_literal:
-.9396	20 21 d8	jsr $d821	                jsr underflow_1
+.9396	20 fb d7	jsr $d7fb	                jsr underflow_1
 .9399	a0 93		ldy #$93	                ldy #>literal_runtime
 .939b	a9 a4		lda #$a4	                lda #<literal_runtime
-.939d	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.939d	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .93a0	20 7a 87	jsr $877a	                jsr xt_comma
 .93a3	60		rts		z_literal:      rts
 .93a4					literal_runtime:
@@ -2977,7 +2979,7 @@
 .93c1	5a		phy		                phy
 .93c2	60		rts		                rts
 .93c3					xt_load:
-.93c3	20 21 d8	jsr $d821	                jsr underflow_1
+.93c3	20 fb d7	jsr $d7fb	                jsr underflow_1
 .93c6	a0 01		ldy #$01	                ldy #blk_offset+1
 .93c8	b1 1e		lda ($1e),y	                lda (up),y
 .93ca	48		pha		                pha
@@ -3021,7 +3023,7 @@
 .9407					xt_loop:
 .9407	a0 98		ldy #$98	                ldy #>xt_one
 .9409	a9 14		lda #$14	                lda #<xt_one
-.940b	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine     ; drop through to +LOOP
+.940b	20 9e d6	jsr $d69e	                jsr cmpl_subroutine     ; drop through to +LOOP
 .940e					xt_plus_loop:
 .940e	a0 11		ldy #$11	                ldy #plus_loop_runtime_end-plus_loop_runtime
 .9410	5a		phy		                phy             ; save counter to adjust CP
@@ -3102,7 +3104,7 @@
 >9485	4c				                .byte $4C
 .9486					plus_loop_runtime_end:
 .9486					xt_lshift:
-.9486	20 26 d8	jsr $d826	                jsr underflow_2
+.9486	20 00 d8	jsr $d800	                jsr underflow_2
 .9489	b5 00		lda $00,x	                lda 0,x
 .948b	29 0f		and #$0f	                and #%00001111
 .948d	f0 08		beq $9497	                beq _done
@@ -3117,7 +3119,7 @@
 .9498	e8		inx		                inx
 .9499	60		rts		z_lshift:       rts
 .949a					xt_m_star:
-.949a	20 26 d8	jsr $d826	                jsr underflow_2
+.949a	20 00 d8	jsr $d800	                jsr underflow_2
 .949d	b5 01		lda $01,x	                lda 1,x         ; MSB of n1
 .949f	55 03		eor $03,x	                eor 3,x         ; MSB of n2
 .94a1	48		pha		                pha
@@ -3131,7 +3133,7 @@
 .94b4					_done:
 .94b4	60		rts		z_m_star:       rts
 .94b5					xt_marker:
-.94b5	20 63 d7	jsr $d763	                jsr current_to_dp
+.94b5	20 3d d7	jsr $d73d	                jsr current_to_dp
 .94b8	a5 02		lda $02		                lda dp
 .94ba	48		pha		                pha
 .94bb	a5 03		lda $03		                lda dp+1
@@ -3150,17 +3152,17 @@
 .94d2	85 01		sta $01		                sta cp+1
 .94d4	a0 94		ldy #$94	                ldy #>marker_runtime
 .94d6	a9 f3		lda #$f3	                lda #<marker_runtime
-.94d8	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.94d8	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .94db	7a		ply		                ply                     ; MSB
 .94dc	68		pla		                pla                     ; LSB
-.94dd	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.94dd	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .94e0	7a		ply		                ply                     ; MSB
 .94e1	68		pla		                pla                     ; LSB
-.94e2	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.94e2	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .94e5	a0 04		ldy #$04	                ldy #4                  ; Start at CURRENT
 .94e7					_marker_loop:
 .94e7	b1 1e		lda ($1e),y	                lda (up),y
-.94e9	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.94e9	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .94ec	c8		iny		                iny
 .94ed	98		tya		                tya
 .94ee	c9 28		cmp #$28	                cmp #40                 ; One past the end of the search order.
@@ -3195,10 +3197,10 @@
 .951b	98		tya		                tya
 .951c	c9 28		cmp #$28	                cmp #40                 ; One past the end of the search order.
 .951e	d0 f6		bne $9516	                bne _marker_restore_loop
-.9520	20 76 d7	jsr $d776	                jsr dp_to_current       ; Move the CURRENT DP back.
+.9520	20 50 d7	jsr $d750	                jsr dp_to_current       ; Move the CURRENT DP back.
 .9523	60		rts		                rts
 .9524					xt_max:
-.9524	20 26 d8	jsr $d826	                jsr underflow_2
+.9524	20 00 d8	jsr $d800	                jsr underflow_2
 .9527	b5 00		lda $00,x	                lda 0,x         ; LSB of TOS
 .9529	d5 02		cmp $02,x	                cmp 2,x         ; LSB of NOS, this sets the carry
 .952b	b5 01		lda $01,x	                lda 1,x         ; MSB of TOS
@@ -3216,7 +3218,7 @@
 .953e	e8		inx		                inx
 .953f	60		rts		z_max:          rts
 .9540					xt_min:
-.9540	20 26 d8	jsr $d826	                jsr underflow_2
+.9540	20 00 d8	jsr $d800	                jsr underflow_2
 .9543	b5 00		lda $00,x	                lda 0,x         ; LSB of TOS
 .9545	d5 02		cmp $02,x	                cmp 2,x         ; LSB of NOS, this sets carry
 .9547	b5 01		lda $01,x	                lda 1,x         ; MSB of TOS
@@ -3234,7 +3236,7 @@
 .955a	e8		inx		                inx
 .955b	60		rts		z_min:          rts
 .955c					xt_minus:
-.955c	20 26 d8	jsr $d826	                jsr underflow_2
+.955c	20 00 d8	jsr $d800	                jsr underflow_2
 .955f	38		sec		                sec
 .9560	b5 02		lda $02,x	                lda 2,x         ; LSB
 .9562	f5 00		sbc $00,x	                sbc 0,x
@@ -3246,13 +3248,13 @@
 .956d	e8		inx		                inx
 .956e	60		rts		z_minus:        rts
 .956f					xt_minus_leading:
-.956f	20 26 d8	jsr $d826	                jsr underflow_2
+.956f	20 00 d8	jsr $d800	                jsr underflow_2
 .9572					_loop:
 .9572	b5 00		lda $00,x	                lda 0,x
 .9574	15 01		ora $01,x	                ora 1,x
 .9576	f0 0f		beq $9587	                beq _done
 .9578	a1 02		lda ($02,x)	                lda (2,x)               ; get first character
-.957a	20 14 d8	jsr $d814	                jsr is_whitespace
+.957a	20 ee d7	jsr $d7ee	                jsr is_whitespace
 .957d	90 08		bcc $9587	                bcc _done
 .957f	20 14 98	jsr $9814	                jsr xt_one              ; ( addr u 1 )
 .9582	20 f6 9f	jsr $9ff6	                jsr xt_slash_string     ; ( addr+ u-1 )
@@ -3261,7 +3263,7 @@
 .9587					z_minus_leading:
 .9587	60		rts		                rts
 .9588					xt_minus_trailing:
-.9588	20 26 d8	jsr $d826	                jsr underflow_2
+.9588	20 00 d8	jsr $d800	                jsr underflow_2
 .958b	b5 00		lda $00,x	                lda 0,x         ; LSB of n
 .958d	15 01		ora $01,x	                ora 1,x         ; MSB of n
 .958f	f0 33		beq $95c4	                beq _done
@@ -3299,7 +3301,7 @@
 .95c4					z_minus_trailing:
 .95c4	60		rts		                rts
 .95c5					xt_mod:
-.95c5	20 26 d8	jsr $d826	                jsr underflow_2
+.95c5	20 00 d8	jsr $d800	                jsr underflow_2
 .95c8	20 de 9f	jsr $9fde	                jsr xt_slash_mod
 .95cb	e8		inx		                inx             ; DROP
 .95cc	e8		inx		                inx
@@ -3326,7 +3328,7 @@
 .95eb	aa		tax		                tax
 .95ec	60		rts		z_move:         rts
 .95ed					xt_name_to_int:
-.95ed	20 21 d8	jsr $d821	                jsr underflow_1
+.95ed	20 fb d7	jsr $d7fb	                jsr underflow_1
 .95f0	b5 00		lda $00,x	                lda 0,x
 .95f2	18		clc		                clc
 .95f3	69 04		adc #$04	                adc #4
@@ -3344,7 +3346,7 @@
 .9607	95 01		sta $01,x	                sta 1,x
 .9609	60		rts		z_name_to_int:  rts
 .960a					xt_name_to_string:
-.960a	20 21 d8	jsr $d821	                jsr underflow_1
+.960a	20 fb d7	jsr $d7fb	                jsr underflow_1
 .960d	ca		dex		                dex
 .960e	ca		dex		                dex
 .960f	a1 02		lda ($02,x)	                lda (2,x)
@@ -3369,7 +3371,7 @@
 .962c	95 01		sta $01,x	                sta 1,x
 .962e	60		rts		z_nc_limit:     rts
 .962f					xt_negate:
-.962f	20 21 d8	jsr $d821	                jsr underflow_1
+.962f	20 fb d7	jsr $d7fb	                jsr underflow_1
 .9632	a9 00		lda #$00	        	lda #0
 .9634	38		sec		                sec
 .9635	f5 00		sbc $00,x	                sbc 0,x         ; LSB
@@ -3379,7 +3381,7 @@
 .963d	95 01		sta $01,x	                sta 1,x
 .963f	60		rts		z_negate:       rts
 .9640					xt_never_native:
-.9640	20 63 d7	jsr $d763	                jsr current_to_dp
+.9640	20 3d d7	jsr $d73d	                jsr current_to_dp
 .9643	a0 01		ldy #$01	                ldy #1          ; offset for status byte
 .9645	b1 02		lda ($02),y	                lda (dp),y
 .9647	09 08		ora #$08	                ora #NN         ; Make sure NN flag is set
@@ -3388,7 +3390,7 @@
 .964d					z_never_native:
 .964d	60		rts		                rts
 .964e					xt_nip:
-.964e	20 26 d8	jsr $d826	                jsr underflow_2
+.964e	20 00 d8	jsr $d800	                jsr underflow_2
 .9651	b5 00		lda $00,x	                lda 0,x         ; LSB
 .9653	95 02		sta $02,x	                sta 2,x
 .9655	b5 01		lda $01,x	                lda 1,x         ; MSB
@@ -3397,7 +3399,7 @@
 .965a	e8		inx		                inx
 .965b	60		rts		z_nip:          rts
 .965c					xt_not_equals:
-.965c	20 26 d8	jsr $d826	                jsr underflow_2
+.965c	20 00 d8	jsr $d800	                jsr underflow_2
 .965f	a0 00		ldy #$00	                ldy #0                  ; default is true
 .9661	b5 00		lda $00,x	                lda 0,x                 ; LSB
 .9663	d5 02		cmp $02,x	                cmp 2,x
@@ -3417,7 +3419,7 @@
 .9677	95 01		sta $01,x	                sta 1,x
 .9679	60		rts		z_not_equals:   rts
 .967a					xt_not_rote:
-.967a	20 2b d8	jsr $d82b	                jsr underflow_3
+.967a	20 05 d8	jsr $d805	                jsr underflow_3
 .967d	b4 01		ldy $01,x	                ldy 1,x         ; MSB first
 .967f	b5 03		lda $03,x	                lda 3,x
 .9681	95 01		sta $01,x	                sta 1,x
@@ -3432,7 +3434,7 @@
 .9693	94 04		sty $04,x	                sty 4,x
 .9695	60		rts		z_not_rote:     rts
 .9696					xt_number:
-.9696	20 26 d8	jsr $d826	                jsr underflow_2
+.9696	20 00 d8	jsr $d800	                jsr underflow_2
 .9699	64 2a		stz $2a		                stz tmpdsp      ; flag for double
 .969b	64 2b		stz $2b		                stz tmpdsp+1    ; flag for minus
 .969d	a5 18		lda $18		                lda base
@@ -3548,7 +3550,7 @@
 .975f	68		pla		                pla
 .9760	85 18		sta $18		                sta base
 .9762	a9 08		lda #$08	                lda #err_syntax
-.9764	4c 37 d8	jmp $d837	                jmp error
+.9764	4c 11 d8	jmp $d811	                jmp error
 .9767					_all_converted:
 .9767	e8		inx		                inx ; Drop the current addr u
 .9768	e8		inx		                inx
@@ -3578,7 +3580,7 @@
 .9790	85 18		sta $18		                sta base
 .9792	60		rts		z_number:       rts
 .9793					xt_number_sign:
-.9793	20 26 d8	jsr $d826	                jsr underflow_2         ; double number
+.9793	20 00 d8	jsr $d800	                jsr underflow_2         ; double number
 .9796	20 93 83	jsr $8393	                jsr xt_base
 .9799	20 8c 8f	jsr $8f8c	                jsr xt_fetch            ; ( ud1 base )
 .979c	20 4d a3	jsr $a34d	                jsr xt_to_r             ; >r
@@ -3593,14 +3595,14 @@
 .97b7	20 63 9b	jsr $9b63	                jsr xt_rot              ; ( ud rem )
 .97ba	b5 00		lda $00,x	                lda 0,x
 .97bc	a8		tay		                tay
-.97bd	b9 00 d4	lda $d400,y	                lda s_abc_upper,y
+.97bd	b9 da d3	lda $d3da,y	                lda s_abc_upper,y
 .97c0	95 00		sta $00,x	                sta 0,x
 .97c2	74 01		stz $01,x	                stz 1,x                 ; paranoid; now ( ud char )
 .97c4	20 e3 91	jsr $91e3	                jsr xt_hold
 .97c7					z_number_sign:
 .97c7	60		rts		                rts
 .97c8					xt_number_sign_greater:
-.97c8	20 26 d8	jsr $d826	                jsr underflow_2         ; double number
+.97c8	20 00 d8	jsr $d800	                jsr underflow_2         ; double number
 .97cb	a5 34		lda $34		                lda tohold
 .97cd	95 00		sta $00,x	                sta 0,x         ; LSB of tohold
 .97cf	95 02		sta $02,x	                sta 2,x
@@ -3620,7 +3622,7 @@
 .97e9					z_number_sign_greater:
 .97e9	60		rts		                rts
 .97ea					xt_number_sign_s:
-.97ea	20 26 d8	jsr $d826	                jsr underflow_2
+.97ea	20 00 d8	jsr $d800	                jsr underflow_2
 .97ed					_loop:
 .97ed	20 93 97	jsr $9793	                jsr xt_number_sign
 .97f0	b5 00		lda $00,x	                lda 0,x
@@ -3633,14 +3635,14 @@
 .97fb					xt_of:
 .97fb	a0 98		ldy #$98	                ldy #>xt_over
 .97fd	a9 9f		lda #$9f	                lda #<xt_over
-.97ff	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.97ff	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .9802	a0 8e		ldy #$8e	                ldy #>xt_equal
 .9804	a9 da		lda #$da	                lda #<xt_equal
-.9806	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.9806	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .9809	20 0f 92	jsr $920f	                jsr xt_if
 .980c	a0 8d		ldy #$8d	                ldy #>xt_drop
 .980e	a9 3a		lda #$3a	                lda #<xt_drop
-.9810	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.9810	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .9813	60		rts		z_of:           rts
 .9814					xt_editor_wordlist:
 .9814					xt_one:
@@ -3653,7 +3655,7 @@
 .981c					z_one:
 .981c	60		rts		                rts
 .981d					xt_one_minus:
-.981d	20 21 d8	jsr $d821	                jsr underflow_1
+.981d	20 fb d7	jsr $d7fb	                jsr underflow_1
 .9820	b5 00		lda $00,x	                lda 0,x
 .9822	d0 02		bne $9826	                bne +
 .9824	d6 01		dec $01,x	                dec 1,x
@@ -3662,7 +3664,7 @@
 .9828	60		rts		z_one_minus:    rts
 .9829					xt_char_plus:
 .9829					xt_one_plus:
-.9829	20 21 d8	jsr $d821	                jsr underflow_1
+.9829	20 fb d7	jsr $d7fb	                jsr underflow_1
 .982c	f6 00		inc $00,x	                inc 0,x
 .982e	d0 02		bne $9832	                bne _done
 .9830	f6 01		inc $01,x	                inc 1,x
@@ -3678,7 +3680,7 @@
 .983b	20 27 9d	jsr $9d27	                jsr xt_set_order
 .983e	60		rts		z_only:         rts
 .983f					xt_or:
-.983f	20 26 d8	jsr $d826	                jsr underflow_2
+.983f	20 00 d8	jsr $d800	                jsr underflow_2
 .9842	b5 00		lda $00,x	                lda 0,x
 .9844	15 02		ora $02,x	                ora 2,x
 .9846	95 02		sta $02,x	                sta 2,x
@@ -3726,12 +3728,12 @@
 .9889					_output_string:
 .9889	a8		tay		                tay
 .988a	b9 90 98	lda $9890,y	                lda _wid_data,y
-.988d	4c 5d d8	jmp $d85d	                jmp print_string_no_lf  ; JSR/RTS as this routine is not compiled
+.988d	4c 37 d8	jmp $d837	                jmp print_string_no_lf  ; JSR/RTS as this routine is not compiled
 .9890					_wid_data:
->9890	03				        .byte str_wid_forth            ; WID 0: "Forth"
->9891	06				        .byte str_wid_editor           ; WID 1: "Editor"
->9892	07				        .byte str_wid_assembler        ; WID 2: "Assembler"
->9893	08				        .byte str_wid_root             ; WID 3: "Root"
+>9890	04				        .byte str_wid_forth            ; WID 0: "Forth"
+>9891	05				        .byte str_wid_editor           ; WID 1: "Editor"
+>9892	06				        .byte str_wid_assembler        ; WID 2: "Assembler"
+>9893	07				        .byte str_wid_root             ; WID 3: "Root"
 .9894					xt_output:
 .9894	ca		dex		                dex
 .9895	ca		dex		                dex
@@ -3741,7 +3743,7 @@
 .989c	95 01		sta $01,x	                sta 1,x
 .989e	60		rts		z_output:       rts
 .989f					xt_over:
-.989f	20 26 d8	jsr $d826	                jsr underflow_2
+.989f	20 00 d8	jsr $d800	                jsr underflow_2
 .98a2	ca		dex		                dex
 .98a3	ca		dex		                dex
 .98a4	b5 04		lda $04,x	                lda 4,x         ; LSB
@@ -3805,7 +3807,7 @@
 .9909	85 27		sta $27		                sta tmp2+1              ; MSB
 .990b					_skip_loop:
 .990b	b2 26		lda ($26)	                lda (tmp2)              ; work copy of cib
-.990d	20 14 d8	jsr $d814	                jsr is_whitespace
+.990d	20 ee d7	jsr $d7ee	                jsr is_whitespace
 .9910	90 1f		bcc $9931	                bcc _char_found
 .9912	e6 26		inc $26		                inc tmp2
 .9914	d0 02		bne $9918	                bne +
@@ -3840,7 +3842,7 @@
 .9942	95 00		sta $00,x	                sta 0,x
 .9944	74 01		stz $01,x	                stz 1,x                 ; paranoid, now ( "name" c )
 .9946					xt_parse:
-.9946	20 21 d8	jsr $d821	                jsr underflow_1
+.9946	20 fb d7	jsr $d7fb	                jsr underflow_1
 .9949	a5 0a		lda $0a		                lda ciblen
 .994b	05 0b		ora $0b		                ora ciblen+1
 .994d	f0 0c		beq $995b	                beq _abort_parse
@@ -3892,7 +3894,7 @@
 .999b	a4 2c		ldy $2c		                ldy tmptos
 .999d	c0 20		cpy #$20	                cpy #AscSP
 .999f	d0 07		bne $99a8	                bne _not_whitespace
-.99a1	20 14 d8	jsr $d814	                jsr is_whitespace
+.99a1	20 ee d7	jsr $d7ee	                jsr is_whitespace
 .99a4	90 02		bcc $99a8	                bcc _not_whitespace
 .99a6	80 0c		bra $99b4	                bra _found_delimiter
 .99a8					_not_whitespace:
@@ -3940,7 +3942,7 @@
 .99ec	95 01		sta $01,x	                sta 1,x
 .99ee	60		rts		z_pick:         rts
 .99ef					xt_plus:
-.99ef	20 26 d8	jsr $d826	                jsr underflow_2
+.99ef	20 00 d8	jsr $d800	                jsr underflow_2
 .99f2	18		clc		                clc
 .99f3	b5 00		lda $00,x	                lda 0,x         ; LSB
 .99f5	75 02		adc $02,x	                adc 2,x
@@ -3952,7 +3954,7 @@
 .9a00	e8		inx		                inx
 .9a01	60		rts		z_plus:         rts
 .9a02					xt_plus_store:
-.9a02	20 26 d8	jsr $d826	                jsr underflow_2
+.9a02	20 00 d8	jsr $d800	                jsr underflow_2
 .9a05	b5 00		lda $00,x	                lda 0,x
 .9a07	85 24		sta $24		                sta tmp1
 .9a09	b5 01		lda $01,x	                lda 1,x
@@ -3977,12 +3979,12 @@
 .9a27	15 01		ora $01,x	                ora 1,x
 .9a29	d0 05		bne $9a30	                bne +
 .9a2b	a9 05		lda #$05	                lda #err_noname
-.9a2d	4c 37 d8	jmp $d837	                jmp error
+.9a2d	4c 11 d8	jmp $d811	                jmp error
 .9a30					+
 .9a30	20 e7 8f	jsr $8fe7	                jsr xt_find_name                ; ( -- nt | 0 )
 .9a33	d0 05		bne $9a3a	                bne +
 .9a35	a9 05		lda #$05	                lda #err_noname
-.9a37	4c 37 d8	jmp $d837	                jmp error
+.9a37	4c 11 d8	jmp $d811	                jmp error
 .9a3a					+
 .9a3a	b5 00		lda $00,x	                lda 0,x
 .9a3c	85 24		sta $24		                sta tmp1
@@ -4002,7 +4004,7 @@
 .9a56	20 96 93	jsr $9396	                jsr xt_literal
 .9a59	a0 87		ldy #$87	                ldy #>xt_compile_comma
 .9a5b	a9 f9		lda #$f9	                lda #<xt_compile_comma
-.9a5d	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.9a5d	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .9a60					_done:
 .9a60	60		rts		z_postpone:     rts
 .9a61					xt_previous:
@@ -4016,7 +4018,7 @@
 .9a71	20 42 8c	jsr $8c42	                jsr xt_dot
 .9a74	60		rts		z_question:     rts
 .9a75					xt_question_dup:
-.9a75	20 21 d8	jsr $d821	                jsr underflow_1
+.9a75	20 fb d7	jsr $d7fb	                jsr underflow_1
 .9a78	b5 00		lda $00,x	                lda 0,x
 .9a7a	15 01		ora $01,x	                ora 1,x
 .9a7c	f0 0a		beq $9a88	                beq _done
@@ -4153,7 +4155,7 @@
 .9b3e	80 05		bra $9b45	                bra z_refill
 .9b40					_src_not_string:
 .9b40	a9 01		lda #$01	                lda #err_badsource
-.9b42	4c 37 d8	jmp $d837	                jmp error
+.9b42	4c 11 d8	jmp $d811	                jmp error
 .9b45					_done:
 .9b45	60		rts		z_refill:       rts
 .9b46					xt_repeat:
@@ -4177,7 +4179,7 @@
 .9b62					z_root_wordlist:
 .9b62	60		rts		                rts
 .9b63					xt_rot:
-.9b63	20 2b d8	jsr $d82b	                jsr underflow_3
+.9b63	20 05 d8	jsr $d805	                jsr underflow_3
 .9b66	b4 05		ldy $05,x	                ldy 5,x         ; MSB first
 .9b68	b5 03		lda $03,x	                lda 3,x
 .9b6a	95 05		sta $05,x	                sta 5,x
@@ -4192,7 +4194,7 @@
 .9b7c	94 00		sty $00,x	                sty 0,x
 .9b7e	60		rts		z_rot:          rts
 .9b7f					xt_rshift:
-.9b7f	20 26 d8	jsr $d826	                jsr underflow_2
+.9b7f	20 00 d8	jsr $d800	                jsr underflow_2
 .9b82	b5 00		lda $00,x	                lda 0,x
 .9b84	29 0f		and #$0f	                and #%00001111
 .9b86	f0 08		beq $9b90	                beq _done               ; if 0 shifts, quit
@@ -4227,7 +4229,7 @@
 .9bab					_done:
 .9bab	60		rts		        rts
 .9bac					xt_search_wordlist:
-.9bac	20 2b d8	jsr $d82b	                jsr underflow_3
+.9bac	20 05 d8	jsr $d805	                jsr underflow_3
 .9baf	a5 1e		lda $1e		                lda up
 .9bb1	18		clc		                clc
 .9bb2	69 06		adc #$06	                adc #wordlists_offset
@@ -4374,26 +4376,26 @@
 .9c95	15 01		ora $01,x	                ora 1,x
 .9c97	d0 05		bne $9c9e	                bne +
 .9c99	a9 05		lda #$05	                lda #err_noname
-.9c9b	4c 37 d8	jmp $d837	                jmp error
+.9c9b	4c 11 d8	jmp $d811	                jmp error
 .9c9e					+
 .9c9e	20 6f 89	jsr $896f	                jsr xt_cr
 .9ca1	a5 18		lda $18		                lda base
 .9ca3	48		pha		                pha
 .9ca4	20 89 91	jsr $9189	                jsr xt_hex
-.9ca7	a9 0a		lda #$0a	                lda #str_see_nt
-.9ca9	20 5d d8	jsr $d85d	                jsr print_string_no_lf
+.9ca7	a9 09		lda #$09	                lda #str_see_nt
+.9ca9	20 37 d8	jsr $d837	                jsr print_string_no_lf
 .9cac	20 bb 8d	jsr $8dbb	                jsr xt_dup              ; ( nt nt )
 .9caf	20 0b a5	jsr $a50b	                jsr xt_u_dot
 .9cb2	20 fb a0	jsr $a0fb	                jsr xt_space            ; ( nt )
 .9cb5	20 bb 8d	jsr $8dbb	                jsr xt_dup              ; ( nt nt )
 .9cb8	20 ed 95	jsr $95ed	                jsr xt_name_to_int      ; ( nt xt )
-.9cbb	a9 0b		lda #$0b	                lda #str_see_xt
-.9cbd	20 5d d8	jsr $d85d	                jsr print_string_no_lf
+.9cbb	a9 0a		lda #$0a	                lda #str_see_xt
+.9cbd	20 37 d8	jsr $d837	                jsr print_string_no_lf
 .9cc0	20 bb 8d	jsr $8dbb	                jsr xt_dup              ; ( nt xt xt )
 .9cc3	20 0b a5	jsr $a50b	                jsr xt_u_dot
 .9cc6	20 6f 89	jsr $896f	                jsr xt_cr               ; ( nt xt )
-.9cc9	a9 09		lda #$09	                lda #str_see_flags
-.9ccb	20 5d d8	jsr $d85d	                jsr print_string_no_lf
+.9cc9	a9 08		lda #$08	                lda #str_see_flags
+.9ccb	20 37 d8	jsr $d837	                jsr print_string_no_lf
 .9cce	20 9f 98	jsr $989f	                jsr xt_over             ; ( nt xt nt )
 .9cd1	20 29 98	jsr $9829	                jsr xt_one_plus         ; ( nt xt nt+1 )
 .9cd4	20 8c 8f	jsr $8f8c	                jsr xt_fetch            ; ( nt xt flags )
@@ -4413,8 +4415,8 @@
 .9cec	20 6f 89	jsr $896f	                jsr xt_cr
 .9cef	e8		inx		                inx
 .9cf0	e8		inx		                inx                     ; ( nt xt )
-.9cf1	a9 0c		lda #$0c	                lda #str_see_size
-.9cf3	20 5d d8	jsr $d85d	                jsr print_string_no_lf
+.9cf1	a9 0b		lda #$0b	                lda #str_see_size
+.9cf3	20 37 d8	jsr $d837	                jsr print_string_no_lf
 .9cf6	20 8b a1	jsr $a18b	                jsr xt_swap             ; ( xt nt )
 .9cf9	20 52 a7	jsr $a752	                jsr xt_wordsize         ; ( xt u )
 .9cfc	20 bb 8d	jsr $8dbb	                jsr xt_dup              ; ( xt u u ) for DUMP and DISASM
@@ -4430,7 +4432,7 @@
 .9d18	85 18		sta $18		                sta base
 .9d1a	60		rts		z_see:          rts
 .9d1b					xt_set_current:
-.9d1b	20 21 d8	jsr $d821	                jsr underflow_1
+.9d1b	20 fb d7	jsr $d7fb	                jsr underflow_1
 .9d1e	a0 04		ldy #$04	                ldy #current_offset
 .9d20	b5 00		lda $00,x	                lda 0,x         ; CURRENT is byte variable
 .9d22	91 1e		sta ($1e),y	                sta (up),y      ; so only the LSB is used.
@@ -4480,9 +4482,9 @@
 .9d61	ca		dex		                dex
 .9d62	ca		dex		                dex
 .9d63	a9 4c		lda #$4c	                lda #$4C
-.9d65	20 d4 d6	jsr $d6d4	                jsr cmpl_a
-.9d68	20 d4 d6	jsr $d6d4	                jsr cmpl_a
-.9d6b	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.9d65	20 ae d6	jsr $d6ae	                jsr cmpl_a
+.9d68	20 ae d6	jsr $d6ae	                jsr cmpl_a
+.9d6b	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .9d6e	a5 00		lda $00		                lda cp
 .9d70	95 02		sta $02,x	                sta 2,x
 .9d72	a5 01		lda $01		                lda cp+1
@@ -4511,7 +4513,7 @@
 .9d99	15 01		ora $01,x	                ora 1,x
 .9d9b	d0 05		bne $9da2	                bne _refill_ok
 .9d9d	a9 06		lda #$06	                lda #err_refill
-.9d9f	4c 37 d8	jmp $d837	                jmp error
+.9d9f	4c 11 d8	jmp $d811	                jmp error
 .9da2					_refill_ok:
 .9da2	e8		inx		                inx
 .9da3	e8		inx		                inx
@@ -4585,7 +4587,7 @@
 .9e14	10 33		bpl $9e49	_esc_replace:   bpl _save_character     ; simple replacement
 .9e16	29 7f		and #$7f	                and #$7f                ; clear hi bit
 .9e18	f0 2f		beq $9e49	                beq _save_character     ; NUL we can just output
-.9e1a	20 d4 d6	jsr $d6d4	                jsr cmpl_a              ; else output first char (CR)
+.9e1a	20 ae d6	jsr $d6ae	                jsr cmpl_a              ; else output first char (CR)
 .9e1d	a9 0a		lda #$0a	                lda #10                 ; followed by LF
 .9e1f	80 28		bra $9e49	                bra _save_character
 .9e21					_check_esc_quote:
@@ -4614,7 +4616,7 @@
 .9e45	c9 22		cmp #$22	                cmp #$22        ; ASCII for "
 .9e47	f0 0c		beq $9e55	                beq _found_string_end
 .9e49					_save_character:
-.9e49	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.9e49	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .9e4c					_next_character:
 .9e4c	e6 0c		inc $0c		                inc toin
 .9e4e	d0 02		bne $9e52	                bne _savechars_loop_longjump
@@ -4652,7 +4654,7 @@
 .9e88					_done:
 .9e88	60		rts		z_s_quote:      rts
 .9e89					xt_s_to_d:
-.9e89	20 21 d8	jsr $d821	                jsr underflow_1
+.9e89	20 fb d7	jsr $d7fb	                jsr underflow_1
 .9e8c	ca		dex		                dex
 .9e8d	ca		dex		                dex
 .9e8e	74 00		stz $00,x	                stz 0,x
@@ -4689,7 +4691,7 @@
 .9ec3	95 01		sta $01,x	                sta 1,x
 .9ec5	60		rts		z_scr:          rts
 .9ec6					xt_search:
-.9ec6	20 30 d8	jsr $d830	                jsr underflow_4
+.9ec6	20 0a d8	jsr $d80a	                jsr underflow_4
 .9ec9	b5 00		lda $00,x	                lda 0,x
 .9ecb	15 01		ora $01,x	                ora 1,x
 .9ecd	d0 0b		bne $9eda	                bne _start_search
@@ -4787,7 +4789,7 @@
 .9f65	24 20		bit $20		                bit status
 .9f67	70 11		bvs $9f7a	                bvs _colonword
 .9f69	a9 60		lda #$60	                lda #$60                ; opcode for RTS
-.9f6b	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.9f6b	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .9f6e	ca		dex		                dex
 .9f6f	ca		dex		                dex
 .9f70	a5 04		lda $04		                lda workword
@@ -4803,7 +4805,7 @@
 .9f81	a5 01		lda $01		                lda cp+1
 .9f83	91 04		sta ($04),y	                sta (workword),y
 .9f85	a9 60		lda #$60	                lda #$60                ; opcode for RTS
-.9f87	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.9f87	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .9f8a	24 20		bit $20		                bit status
 .9f8c	10 26		bpl $9fb4	                bpl _new_word   ; Bit 7 is clear = new word
 .9f8e	ca		dex		                dex
@@ -4821,7 +4823,7 @@
 .9fa1	69 00		adc #$00	                adc #0                  ; only want carry
 .9fa3	95 03		sta $03,x	                sta 3,x
 .9fa5	a9 02		lda #$02	                lda #str_redefined       ; address of string "redefined"
-.9fa7	20 5d d8	jsr $d85d	                jsr print_string_no_lf
+.9fa7	20 37 d8	jsr $d837	                jsr print_string_no_lf
 .9faa	20 e0 a4	jsr $a4e0	                jsr xt_type
 .9fad	20 fb a0	jsr $a0fb	                jsr xt_space
 .9fb0	a9 80		lda #$80	                lda #%10000000
@@ -4831,13 +4833,13 @@
 .9fb6	85 02		sta $02		                sta dp
 .9fb8	a5 05		lda $05		                lda workword+1
 .9fba	85 03		sta $03		                sta dp+1
-.9fbc	20 76 d7	jsr $d776	                jsr dp_to_current       ; Save the updated DP to the
+.9fbc	20 50 d7	jsr $d750	                jsr dp_to_current       ; Save the updated DP to the
 .9fbf					_semicolon_done:
 .9fbf	64 16		stz $16		                stz state
 .9fc1	64 17		stz $17		                stz state+1
 .9fc3	60		rts		z_semicolon:    rts
 .9fc4					xt_sign:
-.9fc4	20 21 d8	jsr $d821	                jsr underflow_1
+.9fc4	20 fb d7	jsr $d7fb	                jsr underflow_1
 .9fc7	b5 01		lda $01,x	                lda 1,x         ; check MSB of TOS
 .9fc9	30 04		bmi $9fcf	                bmi _minus
 .9fcb	e8		inx		                inx
@@ -4871,7 +4873,7 @@
 .9ff5					z_slash_mod:
 .9ff5	60		rts		z_slash:        rts
 .9ff6					xt_slash_string:
-.9ff6	20 2b d8	jsr $d82b	                jsr underflow_3
+.9ff6	20 05 d8	jsr $d805	                jsr underflow_3
 .9ff9	18		clc		                clc             ; 3OS+TOS
 .9ffa	b5 00		lda $00,x	                lda 0,x
 .9ffc	75 04		adc $04,x	                adc 4,x
@@ -4890,11 +4892,11 @@
 .a014	e8		inx		                inx
 .a015	60		rts		z_slash_string: rts
 .a016					xt_sliteral:
-.a016	20 26 d8	jsr $d826	                jsr underflow_2
+.a016	20 00 d8	jsr $d800	                jsr underflow_2
 .a019	a9 4c		lda #$4c	                lda #$4C
-.a01b	20 d4 d6	jsr $d6d4	                jsr cmpl_a
-.a01e	20 d4 d6	jsr $d6d4	                jsr cmpl_a
-.a021	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.a01b	20 ae d6	jsr $d6ae	                jsr cmpl_a
+.a01e	20 ae d6	jsr $d6ae	                jsr cmpl_a
+.a021	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .a024	8a		txa		                txa
 .a025	38		sec		                sec
 .a026	e9 06		sbc #$06	                sbc #6
@@ -4936,13 +4938,13 @@
 .a06c					sliteral_const_str:
 .a06c	a0 a0		ldy #$a0	                ldy #>sliteral_runtime
 .a06e	a9 86		lda #$86	                lda #<sliteral_runtime
-.a070	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.a070	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .a073	b4 03		ldy $03,x	                ldy 3,x                ; address MSB
 .a075	b5 02		lda $02,x	                lda 2,x                ; address LSB
-.a077	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.a077	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .a07a	b4 01		ldy $01,x	                ldy 1,x                ; length MSB
 .a07c	b5 00		lda $00,x	                lda 0,x                ; length LSB
-.a07e	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.a07e	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .a081	e8		inx		                inx
 .a082	e8		inx		                inx
 .a083	e8		inx		                inx
@@ -4979,7 +4981,7 @@
 .a0b0	5a		phy		                phy
 .a0b1	60		rts		                rts
 .a0b2					xt_sm_slash_rem:
-.a0b2	20 2b d8	jsr $d82b	                jsr underflow_3 ; contains double number
+.a0b2	20 05 d8	jsr $d805	                jsr underflow_3 ; contains double number
 .a0b5	b5 03		lda $03,x	                lda 3,x
 .a0b7	48		pha		                pha
 .a0b8	b5 01		lda $01,x	                lda 1,x
@@ -5032,7 +5034,7 @@
 .a0fd	20 02 8e	jsr $8e02	                jsr emit_a
 .a100	60		rts		z_space:        rts
 .a101					xt_spaces:
-.a101	20 21 d8	jsr $d821	                jsr underflow_1
+.a101	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a104	20 85 a7	jsr $a785	                jsr xt_zero
 .a107	20 24 95	jsr $9524	                jsr xt_max
 .a10a	b5 00		lda $00,x	                lda 0,x
@@ -5069,7 +5071,7 @@
 .a13b	e8		inx		                inx
 .a13c	60		rts		z_spaces:       rts
 .a13d					xt_star:
-.a13d	20 26 d8	jsr $d826	                jsr underflow_2
+.a13d	20 00 d8	jsr $d800	                jsr underflow_2
 .a140	20 d9 a5	jsr $a5d9	                jsr xt_um_star
 .a143	e8		inx		                inx
 .a144	e8		inx		                inx
@@ -5082,7 +5084,7 @@
 .a14e					z_star_slash:
 .a14e	60		rts		                rts
 .a14f					xt_star_slash_mod:
-.a14f	20 2b d8	jsr $d82b	                jsr underflow_3
+.a14f	20 05 d8	jsr $d805	                jsr underflow_3
 .a152	20 4d a3	jsr $a34d	                jsr xt_to_r
 .a155	20 9a 94	jsr $949a	                jsr xt_m_star
 .a158	20 9e 9a	jsr $9a9e	                jsr xt_r_from
@@ -5098,7 +5100,7 @@
 .a167	95 01		sta $01,x	                sta 1,x
 .a169	60		rts		z_state:        rts
 .a16a					xt_store:
-.a16a	20 26 d8	jsr $d826	                jsr underflow_2
+.a16a	20 00 d8	jsr $d800	                jsr underflow_2
 .a16d	b5 02		lda $02,x	                lda 2,x         ; LSB
 .a16f	81 00		sta ($00,x)	                sta (0,x)
 .a171	f6 00		inc $00,x	                inc 0,x
@@ -5122,7 +5124,7 @@
 .a18a					z_strip_underflow:
 .a18a	60		rts		                rts
 .a18b					xt_swap:
-.a18b	20 26 d8	jsr $d826	                jsr underflow_2
+.a18b	20 00 d8	jsr $d800	                jsr underflow_2
 .a18e	b5 00		lda $00,x	                lda 0,x         ; LSB
 .a190	b4 02		ldy $02,x	                ldy 2,x
 .a192	95 02		sta $02,x	                sta 2,x
@@ -5138,7 +5140,7 @@
 .a1a5	20 6a a1	jsr $a16a	                jsr xt_store
 .a1a8	60		rts		z_then:         rts
 .a1a9					xt_thru:
-.a1a9	20 26 d8	jsr $d826	                jsr underflow_2
+.a1a9	20 00 d8	jsr $d800	                jsr underflow_2
 .a1ac	b5 01		lda $01,x	                lda 1,x
 .a1ae	48		pha		                pha
 .a1af	b5 00		lda $00,x	                lda 0,x
@@ -5189,14 +5191,14 @@
 .a1f3	15 01		ora $01,x	                ora 1,x
 .a1f5	d0 05		bne $a1fc	                bne +
 .a1f7	a9 05		lda #$05	                lda #err_noname
-.a1f9	4c 37 d8	jmp $d837	                jmp error
+.a1f9	4c 11 d8	jmp $d811	                jmp error
 .a1fc					+
 .a1fc	20 e7 8f	jsr $8fe7	                jsr xt_find_name        ; ( addr u -- nt )
 .a1ff	b5 00		lda $00,x	                lda 0,x
 .a201	15 01		ora $01,x	                ora 1,x
 .a203	d0 05		bne $a20a	                bne +
 .a205	a9 08		lda #$08	                lda #err_syntax
-.a207	4c 37 d8	jmp $d837	                jmp error
+.a207	4c 11 d8	jmp $d811	                jmp error
 .a20a					+
 .a20a	20 ed 95	jsr $95ed	                jsr xt_name_to_int      ; ( nt -- xt )
 .a20d	60		rts		z_tick:         rts
@@ -5216,30 +5218,30 @@
 .a224	f0 34		beq $a25a	                beq _interpret
 .a226	a0 00		ldy #$00	                ldy #$00                ; Code for LDA 0,X
 .a228	a9 b5		lda #$b5	                lda #$B5
-.a22a	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.a22a	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .a22d	a9 8d		lda #$8d	                lda #$8D                ; Code for STA abs
-.a22f	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.a22f	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .a232	a4 25		ldy $25		                ldy tmp1+1              ; MSB goes in Y
 .a234	a5 24		lda $24		                lda tmp1
-.a236	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.a236	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .a239	a0 01		ldy #$01	                ldy #$01                ; Code for LDA 1,X
 .a23b	a9 b5		lda #$b5	                lda #$B5
-.a23d	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.a23d	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .a240	a9 8d		lda #$8d	                lda #$8D                ; Code for STA abs
-.a242	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.a242	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .a245	e6 24		inc $24		                inc tmp1                ; Calculate MSB
 .a247	d0 02		bne $a24b	                bne +
 .a249	e6 25		inc $25		                inc tmp1+1
 .a24b					+
 .a24b	a4 25		ldy $25		                ldy tmp1+1              ; MSB goes in Y
 .a24d	a5 24		lda $24		                lda tmp1
-.a24f	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.a24f	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .a252	a0 e8		ldy #$e8	                ldy #$E8                ; Code for INX
 .a254	98		tya		                tya
-.a255	20 d0 d6	jsr $d6d0	                jsr cmpl_word
+.a255	20 aa d6	jsr $d6aa	                jsr cmpl_word
 .a258	80 0f		bra $a269	                bra _done
 .a25a					_interpret:
-.a25a	20 21 d8	jsr $d821	                jsr underflow_1
+.a25a	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a25d	b5 00		lda $00,x	                lda 0,x
 .a25f	92 24		sta ($24)	                sta (tmp1)              ; LSB
 .a261	a0 01		ldy #$01	                ldy #1
@@ -5250,7 +5252,7 @@
 .a269					_done:
 .a269	60		rts		z_to:           rts
 .a26a					xt_to_body:
-.a26a	20 21 d8	jsr $d821	                jsr underflow_1
+.a26a	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a26d	20 bb 8d	jsr $8dbb	                jsr xt_dup              ; ( xt xt )
 .a270	20 84 92	jsr $9284	                jsr xt_int_to_name      ; ( xt nt )
 .a273	f6 00		inc $00,x	                inc 0,x
@@ -5281,7 +5283,7 @@
 .a297	95 01		sta $01,x	                sta 1,x
 .a299	60		rts		z_to_in:        rts
 .a29a					xt_to_number:
-.a29a	20 30 d8	jsr $d830	                jsr underflow_4
+.a29a	20 0a d8	jsr $d80a	                jsr underflow_4
 .a29d	b5 06		lda $06,x	                lda 6,x         ; ud-lo LSB
 .a29f	85 36		sta $36		                sta scratch
 .a2a1	b5 07		lda $07,x	                lda 7,x         ; ud-lo MSB
@@ -5380,7 +5382,7 @@
 .a34d	68		pla		                pla             ; LSB
 .a34e	85 2c		sta $2c		                sta tmptos
 .a350	7a		ply		                ply             ; MSB
-.a351	20 21 d8	jsr $d821	                jsr underflow_1
+.a351	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a354	b5 01		lda $01,x	                lda 1,x         ; MSB
 .a356	48		pha		                pha
 .a357	b5 00		lda $00,x	                lda 0,x         ; LSB
@@ -5399,7 +5401,7 @@
 .a367	95 01		sta $01,x	                sta 1,x
 .a369	60		rts		z_true:         rts
 .a36a					xt_tuck:
-.a36a	20 26 d8	jsr $d826	                jsr underflow_2
+.a36a	20 00 d8	jsr $d800	                jsr underflow_2
 .a36d	ca		dex		                dex
 .a36e	ca		dex		                dex
 .a36f	b4 04		ldy $04,x	                ldy 4,x         ; LSB
@@ -5423,14 +5425,14 @@
 .a38c					z_assembler_wordlist:
 .a38c	60		rts		z_two:          rts
 .a38d					xt_two_drop:
-.a38d	20 26 d8	jsr $d826	                jsr underflow_2
+.a38d	20 00 d8	jsr $d800	                jsr underflow_2
 .a390	e8		inx		                inx
 .a391	e8		inx		                inx
 .a392	e8		inx		                inx
 .a393	e8		inx		                inx
 .a394	60		rts		z_two_drop:     rts
 .a395					xt_two_dup:
-.a395	20 26 d8	jsr $d826	                jsr underflow_2
+.a395	20 00 d8	jsr $d800	                jsr underflow_2
 .a398	ca		dex		                dex
 .a399	ca		dex		                dex
 .a39a	ca		dex		                dex
@@ -5445,7 +5447,7 @@
 .a3aa	95 03		sta $03,x	                sta 3,x
 .a3ac	60		rts		z_two_dup:      rts
 .a3ad					xt_two_fetch:
-.a3ad	20 21 d8	jsr $d821	                jsr underflow_1
+.a3ad	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a3b0	b5 00		lda $00,x	                lda 0,x
 .a3b2	85 24		sta $24		                sta tmp1
 .a3b4	b4 01		ldy $01,x	                ldy 1,x
@@ -5465,7 +5467,7 @@
 .a3cc	95 03		sta $03,x	                sta 3,x
 .a3ce	60		rts		z_two_fetch:    rts
 .a3cf					xt_two_over:
-.a3cf	20 30 d8	jsr $d830	                jsr underflow_4
+.a3cf	20 0a d8	jsr $d80a	                jsr underflow_4
 .a3d2	ca		dex		                dex
 .a3d3	ca		dex		                dex
 .a3d4	ca		dex		                dex
@@ -5521,7 +5523,7 @@
 .a420	48		pha		                pha
 .a421	60		rts		z_two_r_from:   rts
 .a422					xt_two_slash:
-.a422	20 21 d8	jsr $d821	                jsr underflow_1
+.a422	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a425	b5 01		lda $01,x	                lda 1,x
 .a427	0a		asl a		                asl                     ; save the sign
 .a428	76 01		ror $01,x	                ror 1,x
@@ -5529,13 +5531,13 @@
 .a42c	60		rts		z_two_slash:    rts
 .a42d					xt_two_star:
 .a42d					xt_cells:
-.a42d	20 21 d8	jsr $d821	                jsr underflow_1
+.a42d	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a430	16 00		asl $00,x	                asl 0,x
 .a432	36 01		rol $01,x	                rol 1,x
 .a434					z_cells:
 .a434	60		rts		z_two_star:     rts
 .a435					xt_two_store:
-.a435	20 2b d8	jsr $d82b	                jsr underflow_3
+.a435	20 05 d8	jsr $d805	                jsr underflow_3
 .a438	b5 00		lda $00,x	                lda 0,x
 .a43a	85 24		sta $24		                sta tmp1
 .a43c	b4 01		ldy $01,x	                ldy 1,x
@@ -5559,7 +5561,7 @@
 .a459	e8		inx		                inx
 .a45a	60		rts		z_two_store:    rts
 .a45b					xt_two_swap:
-.a45b	20 30 d8	jsr $d830	                jsr underflow_4
+.a45b	20 0a d8	jsr $d80a	                jsr underflow_4
 .a45e	b5 00		lda $00,x	                lda 0,x
 .a460	b4 04		ldy $04,x	                ldy 4,x
 .a462	95 04		sta $04,x	                sta 4,x
@@ -5582,7 +5584,7 @@
 .a480	85 24		sta $24		                sta tmp1
 .a482	68		pla		                pla             ; MSB
 .a483	85 25		sta $25		                sta tmp1+1
-.a485	20 26 d8	jsr $d826	                jsr underflow_2
+.a485	20 00 d8	jsr $d800	                jsr underflow_2
 .a488	b5 03		lda $03,x	                lda 3,x         ; MSB
 .a48a	48		pha		                pha
 .a48b	b5 02		lda $02,x	                lda 2,x         ; LSB
@@ -5601,13 +5603,13 @@
 .a49d	48		pha		                pha
 .a49e	60		rts		z_two_to_r:     rts
 .a49f					xt_two_constant:
-.a49f	20 26 d8	jsr $d826	                jsr underflow_2
+.a49f	20 00 d8	jsr $d800	                jsr underflow_2
 .a4a2	20 75 89	jsr $8975	                jsr xt_create
 .a4a5	20 8b a1	jsr $a18b	                jsr xt_swap
 .a4a8	20 7a 87	jsr $877a	                jsr xt_comma
 .a4ab	20 7a 87	jsr $877a	                jsr xt_comma
 .a4ae	20 10 8c	jsr $8c10	                jsr does_runtime    ; does> turns into these two routines.
-.a4b1	20 0a d7	jsr $d70a	                jsr dodoes
+.a4b1	20 e4 d6	jsr $d6e4	                jsr dodoes
 .a4b4	20 bb 8d	jsr $8dbb	                jsr xt_dup
 .a4b7	20 8c 8f	jsr $8f8c	                jsr xt_fetch
 .a4ba	20 8b a1	jsr $a18b	                jsr xt_swap
@@ -5615,7 +5617,7 @@
 .a4c0	20 8c 8f	jsr $8f8c	                jsr xt_fetch
 .a4c3	60		rts		z_two_constant: rts
 .a4c4					xt_two_literal:
-.a4c4	20 26 d8	jsr $d826	                jsr underflow_2 ; double number
+.a4c4	20 00 d8	jsr $d800	                jsr underflow_2 ; double number
 .a4c7	20 8b a1	jsr $a18b	                jsr xt_swap
 .a4ca	20 96 93	jsr $9396	                jsr xt_literal
 .a4cd	20 96 93	jsr $9396	                jsr xt_literal
@@ -5630,7 +5632,7 @@
 .a4dc	20 95 82	jsr $8295	                jsr xt_allot
 .a4df	60		rts		z_two_variable: rts
 .a4e0					xt_type:
-.a4e0	20 26 d8	jsr $d826	                jsr underflow_2
+.a4e0	20 00 d8	jsr $d800	                jsr underflow_2
 .a4e3	b5 02		lda $02,x	                lda 2,x
 .a4e5	85 24		sta $24		                sta tmp1
 .a4e7	b5 03		lda $03,x	                lda 3,x
@@ -5658,13 +5660,13 @@
 .a509	e8		inx		                inx
 .a50a	60		rts		z_type:         rts
 .a50b					xt_u_dot:
-.a50b	20 21 d8	jsr $d821	                jsr underflow_1
-.a50e	20 8e d8	jsr $d88e	                jsr print_u
+.a50b	20 fb d7	jsr $d7fb	                jsr underflow_1
+.a50e	20 68 d8	jsr $d868	                jsr print_u
 .a511	a9 20		lda #$20	                lda #AscSP
 .a513	20 02 8e	jsr $8e02	                jsr emit_a
 .a516	60		rts		z_u_dot:        rts
 .a517					xt_u_dot_r:
-.a517	20 26 d8	jsr $d826	                jsr underflow_2
+.a517	20 00 d8	jsr $d800	                jsr underflow_2
 .a51a	20 4d a3	jsr $a34d	                jsr xt_to_r
 .a51d	20 85 a7	jsr $a785	                jsr xt_zero
 .a520	20 66 93	jsr $9366	                jsr xt_less_number_sign
@@ -5677,7 +5679,7 @@
 .a535	20 e0 a4	jsr $a4e0	                jsr xt_type
 .a538	60		rts		z_u_dot_r:      rts
 .a539					xt_u_greater_than:
-.a539	20 26 d8	jsr $d826	                jsr underflow_2
+.a539	20 00 d8	jsr $d800	                jsr underflow_2
 .a53c	b5 00		lda $00,x	                lda 0,x
 .a53e	d5 02		cmp $02,x	                cmp 2,x
 .a540	b5 01		lda $01,x	                lda 1,x
@@ -5690,7 +5692,7 @@
 .a54c	95 01		sta $01,x	                sta 1,x
 .a54e	60		rts		z_u_greater_than:    rts
 .a54f					xt_u_less_than:
-.a54f	20 26 d8	jsr $d826	                jsr underflow_2
+.a54f	20 00 d8	jsr $d800	                jsr underflow_2
 .a552	b5 02		lda $02,x	                lda 2,x
 .a554	d5 00		cmp $00,x	                cmp 0,x
 .a556	b5 03		lda $03,x	                lda 3,x
@@ -5703,7 +5705,7 @@
 .a562	95 01		sta $01,x	                sta 1,x
 .a564	60		rts		z_u_less_than:    rts
 .a565					xt_ud_dot:
-.a565	20 26 d8	jsr $d826	                jsr underflow_2 ; double number
+.a565	20 00 d8	jsr $d800	                jsr underflow_2 ; double number
 .a568	20 66 93	jsr $9366	                jsr xt_less_number_sign
 .a56b	20 ea 97	jsr $97ea	                jsr xt_number_sign_s
 .a56e	20 c8 97	jsr $97c8	                jsr xt_number_sign_greater
@@ -5711,7 +5713,7 @@
 .a574	20 fb a0	jsr $a0fb	                jsr xt_space
 .a577	60		rts		z_ud_dot:        rts
 .a578					xt_ud_dot_r:
-.a578	20 2b d8	jsr $d82b	                jsr underflow_3
+.a578	20 05 d8	jsr $d805	                jsr underflow_3
 .a57b	20 4d a3	jsr $a34d	                jsr xt_to_r
 .a57e	20 66 93	jsr $9366	                jsr xt_less_number_sign
 .a581	20 ea 97	jsr $97ea	                jsr xt_number_sign_s
@@ -5723,12 +5725,12 @@
 .a593	20 e0 a4	jsr $a4e0	                jsr xt_type
 .a596	60		rts		z_ud_dot_r:      rts
 .a597					xt_um_slash_mod:
-.a597	20 2b d8	jsr $d82b	                jsr underflow_3
+.a597	20 05 d8	jsr $d805	                jsr underflow_3
 .a59a	b5 00		lda $00,x	                lda 0,x
 .a59c	15 01		ora $01,x	                ora 1,x
 .a59e	d0 05		bne $a5a5	                bne _not_zero
 .a5a0	a9 04		lda #$04	                lda #err_divzero
-.a5a2	4c 37 d8	jmp $d837	                jmp error
+.a5a2	4c 11 d8	jmp $d811	                jmp error
 .a5a5					_not_zero:
 .a5a5	a9 11		lda #$11	                lda #17
 .a5a7	85 2c		sta $2c		                sta tmptos
@@ -5761,7 +5763,7 @@
 .a5d5	20 8b a1	jsr $a18b	                jsr xt_swap
 .a5d8	60		rts		z_um_slash_mod: rts
 .a5d9					xt_um_star:
-.a5d9	20 26 d8	jsr $d826	                jsr underflow_2
+.a5d9	20 00 d8	jsr $d800	                jsr underflow_2
 .a5dc	18		clc		                clc
 .a5dd	b5 00		lda $00,x	                lda 0,x         ; copy TOS to tmp2
 .a5df	e9 00		sbc #$00	                sbc #0
@@ -5815,7 +5817,7 @@
 .a626					xt_until:
 .a626	a0 92		ldy #$92	                ldy #>zero_branch_runtime
 .a628	a9 20		lda #$20	                lda #<zero_branch_runtime
-.a62a	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.a62a	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .a62d	20 7a 87	jsr $877a	                jsr xt_comma
 .a630	60		rts		z_until:        rts
 .a631					xt_unused:
@@ -5861,14 +5863,14 @@
 .a66e					xt_while:
 .a66e	a0 92		ldy #$92	                ldy #>zero_branch_runtime
 .a670	a9 20		lda #$20	                lda #<zero_branch_runtime
-.a672	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
+.a672	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
 .a675	20 7e 91	jsr $917e	                jsr xt_here
 .a678	20 85 a7	jsr $a785	                jsr xt_zero
 .a67b	20 7a 87	jsr $877a	                jsr xt_comma
 .a67e	20 8b a1	jsr $a18b	                jsr xt_swap
 .a681	60		rts		z_while:        rts
 .a682					xt_within:
-.a682	20 2b d8	jsr $d82b	                jsr underflow_3
+.a682	20 05 d8	jsr $d805	                jsr underflow_3
 .a685	20 9f 98	jsr $989f	                jsr xt_over
 .a688	20 5c 95	jsr $955c	                jsr xt_minus
 .a68b	20 4d a3	jsr $a34d	                jsr xt_to_r
@@ -5877,7 +5879,7 @@
 .a694	20 4f a5	jsr $a54f	                jsr xt_u_less_than
 .a697	60		rts		z_within:       rts
 .a698					xt_word:
-.a698	20 21 d8	jsr $d821	                jsr underflow_1
+.a698	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a69b	a4 0c		ldy $0c		                ldy toin                ; >IN
 .a69d					_loop:
 .a69d	c4 0a		cpy $0a		                cpy ciblen              ; quit if end of input
@@ -5922,7 +5924,7 @@
 .a6e2	c9 0c		cmp #$0c	                cmp #max_wordlists
 .a6e4	d0 05		bne $a6eb	                bne _ok
 .a6e6	a9 0b		lda #$0b	                lda #err_wordlist
-.a6e8	4c 37 d8	jmp $d837	                jmp error
+.a6e8	4c 11 d8	jmp $d811	                jmp error
 .a6eb					_ok:
 .a6eb	1a		inc a		                ina             ; Increment the wordlist#
 .a6ec	91 1e		sta ($1e),y	                sta (up),y      ; Save it into byte variable #wordlists
@@ -5989,7 +5991,7 @@
 .a750	e8		inx		                inx
 .a751	60		rts		z_words:        rts
 .a752					xt_wordsize:
-.a752	20 21 d8	jsr $d821	                jsr underflow_1
+.a752	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a755	b5 00		lda $00,x	                lda 0,x
 .a757	85 24		sta $24		                sta tmp1
 .a759	b5 01		lda $01,x	                lda 1,x
@@ -6009,7 +6011,7 @@
 .a770	95 01		sta $01,x	                sta 1,x
 .a772	60		rts		z_wordsize:     rts
 .a773					xt_xor:
-.a773	20 26 d8	jsr $d826	                jsr underflow_2
+.a773	20 00 d8	jsr $d800	                jsr underflow_2
 .a776	b5 00		lda $00,x	                lda 0,x
 .a778	55 02		eor $02,x	                eor 2,x
 .a77a	95 02		sta $02,x	                sta 2,x
@@ -6031,7 +6033,7 @@
 .a78b					z_zero:
 .a78b	60		rts		                rts
 .a78c					xt_zero_equal:
-.a78c	20 21 d8	jsr $d821	                jsr underflow_1
+.a78c	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a78f	b5 00		lda $00,x	                lda 0,x
 .a791	15 01		ora $01,x	                ora 1,x
 .a793	f0 04		beq $a799	                beq _zero
@@ -6044,7 +6046,7 @@
 .a79d	95 01		sta $01,x	                sta 1,x
 .a79f	60		rts		z_zero_equal:   rts
 .a7a0					xt_zero_greater:
-.a7a0	20 21 d8	jsr $d821	                jsr underflow_1
+.a7a0	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a7a3	a0 00		ldy #$00	                ldy #0          ; Default is FALSE (TOS is negative)
 .a7a5	b5 01		lda $01,x	                lda 1,x         ; MSB
 .a7a7	30 05		bmi $a7ae	                bmi _done       ; TOS is negative, keep FLASE
@@ -6057,7 +6059,7 @@
 .a7b1	95 01		sta $01,x	                sta 1,x
 .a7b3	60		rts		z_zero_greater: rts
 .a7b4					xt_zero_less:
-.a7b4	20 21 d8	jsr $d821	                jsr underflow_1
+.a7b4	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a7b7	a0 00		ldy #$00	                ldy #0          ; Default is FALSE (TOS positive)
 .a7b9	b5 01		lda $01,x	                lda 1,x         ; MSB
 .a7bb	10 01		bpl $a7be	                bpl _done       ; TOS is positive, so keep FALSE
@@ -6068,7 +6070,7 @@
 .a7c1	95 01		sta $01,x	                sta 1,x
 .a7c3	60		rts		z_zero_less:    rts
 .a7c4					xt_zero_unequal:
-.a7c4	20 21 d8	jsr $d821	                jsr underflow_1
+.a7c4	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a7c7	a0 00		ldy #$00	                ldy #0          ; default false
 .a7c9	b5 00		lda $00,x	                lda 0,x
 .a7cb	15 01		ora $01,x	                ora 1,x
@@ -6188,7 +6190,7 @@
 .a89d	e8		inx		                inx
 .a89e	60		rts		z_editor_l:            rts
 .a89f					xt_editor_line:
-.a89f	20 21 d8	jsr $d821	                jsr underflow_1
+.a89f	20 fb d7	jsr $d7fb	                jsr underflow_1
 .a8a2	a0 06		ldy #$06	                ldy #6          ; *64 is same as left shift 6 times.
 .a8a4					_shift_tos_left:
 .a8a4	16 00		asl $00,x	                asl 0,x         ; Shift TOS to the left
@@ -6950,7 +6952,7 @@
 .ac59					z_asm_tya:
 .ac59					asm_common:
 .ac59	a8		tay		                tay
-.ac5a	20 d4 d6	jsr $d6d4	                jsr cmpl_a
+.ac5a	20 ae d6	jsr $d6ae	                jsr cmpl_a
 .ac5d	a9 c5		lda #$c5	                lda #<oc_index_table
 .ac5f	85 26		sta $26		                sta tmp2
 .ac61	a9 ae		lda #$ae	                lda #>oc_index_table
@@ -6974,13 +6976,13 @@
 .ac7c	a8		tay		                tay
 .ac7d	88		dey		                dey
 .ac7e	f0 12		beq $ac92	                beq _done
-.ac80	20 21 d8	jsr $d821	                jsr underflow_1
+.ac80	20 fb d7	jsr $d7fb	                jsr underflow_1
 .ac83	b5 00		lda $00,x	                lda 0,x
-.ac85	20 d4 d6	jsr $d6d4	                jsr cmpl_a      ; does not use Y
+.ac85	20 ae d6	jsr $d6ae	                jsr cmpl_a      ; does not use Y
 .ac88	88		dey		                dey
 .ac89	f0 05		beq $ac90	                beq _done_drop
 .ac8b	b5 01		lda $01,x	                lda 1,x
-.ac8d	20 d4 d6	jsr $d6d4	                jsr cmpl_a      ; Fall through to _done_drop
+.ac8d	20 ae d6	jsr $d6ae	                jsr cmpl_a      ; Fall through to _done_drop
 .ac90					_done_drop:
 .ac90	e8		inx		                inx
 .ac91	e8		inx		                inx             ; Fall through to _done
@@ -6992,7 +6994,7 @@
 .ac95	b9 a3 ac	lda $aca3,y	                lda asm_push_a_data,y
 .ac98	c9 ff		cmp #$ff	                cmp #$FF
 .ac9a	f0 06		beq $aca2	                beq _done
-.ac9c	20 d4 d6	jsr $d6d4	                jsr cmpl_a      ; does not change Y
+.ac9c	20 ae d6	jsr $d6ae	                jsr cmpl_a      ; does not change Y
 .ac9f	c8		iny		                iny
 .aca0	80 f3		bra $ac95	                bra _loop
 .aca2					_done:
@@ -7213,8 +7215,8 @@
 .ae14					disasm_sliteral:
 .ae14	a9 53		lda #$53	                lda #'S'
 .ae16	20 02 8e	jsr $8e02	                jsr emit_a ; Print S before LITERAL so it becomes SLITERAL
-.ae19	a9 0d		lda #$0d	                lda #str_disasm_lit     ; "LITERAL "
-.ae1b	20 5d d8	jsr $d85d	                jsr print_string_no_lf
+.ae19	a9 0c		lda #$0c	                lda #str_disasm_lit     ; "LITERAL "
+.ae1b	20 37 d8	jsr $d837	                jsr print_string_no_lf
 .ae1e	20 8b a1	jsr $a18b	                jsr xt_swap             ; switch to (u addr)
 .ae21	20 29 98	jsr $9829	                jsr xt_one_plus
 .ae24	20 bb 8d	jsr $8dbb	                jsr xt_dup
@@ -7237,12 +7239,12 @@
 .ae4b	a9 30		lda #$30	                lda #'0'
 .ae4d	20 02 8e	jsr $8e02	                jsr emit_a ; Print 0 before BRANCH so it becomes 0BRANCH
 .ae50					disasm_branch:
-.ae50	a9 0f		lda #$0f	                lda #str_disasm_bra
-.ae52	20 5d d8	jsr $d85d	                jsr print_string_no_lf ; "BRANCH "
+.ae50	a9 0e		lda #$0e	                lda #str_disasm_bra
+.ae52	20 37 d8	jsr $d837	                jsr print_string_no_lf ; "BRANCH "
 .ae55	80 05		bra $ae5c	                bra disasm_print_literal
 .ae57					disasm_literal:
-.ae57	a9 0d		lda #$0d	                lda #str_disasm_lit
-.ae59	20 5d d8	jsr $d85d	                jsr print_string_no_lf ; "LITERAL "
+.ae57	a9 0c		lda #$0c	                lda #str_disasm_lit
+.ae59	20 37 d8	jsr $d837	                jsr print_string_no_lf ; "LITERAL "
 .ae5c					disasm_print_literal:
 .ae5c	20 8b a1	jsr $a18b	                jsr xt_swap ; switch to (u addr)
 .ae5f	20 29 98	jsr $9829	                jsr xt_one_plus
@@ -7277,24 +7279,24 @@
 .ae9a	95 01		sta $01,x	                sta 1,x
 .ae9c	ca		dex		                dex
 .ae9d	ca		dex		                dex
-.ae9e	a9 21		lda #$21	                lda #<underflow_1
+.ae9e	a9 fb		lda #$fb	                lda #<underflow_1
 .aea0	95 00		sta $00,x	                sta 0,x
-.aea2	a9 d8		lda #$d8	                lda #>underflow_1
+.aea2	a9 d7		lda #$d7	                lda #>underflow_1
 .aea4	95 01		sta $01,x	                sta 1,x
-.aea6	20 48 d7	jsr $d748	                jsr compare_16bit
+.aea6	20 22 d7	jsr $d722	                jsr compare_16bit
 .aea9	f0 02		beq $aead	                beq _disasm_jsr_uflow_check_upper
 .aeab	b0 14		bcs $aec1	                bcs _disasm_jsr_unknown
 .aead					_disasm_jsr_uflow_check_upper:
-.aead	a9 30		lda #$30	                lda #<underflow_4
+.aead	a9 0a		lda #$0a	                lda #<underflow_4
 .aeaf	95 00		sta $00,x	                sta 0,x
 .aeb1	a9 d8		lda #$d8	                lda #>underflow_4
 .aeb3	95 01		sta $01,x	                sta 1,x
-.aeb5	20 48 d7	jsr $d748	                jsr compare_16bit
+.aeb5	20 22 d7	jsr $d722	                jsr compare_16bit
 .aeb8	f0 02		beq $aebc	                beq _disasm_jsr_soc
 .aeba	90 05		bcc $aec1	                bcc _disasm_jsr_unknown
 .aebc					_disasm_jsr_soc:
-.aebc	a9 0e		lda #$0e	                lda #str_disasm_sdc
-.aebe	20 5d d8	jsr $d85d	                jsr print_string_no_lf  ; "STACK DEPTH CHECK"
+.aebc	a9 0d		lda #$0d	                lda #str_disasm_sdc
+.aebe	20 37 d8	jsr $d837	                jsr print_string_no_lf  ; "STACK DEPTH CHECK"
 .aec1					_disasm_jsr_unknown:
 .aec1	20 8d a3	jsr $a38d	                jsr xt_two_drop
 .aec4	60		rts		                rts
@@ -9263,12 +9265,14 @@
 >c641	64 75 6d 70			        .text "dump"
 .c645					nt_dot_s:
 >c645	02 00				        .byte 2, 0
->c647	4f c6 ac 8c ef 8c		        .word nt_disasm, xt_dot_s, z_dot_s
+>c647	4f c6 ac 8c ef 8c		        .word +, xt_dot_s, z_dot_s
 >c64d	2e 73				        .text ".s"
+.c64f					+
 .c64f					nt_disasm:
 >c64f	06 10				        .byte 6, UF
->c651	5d c6 46 8b 4c 8b		        .word nt_compare, xt_disasm, z_disasm
+>c651	5d c6 46 8b 4c 8b		        .word +, xt_disasm, z_disasm
 >c657	64 69 73 61 73 6d		        .text "disasm"
+.c65d					+
 .c65d					nt_compare:
 >c65d	07 10				        .byte 7, UF
 >c65f	6c c6 94 87 f8 87		        .word nt_search, xt_compare, z_compare
@@ -10514,56 +10518,67 @@
 
 ;******  Processing file: platform/../strings.asm
 
-=0					str_ok             =  0
-=1					str_compile        =  1
-=2					str_redefined      =  2
-=3					str_wid_forth      =  3
-=4					str_abc_lower      =  4
-=5					str_abc_upper      =  5
-=6					str_wid_editor     =  6
-=7					str_wid_assembler  =  7
-=8					str_wid_root       =  8
-=9					str_see_flags      =  9
-=10					str_see_nt         = 10
-=11					str_see_xt         = 11
-=12					str_see_size       = 12
-=13					str_disasm_lit     = 13
-=14					str_disasm_sdc     = 14
-=15					str_disasm_bra     = 15
+=0					ix := 0
+=0					str_ok             = ix
+=1					ix += 1
+=1					str_compile        = ix
+=2					ix += 1
+=2					str_redefined      = ix
+=3					ix += 1
+=3					str_abc_upper      = ix
+=4					ix += 1
+=4					str_wid_forth      = ix
+=5					ix += 1
+=5					str_wid_editor     = ix
+=6					ix += 1
+=6					str_wid_assembler  = ix
+=7					ix += 1
+=7					str_wid_root       = ix
+=8					ix += 1
+=8					str_see_flags      = ix
+=9					ix += 1
+=9					str_see_nt         = ix
+=10					ix += 1
+=10					str_see_xt         = ix
+=11					ix += 1
+=11					str_see_size       = ix
+=12					ix += 1
+=12					str_disasm_lit     = ix
+=13					ix += 1
+=13					str_disasm_sdc     = ix
+=14					ix += 1
+=14					str_disasm_bra     = ix
+=15					ix += 1
 .d3a3					string_table:
->d3a3	c3 d3 c7 d3 d1 d3 37 d4		        .word s_ok, s_compiled, s_redefined, s_wid_forth, s_abc_lower ; 0-4
->d3ab	dc d3
->d3ad	00 d4 2f d4 24 d4 3e d4		        .word s_abc_upper, s_wid_editor, s_wid_asm, s_wid_root        ; 5-8
->d3b5	44 d4 60 d4 65 d4 6a d4		        .word s_see_flags, s_see_nt, s_see_xt, s_see_size             ; 9-12
->d3bd	7b d4 84 d4 96 d4		        .word s_disasm_lit, s_disasm_sdc, s_disasm_bra                ; 13-15
->d3c3	20 6f 6b 00			s_ok:         .text " ok", 0         ; note space at beginning
->d3c7	20 63 6f 6d 70 69 6c 65		s_compiled:   .text " compiled", 0   ; note space at beginning
->d3cf	64 00
->d3d1	72 65 64 65 66 69 6e 65		s_redefined:  .text "redefined ", 0  ; note space at end
->d3d9	64 20 00
->d3dc	30 31 32 33 34 35 36 37		s_abc_lower:  .text "0123456789abcdefghijklmnopqrstuvwxyz"
->d3e4	38 39 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e
->d3f4	6f 70 71 72 73 74 75 76 77 78 79 7a
->d400	30 31 32 33 34 35 36 37		s_abc_upper:  .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
->d408	38 39 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e
->d418	4f 50 51 52 53 54 55 56 57 58 59 5a
->d424	41 73 73 65 6d 62 6c 65		s_wid_asm:    .text "Assembler ", 0  ; Wordlist ID 2, note space at end
->d42c	72 20 00
->d42f	45 64 69 74 6f 72 20 00		s_wid_editor: .text "Editor ", 0     ; Wordlist ID 1, note space at end
->d437	46 6f 72 74 68 20 00		s_wid_forth:  .text "Forth ", 0      ; Wordlist ID 0, note space at end
->d43e	52 6f 6f 74 20 00		s_wid_root:   .text "Root ", 0       ; Wordlist ID 3, note space at end
->d444	66 6c 61 67 73 20 28 43		s_see_flags:  .text "flags (CO AN IM NN UF HC): ", 0
->d44c	4f 20 41 4e 20 49 4d 20 4e 4e 20 55 46 20 48 43
->d45c	29 3a 20 00
->d460	6e 74 3a 20 00			s_see_nt:     .text "nt: ", 0
->d465	78 74 3a 20 00			s_see_xt:     .text "xt: ", 0
->d46a	73 69 7a 65 20 28 64 65		s_see_size:   .text "size (decimal): ", 0
->d472	63 69 6d 61 6c 29 3a 20 00
->d47b	4c 49 54 45 52 41 4c 20		s_disasm_lit: .text "LITERAL ", 0
->d483	00
->d484	53 54 41 43 4b 20 44 45		s_disasm_sdc: .text "STACK DEPTH CHECK", 0
->d48c	50 54 48 20 43 48 45 43 4b 00
->d496	42 52 41 4e 43 48 20 00		s_disasm_bra: .text "BRANCH ",0
+>d3a3	c1 d3 c5 d3 cf d3 da d3		        .word s_ok, s_compiled, s_redefined, s_abc_upper              ; 0-3
+>d3ab	11 d4 09 d4 fe d3 18 d4		        .word s_wid_forth, s_wid_editor, s_wid_asm, s_wid_root        ; 4-7
+>d3b3	1e d4 3a d4 3f d4 44 d4		        .word s_see_flags, s_see_nt, s_see_xt, s_see_size             ; 8-11
+>d3bb	55 d4 5e d4 70 d4		        .word s_disasm_lit, s_disasm_sdc, s_disasm_bra                ; 12-14
+>d3c1	20 6f 6b 00			s_ok:         .text " ok", 0         ; note space at beginning
+>d3c5	20 63 6f 6d 70 69 6c 65		s_compiled:   .text " compiled", 0   ; note space at beginning
+>d3cd	64 00
+>d3cf	72 65 64 65 66 69 6e 65		s_redefined:  .text "redefined ", 0  ; note space at end
+>d3d7	64 20 00
+>d3da	30 31 32 33 34 35 36 37		s_abc_upper:  .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+>d3e2	38 39 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e
+>d3f2	4f 50 51 52 53 54 55 56 57 58 59 5a
+>d3fe	41 73 73 65 6d 62 6c 65		s_wid_asm:    .text "Assembler ", 0  ; Wordlist ID 2, note space at end
+>d406	72 20 00
+>d409	45 64 69 74 6f 72 20 00		s_wid_editor: .text "Editor ", 0     ; Wordlist ID 1, note space at end
+>d411	46 6f 72 74 68 20 00		s_wid_forth:  .text "Forth ", 0      ; Wordlist ID 0, note space at end
+>d418	52 6f 6f 74 20 00		s_wid_root:   .text "Root ", 0       ; Wordlist ID 3, note space at end
+>d41e	66 6c 61 67 73 20 28 43		s_see_flags:  .text "flags (CO AN IM NN UF HC): ", 0
+>d426	4f 20 41 4e 20 49 4d 20 4e 4e 20 55 46 20 48 43
+>d436	29 3a 20 00
+>d43a	6e 74 3a 20 00			s_see_nt:     .text "nt: ", 0
+>d43f	78 74 3a 20 00			s_see_xt:     .text "xt: ", 0
+>d444	73 69 7a 65 20 28 64 65		s_see_size:   .text "size (decimal): ", 0
+>d44c	63 69 6d 61 6c 29 3a 20 00
+>d455	4c 49 54 45 52 41 4c 20		s_disasm_lit: .text "LITERAL ", 0
+>d45d	00
+>d45e	53 54 41 43 4b 20 44 45		s_disasm_sdc: .text "STACK DEPTH CHECK", 0
+>d466	50 54 48 20 43 48 45 43 4b 00
+>d470	42 52 41 4e 43 48 20 00		s_disasm_bra: .text "BRANCH ",0
 =0					err_allot        = 0
 =1					err_badsource    = 1
 =2					err_compileonly  = 2
@@ -10578,380 +10593,380 @@
 =11					err_wordlist     = 11
 =12					err_blockwords   = 12
 =13					err_returnstack  = 13
-.d49e					error_table:
->d49e	ba d4 db d4 fb d4 1c d5		        .word es_allot, es_badsource, es_compileonly, es_defer  ;  0-3
->d4a6	39 d5 4a d5 5a d5 88 d5		        .word es_divzero, es_noname, es_refill, es_state        ;  4-7
->d4ae	a0 d5 af d5 c4 d5 e0 d5		        .word es_syntax, es_underflow, es_negallot, es_wordlist ;  8-11
->d4b6	f7 d5 36 d6			        .word es_blockwords, es_returnstack                     ; 12-13
->d4ba	41 4c 4c 4f 54 20 75 73		es_allot:       .text "ALLOT using all available memory", 0
->d4c2	69 6e 67 20 61 6c 6c 20 61 76 61 69 6c 61 62 6c
->d4d2	65 20 6d 65 6d 6f 72 79 00
->d4db	49 6c 6c 65 67 61 6c 20		es_badsource:   .text "Illegal SOURCE-ID during REFILL", 0
->d4e3	53 4f 55 52 43 45 2d 49 44 20 64 75 72 69 6e 67
->d4f3	20 52 45 46 49 4c 4c 00
->d4fb	49 6e 74 65 72 70 72 65		es_compileonly: .text "Interpreting a compile-only word", 0
->d503	74 69 6e 67 20 61 20 63 6f 6d 70 69 6c 65 2d 6f
->d513	6e 6c 79 20 77 6f 72 64 00
->d51c	44 45 46 45 52 65 64 20		es_defer:       .text "DEFERed word not defined yet", 0
->d524	77 6f 72 64 20 6e 6f 74 20 64 65 66 69 6e 65 64
->d534	20 79 65 74 00
->d539	44 69 76 69 73 69 6f 6e		es_divzero:     .text "Division by zero", 0
->d541	20 62 79 20 7a 65 72 6f 00
->d54a	50 61 72 73 69 6e 67 20		es_noname:      .text "Parsing failure", 0
->d552	66 61 69 6c 75 72 65 00
->d55a	51 55 49 54 20 63 6f 75		es_refill:      .text "QUIT could not get input (REFILL returned -1)", 0
->d562	6c 64 20 6e 6f 74 20 67 65 74 20 69 6e 70 75 74
->d572	20 28 52 45 46 49 4c 4c 20 72 65 74 75 72 6e 65
->d582	64 20 2d 31 29 00
->d588	41 6c 72 65 61 64 79 20		es_state:       .text "Already in compile mode", 0
->d590	69 6e 20 63 6f 6d 70 69 6c 65 20 6d 6f 64 65 00
->d5a0	55 6e 64 65 66 69 6e 65		es_syntax:      .text "Undefined word", 0
->d5a8	64 20 77 6f 72 64 00
->d5af	44 61 74 61 20 73 74 61		es_underflow:   .text "Data stack underflow", 0
->d5b7	63 6b 20 75 6e 64 65 72 66 6c 6f 77 00
->d5c4	4d 61 78 20 6d 65 6d 6f		es_negallot:    .text "Max memory freed with ALLOT", 0
->d5cc	72 79 20 66 72 65 65 64 20 77 69 74 68 20 41 4c
->d5dc	4c 4f 54 00
->d5e0	4e 6f 20 77 6f 72 64 6c		es_wordlist:    .text "No wordlists available", 0
->d5e8	69 73 74 73 20 61 76 61 69 6c 61 62 6c 65 00
->d5f7	50 6c 65 61 73 65 20 61		es_blockwords:  .text "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR",0
->d5ff	73 73 69 67 6e 20 76 65 63 74 6f 72 73 20 42 4c
->d60f	4f 43 4b 2d 52 45 41 44 2d 56 45 43 54 4f 52 20
->d61f	61 6e 64 20 42 4c 4f 43 4b 2d 57 52 49 54 45 2d
->d62f	56 45 43 54 4f 52 00
->d636	52 65 74 75 72 6e 20 73		es_returnstack: .text "Return stack:", 0
->d63e	74 61 63 6b 3a 00
->d644	0f 2f 43 4f 55 4e 54 45		envs_cs:        .text 15, "/COUNTED-STRING"
->d64c	44 2d 53 54 52 49 4e 47
->d654	05 2f 48 4f 4c 44		envs_hold:      .text 5, "/HOLD"
->d65a	04 2f 50 41 44			envs_pad:       .text 4, "/PAD"
->d65f	11 41 44 44 52 45 53 53		envs_aub:       .text 17, "ADDRESS-UNIT-BITS"
->d667	2d 55 4e 49 54 2d 42 49 54 53
->d671	07 46 4c 4f 4f 52 45 44		envs_floored:   .text 7, "FLOORED"
->d679	08 4d 41 58 2d 43 48 41		envs_max_char:  .text 8, "MAX-CHAR"
->d681	52
->d682	05 4d 41 58 2d 4e		envs_max_n:     .text 5, "MAX-N"
->d688	05 4d 41 58 2d 55		envs_max_u:     .text 5, "MAX-U"
->d68e	12 52 45 54 55 52 4e 2d		envs_rsc:       .text 18, "RETURN-STACK-CELLS"
->d696	53 54 41 43 4b 2d 43 45 4c 4c 53
->d6a1	0b 53 54 41 43 4b 2d 43		envs_sc:        .text 11, "STACK-CELLS"
->d6a9	45 4c 4c 53
->d6ad	09 57 4f 52 44 4c 49 53		envs_wl:        .text 9, "WORDLISTS"
->d6b5	54 53
->d6b7	05 4d 41 58 2d 44		envs_max_d:     .text 5, "MAX-D"
->d6bd	06 4d 41 58 2d 55 44		envs_max_ud:    .text 6, "MAX-UD"
+.d478					error_table:
+>d478	94 d4 b5 d4 d5 d4 f6 d4		        .word es_allot, es_badsource, es_compileonly, es_defer  ;  0-3
+>d480	13 d5 24 d5 34 d5 62 d5		        .word es_divzero, es_noname, es_refill, es_state        ;  4-7
+>d488	7a d5 89 d5 9e d5 ba d5		        .word es_syntax, es_underflow, es_negallot, es_wordlist ;  8-11
+>d490	d1 d5 10 d6			        .word es_blockwords, es_returnstack                     ; 12-13
+>d494	41 4c 4c 4f 54 20 75 73		es_allot:       .text "ALLOT using all available memory", 0
+>d49c	69 6e 67 20 61 6c 6c 20 61 76 61 69 6c 61 62 6c
+>d4ac	65 20 6d 65 6d 6f 72 79 00
+>d4b5	49 6c 6c 65 67 61 6c 20		es_badsource:   .text "Illegal SOURCE-ID during REFILL", 0
+>d4bd	53 4f 55 52 43 45 2d 49 44 20 64 75 72 69 6e 67
+>d4cd	20 52 45 46 49 4c 4c 00
+>d4d5	49 6e 74 65 72 70 72 65		es_compileonly: .text "Interpreting a compile-only word", 0
+>d4dd	74 69 6e 67 20 61 20 63 6f 6d 70 69 6c 65 2d 6f
+>d4ed	6e 6c 79 20 77 6f 72 64 00
+>d4f6	44 45 46 45 52 65 64 20		es_defer:       .text "DEFERed word not defined yet", 0
+>d4fe	77 6f 72 64 20 6e 6f 74 20 64 65 66 69 6e 65 64
+>d50e	20 79 65 74 00
+>d513	44 69 76 69 73 69 6f 6e		es_divzero:     .text "Division by zero", 0
+>d51b	20 62 79 20 7a 65 72 6f 00
+>d524	50 61 72 73 69 6e 67 20		es_noname:      .text "Parsing failure", 0
+>d52c	66 61 69 6c 75 72 65 00
+>d534	51 55 49 54 20 63 6f 75		es_refill:      .text "QUIT could not get input (REFILL returned -1)", 0
+>d53c	6c 64 20 6e 6f 74 20 67 65 74 20 69 6e 70 75 74
+>d54c	20 28 52 45 46 49 4c 4c 20 72 65 74 75 72 6e 65
+>d55c	64 20 2d 31 29 00
+>d562	41 6c 72 65 61 64 79 20		es_state:       .text "Already in compile mode", 0
+>d56a	69 6e 20 63 6f 6d 70 69 6c 65 20 6d 6f 64 65 00
+>d57a	55 6e 64 65 66 69 6e 65		es_syntax:      .text "Undefined word", 0
+>d582	64 20 77 6f 72 64 00
+>d589	44 61 74 61 20 73 74 61		es_underflow:   .text "Data stack underflow", 0
+>d591	63 6b 20 75 6e 64 65 72 66 6c 6f 77 00
+>d59e	4d 61 78 20 6d 65 6d 6f		es_negallot:    .text "Max memory freed with ALLOT", 0
+>d5a6	72 79 20 66 72 65 65 64 20 77 69 74 68 20 41 4c
+>d5b6	4c 4f 54 00
+>d5ba	4e 6f 20 77 6f 72 64 6c		es_wordlist:    .text "No wordlists available", 0
+>d5c2	69 73 74 73 20 61 76 61 69 6c 61 62 6c 65 00
+>d5d1	50 6c 65 61 73 65 20 61		es_blockwords:  .text "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR",0
+>d5d9	73 73 69 67 6e 20 76 65 63 74 6f 72 73 20 42 4c
+>d5e9	4f 43 4b 2d 52 45 41 44 2d 56 45 43 54 4f 52 20
+>d5f9	61 6e 64 20 42 4c 4f 43 4b 2d 57 52 49 54 45 2d
+>d609	56 45 43 54 4f 52 00
+>d610	52 65 74 75 72 6e 20 73		es_returnstack: .text "Return stack:", 0
+>d618	74 61 63 6b 3a 00
+>d61e	0f 2f 43 4f 55 4e 54 45		envs_cs:        .text 15, "/COUNTED-STRING"
+>d626	44 2d 53 54 52 49 4e 47
+>d62e	05 2f 48 4f 4c 44		envs_hold:      .text 5, "/HOLD"
+>d634	04 2f 50 41 44			envs_pad:       .text 4, "/PAD"
+>d639	11 41 44 44 52 45 53 53		envs_aub:       .text 17, "ADDRESS-UNIT-BITS"
+>d641	2d 55 4e 49 54 2d 42 49 54 53
+>d64b	07 46 4c 4f 4f 52 45 44		envs_floored:   .text 7, "FLOORED"
+>d653	08 4d 41 58 2d 43 48 41		envs_max_char:  .text 8, "MAX-CHAR"
+>d65b	52
+>d65c	05 4d 41 58 2d 4e		envs_max_n:     .text 5, "MAX-N"
+>d662	05 4d 41 58 2d 55		envs_max_u:     .text 5, "MAX-U"
+>d668	12 52 45 54 55 52 4e 2d		envs_rsc:       .text 18, "RETURN-STACK-CELLS"
+>d670	53 54 41 43 4b 2d 43 45 4c 4c 53
+>d67b	0b 53 54 41 43 4b 2d 43		envs_sc:        .text 11, "STACK-CELLS"
+>d683	45 4c 4c 53
+>d687	09 57 4f 52 44 4c 49 53		envs_wl:        .text 9, "WORDLISTS"
+>d68f	54 53
+>d691	05 4d 41 58 2d 44		envs_max_d:     .text 5, "MAX-D"
+>d697	06 4d 41 58 2d 55 44		envs_max_ud:    .text 6, "MAX-UD"
 
 ;******  Return to file: platform/../taliforth.asm
 
-.d6c4					cmpl_subroutine:
-.d6c4	48		pha		                pha             ; save LSB of address
-.d6c5	a9 20		lda #$20	                lda #$20        ; load opcode for JSR
-.d6c7	80 03		bra $d6cc	                bra cmpl_common
-.d6c9					cmpl_jump:
-.d6c9	48		pha		                pha             ; save LSB of address
-.d6ca	a9 4c		lda #$4c	                lda #$4c        ; load opcode for JMP, fall thru to cmpl_common
-.d6cc					cmpl_common:
-.d6cc	20 d4 d6	jsr $d6d4	                jsr cmpl_a      ; compile opcode
-.d6cf	68		pla		                pla             ; retrieve address LSB; fall thru to cmpl_word
-.d6d0					cmpl_word:
-.d6d0	20 d4 d6	jsr $d6d4	                jsr cmpl_a      ; compile LSB of address
-.d6d3	98		tya		                tya             ; fall thru for MSB
-.d6d4					cmpl_a:
-.d6d4	92 00		sta ($00)	                sta (cp)
-.d6d6	e6 00		inc $00		                inc cp
-.d6d8	d0 02		bne $d6dc	                bne _done
-.d6da	e6 01		inc $01		                inc cp+1
-.d6dc					_done:
-.d6dc	60		rts		                rts
-.d6dd					doconst:
-.d6dd	ca		dex		                dex             ; make room for constant
-.d6de	ca		dex		                dex
-.d6df	68		pla		                pla             ; LSB of return address
-.d6e0	85 24		sta $24		                sta tmp1
-.d6e2	68		pla		                pla             ; MSB of return address
-.d6e3	85 25		sta $25		                sta tmp1+1
-.d6e5	a0 01		ldy #$01	                ldy #1
-.d6e7	b1 24		lda ($24),y	                lda (tmp1),y
-.d6e9	95 00		sta $00,x	                sta 0,x
-.d6eb	c8		iny		                iny
-.d6ec	b1 24		lda ($24),y	                lda (tmp1),y
-.d6ee	95 01		sta $01,x	                sta 1,x
-.d6f0	60		rts		                rts
-.d6f1					dodefer:
-.d6f1	68		pla		                pla             ; LSB
-.d6f2	85 24		sta $24		                sta tmp1
-.d6f4	68		pla		                pla             ; MSB
-.d6f5	85 25		sta $25		                sta tmp1+1
-.d6f7	a0 01		ldy #$01	                ldy #1
-.d6f9	b1 24		lda ($24),y	                lda (tmp1),y
-.d6fb	85 26		sta $26		                sta tmp2
-.d6fd	c8		iny		                iny
-.d6fe	b1 24		lda ($24),y	                lda (tmp1),y
-.d700	85 27		sta $27		                sta tmp2+1
-.d702	6c 26 00	jmp ($0026)	                jmp (tmp2)      ; This is actually a jump to the new target
-.d705					defer_error:
-.d705	a9 03		lda #$03	                lda #err_defer
-.d707	4c 37 d8	jmp $d837	                jmp error
-.d70a					dodoes:
-.d70a	7a		ply		                ply             ; LSB
-.d70b	68		pla		                pla             ; MSB
-.d70c	c8		iny		                iny
-.d70d	d0 01		bne $d710	                bne +
-.d70f	1a		inc a		                ina
-.d710					+
-.d710	84 26		sty $26		                sty tmp2
-.d712	85 27		sta $27		                sta tmp2+1
-.d714	ca		dex		                dex
-.d715	ca		dex		                dex
-.d716	7a		ply		                ply
-.d717	68		pla		                pla
-.d718	c8		iny		                iny
-.d719	d0 01		bne $d71c	                bne +
-.d71b	1a		inc a		                ina
-.d71c					+
-.d71c	94 00		sty $00,x	                sty 0,x         ; LSB
-.d71e	95 01		sta $01,x	                sta 1,x         ; MSB
-.d720	6c 26 00	jmp ($0026)	                jmp (tmp2)
-.d723					dovar:
-.d723	7a		ply		                ply             ; LSB
-.d724	68		pla		                pla             ; MSB
-.d725	c8		iny		                iny
-.d726	d0 01		bne $d729	                bne +
-.d728	1a		inc a		                ina
-.d729					+
-.d729	ca		dex		                dex
-.d72a	ca		dex		                dex
-.d72b	95 01		sta $01,x	                sta 1,x
-.d72d	98		tya		                tya
-.d72e	95 00		sta $00,x	                sta 0,x
-.d730	60		rts		                rts
-.d731					byte_to_ascii:
-.d731	48		pha		                pha
-.d732	4a		lsr a		                lsr             ; convert high nibble first
-.d733	4a		lsr a		                lsr
-.d734	4a		lsr a		                lsr
-.d735	4a		lsr a		                lsr
-.d736	20 3a d7	jsr $d73a	                jsr _nibble_to_ascii
-.d739	68		pla		                pla
-.d73a					_nibble_to_ascii:
-.d73a	29 0f		and #$0f	                and #$0F
-.d73c	09 30		ora #$30	                ora #'0'
-.d73e	c9 3a		cmp #$3a	                cmp #$3A        ; '9+1
-.d740	90 02		bcc $d744	                bcc +
-.d742	69 06		adc #$06	                adc #$06
-.d744	4c 02 8e	jmp $8e02	+               jmp emit_a
-.d747	60		rts		                rts
-.d748					compare_16bit:
-.d748	b5 00		lda $00,x	                lda 0,x                 ; LSB of TOS
-.d74a	d5 02		cmp $02,x	                cmp 2,x                 ; LSB of NOS
-.d74c	f0 0a		beq $d758	                beq _equal
-.d74e	b5 01		lda $01,x	                lda 1,x                 ; MSB of TOS
-.d750	f5 03		sbc $03,x	                sbc 3,x                 ; MSB of NOS
-.d752	09 01		ora #$01	                ora #1                  ; Make zero flag 0 because not equal
-.d754	70 08		bvs $d75e	                bvs _overflow
-.d756	80 08		bra $d760	                bra _not_equal
-.d758					_equal:
-.d758	b5 01		lda $01,x	                lda 1,x                 ; MSB of TOS
-.d75a	f5 03		sbc $03,x	                sbc 3,x                 ; MSB of NOS
-.d75c	50 04		bvc $d762	                bvc _done
-.d75e					_overflow:
-.d75e	49 80		eor #$80	                eor #$80                ; complement negative flag
-.d760					_not_equal:
-.d760	09 01		ora #$01	                ora #1                  ; if overflow, we can't be eqal
-.d762					_done:
+.d69e					cmpl_subroutine:
+.d69e	48		pha		                pha             ; save LSB of address
+.d69f	a9 20		lda #$20	                lda #$20        ; load opcode for JSR
+.d6a1	80 03		bra $d6a6	                bra cmpl_common
+.d6a3					cmpl_jump:
+.d6a3	48		pha		                pha             ; save LSB of address
+.d6a4	a9 4c		lda #$4c	                lda #$4c        ; load opcode for JMP, fall thru to cmpl_common
+.d6a6					cmpl_common:
+.d6a6	20 ae d6	jsr $d6ae	                jsr cmpl_a      ; compile opcode
+.d6a9	68		pla		                pla             ; retrieve address LSB; fall thru to cmpl_word
+.d6aa					cmpl_word:
+.d6aa	20 ae d6	jsr $d6ae	                jsr cmpl_a      ; compile LSB of address
+.d6ad	98		tya		                tya             ; fall thru for MSB
+.d6ae					cmpl_a:
+.d6ae	92 00		sta ($00)	                sta (cp)
+.d6b0	e6 00		inc $00		                inc cp
+.d6b2	d0 02		bne $d6b6	                bne _done
+.d6b4	e6 01		inc $01		                inc cp+1
+.d6b6					_done:
+.d6b6	60		rts		                rts
+.d6b7					doconst:
+.d6b7	ca		dex		                dex             ; make room for constant
+.d6b8	ca		dex		                dex
+.d6b9	68		pla		                pla             ; LSB of return address
+.d6ba	85 24		sta $24		                sta tmp1
+.d6bc	68		pla		                pla             ; MSB of return address
+.d6bd	85 25		sta $25		                sta tmp1+1
+.d6bf	a0 01		ldy #$01	                ldy #1
+.d6c1	b1 24		lda ($24),y	                lda (tmp1),y
+.d6c3	95 00		sta $00,x	                sta 0,x
+.d6c5	c8		iny		                iny
+.d6c6	b1 24		lda ($24),y	                lda (tmp1),y
+.d6c8	95 01		sta $01,x	                sta 1,x
+.d6ca	60		rts		                rts
+.d6cb					dodefer:
+.d6cb	68		pla		                pla             ; LSB
+.d6cc	85 24		sta $24		                sta tmp1
+.d6ce	68		pla		                pla             ; MSB
+.d6cf	85 25		sta $25		                sta tmp1+1
+.d6d1	a0 01		ldy #$01	                ldy #1
+.d6d3	b1 24		lda ($24),y	                lda (tmp1),y
+.d6d5	85 26		sta $26		                sta tmp2
+.d6d7	c8		iny		                iny
+.d6d8	b1 24		lda ($24),y	                lda (tmp1),y
+.d6da	85 27		sta $27		                sta tmp2+1
+.d6dc	6c 26 00	jmp ($0026)	                jmp (tmp2)      ; This is actually a jump to the new target
+.d6df					defer_error:
+.d6df	a9 03		lda #$03	                lda #err_defer
+.d6e1	4c 11 d8	jmp $d811	                jmp error
+.d6e4					dodoes:
+.d6e4	7a		ply		                ply             ; LSB
+.d6e5	68		pla		                pla             ; MSB
+.d6e6	c8		iny		                iny
+.d6e7	d0 01		bne $d6ea	                bne +
+.d6e9	1a		inc a		                ina
+.d6ea					+
+.d6ea	84 26		sty $26		                sty tmp2
+.d6ec	85 27		sta $27		                sta tmp2+1
+.d6ee	ca		dex		                dex
+.d6ef	ca		dex		                dex
+.d6f0	7a		ply		                ply
+.d6f1	68		pla		                pla
+.d6f2	c8		iny		                iny
+.d6f3	d0 01		bne $d6f6	                bne +
+.d6f5	1a		inc a		                ina
+.d6f6					+
+.d6f6	94 00		sty $00,x	                sty 0,x         ; LSB
+.d6f8	95 01		sta $01,x	                sta 1,x         ; MSB
+.d6fa	6c 26 00	jmp ($0026)	                jmp (tmp2)
+.d6fd					dovar:
+.d6fd	7a		ply		                ply             ; LSB
+.d6fe	68		pla		                pla             ; MSB
+.d6ff	c8		iny		                iny
+.d700	d0 01		bne $d703	                bne +
+.d702	1a		inc a		                ina
+.d703					+
+.d703	ca		dex		                dex
+.d704	ca		dex		                dex
+.d705	95 01		sta $01,x	                sta 1,x
+.d707	98		tya		                tya
+.d708	95 00		sta $00,x	                sta 0,x
+.d70a	60		rts		                rts
+.d70b					byte_to_ascii:
+.d70b	48		pha		                pha
+.d70c	4a		lsr a		                lsr             ; convert high nibble first
+.d70d	4a		lsr a		                lsr
+.d70e	4a		lsr a		                lsr
+.d70f	4a		lsr a		                lsr
+.d710	20 14 d7	jsr $d714	                jsr _nibble_to_ascii
+.d713	68		pla		                pla
+.d714					_nibble_to_ascii:
+.d714	29 0f		and #$0f	                and #$0F
+.d716	09 30		ora #$30	                ora #'0'
+.d718	c9 3a		cmp #$3a	                cmp #$3A        ; '9+1
+.d71a	90 02		bcc $d71e	                bcc +
+.d71c	69 06		adc #$06	                adc #$06
+.d71e	4c 02 8e	jmp $8e02	+               jmp emit_a
+.d721	60		rts		                rts
+.d722					compare_16bit:
+.d722	b5 00		lda $00,x	                lda 0,x                 ; LSB of TOS
+.d724	d5 02		cmp $02,x	                cmp 2,x                 ; LSB of NOS
+.d726	f0 0a		beq $d732	                beq _equal
+.d728	b5 01		lda $01,x	                lda 1,x                 ; MSB of TOS
+.d72a	f5 03		sbc $03,x	                sbc 3,x                 ; MSB of NOS
+.d72c	09 01		ora #$01	                ora #1                  ; Make zero flag 0 because not equal
+.d72e	70 08		bvs $d738	                bvs _overflow
+.d730	80 08		bra $d73a	                bra _not_equal
+.d732					_equal:
+.d732	b5 01		lda $01,x	                lda 1,x                 ; MSB of TOS
+.d734	f5 03		sbc $03,x	                sbc 3,x                 ; MSB of NOS
+.d736	50 04		bvc $d73c	                bvc _done
+.d738					_overflow:
+.d738	49 80		eor #$80	                eor #$80                ; complement negative flag
+.d73a					_not_equal:
+.d73a	09 01		ora #$01	                ora #1                  ; if overflow, we can't be eqal
+.d73c					_done:
+.d73c	60		rts		                rts
+.d73d					current_to_dp:
+.d73d	a0 04		ldy #$04	                ldy #current_offset
+.d73f	b1 1e		lda ($1e),y	                lda (up),y      ; current is a byte variable
+.d741	0a		asl a		                asl             ; turn it into an offset (in cells)
+.d742	18		clc		                clc
+.d743	69 06		adc #$06	                adc #wordlists_offset   ; add offset to wordlists base.
+.d745	a8		tay		                tay
+.d746	b1 1e		lda ($1e),y	                lda (up),y              ; get the dp for that wordlist.
+.d748	85 02		sta $02		                sta dp
+.d74a	c8		iny		                iny
+.d74b	b1 1e		lda ($1e),y	                lda (up),y
+.d74d	85 03		sta $03		                sta dp+1
+.d74f	60		rts		                rts
+.d750					dp_to_current:
+.d750	a0 04		ldy #$04	                ldy #current_offset
+.d752	b1 1e		lda ($1e),y	                lda (up),y      ; current is a byte variable
+.d754	0a		asl a		                asl             ; turn it into an offset (in cells)
+.d755	18		clc		                clc
+.d756	69 06		adc #$06	                adc #wordlists_offset   ; add offset to wordlists base.
+.d758	a8		tay		                tay
+.d759	a5 02		lda $02		                lda dp
+.d75b	91 1e		sta ($1e),y	                sta (up),y              ; get the dp for that wordlist.
+.d75d	c8		iny		                iny
+.d75e	a5 03		lda $03		                lda dp+1
+.d760	91 1e		sta ($1e),y	                sta (up),y
 .d762	60		rts		                rts
-.d763					current_to_dp:
-.d763	a0 04		ldy #$04	                ldy #current_offset
-.d765	b1 1e		lda ($1e),y	                lda (up),y      ; current is a byte variable
-.d767	0a		asl a		                asl             ; turn it into an offset (in cells)
-.d768	18		clc		                clc
-.d769	69 06		adc #$06	                adc #wordlists_offset   ; add offset to wordlists base.
-.d76b	a8		tay		                tay
-.d76c	b1 1e		lda ($1e),y	                lda (up),y              ; get the dp for that wordlist.
-.d76e	85 02		sta $02		                sta dp
-.d770	c8		iny		                iny
-.d771	b1 1e		lda ($1e),y	                lda (up),y
-.d773	85 03		sta $03		                sta dp+1
-.d775	60		rts		                rts
-.d776					dp_to_current:
-.d776	a0 04		ldy #$04	                ldy #current_offset
-.d778	b1 1e		lda ($1e),y	                lda (up),y      ; current is a byte variable
-.d77a	0a		asl a		                asl             ; turn it into an offset (in cells)
-.d77b	18		clc		                clc
-.d77c	69 06		adc #$06	                adc #wordlists_offset   ; add offset to wordlists base.
-.d77e	a8		tay		                tay
-.d77f	a5 02		lda $02		                lda dp
-.d781	91 1e		sta ($1e),y	                sta (up),y              ; get the dp for that wordlist.
-.d783	c8		iny		                iny
-.d784	a5 03		lda $03		                lda dp+1
-.d786	91 1e		sta ($1e),y	                sta (up),y
-.d788	60		rts		                rts
-.d789					interpret:
-.d789					_loop:
-.d789	20 eb 98	jsr $98eb	                jsr xt_parse_name       ; ( "string" -- addr u )
-.d78c	b5 00		lda $00,x	                lda 0,x
-.d78e	15 01		ora $01,x	                ora 1,x
-.d790	f0 70		beq $d802	                beq _line_done
-.d792	20 95 a3	jsr $a395	                jsr xt_two_dup          ; ( addr u -- addr u addr u )
-.d795	20 e7 8f	jsr $8fe7	                jsr xt_find_name        ; ( addr u addr u -- addr u nt|0 )
-.d798	b5 00		lda $00,x	                lda 0,x
-.d79a	15 01		ora $01,x	                ora 1,x
-.d79c	d0 28		bne $d7c6	                bne _got_name_token
-.d79e	e8		inx		                inx                     ; ( addr u 0 -- addr u )
-.d79f	e8		inx		                inx
-.d7a0	20 96 96	jsr $9696	                jsr xt_number           ; ( addr u -- u|d )
-.d7a3	a5 16		lda $16		                lda state
-.d7a5	f0 e2		beq $d789	                beq _loop
-.d7a7	a9 20		lda #$20	                lda #$20
-.d7a9	24 20		bit $20		                bit status
-.d7ab	f0 0d		beq $d7ba	                beq _single_number
-.d7ad	20 8b a1	jsr $a18b	                jsr xt_swap
-.d7b0	a0 93		ldy #$93	                ldy #>literal_runtime
-.d7b2	a9 a4		lda #$a4	                lda #<literal_runtime
-.d7b4	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
-.d7b7	20 7a 87	jsr $877a	                jsr xt_comma
-.d7ba					_single_number:
-.d7ba	a0 93		ldy #$93	                ldy #>literal_runtime
-.d7bc	a9 a4		lda #$a4	                lda #<literal_runtime
-.d7be	20 c4 d6	jsr $d6c4	                jsr cmpl_subroutine
-.d7c1	20 7a 87	jsr $877a	                jsr xt_comma
-.d7c4	80 c3		bra $d789	                bra _loop
-.d7c6					_got_name_token:
-.d7c6	b5 00		lda $00,x	                lda 0,x
-.d7c8	95 04		sta $04,x	                sta 4,x
-.d7ca	b5 01		lda $01,x	                lda 1,x
-.d7cc	95 05		sta $05,x	                sta 5,x
-.d7ce	e8		inx		                inx
-.d7cf	e8		inx		                inx
-.d7d0	e8		inx		                inx
-.d7d1	e8		inx		                inx                     ; ( nt )
-.d7d2	b5 00		lda $00,x	                lda 0,x
-.d7d4	85 22		sta $22		                sta tmpbranch
-.d7d6	b5 01		lda $01,x	                lda 1,x
-.d7d8	85 23		sta $23		                sta tmpbranch+1
-.d7da	20 ed 95	jsr $95ed	                jsr xt_name_to_int      ; ( nt - xt )
-.d7dd	a5 16		lda $16		                lda state
-.d7df	d0 13		bne $d7f4	                bne _compile
-.d7e1	a0 01		ldy #$01	                ldy #1
-.d7e3	b1 22		lda ($22),y	                lda (tmpbranch),y
-.d7e5	29 01		and #$01	                and #CO                 ; mask everything but Compile Only bit
-.d7e7	f0 05		beq $d7ee	                beq _interpret
-.d7e9	a9 02		lda #$02	                lda #err_compileonly
-.d7eb	4c 37 d8	jmp $d837	                jmp error
-.d7ee					_interpret:
-.d7ee	20 49 8f	jsr $8f49	                jsr xt_execute
-.d7f1	4c 89 d7	jmp $d789	                jmp _loop
-.d7f4					_compile:
-.d7f4	a0 01		ldy #$01	                ldy #1
-.d7f6	b1 22		lda ($22),y	                lda (tmpbranch),y
-.d7f8	29 04		and #$04	                and #IM                 ; Mask all but IM bit
-.d7fa	d0 f2		bne $d7ee	                bne _interpret          ; IMMEDIATE word, execute right now
-.d7fc	20 f9 87	jsr $87f9	                jsr xt_compile_comma
-.d7ff	4c 89 d7	jmp $d789	                jmp _loop
-.d802					_line_done:
-.d802	e8		inx		                inx
-.d803	e8		inx		                inx
-.d804	e8		inx		                inx
-.d805	e8		inx		                inx
-.d806	60		rts		                rts
-.d807					is_printable:
-.d807	c9 20		cmp #$20	                cmp #AscSP              ; $20
-.d809	90 08		bcc $d813	                bcc _done
-.d80b	c9 80		cmp #$80	                cmp #$7F + 1             ; '~'
-.d80d	b0 03		bcs $d812	                bcs _failed
-.d80f	38		sec		                sec
-.d810	80 01		bra $d813	                bra _done
-.d812					_failed:
-.d812	18		clc		                clc
-.d813					_done:
-.d813	60		rts		                rts
-.d814					is_whitespace:
-.d814	c9 00		cmp #$00	                cmp #00         ; explicit comparison to leave Y untouched
-.d816	90 08		bcc $d820	                bcc _done
-.d818	c9 21		cmp #$21	                cmp #AscSP+1
-.d81a	b0 03		bcs $d81f	                bcs _failed
-.d81c	38		sec		                sec
-.d81d	80 01		bra $d820	                bra _done
-.d81f					_failed:
-.d81f	18		clc		                clc
-.d820					_done:
-.d820	60		rts		                rts
-.d821					underflow_1:
-.d821	e0 77		cpx #$77	                cpx #dsp0-1
-.d823	10 10		bpl $d835	                bpl underflow_error
-.d825	60		rts		                rts
-.d826					underflow_2:
-.d826	e0 75		cpx #$75	                cpx #dsp0-3
-.d828	10 0b		bpl $d835	                bpl underflow_error
-.d82a	60		rts		                rts
-.d82b					underflow_3:
-.d82b	e0 73		cpx #$73	                cpx #dsp0-5
-.d82d	10 06		bpl $d835	                bpl underflow_error
-.d82f	60		rts		                rts
-.d830					underflow_4:
-.d830	e0 71		cpx #$71	                cpx #dsp0-7
-.d832	10 01		bpl $d835	                bpl underflow_error
-.d834	60		rts		                rts
-.d835					underflow_error:
-.d835	a9 09		lda #$09	                lda #err_underflow      ; fall through to error
-.d837					error:
-.d837	48		pha		                pha                     ; save error
-.d838	20 77 d8	jsr $d877	                jsr print_error
-.d83b	20 6f 89	jsr $896f	                jsr xt_cr
-.d83e	68		pla		                pla
-.d83f	c9 09		cmp #$09	                cmp #err_underflow      ; should we display return stack?
-.d841	d0 17		bne $d85a	                bne _no_underflow
-.d843	a9 0d		lda #$0d	                lda #err_returnstack
-.d845	20 77 d8	jsr $d877	                jsr print_error
-.d848	ba		tsx		                tsx
-.d849					-
-.d849	e8		inx		                inx
-.d84a	f0 0b		beq $d857	                beq +
-.d84c	20 fb a0	jsr $a0fb	                jsr xt_space
-.d84f	bd 00 01	lda $0100,x	                lda $100,x
-.d852	20 31 d7	jsr $d731	                jsr byte_to_ascii
-.d855	80 f2		bra $d849	                bra -
-.d857					+
-.d857	20 6f 89	jsr $896f	                jsr xt_cr
-.d85a					_no_underflow:
-.d85a	4c 60 80	jmp $8060	                jmp xt_abort            ; no jsr, as we clobber return stack
-.d85d					print_string_no_lf:
-.d85d	0a		asl a		                asl
-.d85e	a8		tay		                tay
-.d85f	b9 a3 d3	lda $d3a3,y	                lda string_table,y
-.d862	85 28		sta $28		                sta tmp3                ; LSB
-.d864	c8		iny		                iny
-.d865	b9 a3 d3	lda $d3a3,y	                lda string_table,y
-.d868	85 29		sta $29		                sta tmp3+1              ; MSB
-.d86a					print_common:
-.d86a	a0 00		ldy #$00	                ldy #0
-.d86c					_loop:
-.d86c	b1 28		lda ($28),y	                lda (tmp3),y
-.d86e	f0 06		beq $d876	                beq _done               ; strings are zero-terminated
-.d870	20 02 8e	jsr $8e02	                jsr emit_a              ; allows vectoring via output
-.d873	c8		iny		                iny
-.d874	80 f6		bra $d86c	                bra _loop
-.d876					_done:
-.d876	60		rts		                rts
-.d877					print_error:
-.d877	0a		asl a		                asl
-.d878	a8		tay		                tay
-.d879	b9 9e d4	lda $d49e,y	                lda error_table,y
-.d87c	85 28		sta $28		                sta tmp3                ; LSB
-.d87e	c8		iny		                iny
-.d87f	b9 9e d4	lda $d49e,y	                lda error_table,y
-.d882	85 29		sta $29		                sta tmp3+1              ; MSB
-.d884	20 6a d8	jsr $d86a	                jsr print_common
-.d887	60		rts		                rts
-.d888					print_string:
-.d888	20 5d d8	jsr $d85d	                jsr print_string_no_lf
-.d88b	4c 6f 89	jmp $896f	                jmp xt_cr               ; JSR/RTS because never compiled
-.d88e					print_u:
-.d88e	20 85 a7	jsr $a785	                jsr xt_zero                     ; 0
-.d891	20 66 93	jsr $9366	                jsr xt_less_number_sign         ; <#
-.d894	20 ea 97	jsr $97ea	                jsr xt_number_sign_s            ; #S
-.d897	20 c8 97	jsr $97c8	                jsr xt_number_sign_greater      ; #>
-.d89a	4c e0 a4	jmp $a4e0	                jmp xt_type                     ; JSR/RTS because never compiled
+.d763					interpret:
+.d763					_loop:
+.d763	20 eb 98	jsr $98eb	                jsr xt_parse_name       ; ( "string" -- addr u )
+.d766	b5 00		lda $00,x	                lda 0,x
+.d768	15 01		ora $01,x	                ora 1,x
+.d76a	f0 70		beq $d7dc	                beq _line_done
+.d76c	20 95 a3	jsr $a395	                jsr xt_two_dup          ; ( addr u -- addr u addr u )
+.d76f	20 e7 8f	jsr $8fe7	                jsr xt_find_name        ; ( addr u addr u -- addr u nt|0 )
+.d772	b5 00		lda $00,x	                lda 0,x
+.d774	15 01		ora $01,x	                ora 1,x
+.d776	d0 28		bne $d7a0	                bne _got_name_token
+.d778	e8		inx		                inx                     ; ( addr u 0 -- addr u )
+.d779	e8		inx		                inx
+.d77a	20 96 96	jsr $9696	                jsr xt_number           ; ( addr u -- u|d )
+.d77d	a5 16		lda $16		                lda state
+.d77f	f0 e2		beq $d763	                beq _loop
+.d781	a9 20		lda #$20	                lda #$20
+.d783	24 20		bit $20		                bit status
+.d785	f0 0d		beq $d794	                beq _single_number
+.d787	20 8b a1	jsr $a18b	                jsr xt_swap
+.d78a	a0 93		ldy #$93	                ldy #>literal_runtime
+.d78c	a9 a4		lda #$a4	                lda #<literal_runtime
+.d78e	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
+.d791	20 7a 87	jsr $877a	                jsr xt_comma
+.d794					_single_number:
+.d794	a0 93		ldy #$93	                ldy #>literal_runtime
+.d796	a9 a4		lda #$a4	                lda #<literal_runtime
+.d798	20 9e d6	jsr $d69e	                jsr cmpl_subroutine
+.d79b	20 7a 87	jsr $877a	                jsr xt_comma
+.d79e	80 c3		bra $d763	                bra _loop
+.d7a0					_got_name_token:
+.d7a0	b5 00		lda $00,x	                lda 0,x
+.d7a2	95 04		sta $04,x	                sta 4,x
+.d7a4	b5 01		lda $01,x	                lda 1,x
+.d7a6	95 05		sta $05,x	                sta 5,x
+.d7a8	e8		inx		                inx
+.d7a9	e8		inx		                inx
+.d7aa	e8		inx		                inx
+.d7ab	e8		inx		                inx                     ; ( nt )
+.d7ac	b5 00		lda $00,x	                lda 0,x
+.d7ae	85 22		sta $22		                sta tmpbranch
+.d7b0	b5 01		lda $01,x	                lda 1,x
+.d7b2	85 23		sta $23		                sta tmpbranch+1
+.d7b4	20 ed 95	jsr $95ed	                jsr xt_name_to_int      ; ( nt - xt )
+.d7b7	a5 16		lda $16		                lda state
+.d7b9	d0 13		bne $d7ce	                bne _compile
+.d7bb	a0 01		ldy #$01	                ldy #1
+.d7bd	b1 22		lda ($22),y	                lda (tmpbranch),y
+.d7bf	29 01		and #$01	                and #CO                 ; mask everything but Compile Only bit
+.d7c1	f0 05		beq $d7c8	                beq _interpret
+.d7c3	a9 02		lda #$02	                lda #err_compileonly
+.d7c5	4c 11 d8	jmp $d811	                jmp error
+.d7c8					_interpret:
+.d7c8	20 49 8f	jsr $8f49	                jsr xt_execute
+.d7cb	4c 63 d7	jmp $d763	                jmp _loop
+.d7ce					_compile:
+.d7ce	a0 01		ldy #$01	                ldy #1
+.d7d0	b1 22		lda ($22),y	                lda (tmpbranch),y
+.d7d2	29 04		and #$04	                and #IM                 ; Mask all but IM bit
+.d7d4	d0 f2		bne $d7c8	                bne _interpret          ; IMMEDIATE word, execute right now
+.d7d6	20 f9 87	jsr $87f9	                jsr xt_compile_comma
+.d7d9	4c 63 d7	jmp $d763	                jmp _loop
+.d7dc					_line_done:
+.d7dc	e8		inx		                inx
+.d7dd	e8		inx		                inx
+.d7de	e8		inx		                inx
+.d7df	e8		inx		                inx
+.d7e0	60		rts		                rts
+.d7e1					is_printable:
+.d7e1	c9 20		cmp #$20	                cmp #AscSP              ; $20
+.d7e3	90 08		bcc $d7ed	                bcc _done
+.d7e5	c9 80		cmp #$80	                cmp #$7F + 1             ; '~'
+.d7e7	b0 03		bcs $d7ec	                bcs _failed
+.d7e9	38		sec		                sec
+.d7ea	80 01		bra $d7ed	                bra _done
+.d7ec					_failed:
+.d7ec	18		clc		                clc
+.d7ed					_done:
+.d7ed	60		rts		                rts
+.d7ee					is_whitespace:
+.d7ee	c9 00		cmp #$00	                cmp #00         ; explicit comparison to leave Y untouched
+.d7f0	90 08		bcc $d7fa	                bcc _done
+.d7f2	c9 21		cmp #$21	                cmp #AscSP+1
+.d7f4	b0 03		bcs $d7f9	                bcs _failed
+.d7f6	38		sec		                sec
+.d7f7	80 01		bra $d7fa	                bra _done
+.d7f9					_failed:
+.d7f9	18		clc		                clc
+.d7fa					_done:
+.d7fa	60		rts		                rts
+.d7fb					underflow_1:
+.d7fb	e0 77		cpx #$77	                cpx #dsp0-1
+.d7fd	10 10		bpl $d80f	                bpl underflow_error
+.d7ff	60		rts		                rts
+.d800					underflow_2:
+.d800	e0 75		cpx #$75	                cpx #dsp0-3
+.d802	10 0b		bpl $d80f	                bpl underflow_error
+.d804	60		rts		                rts
+.d805					underflow_3:
+.d805	e0 73		cpx #$73	                cpx #dsp0-5
+.d807	10 06		bpl $d80f	                bpl underflow_error
+.d809	60		rts		                rts
+.d80a					underflow_4:
+.d80a	e0 71		cpx #$71	                cpx #dsp0-7
+.d80c	10 01		bpl $d80f	                bpl underflow_error
+.d80e	60		rts		                rts
+.d80f					underflow_error:
+.d80f	a9 09		lda #$09	                lda #err_underflow      ; fall through to error
+.d811					error:
+.d811	48		pha		                pha                     ; save error
+.d812	20 51 d8	jsr $d851	                jsr print_error
+.d815	20 6f 89	jsr $896f	                jsr xt_cr
+.d818	68		pla		                pla
+.d819	c9 09		cmp #$09	                cmp #err_underflow      ; should we display return stack?
+.d81b	d0 17		bne $d834	                bne _no_underflow
+.d81d	a9 0d		lda #$0d	                lda #err_returnstack
+.d81f	20 51 d8	jsr $d851	                jsr print_error
+.d822	ba		tsx		                tsx
+.d823					-
+.d823	e8		inx		                inx
+.d824	f0 0b		beq $d831	                beq +
+.d826	20 fb a0	jsr $a0fb	                jsr xt_space
+.d829	bd 00 01	lda $0100,x	                lda $100,x
+.d82c	20 0b d7	jsr $d70b	                jsr byte_to_ascii
+.d82f	80 f2		bra $d823	                bra -
+.d831					+
+.d831	20 6f 89	jsr $896f	                jsr xt_cr
+.d834					_no_underflow:
+.d834	4c 60 80	jmp $8060	                jmp xt_abort            ; no jsr, as we clobber return stack
+.d837					print_string_no_lf:
+.d837	0a		asl a		                asl
+.d838	a8		tay		                tay
+.d839	b9 a3 d3	lda $d3a3,y	                lda string_table,y
+.d83c	85 28		sta $28		                sta tmp3                ; LSB
+.d83e	c8		iny		                iny
+.d83f	b9 a3 d3	lda $d3a3,y	                lda string_table,y
+.d842	85 29		sta $29		                sta tmp3+1              ; MSB
+.d844					print_common:
+.d844	a0 00		ldy #$00	                ldy #0
+.d846					_loop:
+.d846	b1 28		lda ($28),y	                lda (tmp3),y
+.d848	f0 06		beq $d850	                beq _done               ; strings are zero-terminated
+.d84a	20 02 8e	jsr $8e02	                jsr emit_a              ; allows vectoring via output
+.d84d	c8		iny		                iny
+.d84e	80 f6		bra $d846	                bra _loop
+.d850					_done:
+.d850	60		rts		                rts
+.d851					print_error:
+.d851	0a		asl a		                asl
+.d852	a8		tay		                tay
+.d853	b9 78 d4	lda $d478,y	                lda error_table,y
+.d856	85 28		sta $28		                sta tmp3                ; LSB
+.d858	c8		iny		                iny
+.d859	b9 78 d4	lda $d478,y	                lda error_table,y
+.d85c	85 29		sta $29		                sta tmp3+1              ; MSB
+.d85e	20 44 d8	jsr $d844	                jsr print_common
+.d861	60		rts		                rts
+.d862					print_string:
+.d862	20 37 d8	jsr $d837	                jsr print_string_no_lf
+.d865	4c 6f 89	jmp $896f	                jmp xt_cr               ; JSR/RTS because never compiled
+.d868					print_u:
+.d868	20 85 a7	jsr $a785	                jsr xt_zero                     ; 0
+.d86b	20 66 93	jsr $9366	                jsr xt_less_number_sign         ; <#
+.d86e	20 ea 97	jsr $97ea	                jsr xt_number_sign_s            ; #S
+.d871	20 c8 97	jsr $97c8	                jsr xt_number_sign_greater      ; #>
+.d874	4c e0 a4	jmp $a4e0	                jmp xt_type                     ; JSR/RTS because never compiled
 
 ;******  Return to file: platform/platform-py65mon.asm
 
