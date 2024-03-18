@@ -127,17 +127,13 @@
         \          i dorow cr "
         \          loop ; "
 
-\ block read/write
-: blkrw ( blk buf action -- )
-    -rot $c014 ! $c012 ! $c010 c!
-;
 
 \ boot from a block device if present
 :noname ( -- )
     -1 $c011 c! 0 $c010 c! $c011 c@ 0= if       \ block device available?
-        0 $400 1 blkrw
+        0 $400 blk-read
         $400 @ $4654 = if                       \ starts with magic "TF" ?
-            $402 asciiz> evaluate else          \ run the block
+            $404 $402 @ evaluate else           \ run the block with length @ 402
             ." bad boot block" CR
         then else
         ." no block device" CR

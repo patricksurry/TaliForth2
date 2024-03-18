@@ -110,7 +110,7 @@ padoffset = $ff              ; offset from CP to PAD (holds number strings)
 ; For our minimal build, we'll drop all the optional words
 
 ; TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
-TALI_OPTIONAL_WORDS := [ "adventure" ]
+TALI_OPTIONAL_WORDS := [ "adventure", "disassembler" ]
 
 ; "ed" is a string editor. (~1.5K)
 ; "editor" is a block editor. (~0.25K)
@@ -160,11 +160,6 @@ TALI_OPTION_TERSE := 1
 
 ; =====================================================================
 ; FINALLY
-
-; Of the 32 KiB we use, 24 KiB are reserved for Tali (from $8000 to $DFFF)
-; and the last eight (from $E000 to $FFFF) are left for whatever the user
-; wants to use them for.
-
 
 ; Default kernel file for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>

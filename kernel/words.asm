@@ -74,6 +74,17 @@ xt_pack:
 z_pack:         rts
 
 
+; ## BYTE_EXTEND ( c -- s ) "sign extend signed char to signed word"
+; ## "-b-"  tested ad hoc
+xt_byte_extend:
+                lda 0,x
+                bpl z_byte_extend
+                lda #$ff
+                sta 1,x
+z_byte_extend:
+                rts
+
+
 ; ## ASCIIZ> ( c-addr -- addr u ) "count a zero-terminated string; uses tmp1"
 ; ## "asciiz"  tested ad hoc
 xt_asciiz:
@@ -104,6 +115,44 @@ xt_asciiz:
         sta 1,x         ; # of pages
         sty tmp1+1      ; reset original addr
 z_asciiz:
+        rts
+
+
+; ## blk_write ( blk buf -- ) "write a 1024-byte block from buf to blk"
+; ## "blk-write"  tested ad hoc
+xt_blk_write:
+        ldy #2
+        bra blk_rw
+
+; ## blk_read ( blk buf -- ) "read a 1024-byte block from blk to buf"
+; ## "blk-read"  tested ad hoc
+xt_blk_read:
+        ldy #1
+blk_rw:
+        lda 0,x
+        sta $c014       ; buffer
+        lda 1,x
+        sta $c015
+        lda 2,x
+        sta $c012       ; blk number
+        lda 3,x
+        sta $c013
+        inx             ; free stack
+        inx
+        inx
+        inx
+        sty $c010       ; go
+z_blk_write:
+z_blk_read:
+        rts
+
+
+; ## shutdown ( -- ) "exit the matrix aka c65"
+; ## "shutdown"  tested ad hoc
+xt_shutdown:
+        lda #$ff
+        sta $c010       ; that's all folks...
+z_shutdown:
         rts
 
 
