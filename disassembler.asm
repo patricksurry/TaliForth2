@@ -202,56 +202,45 @@ _print_mnemonic:
                 stz 1,x
                 jsr xt_spaces
 
-; Special handlers
-                ; Handle literals specially.
-                lda #<literal_runtime
+                ldy #0
+_check_handler: lda _special_handlers,y
                 cmp scratch+1
-                bne _not_literal
-                lda #>literal_runtime
+                bne _next_handler
+                lda _special_handlers+1,y
                 cmp scratch+2
-                bne _not_literal
-                ; It's a literal.
-                jsr disasm_literal
+                bne _next_handler
+                jsr _run_handler
                 jmp _printing_done
+_next_handler:  cpy #(_end_handlers-_special_handlers-4)
+                beq _not_special
+                iny
+                iny
+                iny
+                iny
+                bra _check_handler
 
-_not_literal:
-                ; Handle string literals specially.
-                lda #<sliteral_runtime
-                cmp scratch+1
-                bne _not_sliteral
-                lda #>sliteral_runtime
-                cmp scratch+2
-                bne _not_sliteral
-                ; It's a literal.
-                jsr disasm_sliteral
-                jmp _printing_done
-_not_sliteral:
-                ; Handle 0branch
-                lda #<zero_branch_runtime
-                cmp scratch+1
-                bne _not_0branch
-                lda #>zero_branch_runtime
-                cmp scratch+2
-                bne _not_0branch
-                ; It's a 0branch.
-                jsr disasm_0branch
-                jmp _printing_done
-_not_0branch
-                ; Handle branch
-                lda #<branch_runtime
-                cmp scratch+1
-                bne _not_branch
-                lda #>branch_runtime
-                cmp scratch+2
-                bne _not_branch
-                ; It's a branch.
-                jsr disasm_branch
-                jmp _printing_done
-_not_branch
+_run_handler:
+                lda _special_handlers+2,y
+                sta scratch+3
+                lda _special_handlers+3,y
+                sta scratch+4
+                jmp (scratch+3)
+
+_not_special:
                 ; Try the generic JSR handler, which will use the target of the
                 ; JSR as an XT and print the name if it exists.
                 jsr disasm_jsr
                 jmp _printing_done
+
+; Special handlers
+_special_handlers:
+    .word literal_runtime,      disasm_literal
+    .word byte_runtime,         disasm_byte_literal
+    .word sliteral_runtime,     disasm_sliteral
+    .word zero_branch_runtime,  disasm_0branch
+    .word branch_runtime,       disasm_branch
+_end_handlers:
+
 
 _not_jsr:
                 ; See if the instruction is a jump (instruction still in A)
@@ -420,12 +409,33 @@ disasm_print_literal:
                 jsr xt_one_plus
 
                 jsr xt_dup
-                jsr xt_question ; Print the value at the adress
+                jsr xt_question ; Print the value at the address
                 ; Move along two bytes (already moved address one) to skip over the constant.
                 jsr xt_one_plus
                 jsr xt_swap ; (addr+2 u)
                 jsr xt_one_minus
                 jsr xt_one_minus ; (addr+2 u-2)
+                rts
+
+; Literal handler
+disasm_byte_literal:
+                lda #'B'
+                jsr emit_a ; Add leading B
+                lda #str_disasm_lit
+                jsr print_string_no_lf ; "LITERAL "
+
+                ; ( addr u ) address of last byte of JSR and bytes left on the stack.
+                ; We need to print the value just after the address and move along one byte.
+                jsr xt_swap ; switch to (u addr)
+                jsr xt_one_plus
+
+                jsr xt_dup
+                jsr xt_c_fetch  ; Print byte at the address
+                jsr xt_dot
+
+                ; Account for the byte to skip over the constant.
+                jsr xt_swap ; (addr+1 u)
+                jsr xt_one_minus ; (addr+1 u-1)
                 rts
 
 ; JSR handler

@@ -390,24 +390,30 @@ _loop:
                 ; upper and lower half, we can use the literal_runtime twice
                 ; to compile it into the dictionary.
                 jsr xt_swap
-                ldy #>literal_runtime
-                lda #<literal_runtime
-                jsr cmpl_subroutine
 
-                ; compile our number
-                jsr xt_comma
+                jsr _add_lit
 
                 ; Fall into _single_number to process the other half.
 _single_number:
-                ldy #>literal_runtime
-                lda #<literal_runtime
-                jsr cmpl_subroutine
-
-                ; compile our number
-                jsr xt_comma
+                jsr _add_lit
 
                 ; That was so much fun, let's do it again!
                 bra _loop
+
+_add_lit:       lda 1,x
+                beq _byte_rt
+                ldy #>literal_runtime
+                lda #<literal_runtime
+                bra _cmpl_rt
+_byte_rt:       ldy #>byte_runtime
+                lda #<byte_runtime
+_cmpl_rt:       jsr cmpl_subroutine
+                lda 1,x
+                beq _c_comma
+                ; compile our number and return
+                jmp xt_comma
+_c_comma:       jmp xt_c_comma
+
 
 _got_name_token:
                 ; We have a known word's nt TOS. We're going to need its xt

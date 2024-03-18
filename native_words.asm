@@ -997,7 +997,7 @@ xt_backslash:
                 bcc z_backslash
                 inc toin+1
                 bra z_backslash
-                
+
 backslash_not_block:
                 lda ciblen
                 sta toin
@@ -5675,6 +5675,30 @@ literal_runtime:
 
                 rts
 
+byte_runtime:
+                ; load a single byte following the calling JSR
+                dex             ; make space on the stack
+                dex
+
+                ; The 65c02 stores <RETURN-ADDRESS>-1 on the Return Stack,
+                ; so we are actually popping the address-1 of the literal
+                pla             ; LSB
+                ply             ; MSB
+                ina             ; inc return addr and store in tmp1
+                bne +
+                iny
++               phy
+                pha
+                sta tmp1
+                sty tmp1+1
+
+                ; Fetch literal byte and push it on Data stack
+                ldy #0
+                lda (tmp1),y    ; LSB
+                sta 0,x
+                stz 1,x         ; MSB is zero
+
+                rts
 
 
 .if "block" in TALI_OPTIONAL_WORDS
