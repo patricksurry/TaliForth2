@@ -202,56 +202,44 @@ _print_mnemonic:
                 stz 1,x
                 jsr xt_spaces
 
-; Special handlers
-                ; Handle literals specially.
-                lda #<literal_runtime
+                ldy #(_end_handlers - _special_handlers - 4)
+_check_handler: lda _special_handlers,y
                 cmp scratch+1
-                bne _not_literal
-                lda #>literal_runtime
+                bne _next_handler
+                lda _special_handlers+1,y
                 cmp scratch+2
-                bne _not_literal
-                ; It's a literal.
-                jsr disasm_literal
-                jmp _printing_done
+                beq _run_handler
+_next_handler:  dey
+                dey
+                dey
+                dey
+                bpl _check_handler
 
-_not_literal:
-                ; Handle string literals specially.
-                lda #<sliteral_runtime
-                cmp scratch+1
-                bne _not_sliteral
-                lda #>sliteral_runtime
-                cmp scratch+2
-                bne _not_sliteral
-                ; It's a literal.
-                jsr disasm_sliteral
-                jmp _printing_done
-_not_sliteral:
-                ; Handle 0branch
-                lda #<zero_branch_runtime
-                cmp scratch+1
-                bne _not_0branch
-                lda #>zero_branch_runtime
-                cmp scratch+2
-                bne _not_0branch
-                ; It's a 0branch.
-                jsr disasm_0branch
-                jmp _printing_done
-_not_0branch
-                ; Handle branch
-                lda #<branch_runtime
-                cmp scratch+1
-                bne _not_branch
-                lda #>branch_runtime
-                cmp scratch+2
-                bne _not_branch
-                ; It's a branch.
-                jsr disasm_branch
-                jmp _printing_done
-_not_branch
+_not_special:
                 ; Try the generic JSR handler, which will use the target of the
                 ; JSR as an XT and print the name if it exists.
                 jsr disasm_jsr
                 jmp _printing_done
+
+_run_handler:
+                lda _special_handlers+2,y
+                sta scratch+3
+                lda _special_handlers+3,y
+                sta scratch+4
+                jsr _dispatch_handler
+                jmp _printing_done
+
+_dispatch_handler:
+                jmp (scratch+3)
+
+; Special handlers
+_special_handlers:
+    .word literal_runtime,      disasm_literal
+    .word sliteral_runtime,     disasm_sliteral
+    .word zero_branch_runtime,  disasm_0branch
+    .word branch_runtime,       disasm_branch
+_end_handlers:
+
 
 _not_jsr:
                 ; See if the instruction is a jump (instruction still in A)
@@ -420,7 +408,7 @@ disasm_print_literal:
                 jsr xt_one_plus
 
                 jsr xt_dup
-                jsr xt_question ; Print the value at the adress
+                jsr xt_question ; Print the value at the address
                 ; Move along two bytes (already moved address one) to skip over the constant.
                 jsr xt_one_plus
                 jsr xt_swap ; (addr+2 u)
@@ -578,7 +566,7 @@ oc_table:
         ; ( addr u ) and then mask all but the bits 2-0 of the TOS.
 
         ; To make debugging easier, we keep the raw numbers for the lengths of
-        ; the instruction and mnemonicis and let the assembler do the math
+        ; the instruction and mnemonics and let the assembler do the math
         ; required to shift and add. The actual mnemonic string follows after
         ; and is not zero terminated because we have the length in bits 2 to 0.
 
@@ -586,7 +574,7 @@ oc_table:
 	oc01:	.text 2*64+7, "ora.zxi"
 ;      (oc02)
 ;      (oc03)
-        oc04:   .text 2*64+5, "tsb.z"
+    oc04:   .text 2*64+5, "tsb.z"
 	oc05:	.text 2*64+5, "ora.z"
 	oc06:	.text 2*64+5, "asl.z"
 ;      (oc07)
