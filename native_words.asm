@@ -5693,8 +5693,7 @@ byte_runtime:
                 sty tmp1+1
 
                 ; Fetch literal byte and push it on Data stack
-                ldy #0
-                lda (tmp1),y    ; LSB
+                lda (tmp1)      ; LSB
                 sta 0,x
                 stz 1,x         ; MSB is zero
 
