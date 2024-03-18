@@ -5689,6 +5689,29 @@ literal_runtime:
 
                 rts
 
+byte_runtime:
+                ; load a single byte following the calling JSR
+                dex             ; make space on the stack
+                dex
+
+                ; The 65c02 stores <RETURN-ADDRESS>-1 on the Return Stack,
+                ; so we are actually popping the address-1 of the literal
+                pla             ; LSB
+                ply             ; MSB
+                ina             ; inc return addr and store in tmp1
+                bne +
+                iny
++               phy
+                pha
+                sta tmp1
+                sty tmp1+1
+
+                ; Fetch literal byte and push it on Data stack
+                lda (tmp1)      ; LSB
+                sta 0,x
+                stz 1,x         ; MSB is zero
+
+                rts
 
 
 .if "block" in TALI_OPTIONAL_WORDS
