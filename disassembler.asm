@@ -113,8 +113,32 @@ _byte_loop:
                 ; or a two-byte operand
                 tya                     ; retrieve copy of lengths byte
                 rol                     ; shift bit 6 to bit 7
-                bpl _print_operand
+                bmi _get_msb
 
+                ; branch instructions with one byte relative addressing
+                ; are easier to read if we show the target address instead
+                ; branch opcodes are bra: $80 and bxx: %xxx1 0000
+
+                lda scratch         ; fetch opcode
+                cmp #$80            ; is it bra?
+                beq _is_rel
+                and #$1f
+                eor #$10            ; do bottom five bits match xxx10000 ?
+                bne _print_operand
+_is_rel:
+                ; treat opr as signed byte and add to addr after opcode (addr+1) + 1
+                lda 0,x
+                bpl +
+                dec 1,x     ; for negative offsets extend sign bit so addition works out
++               sec         ; start counting from address after opcode
+                adc 4,x
+                sta 0,x
+                lda 1,x
+                adc 5,x
+                sta 1,x
+                bra _print_operand
+
+_get_msb:
                 ; We have a three-byte instruction, so we need to get the MSB
                 ; of the operand. Move to the next byte
                 inc 4,x
