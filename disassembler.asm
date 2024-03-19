@@ -115,7 +115,6 @@ _byte_loop:
                 rol                     ; shift bit 6 to bit 7
                 bpl _print_operand
 
-_get_msb:
                 ; We have a three-byte instruction, so we need to get the MSB
                 ; of the operand. Move to the next byte
                 inc 4,x
