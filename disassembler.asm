@@ -113,30 +113,7 @@ _byte_loop:
                 ; or a two-byte operand
                 tya                     ; retrieve copy of lengths byte
                 rol                     ; shift bit 6 to bit 7
-                bmi _get_msb
-
-                ; branch instructions with one byte relative addressing
-                ; are easier to read if we show the target address instead
-                ; branch opcodes are bra: $80 and bxx: %xxx1 0000
-
-                lda scratch         ; fetch opcode
-                cmp #$80            ; is it bra?
-                beq _is_rel
-                and #$1f
-                eor #$10            ; do bottom five bits match xxx10000 ?
-                bne _print_operand
-_is_rel:
-                ; treat opr as signed byte and add to addr after opcode (addr+1) + 1
-                lda 0,x
-                bpl +
-                dec 1,x     ; for negative offsets extend sign bit so addition works out
-+               sec         ; start counting from address after opcode
-                adc 4,x
-                sta 0,x
-                lda 1,x
-                adc 5,x
-                sta 1,x
-                bra _print_operand
+                bpl _print_operand
 
 _get_msb:
                 ; We have a three-byte instruction, so we need to get the MSB
@@ -281,7 +258,7 @@ _not_jsr:
                 ; See if the instruction is a jump (instruction still in A)
                 ; (Strings start with a jump over the data.)
                 cmp #$4C
-                bne _printing_done
+                bne _not_jmp
 
                 ; We have a branch.  See if it's a string by looking for
                 ; a JSR sliteral_runtime at the jump target address.
@@ -320,6 +297,52 @@ _not_jsr:
 
                 ; It's a string literal jump.
                 jsr disasm_sliteral_jump
+                jmp _printing_done
+
+_not_jmp:
+                ; is it a native branch instruction with one byte relative addressing?
+                ; opcodes are bra: $80 and bxx: %xxx1 0000
+                ; if so we'll display the branch target address
+
+                ; destructive test on opcode in A
+                cmp #$80            ; is it bra?
+                beq _is_rel
+                and #$1f
+                eor #$10            ; do bottom five bits match xxx10000 ?
+                bne _printing_done
+_is_rel:
+                ; treat opr as signed byte and add to addr following operand: (addr+1) + 1
+                ; scratch+1 contains the operand (offset), stack has (addr+1 u-1)
+                ldy #'v'            ; we'll indicate branch forward or back with v or ^
+                dex
+                dex
+                stz 1,x
+                lda scratch+1
+                sta 0,x
+                bpl +
+                dec 1,x             ; for negative offsets extend the sign bit so add works out
+                ldy #'^'            ; it's a backward branch
++               sec                 ; start counting from address after opcode
+                adc 4,x
+                sta 0,x
+                lda 1,x
+                adc 5,x
+                sta 1,x
+
+                phy                 ; save the direction indicator
+
+                dex
+                dex
+                lda #9
+                sta 0,x
+                stz 1,x
+                jsr xt_u_dot_r      ; print the destination with 5 leading spaces
+
+                lda #AscSp          ; print space and branch direction indicator
+                jsr emit_a
+                pla
+                jsr emit_a
+
 _printing_done:
                 jsr xt_cr
 
