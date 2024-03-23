@@ -1,7 +1,7 @@
 ; List of Strings for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
 ; First version: 01. Apr 2016 (for Liara Forth)
-; This version: 28. Dec 2018
+; This version: 23. Mar 2024
 
 ; This file is included by taliforth.asm
 
@@ -10,6 +10,9 @@
 ; All general strings must be zero-terminated, names start with "s_",
 ; aliases with "str_"
 
+; The assembler variable ix is used to number these sequentially,
+; even when some are missing because they were removed in the
+; platform file.
 ix := 0
 str_ok             = ix
 ix += 1
@@ -118,7 +121,7 @@ es_divzero:     .text "Division by zero", 0
 es_noname:      .text "Parsing failure", 0
 es_refill:      .text "QUIT could not get input (REFILL returned -1)", 0
 es_state:       .text "Already in compile mode", 0
-es_syntax:      .text "Undefined word", 0
+es_syntax:      .text "Undefined word or invalid number", 0
 es_underflow:   .text "Data stack underflow", 0
 es_negallot:    .text "Max memory freed with ALLOT", 0
 es_wordlist:    .text "No wordlists available", 0
