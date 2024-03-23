@@ -202,35 +202,35 @@ _print_mnemonic:
                 stz 1,x
                 jsr xt_spaces
 
-                ldy #0
+                ldy #(_end_handlers - _special_handlers - 4)
 _check_handler: lda _special_handlers,y
                 cmp scratch+1
                 bne _next_handler
                 lda _special_handlers+1,y
                 cmp scratch+2
-                bne _next_handler
-                jsr _run_handler
-                jmp _printing_done
-_next_handler:  cpy #(_end_handlers-_special_handlers-4)
-                beq _not_special
-                iny
-                iny
-                iny
-                iny
-                bra _check_handler
-
-_run_handler:
-                lda _special_handlers+2,y
-                sta scratch+3
-                lda _special_handlers+3,y
-                sta scratch+4
-                jmp (scratch+3)
+                beq _run_handler
+_next_handler:  dey
+                dey
+                dey
+                dey
+                bpl _check_handler
 
 _not_special:
                 ; Try the generic JSR handler, which will use the target of the
                 ; JSR as an XT and print the name if it exists.
                 jsr disasm_jsr
                 jmp _printing_done
+
+_run_handler:
+                lda _special_handlers+2,y
+                sta scratch+3
+                lda _special_handlers+3,y
+                sta scratch+4
+                jsr _dispatch_handler
+                jmp _printing_done
+
+_dispatch_handler:
+                jmp (scratch+3)
 
 ; Special handlers
 _special_handlers:
@@ -246,7 +246,7 @@ _not_jsr:
                 ; See if the instruction is a jump (instruction still in A)
                 ; (Strings start with a jump over the data.)
                 cmp #$4C
-                bne _printing_done
+                bne _not_jmp
 
                 ; We have a branch.  See if it's a string by looking for
                 ; a JSR sliteral_runtime at the jump target address.
@@ -285,6 +285,52 @@ _not_jsr:
 
                 ; It's a string literal jump.
                 jsr disasm_sliteral_jump
+                jmp _printing_done
+
+_not_jmp:
+                ; is it a native branch instruction with one byte relative addressing?
+                ; opcodes are bra: $80 and bxx: %xxx1 0000
+                ; if so we'll display the branch target address
+
+                ; destructive test on opcode in A
+                cmp #$80            ; is it bra?
+                beq _is_rel
+                and #$1f
+                eor #$10            ; do bottom five bits match xxx10000 ?
+                bne _printing_done
+_is_rel:
+                ; treat opr as signed byte and add to addr following operand: (addr+1) + 1
+                ; scratch+1 contains the operand (offset), stack has (addr+1 u-1)
+                ldy #'v'            ; we'll indicate branch forward or back with v or ^
+                dex
+                dex
+                stz 1,x
+                lda scratch+1
+                sta 0,x
+                bpl +
+                dec 1,x             ; for negative offsets extend the sign bit so add works out
+                ldy #'^'            ; it's a backward branch
++               sec                 ; start counting from address after opcode
+                adc 4,x
+                sta 0,x
+                lda 1,x
+                adc 5,x
+                sta 1,x
+
+                phy                 ; save the direction indicator
+
+                dex
+                dex
+                lda #9
+                sta 0,x
+                stz 1,x
+                jsr xt_u_dot_r      ; print the destination with 5 leading spaces
+
+                lda #AscSp          ; print space and branch direction indicator
+                jsr emit_a
+                pla
+                jsr emit_a
+
 _printing_done:
                 jsr xt_cr
 
@@ -417,7 +463,7 @@ disasm_print_literal:
                 jsr xt_one_minus ; (addr+2 u-2)
                 rts
 
-; Literal handler
+; Byte literal handler
 disasm_byte_literal:
                 lda #'B'
                 jsr emit_a ; Add leading B
@@ -588,7 +634,7 @@ oc_table:
         ; ( addr u ) and then mask all but the bits 2-0 of the TOS.
 
         ; To make debugging easier, we keep the raw numbers for the lengths of
-        ; the instruction and mnemonicis and let the assembler do the math
+        ; the instruction and mnemonics and let the assembler do the math
         ; required to shift and add. The actual mnemonic string follows after
         ; and is not zero terminated because we have the length in bits 2 to 0.
 
@@ -596,7 +642,7 @@ oc_table:
 	oc01:	.text 2*64+7, "ora.zxi"
 ;      (oc02)
 ;      (oc03)
-        oc04:   .text 2*64+5, "tsb.z"
+    oc04:   .text 2*64+5, "tsb.z"
 	oc05:	.text 2*64+5, "ora.z"
 	oc06:	.text 2*64+5, "asl.z"
 ;      (oc07)
