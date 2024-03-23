@@ -20,8 +20,18 @@ nt_blk_read:
 
 nt_blk_write:
         .byte 9, 0
-        .word nt_shutdown, xt_blk_write, z_blk_write
+        .word nt_blk_read_n, xt_blk_write, z_blk_write
         .text "blk-write"
+
+nt_blk_read_n:
+        .byte 10, 0
+        .word nt_blk_write_n, xt_blk_read_n, z_blk_read_n
+        .text "blk-read-n"
+
+nt_blk_write_n:
+        .byte 11, 0
+        .word nt_shutdown, xt_blk_write_n, z_blk_write_n
+        .text "blk-write-n"
 
 nt_shutdown:
         .byte 8, 0
@@ -35,13 +45,20 @@ nt_unpack:
 
 nt_pack:
         .byte 4, 0
-        .word nt_byte_extend, xt_pack, z_pack
+        .word nt_cs_fetch, xt_pack, z_pack
         .text "pack"
 
-nt_byte_extend:
+nt_cs_fetch:
         .byte 3, 0
-        .word nt_typez, xt_byte_extend, z_byte_extend
-        .text "-b-"
+        .word nt_decode_link, xt_cs_fetch, z_cs_fetch
+        .text "cs@"
+
+; adventure-specific things
+
+nt_decode_link:
+        .byte 11, 0
+        .word nt_typez, xt_decode_link, z_decode_link
+        .text "decode-link"
 
 nt_typez:
         .byte 5, 0

@@ -74,15 +74,19 @@ xt_pack:
 z_pack:         rts
 
 
-; ## BYTE_EXTEND ( c -- s ) "sign extend signed char to signed word"
-; ## "-b-"  tested ad hoc
-xt_byte_extend:
-                lda 0,x
-                bpl z_byte_extend
-                lda #$ff
+; ## CS_FETCH ( addr -- sc ) "Get a byte with sign extension from address"
+; ## "cs@"
+xt_cs_fetch:
+                jsr underflow_1
+
+                ldy #0      ; assume msb is zero
+                lda (0,x)
+                sta 0,x
+                bpl _plus
+                dey         ; extend sign if byte is negative
+_plus:          tya
                 sta 1,x
-z_byte_extend:
-                rts
+z_cs_fetch:     rts
 
 
 ; ## ASCIIZ> ( c-addr -- addr u ) "count a zero-terminated string; uses tmp1"
@@ -122,13 +126,24 @@ z_asciiz:
 ; ## "blk-write"  tested ad hoc
 xt_blk_write:
         ldy #2
-        bra blk_rw
+        bra jsr_blkrw
 
 ; ## blk_read ( blk buf -- ) "read a 1024-byte block from blk to buf"
 ; ## "blk-read"  tested ad hoc
 xt_blk_read:
         ldy #1
-blk_rw:
+jsr_blkrw:
+        jsr blkrw
+        inx             ; free stack
+        inx
+        inx
+        inx
+z_blk_write:
+z_blk_read:
+        rts
+
+
+blkrw:      ; ( blk buf -- blk buf ) ; Y = 1/2 for r/w
         lda 0,x
         sta $c014       ; buffer
         lda 1,x
@@ -137,13 +152,51 @@ blk_rw:
         sta $c012       ; blk number
         lda 3,x
         sta $c013
-        inx             ; free stack
-        inx
-        inx
-        inx
         sty $c010       ; go
-z_blk_write:
-z_blk_read:
+        rts
+
+
+; blk-write-n ( blk addr n ) loop over blk_write n times (n <= 64)
+xt_blk_write_n:
+        ldy #2
+        bra blk_rw_n
+
+; blk-read-n ( blk addr n ) loop over blk_read n times (n <= 64)
+xt_blk_read_n:
+        ldy #1
+blk_rw_n:
+        sty tmp1+1      ; 1=read, 2=write
+
+        lda 0,x
+        sta tmp1        ; block count (unsigned byte)
+        inx             ; remove n from stack
+        inx
+        cmp #0          ; any blocks to read?
+        beq _cleanup
+
+_loop:
+        ldy tmp1+1
+        jsr blkrw
+
+        lda #4          ; addr += 1024 = $400
+        clc
+        adc 1,x
+        sta 1,x
+
+        inc 2,x         ; blk += 1
+        bne +
+        inc 3,x
++
+        dec tmp1        ; n--
+        bne _loop
+
+_cleanup:
+        inx             ; clear stack
+        inx
+        inx
+        inx
+z_blk_read_n:
+z_blk_write_n:
         rts
 
 
@@ -153,6 +206,53 @@ xt_shutdown:
         lda #$ff
         sta $c010       ; that's all folks...
 z_shutdown:
+        rts
+
+
+; linkz decode 4 byte packed representation into 3 words
+; ( link-addr -- dest' verb cond' )
+;
+;           addr+3          addr+2             addr+1           addr+0
+;    +-----------------+-----------------+-----------------+-----------------+
+;    | 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0 |
+;    +------+-----+----+-----------------+--------------+--+-----------------+
+;    | . . .|  cf | dt |     dest        |     cobj     |          verb      |
+;    +------+-----+----+-----------------+--------------+--+-----------------+
+;             1,x   5,x      4,x               0,x       3,x       2,x
+xt_decode_link:
+        lda 0,x         ; copy addr to tmp1
+        sta tmp1
+        lda 1,x
+        sta tmp1+1
+
+        dex             ; make space for cond' @ 0-1, verb @ 2-3, dest at 4-5
+        dex
+        dex
+        dex
+
+        ldy #0
+        lda (tmp1),y
+        sta 2,x         ; verb lo
+        iny
+        lda (tmp1),y
+        lsr
+        sta 0,x         ; cond lo
+        lda #0
+        rol
+        sta 3,x         ; verb hi
+        iny
+        lda (tmp1),y
+        sta 4,x         ; dest lo
+        iny
+        lda (tmp1),y
+        tay
+        and #3
+        sta 5,x         ; dest hi
+        tya
+        lsr
+        lsr
+        sta 1,x         ; cond hi
+z_decode_link:
         rts
 
 
