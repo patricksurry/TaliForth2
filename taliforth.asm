@@ -102,6 +102,25 @@ cmpl_a:
 _done:
                 rts
 
+cmpl_inline:
+        ; helper to copy Y bytes from (tmp1) to (cp) and increase CP by Y
+                phy             ; save counter to adjust CP
+                dey             ; we were actually copying Y+1 before
+-
+                lda (tmp1),y
+                sta (cp),y
+                dey
+                bpl -
+
+                ; Adjust CP
+                pla
+                clc
+                adc cp
+                sta cp
+                lda cp+1
+                adc #0          ; only need carry
+                sta cp+1
+                rts
 
 ; =====================================================================
 ; CODE FIELD ROUTINES

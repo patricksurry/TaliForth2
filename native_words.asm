@@ -997,7 +997,7 @@ xt_backslash:
                 bcc z_backslash
                 inc toin+1
                 bra z_backslash
-                
+
 backslash_not_block:
                 lda ciblen
                 sta toin
@@ -3089,21 +3089,10 @@ do_common:
 
                 ; now we compile six dummy bytes that LOOP/+LOOP will
                 ; replace by the actual LDA/PHA instructions
-                lda #5                  ; we don't really care about the value,
-                tay                     ; so we use 5 to be tricky
-_loop:
-                sta (CP),y
-                dey
-                bpl _loop
 
-                ; update CP
-                ina             ; we used 5 as a dummy value, this is why
-                clc
-                adc CP
-                sta CP
-                bcc +
-                inc CP+1
-+
+                ldy #6
+                jsr cmpl_inline        ; write 6 dummy bytes to runtime
+
                 ; compile the (?DO) portion of ?DO if appropriate
                 lda tmp1
                 beq _compile_do
@@ -3112,40 +3101,20 @@ _loop:
                 ; this with a quick loop because we know it has to be
                 ; Always Native anyway
                 ldy #question_do_runtime_end-question_do_runtime
-                phy             ; save counter to calculate new CP
--
-                lda question_do_runtime,y
-                sta (cp),y
-                dey
-                bpl -
+                lda #<question_do_runtime
+                sta tmp1
+                lda #>question_do_runtime
+                sta tmp1+1
+                jsr cmpl_inline
 
-                ; adjust CP
-                pla             ; retrieve counter
-                clc
-                adc cp
-                sta cp
-                lda cp+1
-                adc #0          ; only care about carry
-                sta cp+1        ; fall through to _compile_do
+                ; fall through to _compile_do
 
 _compile_do:
                 ; compile runtime part of DO.
-                ldy #do_runtime_end-do_runtime  ; counter
-                phy             ; save counter to calculate new CP
--
-                lda do_runtime,y
-                sta (cp),y
-                dey
-                bpl -
-
-                ; adjust CP
-                pla             ; retrieve counter
-                clc
-                adc cp
-                sta cp
-                lda cp+1
-                adc #0          ; only care about carry
-                sta cp+1
+                ; do this as a subroutine since it only happens once and is a big chunk of code
+                ldy #>do_runtime
+                lda #<do_runtime
+                jsr cmpl_subroutine
 
                 ; HERE, hardcoded for speed. We put it on the Data Stack
                 ; where LOOP/+LOOP takes it from. Note this has nothing to
@@ -3175,6 +3144,12 @@ do_runtime:
         ; However, we can do it faster if we just copy the bytes
         ; of this routine with a simple loop in DO.
         ; """
+                ; stash return address so we can manipulate return stack
+                pla
+                sta tmp1
+                pla
+                sta tmp1+1
+
                 ; First step: create fudge factor (FUFA) by subtracting the
                 ; limit from $8000, the number that will trip the overflow
                 ; flag
@@ -3206,8 +3181,15 @@ do_runtime:
                 inx
                 inx
                 inx
-                inx             ; no RTS because this is copied into code
-do_runtime_end:
+                inx
+
+                lda tmp1+1
+                pha
+                lda tmp1
+                pha
+
+                rts
+
 
 question_do_runtime:
 
@@ -5052,18 +5034,18 @@ xt_i:
                 ; Get the fudged index off of the top of the stack. It's
                 ; easier to do math on the stack directly than to pop and
                 ; push stuff around
-                stx tmpdsp
+                phx
                 tsx
 
                 sec
-                lda $0101,x     ; LSB
-                sbc $0103,x
+                lda $0102,x     ; LSB
+                sbc $0104,x
                 tay
 
-                lda $0102,x     ; MSB
-                sbc $0104,x
+                lda $0103,x     ; MSB
+                sbc $0105,x
 
-                ldx tmpdsp
+                plx
 
                 sta 1,x         ; MSB of de-fudged index
                 sty 0,x         ; LSB of de-fudged index
@@ -5765,11 +5747,13 @@ z_load:         rts
         ;       IMMEDIATE ; COMPILE-ONLY
         ; """
 xt_loop:
-                ; Have the finished word push 1 on the stack
-                ldy #>xt_one
-                lda #<xt_one
-                jsr cmpl_subroutine     ; drop through to +LOOP
-
+                ldy #loop_runtime_end-loop_runtime
+                lda #<loop_runtime
+                sta tmp1
+                lda #>loop_runtime
+                sta tmp1+1
+                jsr cmpl_inline
+                bra xt_loop_common
 
 ; ## PLUS_LOOP ( -- ) "Finish loop construct"
 ; ## "+loop"  auto  ANS core
@@ -5789,22 +5773,13 @@ xt_plus_loop:
                 ; and not a call to COMPILE, because it has to be natively
                 ; coded anyway.
                 ldy #plus_loop_runtime_end-plus_loop_runtime
-                phy             ; save counter to adjust CP
--
-                lda plus_loop_runtime,y
-                sta (cp),y
-                dey
-                bpl -
+                lda #<plus_loop_runtime
+                sta tmp1
+                lda #>plus_loop_runtime
+                sta tmp1+1
+                jsr cmpl_inline
 
-                ; Adjust CP
-                pla
-                clc
-                adc cp
-                sta cp
-                lda cp+1
-                adc #0          ; only need carry
-                sta cp+1
-
+xt_loop_common:
                 ; The address we need to loop back to is TOS. Store it so
                 ; the runtime part of +LOOP jumps back up there
                 jsr xt_comma
@@ -5843,39 +5818,34 @@ xt_plus_loop:
                 lda cp
                 sec
                 sbc #1
-                sta tmp2
+                pha             ; lsb
                 lda cp+1
                 sbc #0
-                sta tmp2+1
+                pha             ; msb
 
-                ; now compile this in the DO/?DO routine
+                ; now compile our template in the DO/?DO routine
                 ldy #0
-
-                lda #$A9        ; opcode for LDA immediate
+-
+                lda loop_epilogue,y
+                bne +
+                pla
++
                 sta (tmp1),y
                 iny
-                lda tmp2+1      ; MSB
-                sta (tmp1),y
-                iny
-                lda #$48        ; Opcode for PHA
-                sta (tmp1),y
-                iny
-
-                lda #$A9        ; opcode for LDA immediate
-                sta (tmp1),y
-                iny
-                lda tmp2        ; LSB
-                sta (tmp1),y
-                iny
-                lda #$48        ; Opcode for PHA
-                sta (tmp1),y
+                cpy #6
+                bne -
 z_loop:
 z_plus_loop:    rts
 
+loop_epilogue:  ; we'll use this template to push the return address
+                lda #0
+                pha
+                lda #0
+                pha
 
 plus_loop_runtime:
-        ; """Runtime compile for loop control. This is used for both +LOOP and
-        ; LOOP which are defined at high level. Note we use a fudge factor for
+        ; """Runtime compile for +LOOP when we have an arbitrary step.
+        ; See below for loop_runtime for step=1. Note we use a fudge factor for
         ; loop control so we can test with the Overflow Flag. See
         ; the Control Flow section of the manual for details.
         ; The step value is TOS in the loop. This
@@ -5893,8 +5863,7 @@ plus_loop_runtime:
                 adc 1,x         ; MSB of step
                 pha             ; put MSB of index back on stack
 
-                tya             ; put LSB of index back on stack
-                pha
+                phy             ; put LSB of index back on stack
 
                 inx             ; dump step from TOS
                 inx
@@ -5908,9 +5877,37 @@ _hack:          ; This is why this routine must be natively compiled: We
                 ; go to, which is added by the next next instruction of
                 ; LOOP/+LOOP during compile time
                 .byte $4C
-
 plus_loop_runtime_end:
 
+loop_runtime:
+        ; """Runtime compile for LOOP when stepping by one.
+        ; This must always be native compiled.
+        ; """
+
+                clv             ; note inc doesn't affect V
+                pla             ; LSB of index
+                ina
+                tay             ; stash updated LSB
+                bne _skip_msb   ; definitely not done
+
+                pla             ; MSB of index
+                clc
+                adc #1          ; use adc to get V flag
+                pha             ; put MSB of index back on stack
+
+_skip_msb:      phy             ; put LSB of index back on stack
+
+                ; If V flag is set, we're done looping and continue
+                ; after the +LOOP instruction
+                bvs _hack+3     ; skip over JMP instruction
+
+_hack:          ; This is why this routine must be natively compiled: We
+                ; compile the opcode for JMP here without an address to
+                ; go to, which is added by the next next instruction of
+                ; LOOP/+LOOP during compile time
+                .byte $4C
+
+loop_runtime_end:
 
 ; ## LSHIFT ( x u -- u ) "Shift TOS left"
 ; ## "lshift"  auto  ANS core
