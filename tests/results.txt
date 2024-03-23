@@ -1639,7 +1639,7 @@ T{ s" x:notfound" environment? dup 0= xor invert -> <false> }T  ok
   ok
 \ These were added for Tali Forth 10. Aug 2018  ok
 hex  ok
-T{ s" /COUNTED-STRING"    environment? ->    7FFF <true> }T  ok
+T{ s" /COUNTED-STRING"    environment? ->      FF <true> }T  ok
 T{ s" /HOLD"              environment? ->      FF <true> }T  ok
 T{ s" /PAD"               environment? ->      54 <true> }T  ok
 T{ s" ADDRESS-UNIT-BITS"  environment? ->       8 <true> }T  ok

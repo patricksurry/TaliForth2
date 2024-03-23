@@ -3875,7 +3875,7 @@ z_endcase:      rts
         ; HEX
         ; : ENVIRONMENT? ( C-ADDR U -- FALSE | I*X TRUE )
         ; CASE
-        ; S" /COUNTED-STRING"    STRING_OF  7FFF TRUE ENDOF
+        ; S" /COUNTED-STRING"    STRING_OF    FF TRUE ENDOF
         ; S" /HOLD"              STRING_OF    FF TRUE ENDOF
         ; S" /PAD"               STRING_OF    54 TRUE ENDOF ( 84 DECIMAL )
         ; S" ADDRESS-UNIT-BITS"  STRING_OF     8 TRUE ENDOF
@@ -4070,7 +4070,7 @@ env_table_double:
         .word envs_max_d, envs_max_ud, 0000
 
 env_results_single:
-        .word $7FFF     ; /COUNTED-STRING
+        .word $00FF     ; /COUNTED-STRING
         .word $00FF     ; /HOLD
         .word $0054     ; /PAD (this is 84 decimal)
         .word $0008     ; ADDRESS-UNIT-BITS (keep "$" to avoid octal!)

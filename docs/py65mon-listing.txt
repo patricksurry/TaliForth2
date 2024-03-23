@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.57.2900 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Sat Mar 23 13:45:18 2024
+; Sat Mar 23 14:50:59 2024
 
 ;Offset	;Hex		;Monitor	;Source
 
@@ -2179,7 +2179,7 @@
 .8eb6					env_table_double:
 >8eb6	bf d6 c5 d6 00 00		        .word envs_max_d, envs_max_ud, 0000
 .8ebc					env_results_single:
->8ebc	ff 7f				        .word $7FFF     ; /COUNTED-STRING
+>8ebc	ff 00				        .word $00FF     ; /COUNTED-STRING
 >8ebe	ff 00				        .word $00FF     ; /HOLD
 >8ec0	54 00				        .word $0054     ; /PAD (this is 84 decimal)
 >8ec2	08 00				        .word $0008     ; ADDRESS-UNIT-BITS (keep "$" to avoid octal!)
