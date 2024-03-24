@@ -748,8 +748,8 @@ https://forth-standard.org/standard/block/LOAD
 
 `loop`:: _ANS core_ ( -- ) "Finish loop construct"
 https://forth-standard.org/standard/core/LOOP
-Compile-time part of LOOP. This does nothing more but push 1 on
-the stack and then call +LOOP.
+Compile-time part of LOOP. This is specialized to
+increment by one.
 
 `lshift`:: _ANS core_ ( x u -- u ) "Shift TOS left"
 https://forth-standard.org/standard/core/LSHIFT
