@@ -2246,12 +2246,12 @@ _underflow_strip:
                 ; See if the user wants underflow stripping turned on
                 lda uf_strip
                 ora uf_strip+1
-                beq cmpl_Inline
+                beq cmpl_inline
 
                 ; See if this word even contains underflow checking
                 lda tmp3
                 and #UF
-                beq cmpl_Inline
+                beq cmpl_inline
 
                 ; If we arrived here, underflow has to go. It's always 3 bytes
                 ; long. Note hat PICK is a special case.
