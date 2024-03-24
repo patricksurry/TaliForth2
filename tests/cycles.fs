@@ -111,8 +111,20 @@ here         ' count         cycle_test 2drop
 char w       ' digit?        cycle_test 2drop     
 \ skipping     disasm
 5.           ' dnegate       cycle_test 2drop     
-\ skipping     ?do
-\ skipping     do
+: do?word1 5 5 ?do loop ;
+             ' do?word1      cycle_test           
+: do?word2 100 0 ?do i drop loop ;
+             ' do?word2      cycle_test           
+: doword 100 0 do loop ;
+             ' doword        cycle_test           
+: dowordi 100 0 do i drop loop ;
+             ' dowordi       cycle_test           
+: dodoword 100 0 do 10 0 do loop loop ;
+             ' dodoword      cycle_test           
+: dodowordij 100 0 do 10 0 do i drop j drop loop loop ;
+             ' dodowordij    cycle_test           
+: doword+loop 100 0 do 5 +loop ;
+             ' doword+loop   cycle_test           
 \ skipping     does
 \ skipping     .
 \ skipping     ."
