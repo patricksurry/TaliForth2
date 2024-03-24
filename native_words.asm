@@ -2079,7 +2079,7 @@ xt_compile_comma:
                 bne _check_nt
 
                 ; No nt in dictionary. Just compile as a JSR.
-                jmp _compile_as_jump
+                jmp compile_as_jump
 
 _check_nt:
                 ; put nt away for safe keeping
@@ -2116,7 +2116,7 @@ _compile_check:
                 and #NN
                 beq _check_size_limit
 
-                jmp _compile_as_jump    ; too far for BRA
+                jmp compile_as_jump    ; too far for BRA
 
 _check_size_limit:
                 ; Native compile is a legal option, but we need to see what
@@ -2143,7 +2143,7 @@ _check_size_limit:
 _jumpto_compile_as_jump:
                 ; If the wordsize is greater than the user-defined
                 ; limit, it will be compiled as a subroutine jump.
-                jmp _compile_as_jump    ; too far for BRA
+                jmp compile_as_jump    ; too far for BRA
 
 _compile_as_code:
                 ; We arrive here with the length of the word's code TOS and
@@ -2178,12 +2178,12 @@ _compile_as_code:
                 ldy #0
 
 _strip_loop:
-                lda _strip_table,y      ; LSB of first word
+                lda strip_table,y      ; LSB of first word
                 cmp 4,x                 ; LSB of xt
                 bne _next_entry
 
                 ; LSB is the same, test MSB
-                lda _strip_table+1,y
+                lda strip_table+1,y
                 cmp 5,x
                 beq _found_entry
 
@@ -2192,8 +2192,8 @@ _strip_loop:
 _next_entry:
                 ; Not a word that needs stripping, so check next entry in table
                 ; Let's see if we're done with the table (marked by zero entry)
-                lda _strip_table,y      ; pointing to LSB
-                ora _strip_table+1,y    ; get MSB
+                lda strip_table,y      ; pointing to LSB
+                ora strip_table+1,y    ; get MSB
                 beq _underflow_strip    ; table done, let's get out of here
 
                 iny
@@ -2212,7 +2212,7 @@ _found_entry:
                 ; Get the adjustment out of the size table. We were clever
                 ; enough to make sure the cut on both ends of the code is
                 ; is the same size.
-                lda _strip_size,y
+                lda strip_size,y
                 sta tmptos              ; save a copy
 
                 ; Adjust xt: Start later
@@ -2246,12 +2246,12 @@ _underflow_strip:
                 ; See if the user wants underflow stripping turned on
                 lda uf_strip
                 ora uf_strip+1
-                beq _specials_done
+                beq cmpl_Inline
 
                 ; See if this word even contains underflow checking
                 lda tmp3
                 and #UF
-                beq _specials_done
+                beq cmpl_Inline
 
                 ; If we arrived here, underflow has to go. It's always 3 bytes
                 ; long. Note hat PICK is a special case.
@@ -2274,7 +2274,7 @@ _underflow_strip:
 +
 
                 ; --- END OF SPECIAL CASES ---
-_specials_done:
+cmpl_inline:    ; ( src dst u -- )
                 ; Store size of area to be copied for calculation of
                 ; new CP. We have to do this after all of the special cases
                 ; because they might change the size
@@ -2297,22 +2297,36 @@ _specials_done:
                 adc cp+1
                 sta cp+1
 
-                bra _done
+                rts
 
-_strip_table:
+cmpl_inline_y:      ; with ( src -- ) and Y = # bytes, write to CP
+                dex             ; set up stack as ( src dst n -- )
+                dex
+                dex
+                dex
+
+                sty 0,x
+                stz 1,x             ; assume < 256 bytes
+                lda cp
+                sta 2,x
+                lda cp+1
+                sta 3,x
+                bra cmpl_inline
+
+strip_table:
                ; List of words we strip the Return Stack antics from
                ; during native compile, zero terminated. The index here
                ; must be the same as for the sizes
                 .word xt_r_from, xt_r_fetch, xt_to_r    ; R>, R@, >R
                 .word xt_two_to_r, xt_two_r_from, 0000  ; 2>R, 2R>, EOL
 
-_strip_size:
+strip_size:
                 ; List of bytes to be stripped from the words that get their
                 ; Return Stack antics removed during native compile. Index must
                 ; be the same as for the xts. Zero terminated.
                 .byte 4, 4, 4, 6, 6, 0          ; R>, R@, >R, 2>R, 2R>, EOL
 
-_compile_as_jump:
+compile_as_jump:
                 ; Compile xt as a subroutine jump
                 lda #$20
                 sta (cp)
@@ -2334,7 +2348,6 @@ _compile_as_jump:
 +
                 inx             ; drop xt
                 inx
-_done:
 z_compile_comma:
                 rts
 
@@ -3082,17 +3095,20 @@ do_common:
                 ; compile the address we need to LDA at runtime
                 dex
                 dex
-                lda cp
-                sta 0,x                 ; LSB
                 lda cp+1
                 sta 1,x                 ; MSB   ( limit start here )
+                lda cp
+                sta 0,x                 ; LSB
 
-                ; now we compile six dummy bytes that LOOP/+LOOP will
-                ; replace by the actual LDA/PHA instructions
+                ; now advance cp by six bytes which LOOP/+LOOP will
+                ; replace with LDA/PHA instructions from loop_epilogue
 
-                ldy #6
-                jsr cmpl_inline        ; write 6 dummy bytes to runtime
-
+                clc
+                adc #6
+                sta cp
+                bcc +
+                inc cp+1
++
                 ; compile the (?DO) portion of ?DO if appropriate
                 lda tmp1
                 beq _compile_do
@@ -3100,12 +3116,15 @@ do_common:
                 ; We came from ?DO, so compile its runtime first. We do
                 ; this with a quick loop because we know it has to be
                 ; Always Native anyway
-                ldy #question_do_runtime_end-question_do_runtime
+                ; set up stack for cmpl_inline_y ( src -- )
+                dex
+                dex
                 lda #<question_do_runtime
-                sta tmp1
+                sta 0,x
                 lda #>question_do_runtime
-                sta tmp1+1
-                jsr cmpl_inline
+                sta 1,x
+                ldy #question_do_runtime_end-question_do_runtime
+                jsr cmpl_inline_y
 
                 ; fall through to _compile_do
 
@@ -5739,20 +5758,24 @@ z_load:         rts
 ; ## LOOP ( -- ) "Finish loop construct"
 ; ## "loop"  auto  ANS core
         ; """https://forth-standard.org/standard/core/LOOP
-        ; Compile-time part of LOOP. This does nothing more but push 1 on
-        ; the stack and then call +LOOP.
+        ; Compile-time part of LOOP. This is specialized to
+        ; increment by one.
         ;
         ; In Forth, this is
         ;       : LOOP  POSTPONE 1 POSTPONE (+LOOP) , POSTPONE UNLOOP ;
         ;       IMMEDIATE ; COMPILE-ONLY
         ; """
 xt_loop:
+                ; Set up stack for cmpl_inline_y ( src -- )
+                dex
+                dex
+
                 ldy #loop_runtime_end-loop_runtime
                 lda #<loop_runtime
-                sta tmp1
+                sta 0,x
                 lda #>loop_runtime
-                sta tmp1+1
-                jsr cmpl_inline
+                sta 1,x
+                jsr cmpl_inline_y
                 bra xt_loop_common
 
 ; ## PLUS_LOOP ( -- ) "Finish loop construct"
@@ -5769,15 +5792,17 @@ xt_loop:
         ; """
 
 xt_plus_loop:
-                ; Compile the run-time part. We do this with a short loop
-                ; and not a call to COMPILE, because it has to be natively
-                ; coded anyway.
+                ; Compile the run-time part.
+                ; Set up stack for cmpl_inline_y ( src -- )
+                dex
+                dex
+
                 ldy #plus_loop_runtime_end-plus_loop_runtime
                 lda #<plus_loop_runtime
-                sta tmp1
+                sta 0,x
                 lda #>plus_loop_runtime
-                sta tmp1+1
-                jsr cmpl_inline
+                sta 1,x
+                jsr cmpl_inline_y
 
 xt_loop_common:
                 ; The address we need to loop back to is TOS. Store it so
@@ -5832,7 +5857,7 @@ xt_loop_common:
 +
                 sta (tmp1),y
                 iny
-                cpy #6
+                cpy #(loop_epilogue_end-loop_epilogue)
                 bne -
 z_loop:
 z_plus_loop:    rts
@@ -5842,6 +5867,7 @@ loop_epilogue:  ; we'll use this template to push the return address
                 pha
                 lda #0
                 pha
+loop_epilogue_end:
 
 plus_loop_runtime:
         ; """Runtime compile for +LOOP when we have an arbitrary step.
@@ -5885,9 +5911,8 @@ loop_runtime:
         ; """
 
                 clv             ; note inc doesn't affect V
-                pla             ; LSB of index
-                ina
-                tay             ; stash updated LSB
+                ply             ; LSB of index
+                iny             ; stash updated LSB
                 bne _skip_msb   ; definitely not done
 
                 pla             ; MSB of index

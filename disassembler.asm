@@ -238,6 +238,7 @@ _special_handlers:
     .word sliteral_runtime,     disasm_sliteral
     .word zero_branch_runtime,  disasm_0branch
     .word branch_runtime,       disasm_branch
+    .word do_runtime,           disasm_do
 _end_handlers:
 
 
@@ -442,6 +443,14 @@ disasm_branch:
                 jsr print_string_no_lf ; "BRANCH "
                 ; The address after the 0BRANCH is handled the same as a literal.
                 bra disasm_print_literal
+
+; DO handler
+disasm_do:
+                lda #'D'
+                jsr emit_a
+                lda #'O'
+                jsr emit_a
+                rts
 
 ; Literal handler
 disasm_literal:
