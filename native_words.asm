@@ -5912,7 +5912,7 @@ loop_runtime:
 
                 clv             ; note inc doesn't affect V
                 ply             ; LSB of index
-                iny             ; stash updated LSB
+                iny             ; add one
                 bne _skip_msb   ; definitely not done
 
                 pla             ; MSB of index
