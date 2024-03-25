@@ -3710,6 +3710,7 @@ xt_ed:
 z_ed:           rts
 .endif
 
+
 ; ## EDITOR_WORDLIST ( -- u ) "WID for the Editor wordlist"
 ; ## "editor-wordlist"  tested  Tali Editor
         ; """ Commonly used like `editor-wordlist >order` to add the editor
@@ -3852,6 +3853,9 @@ beq_opt:
                 beq beq_opt_end             ; the beq overwrites the placeholder
                                             ; address with a calculated offset
 beq_opt_end:
+                bne bne_opt_end+2           ; alternate for xt_until
+                .byte $4c                   ; JMP
+bne_opt_end:
 
 
 ; ## EMIT ( char -- ) "Print character to current output"
@@ -11339,27 +11343,39 @@ z_unloop:       rts
         ; """http://forth-standard.org/standard/core/UNTIL"""
 xt_until:
                 ; The address to loop back to is on the stack.
-                ; We'd normally do a 0BRANCH but similarly to xt_then
-                ; we can optimize with a native branch if it's not too far.
-                ; So we'll generate code like this
+                ; We could do a 0BRANCH but we can optimize with native
+                ; branching.  We'll either generate code like this:
                 ;
                 ; dest:
                 ;       ...
                 ; here:
-                ;       jsr zero_branch_runtime
-                ;       LSB MSB
+                ;       jsr zero_test_runtime
+                ;       bne +3
                 ; here+5:
+                ;       jmp dest
+                ; here+8:
                 ;
-                ; The optimized version looks like
+                ; Or (if the branch back is short enough):
+                ;
+                ;       ...
+                ; here:
                 ;       jsr zero_test_runtime
                 ;       beq dest - (here + 5)
                 ;
-                ; Note we could even inline zero_test_runtime but
-                ; it reduces the distance we can branch so don't bother
+                ; Nb. we could even inline zero_test_runtime but that
+                ; reduces the distance we can branch so don't bother for now
 
                 jsr xt_dup
                 jsr xt_here
                 jsr xt_minus            ; stack has ( dest dest-here )
+
+                ldy #0
+-
+                lda beq_opt,y
+                jsr cmpl_a
+                iny
+                cpy #(beq_opt_end-beq_opt-2)  ; copy the jsr 0test, leaving y=3
+                bne -
 
                 lda 1,x
                 ina
@@ -11372,14 +11388,9 @@ xt_until:
                 ; good to optimize
                 sta 0,x                 ; remember the branch offset
 
-                ; write our zero_test
-                ldy #0
--
-                lda beq_opt,y
+                lda beq_opt,y           ; the beq
                 jsr cmpl_a
-                iny
-                cpy #(beq_opt_end-beq_opt-1)  ; four bytes, skipping offset
-                bne -
+
                 lda 0,x                 ; write the offset
                 jsr cmpl_a
 
@@ -11392,12 +11403,17 @@ xt_until:
 _too_far:
                 inx                     ; discard the offset
                 inx
-                ; Just compile a 0BRANCH ...
-                ldy #>zero_branch_runtime
-                lda #<zero_branch_runtime
-                jsr cmpl_subroutine
 
-                ; ... with dest as its target address
+                iny                     ; skip the beq and use alternate bne form
+                iny
+-
+                lda beq_opt,y
+                jsr cmpl_a
+                iny
+                cpy #(bne_opt_end-beq_opt)
+                bne -
+
+                ; add dest as the jmp target
                 jsr xt_comma
 
 z_until:        rts
