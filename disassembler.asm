@@ -237,7 +237,6 @@ _special_handlers:
     .word literal_runtime,      disasm_literal
     .word sliteral_runtime,     disasm_sliteral
     .word zero_branch_runtime,  disasm_0branch
-    .word branch_runtime,       disasm_branch
     .word do_runtime,           disasm_do
 _end_handlers:
 

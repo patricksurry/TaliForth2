@@ -3732,10 +3732,9 @@ z_ed:           rts
 
 xt_else:
 xt_endof:
-                ; Put an unconditional branch.
-                ldy #>branch_runtime
-                lda #<branch_runtime
-                jsr cmpl_subroutine
+                ; Put an unconditional branch.  This can just be a native jmp
+                lda #$4c        ; jmp opcode
+                jsr cmpl_a
 
                 ; Put the address of the branch address on the stack.
                 jsr xt_here
@@ -3756,32 +3755,6 @@ xt_endof:
 z_else:
 z_endof:
                 rts
-
-
-
-branch_runtime:
-        ; """Runtime component for a branch. Used by ELSE and ENDOF. This was
-        ; formally part of a separate word BRANCH which was later removed.
-        ; """
-
-                ; The address on the Return Stack points to the last byte
-                ; of the JSR address, one byte below the branch literal
-                pla
-                sta tmpbranch
-                pla
-                sta tmpbranch+1
-
-                ; Keep in mind: the address we just popped points one byte
-                ; lower than the branch literal we want to grab
-                ldy #1
-                lda (tmpbranch),y  ; LSB
-                sta tmp1
-                iny
-                lda (tmpbranch),y  ; MSB
-                sta tmp1+1
-
-                jmp (tmp1)
-
 
 
 ; ## EMIT ( char -- ) "Print character to current output"
