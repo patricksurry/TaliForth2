@@ -237,6 +237,7 @@ _special_handlers:
     .word literal_runtime,      disasm_literal
     .word sliteral_runtime,     disasm_sliteral
     .word zero_branch_runtime,  disasm_0branch
+    .word zero_test_runtime,    disasm_0test
     .word do_runtime,           disasm_do
 _end_handlers:
 
@@ -443,13 +444,16 @@ disasm_branch:
                 ; The address after the 0BRANCH is handled the same as a literal.
                 bra disasm_print_literal
 
+disasm_0test:
+                lda #'Z'
+                jmp emit_a
+
 ; DO handler
 disasm_do:
                 lda #'D'
                 jsr emit_a
                 lda #'O'
-                jsr emit_a
-                rts
+                jmp emit_a
 
 ; Literal handler
 disasm_literal:

@@ -95,11 +95,11 @@ RTS instruction at the end of each word.
 | DUP | `dup` | ANS core | 13 | **auto** |
 | ED | `ed` | Tali Forth | 3 | *fragment* |
 | EDITOR_WORDLIST | `editor-wordlist` | Tali Editor | 8 | tested |
-| ELSE | `else` | ANS core | 23 | **auto** |
+| ELSE | `else` | ANS core | 20 | **auto** |
 | EMIT | `emit` | ANS core | 10 | **auto** |
 | EMPTY_BUFFERS | `empty-buffers` | ANS block ext | 6 | tested |
 | ENDCASE | `endcase` | ANS core ext | 20 | **auto** |
-| ENDOF | `endof` | ANS core ext | 23 | **auto** |
+| ENDOF | `endof` | ANS core ext | 20 | **auto** |
 | ENVIRONMENT_Q | `environment?` | ANS core | 124 | **auto** |
 | EQUAL | `=` | ANS core | 27 | **auto** |
 | BLANK | `blank` | ANS string | 82 | **auto** |
@@ -193,7 +193,7 @@ RTS instruction at the end of each word.
 | R_TO_INPUT | `r>input` | Tali Forth | 23 | tested |
 | RECURSE | `recurse` | ANS core | 60 | **auto** |
 | REFILL | `refill` | ANS core ext | 65 | tested |
-| REPEAT | `repeat` | ANS core | 12 | **auto** |
+| REPEAT | `repeat` | ANS core | 6 | **auto** |
 | RIGHT_BRACKET | `]` | ANS core | 6 | **auto** |
 | ROOT_WORDLIST | `root-wordlist` | Tali Editor | 8 | tested |
 | ROT | `rot` | ANS core | 27 | **auto** |
@@ -226,7 +226,7 @@ RTS instruction at the end of each word.
 | STORE | `!` | ANS core | 21 | **auto** |
 | STRIP_UNDERFLOW | `strip-underflow` | Tali Forth | 10 | tested |
 | SWAP | `swap` | ANS core | 19 | **auto** |
-| THEN | `then` | ANS core | 9 | **auto** |
+| THEN | `then` | ANS core | 88 | **auto** |
 | THRU | `thru` | ANS block ext | 68 | tested |
 | TICK | `'` | ANS core | 31 | **auto** |
 | TO | `to` | ANS core ext | 91 | **auto** |

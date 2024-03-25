@@ -3723,7 +3723,7 @@ z_ed:           rts
         ; """
 
 
-; ## ELSE (C: orig -- orig) ( -- ) "Conditional flow control"
+; ## ELSE (C: orig -- orig' ) ( -- ) "Conditional flow control"
 ; ## "else"  auto  ANS core
         ; """http://forth-standard.org/standard/core/ELSE
         ;
@@ -3744,17 +3744,11 @@ xt_endof:
                 jsr xt_zero
                 jsr xt_comma
 
-                ; Get the address to jump to (just after the
-                ; unconditional branch) for the IF to jump to
-                ; when false.
-                jsr xt_here
-                jsr xt_rot
-
-                ; Update the original if 0branch address.
-                jsr xt_store
+                ; stash the branch target and write the orig target with then
+                jsr xt_swap         ; ( target orig )
+                jmp xt_then
 z_else:
 z_endof:
-                rts
 
 
 ; ## EMIT ( char -- ) "Print character to current output"
@@ -5064,6 +5058,15 @@ xt_if:
                 jsr xt_zero
                 jsr xt_comma
 z_if:           rts
+
+
+zero_test_runtime:
+                ; Test TOS of stack and leave Z flag
+                inx
+                inx
+                lda $fe,x           ; wraparound so inx doesn't mess up Z
+                ora $ff,x
+                rts
 
 
 zero_branch_runtime:
@@ -8047,14 +8050,10 @@ z_refill:       rts
 xt_repeat:
                 ; Run again first
                 jsr xt_again
-
                 ; Stuff HERE in for the branch address
                 ; to get out of the loop
-                jsr xt_here
-                jsr xt_swap
-                jsr xt_store
-
-z_repeat:       rts
+                jmp xt_then
+z_repeat:
 
 
 
@@ -9888,8 +9887,76 @@ z_swap:         rts
 ; ## "then"  auto  ANS core
         ; """http://forth-standard.org/standard/core/THEN"""
 xt_then:
+                ; we want to write here as the target for the source branch
+                ;     jsr 0branch or an unconditional branch
+                ; orig:
+                ;     lsb msb
+                ; ...
+                ; here:
+                ; if jsr 0branch and here - orig - 2 <= 127 we can use a native branch
+
                 ; Get the address to jump to.
                 jsr xt_here
+
+                ; is it close enough?
+                jsr xt_two_dup
+                jsr xt_swap
+                jsr xt_minus        ; ( C: orig here offset )
+                lda 1,x
+                bne no_opt
+                lda 0,x
+                dea                 ; we want here - orig - 2
+                dea
+                bmi no_opt          ; up to 127 is ok
+
+                sta 0,x             ; remember updated offset
+
+                ; orig also needs to be the target of a zero branch
+                sec
+                lda 4,x
+                sbc #2
+                sta tmp1
+                lda 5,x
+                sbc #0
+                sta tmp1+1          ; tmp1 points to the jsr target preceding orig
+
+                ldy #0
+                lda (tmp1),y
+                cmp #<zero_branch_runtime
+                bne no_opt
+                iny
+                lda (tmp1),y
+                cmp #>zero_branch_runtime
+                bne no_opt
+
+                ; phew, we can actually optimize
+
+                ; replace branch runtime with test that just sets Z
+                dey
+                lda #<zero_test_runtime
+                sta (tmp1),y
+                iny
+                lda #>zero_test_runtime
+                sta (tmp1),y
+                iny
+                ; replace two byte target address with beq offset
+                lda #$f0            ; beq opcode
+                sta (tmp1),y
+                iny
+                lda 0,x
+                sta (tmp1),y        ; offset
+
+                inx                 ; clear the stack
+                inx
+                inx
+                inx
+                inx
+                inx
+                bra z_then
+
+no_opt:
+                inx                 ; discard the offset
+                inx
 
                 ; Stuff HERE in for the branch address back
                 ; at the IF or ELSE (origination address is on stack).
