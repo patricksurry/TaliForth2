@@ -226,7 +226,7 @@ RTS instruction at the end of each word.
 | STORE | `!` | ANS core | 21 | **auto** |
 | STRIP_UNDERFLOW | `strip-underflow` | Tali Forth | 10 | tested |
 | SWAP | `swap` | ANS core | 19 | **auto** |
-| THEN | `then` | ANS core | 88 | **auto** |
+| THEN | `then` | ANS core | 73 | **auto** |
 | THRU | `thru` | ANS block ext | 68 | tested |
 | TICK | `'` | ANS core | 31 | **auto** |
 | TO | `to` | ANS core ext | 91 | **auto** |
@@ -262,7 +262,7 @@ RTS instruction at the end of each word.
 | UM_SLASH_MOD | `um/mod` | ANS core | 65 | **auto** |
 | UM_STAR | `um*` | ANS core | 69 | **auto** |
 | UNLOOP | `unloop` | ANS core | 6 | **auto** |
-| UNTIL | `until` | ANS core | 10 | **auto** |
+| UNTIL | `until` | ANS core | 58 | **auto** |
 | UNUSED | `unused` | ANS core ext | 15 | **auto** |
 | UPDATE | `update` | ANS block | 8 | **auto** |
 | USERADDR | `useraddr` | Tali Forth | 10 | tested |

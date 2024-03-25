@@ -5053,18 +5053,18 @@ xt_if:
                 ; Put the origination address on the stack for else/then
                 jsr xt_here
 
-                ; Stuff zero in for the branch address right now.
+                ; Stuff $ffff in for the branch address (optimizable)
                 ; THEN or ELSE will fix it later.
-                jsr xt_zero
+                jsr xt_true
                 jsr xt_comma
 z_if:           rts
 
 
 zero_test_runtime:
-                ; Test TOS of stack and leave Z flag
+        ; Drop TOS of stack setting Z flag, for optimizing short brances (see xt_then)
                 inx
                 inx
-                lda $fe,x           ; wraparound so inx doesn't mess up Z
+                lda $fe,x           ; wraparound so inx doesn't wreck Z status
                 ora $ff,x
                 rts
 
@@ -9887,64 +9887,77 @@ z_swap:         rts
 ; ## "then"  auto  ANS core
         ; """http://forth-standard.org/standard/core/THEN"""
 xt_then:
-                ; we want to write here as the target for the source branch
-                ;     jsr 0branch or an unconditional branch
+                ; This is a compile-time word that writes the target address
+                ; of an earlier forward branch.  For example xt_if writes
+                ; BRANCH0 <placeholder> which wants to skip forward to here
+                ; if the condition is false.  The orig argument on the stack
+                ; is the address of the placeholder which should point here.
+                ;
+                ; Note this is also used by several other words that write
+                ; a forward branch, like xt_else and xt_while.
+                ;
+                ; Our compiled output so far looks like this:
+                ;
+                ;       jsr zero_branch_runtime   ; could also be uncoditional jmp
                 ; orig:
-                ;     lsb msb
+                ;       lsb msb  ; placeholder address
                 ; ...
                 ; here:
-                ; if jsr 0branch and here - orig - 2 <= 127 we can use a native branch
+                ;
+                ; Normally we'd just write `here` into the placeholder address bytes.
+                ; But in some cases we can optimize using a native BEQ instead.
+                ; This requires (a) the original address is the target of 0BRANCH
+                ; and (b) here - orig - 2 is less than 128 (max native branch).
+                ; In such a case we rewrite the code as
+                ;
+                ;       jsr zero_test_runtime       ; drops TOS setting Z status bit
+                ; orig:
+                ;       beq (here - orig - 2)       ; in place of target address
 
-                ; Get the address to jump to.
+                ; We want to branch from orig to here, so stack it
                 jsr xt_here
 
-                ; is it close enough?
+                ; First check if orig is the target of 0BRANCH,
+                ; indicated by a placholder of $ffff instead of the usual 0
+
+                lda (2,x)           ; get LSB at orig
+                ina                 ; was LSB $ff?  (only check for $xxff)
+                bne _no_opt
+
+                ; We have a candidate, but is it close enough?
+
                 jsr xt_two_dup
                 jsr xt_swap
                 jsr xt_minus        ; ( C: orig here offset )
                 lda 1,x
-                bne no_opt
+                bne _too_far        ; MSB must be zero
                 lda 0,x
                 dea                 ; we want here - orig - 2
-                dea
-                bmi no_opt          ; up to 127 is ok
+                dea                 ; don't care about carry
+                bmi _too_far        ; up to 127 is ok
 
-                sta 0,x             ; remember updated offset
+                ; phew, we can actually optimize as native BEQ
 
-                ; orig also needs to be the target of a zero branch
-                sec
+                sta 0,x             ; stash offset - 2
+
+                sec                 ; put orig - 2 in tmp1
                 lda 4,x
                 sbc #2
                 sta tmp1
                 lda 5,x
                 sbc #0
-                sta tmp1+1          ; tmp1 points to the jsr target preceding orig
+                sta tmp1+1
 
+                ; replace 0branch runtime with 0test that just sets Z
                 ldy #0
-                lda (tmp1),y
-                cmp #<zero_branch_runtime
-                bne no_opt
-                iny
-                lda (tmp1),y
-                cmp #>zero_branch_runtime
-                bne no_opt
-
-                ; phew, we can actually optimize
-
-                ; replace branch runtime with test that just sets Z
-                dey
-                lda #<zero_test_runtime
+-
+                lda beq_opt+1,y               ; skip the jsr
                 sta (tmp1),y
                 iny
-                lda #>zero_test_runtime
+                cpy #(beq_opt_end-beq_opt-2)  ; three bytes, skip jsr and offset
+                bne -
+                lda 0,x             ; write the offset
                 sta (tmp1),y
-                iny
-                ; replace two byte target address with beq offset
-                lda #$f0            ; beq opcode
-                sta (tmp1),y
-                iny
-                lda 0,x
-                sta (tmp1),y        ; offset
 
                 inx                 ; clear the stack
                 inx
@@ -9952,18 +9965,25 @@ xt_then:
                 inx
                 inx
                 inx
-                bra z_then
+                rts                 ; all done
 
-no_opt:
-                inx                 ; discard the offset
+_too_far:
+                inx                 ; discard the offset we calculated
                 inx
-
-                ; Stuff HERE in for the branch address back
+_no_opt:
+                ; Just stuff HERE in for the branch address back
                 ; at the IF or ELSE (origination address is on stack).
                 jsr xt_swap
                 jsr xt_store
 
 z_then:         rts
+
+
+beq_opt:
+                jsr zero_test_runtime       ; replace zero_branch_runtime
+                beq beq_opt_end             ; overwrite address with beq offset
+                                            ; dummy offset here will be replaced
+beq_opt_end:
 
 
 .if "block" in TALI_OPTIONAL_WORDS
@@ -11310,14 +11330,66 @@ z_unloop:       rts
 ; ## "until"  auto  ANS core
         ; """http://forth-standard.org/standard/core/UNTIL"""
 xt_until:
-                ; Compile a 0BRANCH
+                ; The address to loop back to is on the stack.
+                ; We'd normally do a 0BRANCH but similarly to xt_then
+                ; we can optimize with a native branch if it's not too far.
+                ; So we'll generate code like this
+                ;
+                ; dest:
+                ;       ...
+                ; here:
+                ;       jsr zero_branch_runtime
+                ;       LSB MSB
+                ; here+5:
+                ;
+                ; The optimized version looks like
+                ;       jsr zero_test_runtime
+                ;       beq dest - (here + 5)
+                ;
+                ; Note we could even inline zero_test_runtime but
+                ; it reduces the distance we can branch so don't bother
+
+                jsr xt_dup
+                jsr xt_here
+                jsr xt_minus            ; stack has ( dest dest-here )
+
+                lda 1,x
+                ina
+                bne _too_far            ; MSB must be #$ff
+                lda 0,x
+                sec
+                sbc #5                  ; include the extra -5
+                bpl _too_far            ; must still be negative (no wraparound)
+
+                ; good to optimize
+                sta 0,x                 ; remember the branch offset
+
+                ; write our zero_test
+                ldy #0
+-
+                lda beq_opt,y
+                jsr cmpl_a
+                iny
+                cpy #(beq_opt_end-beq_opt-1)  ; four bytes, skipping offset
+                bne -
+                lda 0,x                 ; write the offset
+                jsr cmpl_a
+
+                inx                     ; clear the stack
+                inx
+                inx
+                inx
+                rts
+
+_too_far:
+                inx                     ; discard the offset
+                inx
+                ; Just compile a 0BRANCH ...
                 ldy #>zero_branch_runtime
                 lda #<zero_branch_runtime
                 jsr cmpl_subroutine
 
-                ; The address to loop back to is on the stack.
-                ; Just compile it as the destination for the
-                ; 0branch.
+                ; ... with dest as its target address
                 jsr xt_comma
 
 z_until:        rts
@@ -11428,8 +11500,8 @@ xt_while:
                 ; address needs to go so it can be put there later.
                 jsr xt_here
 
-                ; Fill in the destination address with 0 for now.
-                jsr xt_zero
+                ; Fill in the destination address with $ffff (optimizable)
+                jsr xt_true
                 jsr xt_comma
 
                 ; Swap the two addresses on the stack.
