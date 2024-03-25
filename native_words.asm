@@ -5100,7 +5100,8 @@ zero_branch_runtime:
         ; """
 
                 ; We use the return value on the 65c02 stack to determine
-                ; where we want to return to.
+                ; where we want to return to.  It points one byte before
+                ; the branch target address.
                 pla
                 sta tmpbranch
                 pla
@@ -5116,7 +5117,7 @@ zero_branch_runtime:
                 ; the part between IF and THEN
                 lda tmpbranch   ; LSB
                 clc
-                adc #2
+                adc #3          ; add one to RTS address plus another two
                 sta tmp1
                 lda tmpbranch+1 ; MSB
                 adc #0          ; For carry
@@ -5135,27 +5136,12 @@ _zero:
                 lda (tmpbranch),y
                 sta tmp1+1
 
-                ; Now we have to subtract one byte from the address
-                ; given because of the way the 6502 calculates RTS
-                lda tmp1
-                bne +
-                dec tmp1+1
-+
-                dec tmp1
-
 _done:
-                ; However we got here, tmp1 has the value we push to jump
-                ; to
-                lda tmp1+1
-                pha             ; MSB first
-                lda tmp1
-                pha
-
+                ; However we got here, tmp1 has the address to jump to.
                 ; clean up the stack and jump
                 inx
                 inx
-
-                rts
+                jmp (tmp1)
 
 
 
