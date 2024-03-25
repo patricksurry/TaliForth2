@@ -95,11 +95,11 @@ RTS instruction at the end of each word.
 | DUP | `dup` | ANS core | 13 | **auto** |
 | ED | `ed` | Tali Forth | 3 | *fragment* |
 | EDITOR_WORDLIST | `editor-wordlist` | Tali Editor | 8 | tested |
-| ELSE | `else` | ANS core | 20 | **auto** |
+| ELSE | `else` | ANS core | 90 | **auto** |
 | EMIT | `emit` | ANS core | 10 | **auto** |
 | EMPTY_BUFFERS | `empty-buffers` | ANS block ext | 6 | tested |
 | ENDCASE | `endcase` | ANS core ext | 20 | **auto** |
-| ENDOF | `endof` | ANS core ext | 20 | **auto** |
+| ENDOF | `endof` | ANS core ext | 90 | **auto** |
 | ENVIRONMENT_Q | `environment?` | ANS core | 124 | **auto** |
 | EQUAL | `=` | ANS core | 27 | **auto** |
 | BLANK | `blank` | ANS string | 82 | **auto** |

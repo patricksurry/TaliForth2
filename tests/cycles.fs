@@ -125,6 +125,12 @@ char w       ' digit?        cycle_test 2drop
              ' dodowordij    cycle_test           
 : doword+loop 100 0 do 5 +loop ;
              ' doword+loop   cycle_test           
+: doifword 0 100 0 do i 2 and if 1 else -1 then + loop drop ;
+             ' doifword      cycle_test           
+: buword 100 begin 1- ?dup 0= until ;
+             ' buword        cycle_test           
+: bwword 100 begin 1- ?dup while repeat ;
+             ' bwword        cycle_test           
 \ skipping     does
 \ skipping     .
 \ skipping     ."
