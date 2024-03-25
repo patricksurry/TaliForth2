@@ -61,7 +61,7 @@ RTS instruction at the end of each word.
 | COLON_NONAME | `:NONAME` | ANS core | 27 | **auto** |
 | COMMA | `,` | ANS core | 25 | **auto** |
 | COMPARE | `compare` | ANS string | 100 | **auto** |
-| COMPILE_COMMA | `compile,` | ANS core ext | 279 | **auto** |
+| COMPILE_COMMA | `compile,` | ANS core ext | 296 | **auto** |
 | COMPILE_ONLY | `compile-only` | Tali Forth | 11 | tested |
 | CONSTANT | `constant` | ANS core | 61 | **auto** |
 | COUNT | `count` | ANS core | 19 | **auto** |
@@ -80,8 +80,8 @@ RTS instruction at the end of each word.
 | DIGIT_QUESTION | `digit?` | Tali Forth | 52 | **auto** |
 | DISASM | `disasm` | Tali Forth | 6 | tested |
 | DNEGATE | `dnegate` | ANS double | 26 | **auto** |
-| QUESTION_DO | `?do` | ANS core ext | 96 | **auto** |
-| DO | `do` | ANS core | 90 | **auto** |
+| QUESTION_DO | `?do` | ANS core ext | 63 | **auto** |
+| DO | `do` | ANS core | 57 | **auto** |
 | DOES | `does>` | ANS core | 14 | **auto** |
 | DOT | `.` | ANS core | 33 | **auto** |
 | DOT_PAREN | `.(` | ANS core | 14 | **auto** |
@@ -124,7 +124,7 @@ RTS instruction at the end of each word.
 | HEX | `hex` | ANS core ext | 6 | **auto** |
 | HEXSTORE | `hexstore` | Tali | 82 | **auto** |
 | HOLD | `hold` | ANS core | 17 | **auto** |
-| I | `i` | ANS core | 25 | **auto** |
+| I | `i` | ANS core | 23 | **auto** |
 | IF | `if` | ANS core | 16 | **auto** |
 | IMMEDIATE | `immediate` | ANS core | 11 | **auto** |
 | INPUT | `input` | Tali Forth | 10 | tested |
@@ -143,8 +143,8 @@ RTS instruction at the end of each word.
 | LIST | `list` | ANS block ext | 12 | tested |
 | LITERAL | `literal` | ANS core | 13 | **auto** |
 | LOAD | `load` | ANS block | 67 | **auto** |
-| LOOP | `loop` | ANS core | 109 | **auto** |
-| PLUS_LOOP | `+loop` | ANS core | 102 | **auto** |
+| LOOP | `loop` | ANS core | 93 | **auto** |
+| PLUS_LOOP | `+loop` | ANS core | 76 | **auto** |
 | LSHIFT | `lshift` | ANS core | 19 | **auto** |
 | M_STAR | `m*` | ANS core | 26 | **auto** |
 | MARKER | `marker` | ANS core ext | 61 | **auto** |
