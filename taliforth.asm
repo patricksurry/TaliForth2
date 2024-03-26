@@ -290,7 +290,7 @@ _overflow:
                 ; Handle overflow because we use signed numbers
                 eor #$80                ; complement negative flag
 _not_equal:
-                ora #1                  ; if overflow, we can't be eqal
+                ora #1                  ; if overflow, we can't be equal
 _done:
                 rts
 

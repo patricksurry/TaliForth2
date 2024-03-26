@@ -11728,14 +11728,10 @@ xt_zero_equal:
 
                 lda 0,x
                 ora 1,x
-                beq _zero
-
-                ; not a zero, so we need a FALSE flag (0)
-                lda #0
-                bra _store
+                beq _zero       ; if 0, A is inverse of the TRUE (-1) we want
+                lda #$ff        ; else set A inverse of the FALSE (0) we want
 _zero:
-                ; We have a zero, so we need a TRUE flag (-1)
-                lda #$ff
+                eor #$ff        ; now just invert
 _store:
                 sta 0,x
                 sta 1,x
@@ -11797,15 +11793,11 @@ z_zero_less:    rts
 xt_zero_unequal:
                 jsr underflow_1
 
-                ldy #0          ; default false
-
                 lda 0,x
                 ora 1,x
-                beq _got_zero
-
-                dey
-_got_zero:
-                tya
+                beq _zero
+                lda #$ff
+_zero:
                 sta 0,x
                 sta 1,x
 
