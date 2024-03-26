@@ -3853,9 +3853,7 @@ beq_opt:
                 beq beq_opt_end             ; the beq overwrites the placeholder
                                             ; address with a calculated offset
 beq_opt_end:
-                bne bne_opt_end+2           ; alternate for xt_until
-                .byte $4c                   ; JMP
-bne_opt_end:
+
 
 
 ; ## EMIT ( char -- ) "Print character to current output"
@@ -5174,6 +5172,11 @@ zero_test_runtime:
                 lda $fe,x           ; wraparound so inx doesn't wreck Z status
                 ora $ff,x
                 rts
+
+    ; footer for inline zero_test_runtime used in xt_until (excluding the rts)
+                bne zero_test_footer_end+2  ; branch fwd if non-zero
+                .byte $4c                   ; else JMP back
+zero_test_footer_end:
 
 
 zero_branch_runtime:
@@ -11344,73 +11347,27 @@ z_unloop:       rts
 xt_until:
                 ; The address to loop back to is on the stack.
                 ; We could do a 0BRANCH but we can optimize with native
-                ; branching.  We'll either generate code like this:
+                ; branching.  We'll generate code like this:
                 ;
                 ; dest:
                 ;       ...
                 ; here:
-                ;       jsr zero_test_runtime
+                ;       (inline zero_test_runtime)
                 ;       bne +3
-                ; here+5:
                 ;       jmp dest
-                ; here+8:
                 ;
-                ; Or (if the branch back is short enough):
-                ;
-                ;       ...
-                ; here:
-                ;       jsr zero_test_runtime
-                ;       beq dest - (here + 5)
-                ;
-                ; Nb. we could even inline zero_test_runtime but that
-                ; reduces the distance we can branch so don't bother for now
-
-                jsr xt_dup
-                jsr xt_here
-                jsr xt_minus            ; stack has ( dest dest-here )
+                ; we could be clever and use beq back if short enough
+                ; to avoid the jmp but it doesn't seem worth the two cycle/3 byte saving
 
                 ldy #0
 -
-                lda beq_opt,y
+                lda zero_test_runtime,y
+                cmp #$60            ; skip RTS
+                beq +
                 jsr cmpl_a
++
                 iny
-                cpy #(beq_opt_end-beq_opt-2)  ; copy the jsr 0test, leaving y=3
-                bne -
-
-                lda 1,x
-                ina
-                bne _too_far            ; MSB must be #$ff
-                lda 0,x
-                sec
-                sbc #5                  ; include the extra -5
-                bpl _too_far            ; must still be negative (no wraparound)
-
-                ; good to optimize
-                sta 0,x                 ; remember the branch offset
-
-                lda beq_opt,y           ; the beq
-                jsr cmpl_a
-
-                lda 0,x                 ; write the offset
-                jsr cmpl_a
-
-                inx                     ; clear the stack
-                inx
-                inx
-                inx
-                rts
-
-_too_far:
-                inx                     ; discard the offset
-                inx
-
-                iny                     ; skip the beq and use alternate bne form
-                iny
--
-                lda beq_opt,y
-                jsr cmpl_a
-                iny
-                cpy #(bne_opt_end-beq_opt)
+                cpy #(zero_test_footer_end - zero_test_runtime)
                 bne -
 
                 ; add dest as the jmp target
