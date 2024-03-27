@@ -445,7 +445,8 @@ disasm_branch:
                 bra disasm_print_literal
 
 disasm_0test:
-                lda #'Z'
+                lda #str_disasm_0test
+                jsr print_string_no_lf
                 jmp emit_a
 
 ; DO handler

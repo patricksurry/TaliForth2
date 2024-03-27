@@ -866,11 +866,11 @@ create result  ok
 92 c, ( \\ )  ok
   ok
 T{ result here result - 2dup dump ( Make a string out of result ) 
-0F71  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
-0F81   ok
+0F6B  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
+0F7B   ok
    s\" \a\b\e\f\l\m\n\q\r\t\v\z\"\x41\\" 2dup dump compare -> 0 }T 
-0F84  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
-0F94   ok
+0F7E  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
+0F8E   ok
 hex  ok
   ok
 \ ------------------------------------------------------------------------  ok
@@ -2193,7 +2193,7 @@ create 'saved-output  1000 allot  ok
   ok
 internal-output-test  ok
 cr .( >>>> )  saved-string type  .( <<<< ) cr 
->>>> R<<<< 
+>>>> Redirection works, let's do this! <<<< 
  ok
   ok
   ok
@@ -2204,4 +2204,1305 @@ cr .( >>>> )  saved-string type  .( <<<< ) cr
 \ boilerplate. When in doubt, use  SAVED-STRING DUMP  to see raw bytes  ok
   ok
 \ Most simple test and setup: Start and end  ok
-redirect-output 
+redirect-output  ok
+2drop  \ ed returns ( addr u ), don't need that at the moment  ok
+T{ saved-string s\"  ok\ned \nq  ok\nrestore-output  " compare -> 0 }T  ok
+\                   A--------A  A-------------------A  <-- This is boilerplate            ok
+  ok
+\ Cut down on noise  ok
+: test-ed ( -- addr u )  compiled
+   redirect-output ed ( payload executed here ) restore-output  compiled
+   2drop              \ remove ed's output   compiled
+   saved-string  ( addr u )   compiled
+;   ok
+  ok
+\ Test --- q --- Don't quit if we have unsaved changes  ok
+test-ed  ok
+saved-string dump 
+0F4D  0A 61 20 0A 7A 7A 7A 20  0A 2E 20 0A 71 20 0A 3F  .a .zzz  .. .q .?
+0F5D  0A 51 20  .Q  ok
+T{ s\" \na \nzzz \n. \nq \n?\nQ " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- p --- print one line, no line number  ok
+test-ed  ok
+T{ s\" \na \nThat's a straw, Tali. \n. \n1p \nThat's a straw, Tali.\nQ " compare -> 0 }T  ok
+  ok
+\ Test --- p --- print two lines, no line number  ok
+test-ed  ok
+T{ s\" \na \naaa \nbbb \n. \n1,2p \naaa\nbbb\nQ " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- p --- print last of three lines (tests $)  ok
+test-ed  ok
+T{ s\" \na \neee \nfff \nggg \n. \n$p \nggg\nQ " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- p --- print all lines (tests %)  ok
+test-ed  ok
+T{ s\" \na \nlll \nmmm \nnnn \n. \n%p \nlll\nmmm\nnnn\nQ " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- p --- print all lines (tests ,)  ok
+test-ed  ok
+T{ s\" \na \nooo \nppp \nqqq \n. \n,p \nooo\nppp\nqqq\nQ " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- p --- print last two lines (tests n,m)  ok
+test-ed  ok
+T{ s\" \na \nooo \nppp \nqqq \n. \n2,3p \nppp\nqqq\nQ " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- number --- print last two lines (tests number just printing line)  ok
+test-ed  ok
+T{ s\" \na \nooo \nppp \nqqq \n. \n2 \nppp\nQ " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- n --- print one line with a line number  ok
+test-ed  ok
+T{ s\" \na \nThat's a straw, Tali. \n. \n1n \n1 \tThat's a straw, Tali.\nQ " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- n --- print two lines with a line number  ok
+test-ed  ok
+T{ s\" \na \nccc \nddd \n. \n1,2n \n1 \tccc\n2 \tddd\nQ " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- = --- EQU must return 0 if no text  ok
+test-ed  ok
+T{ s\" \n= \n0 \nq " compare -> 0 }T  ok
+  ok
+  ok
+\ Test --- = --- EQU should print number of last line with $  ok
+test-ed  ok
+T{ s\" \na \nhhh \niii \njjj \n. \n$= \n3 \nQ " compare -> 0 }T  ok
+  ok
+  ok
+  ok
+\ ---- Cleanup from redirection tests ----  ok
+previous  ok
+forth-wordlist set-current  ok
+  ok
+  ok
+\ === END OF ED TESTS ===  ok
+  ok
+\ Free memory used for these tests  ok
+ed-tests  ok
+  ok
+ ( Running test 'asm' from file 'asm.fs' )  ok
+\ ------------------------------------------------------------------------  ok
+testing assembler words  ok
+  ok
+marker asm-tests   ok
+assembler-wordlist >order  ok
+assembler-wordlist set-current  ok
+hex  ok
+  ok
+\ Test code length and correct operand insertion  ok
+: opcode-test ( opc len addr u -- f )  compiled
+   here        ( opc len addr u here0 )  compiled
+   dup >r      ( opc len addr u here0 ) ( R: here0 )  compiled
+   -rot        ( opc len here0 addr u ) ( R: here0 )  compiled
+   evaluate    ( opc len here0 ) ( R: here0 )  compiled
+  compiled
+   \ See if length is correct  compiled
+   here swap -    ( opc len n ) ( R: here0 )  compiled
+   =              ( opc f ) ( R: here0 )  compiled
+   swap           ( f opc ) ( R: here0 )  compiled
+  compiled
+   \ See if opcode is correct. We can't use AND for the last step because that  compiled
+   \ is replaced by the assembler instruction of the same name  compiled
+   r> c@          ( f opc c )  compiled
+   =              ( f f )   compiled
+;  ok
+  ok
+\ Test for little endian behavior with three-byte instructions  ok
+\ For instance, 'sta 1122' must become 8D 22 11. Note that Tali stores the cell  ok
+\ values little-endian as well, which makes this test confusing at first glance.  ok
+\ Insert  CR DUP 3 DUMP CR  after EVALUTE to convince yourself that this is okay  ok
+: little-endian? ( u-want addr u -- f )  compiled
+   here -rot      ( u-want here0 addr u )  compiled
+   evaluate       ( u-want here0 )  compiled
+   \ cr dup 3 dump cr   \ Manual check, insert if paranoia attacks  compiled
+   1+             ( u-want here0+1 ) \ Skip opcode  compiled
+   @              ( u-want u-have )  compiled
+   =              ( f )   compiled
+;  ok
+  ok
+\ Test correct operand for two-byte instructions. Note there is little  ok
+\ difference between this code and little-endian? at the moment. However, this  ok
+\ routine here will have to modified for branch instructions at a later date.  ok
+: correct-operand? ( u-want addr u -- f )  compiled
+   here -rot      ( u-want here0 addr u )  compiled
+   evaluate       ( u-want here0 )  compiled
+   1+             ( u-want here0+1 )  compiled
+   c@             ( u-want u-got )  compiled
+   =              ( f )  compiled
+;   ok
+  ok
+\ Make lookups of these numbers faster.  They won't have to fall through  ok
+\ to NUMBER and they will be at beginning of dictionary.  ok
+: 12 12 ;  ok
+: 1122 1122 ;  ok
+: 3 3 ;  ok
+  ok
+\ --------------------------------------------------------------------------  ok
+  ok
+\ Testing pseudo-instructions  ok
+T{ here  0a lda.# push-a rts  execute -> 0a }T  ok
+  ok
+\ Testing a two-byte instruction for correct operand handling  ok
+T{ 12 s" 12 lda.#" correct-operand? -> true }T  ok
+  ok
+\ Testing a three-byte instruction for little endian handling  ok
+T{ 1122 s" 1122 sta" little-endian? -> true }T  ok
+  ok
+\ Testing all assembler instructions: Opcode and length  ok
+T{ 069 2 s" 12 adc.#" opcode-test -> true true }T  ok
+T{ 07D 3 s" 1122 adc.x" opcode-test -> true true }T  ok
+T{ 079 3 s" 1122 adc.y" opcode-test -> true true }T  ok
+T{ 065 2 s" 12 adc.z" opcode-test -> true true }T  ok
+T{ 072 2 s" 12 adc.zi" opcode-test -> true true }T  ok
+T{ 071 2 s" 12 adc.ziy" opcode-test -> true true }T  ok
+T{ 075 2 s" 12 adc.zx" opcode-test -> true true }T  ok
+T{ 061 2 s" 12 adc.zxi" opcode-test -> true true }T  ok
+T{ 02D 3 s" 1122 and." opcode-test -> true true }T  ok
+T{ 029 2 s" 12 and.#" opcode-test -> true true }T  ok
+T{ 03D 3 s" 1122 and.x" opcode-test -> true true }T  ok
+T{ 039 3 s" 1122 and.y" opcode-test -> true true }T  ok
+T{ 025 2 s" 12 and.z" opcode-test -> true true }T  ok
+T{ 032 2 s" 12 and.zi" opcode-test -> true true }T  ok
+T{ 031 2 s" 12 and.ziy" opcode-test -> true true }T  ok
+T{ 035 2 s" 12 and.zx" opcode-test -> true true }T  ok
+T{ 021 2 s" 12 and.zxi" opcode-test -> true true }T  ok
+T{ 00E 3 s" 1122 asl" opcode-test -> true true }T  ok
+T{ 00A 1 s" asl.a" opcode-test -> true true }T  ok
+T{ 01E 3 s" 1122 asl.x" opcode-test -> true true }T  ok
+T{ 006 2 s" 12 asl.z" opcode-test -> true true }T  ok
+T{ 016 2 s" 12 asl.zx" opcode-test -> true true }T  ok
+T{ 090 2 s" 12 bcc" opcode-test -> true true }T  ok
+T{ 0B0 2 s" 12 bcs" opcode-test -> true true }T  ok
+T{ 0F0 2 s" 12 beq" opcode-test -> true true }T  ok
+T{ 02C 3 s" 1122 bit" opcode-test -> true true }T  ok
+T{ 089 2 s" 12 bit.#" opcode-test -> true true }T  ok
+T{ 03C 3 s" 1122 bit.x" opcode-test -> true true }T  ok
+T{ 024 2 s" 12 bit.z" opcode-test -> true true }T  ok
+T{ 034 2 s" 12 bit.zx" opcode-test -> true true }T  ok
+T{ 030 2 s" 12 bmi" opcode-test -> true true }T  ok
+T{ 0D0 2 s" 12 bne" opcode-test -> true true }T  ok
+T{ 010 2 s" 12 bpl" opcode-test -> true true }T  ok
+T{ 080 2 s" 12 bra" opcode-test -> true true }T  ok
+T{ 000 2 s" 12 brk" opcode-test -> true true }T  ok
+T{ 050 2 s" 12 bvc" opcode-test -> true true }T  ok
+T{ 070 2 s" 12 bvs" opcode-test -> true true }T  ok
+T{ 018 1 s" clc" opcode-test -> true true }T  ok
+T{ 0D8 1 s" cld" opcode-test -> true true }T  ok
+T{ 058 1 s" cli" opcode-test -> true true }T  ok
+T{ 0B8 1 s" clv" opcode-test -> true true }T  ok
+T{ 0CD 3 s" 1122 cmp" opcode-test -> true true }T  ok
+T{ 0C9 2 s" 12 cmp.#" opcode-test -> true true }T  ok
+T{ 0DD 3 s" 1122 cmp.x" opcode-test -> true true }T  ok
+T{ 0D9 3 s" 1122 cmp.y" opcode-test -> true true }T  ok
+T{ 0C5 2 s" 12 cmp.z" opcode-test -> true true }T  ok
+T{ 0D2 2 s" 12 cmp.zi" opcode-test -> true true }T  ok
+T{ 0D1 2 s" 12 cmp.ziy" opcode-test -> true true }T  ok
+T{ 0D5 2 s" 12 cmp.zx" opcode-test -> true true }T  ok
+T{ 0C1 2 s" 12 cmp.zxi" opcode-test -> true true }T  ok
+T{ 0EC 3 s" 1122 cpx" opcode-test -> true true }T  ok
+T{ 0E0 2 s" 12 cpx.#" opcode-test -> true true }T  ok
+T{ 0E4 2 s" 12 cpx.z" opcode-test -> true true }T  ok
+T{ 0CC 3 s" 1122 cpy" opcode-test -> true true }T  ok
+T{ 0C0 2 s" 12 cpy.#" opcode-test -> true true }T  ok
+T{ 0C4 2 s" 12 cpy.z" opcode-test -> true true }T  ok
+T{ 0CE 3 s" 1122 dec" opcode-test -> true true }T  ok
+T{ 03A 1 s" dec.a" opcode-test -> true true }T  ok
+T{ 0DE 3 s" 1122 dec.x" opcode-test -> true true }T  ok
+T{ 0C6 2 s" 12 dec.z" opcode-test -> true true }T  ok
+T{ 0D6 2 s" 12 dec.zx" opcode-test -> true true }T  ok
+T{ 0CA 1 s" dex" opcode-test -> true true }T  ok
+T{ 088 1 s" dey" opcode-test -> true true }T  ok
+T{ 04D 3 s" 1122 eor" opcode-test -> true true }T  ok
+T{ 049 2 s" 12 eor.#" opcode-test -> true true }T  ok
+T{ 05D 3 s" 1122 eor.x" opcode-test -> true true }T  ok
+T{ 059 3 s" 1122 eor.y" opcode-test -> true true }T  ok
+T{ 045 2 s" 12 eor.z" opcode-test -> true true }T  ok
+T{ 052 2 s" 12 eor.zi" opcode-test -> true true }T  ok
+T{ 051 2 s" 12 eor.ziy" opcode-test -> true true }T  ok
+T{ 055 2 s" 12 eor.zx" opcode-test -> true true }T  ok
+T{ 041 2 s" 12 eor.zxi" opcode-test -> true true }T  ok
+T{ 0EE 3 s" 1122 inc" opcode-test -> true true }T  ok
+T{ 01A 1 s" inc.a" opcode-test -> true true }T  ok
+T{ 0FE 3 s" 1122 inc.x" opcode-test -> true true }T  ok
+T{ 0E6 2 s" 12 inc.z" opcode-test -> true true }T  ok
+T{ 0F6 2 s" 12 inc.zx" opcode-test -> true true }T  ok
+T{ 0E8 1 s" inx" opcode-test -> true true }T  ok
+T{ 0C8 1 s" iny" opcode-test -> true true }T  ok
+T{ 04C 3 s" 1122 jmp" opcode-test -> true true }T  ok
+T{ 06C 3 s" 1122 jmp.i" opcode-test -> true true }T  ok
+T{ 07C 3 s" 1122 jmp.xi" opcode-test -> true true }T  ok
+T{ 020 3 s" 1122 jsr" opcode-test -> true true }T  ok
+T{ 0AD 3 s" 1122 lda" opcode-test -> true true }T  ok
+T{ 0A9 2 s" 12 lda.#" opcode-test -> true true }T  ok
+T{ 0BD 3 s" 1122 lda.x" opcode-test -> true true }T  ok
+T{ 0B9 3 s" 1122 lda.y" opcode-test -> true true }T  ok
+T{ 0A5 2 s" 12 lda.z" opcode-test -> true true }T  ok
+T{ 0B2 2 s" 12 lda.zi" opcode-test -> true true }T  ok
+T{ 0B1 2 s" 12 lda.ziy" opcode-test -> true true }T  ok
+T{ 0B5 2 s" 12 lda.zx" opcode-test -> true true }T  ok
+T{ 0A1 2 s" 12 lda.zxi" opcode-test -> true true }T  ok
+T{ 0AE 3 s" 1122 ldx" opcode-test -> true true }T  ok
+T{ 0A2 2 s" 12 ldx.#" opcode-test -> true true }T  ok
+T{ 0BE 3 s" 1122 ldx.y" opcode-test -> true true }T  ok
+T{ 0A6 2 s" 12 ldx.z" opcode-test -> true true }T  ok
+T{ 0B6 2 s" 12 ldx.zy" opcode-test -> true true }T  ok
+T{ 0AC 3 s" 1122 ldy" opcode-test -> true true }T  ok
+T{ 0A0 2 s" 12 ldy.#" opcode-test -> true true }T  ok
+T{ 0BC 3 s" 1122 ldy.x" opcode-test -> true true }T  ok
+T{ 0A4 2 s" 12 ldy.z" opcode-test -> true true }T  ok
+T{ 0B4 2 s" 12 ldy.zx" opcode-test -> true true }T  ok
+T{ 04E 3 s" 1122 lsr" opcode-test -> true true }T  ok
+T{ 04A 1 s" lsr.a" opcode-test -> true true }T  ok
+T{ 05E 3 s" 1122 lsr.x" opcode-test -> true true }T  ok
+T{ 046 2 s" 12 lsr.z" opcode-test -> true true }T  ok
+T{ 056 2 s" 12 lsr.zx" opcode-test -> true true }T  ok
+T{ 0EA 1 s" nop" opcode-test -> true true }T  ok
+T{ 00D 3 s" 1122 ora" opcode-test -> true true }T  ok
+T{ 009 2 s" 12 ora.#" opcode-test -> true true }T  ok
+T{ 01D 3 s" 1122 ora.x" opcode-test -> true true }T  ok
+T{ 019 3 s" 1122 ora.y" opcode-test -> true true }T  ok
+T{ 005 2 s" 12 ora.z" opcode-test -> true true }T  ok
+T{ 012 2 s" 12 ora.zi" opcode-test -> true true }T  ok
+T{ 011 2 s" 12 ora.ziy" opcode-test -> true true }T  ok
+T{ 015 2 s" 12 ora.zx" opcode-test -> true true }T  ok
+T{ 001 2 s" 12 ora.zxi" opcode-test -> true true }T  ok
+T{ 048 1 s" pha" opcode-test -> true true }T  ok
+T{ 008 1 s" php" opcode-test -> true true }T  ok
+T{ 0DA 1 s" phx" opcode-test -> true true }T  ok
+T{ 05A 1 s" phy" opcode-test -> true true }T  ok
+T{ 068 1 s" pla" opcode-test -> true true }T  ok
+T{ 028 1 s" plp" opcode-test -> true true }T  ok
+T{ 0FA 1 s" plx" opcode-test -> true true }T  ok
+T{ 07A 1 s" ply" opcode-test -> true true }T  ok
+T{ 02E 3 s" 1122 rol" opcode-test -> true true }T  ok
+T{ 02A 1 s" rol.a" opcode-test -> true true }T  ok
+T{ 03E 3 s" 1122 rol.x" opcode-test -> true true }T  ok
+T{ 026 2 s" 12 rol.z" opcode-test -> true true }T  ok
+T{ 036 2 s" 12 rol.zx" opcode-test -> true true }T  ok
+T{ 06E 3 s" 1122 ror" opcode-test -> true true }T  ok
+T{ 06A 1 s" ror.a" opcode-test -> true true }T  ok
+T{ 07E 3 s" 1122 ror.x" opcode-test -> true true }T  ok
+T{ 066 2 s" 12 ror.z" opcode-test -> true true }T  ok
+T{ 076 2 s" 12 ror.zx" opcode-test -> true true }T  ok
+T{ 040 1 s" rti" opcode-test -> true true }T  ok
+T{ 060 1 s" rts" opcode-test -> true true }T  ok
+T{ 0ED 3 s" 1122 sbc" opcode-test -> true true }T  ok
+T{ 0E9 2 s" 12 sbc.#" opcode-test -> true true }T  ok
+T{ 0FD 3 s" 1122 sbc.x" opcode-test -> true true }T  ok
+T{ 0F9 3 s" 1122 sbc.y" opcode-test -> true true }T  ok
+T{ 0E5 2 s" 12 sbc.z" opcode-test -> true true }T  ok
+T{ 0F2 2 s" 12 sbc.zi" opcode-test -> true true }T  ok
+T{ 0F1 2 s" 12 sbc.ziy" opcode-test -> true true }T  ok
+T{ 0F5 2 s" 12 sbc.zx" opcode-test -> true true }T  ok
+T{ 0E1 2 s" 12 sbc.zxi" opcode-test -> true true }T  ok
+T{ 038 1 s" sec" opcode-test -> true true }T  ok
+T{ 0F8 1 s" sed" opcode-test -> true true }T  ok
+T{ 078 1 s" sei" opcode-test -> true true }T  ok
+T{ 08D 3 s" 1122 sta" opcode-test -> true true }T  ok
+T{ 09D 3 s" 1122 sta.x" opcode-test -> true true }T  ok
+T{ 099 3 s" 1122 sta.y" opcode-test -> true true }T  ok
+T{ 085 2 s" 12 sta.z" opcode-test -> true true }T  ok
+T{ 092 2 s" 12 sta.zi" opcode-test -> true true }T  ok
+T{ 091 2 s" 12 sta.ziy" opcode-test -> true true }T  ok
+T{ 095 2 s" 12 sta.zx" opcode-test -> true true }T  ok
+T{ 081 2 s" 12 sta.zxi" opcode-test -> true true }T  ok
+T{ 08E 3 s" 1122 stx" opcode-test -> true true }T  ok
+T{ 086 2 s" 12 stx.z" opcode-test -> true true }T  ok
+T{ 096 2 s" 12 stx.zy" opcode-test -> true true }T  ok
+T{ 08C 3 s" 1122 sty" opcode-test -> true true }T  ok
+T{ 084 2 s" 12 sty.z" opcode-test -> true true }T  ok
+T{ 094 2 s" 12 sty.zx" opcode-test -> true true }T  ok
+T{ 09C 3 s" 1122 stz" opcode-test -> true true }T  ok
+T{ 09E 3 s" 1122 stz.x" opcode-test -> true true }T  ok
+T{ 064 2 s" 12 stz.z" opcode-test -> true true }T  ok
+T{ 074 2 s" 12 stz.zx" opcode-test -> true true }T  ok
+T{ 0AA 1 s" tax" opcode-test -> true true }T  ok
+T{ 0A8 1 s" tay" opcode-test -> true true }T  ok
+T{ 01C 3 s" 1122 trb" opcode-test -> true true }T  ok
+T{ 014 2 s" 12 trb.z" opcode-test -> true true }T  ok
+T{ 00C 3 s" 1122 tsb" opcode-test -> true true }T  ok
+T{ 004 2 s" 12 tsb.z" opcode-test -> true true }T  ok
+T{ 0BA 1 s" tsx" opcode-test -> true true }T  ok
+T{ 08A 1 s" txa" opcode-test -> true true }T  ok
+T{ 09A 1 s" txs" opcode-test -> true true }T  ok
+T{ 098 1 s" tya" opcode-test -> true true }T  ok
+  ok
+\ Testing directives  ok
+  ok
+\ Return to original state  ok
+previous  ok
+decimal ( only forth definitions )   ok
+asm-tests  ok
+  ok
+ ( Running test 'tali' from file 'tali.fs' )  ok
+\ ------------------------------------------------------------------------  ok
+hex  ok
+  ok
+marker tali_tests  ok
+  ok
+  ok
+\ Repeat definitions for standalone testing  ok
+0 constant 0s  ok
+0 invert constant 1s  ok
+0s constant <false>  ok
+1s constant <true>  ok
+  ok
+\ ------------------------------------------------------------------------  ok
+testing gforth words: bounds find-name latestxt name>int name>string  ok
+\ Test for COLD not implemented  ok
+  ok
+( TODO NAME>INT test missing)  ok
+( TODO NAME>STRING test missing)  ok
+  ok
+\ Test for FIND-NAME assumes that PARSE-NAME has been tested in core.fs  ok
+T{ parse-name drop     find-name  0<> -> <true> }T \ need to find any nt  ok
+T{ parse-name Chatika  find-name  0=  -> <true> }T \ shouldn't find Tali's drone  ok
+  ok
+T{ hex -> }T  ok
+T{ 1000 10 bounds -> 1010 1000 }T  ok
+T{ ffff 2 bounds -> 0001 ffff }T  \ BOUNDS wraps on Tali with 16 bit address space  ok
+T{ decimal -> }T  ok
+  ok
+\ ------------------------------------------------------------------------  ok
+\ testing tali-only words: -leading cleave hexstore  ok
+  ok
+\ -leading: Strip leading whitespace  ok
+T{ s" aaa" -leading  s" aaa" compare -> 0 }T   \ No leading spaces  ok
+T{ s"  bbb" -leading  s" bbb" compare -> 0 }T  \ one leading space  ok
+T{ s"   ccc" -leading  s" ccc" compare -> 0 }T   \ two leading spaces  ok
+T{ s\" \tddd" -leading  s" ddd" compare -> 0 }T   \ one leading tab  ok
+T{ s\" \t\teee" -leading  s" eee" compare -> 0 }T   \ two leading tabs  ok
+T{ s\" \nddd" -leading  s" ddd" compare -> 0 }T   \ one leading LF  ok
+T{ s\" \n\neee" -leading  s" eee" compare -> 0 }T   \ two leading LF  ok
+  ok
+\ Cleave: Normal cases.   ok
+T{ : s1 s" " ; -> }T \ case 1: empty string  ok
+T{ s1 cleave  s" " compare  -rot  s" " compare -> 0 0 }T  ok
+T{ : s1 s" aaa" ; -> }T  \ case 2: one word redefined s1  ok
+T{ s1 cleave  s" aaa" compare  -rot  s" " compare -> 0 0 }T  ok
+T{ : s1 s" aaa bbb ccc" ; -> }T  \ case 3: lots of words, single space delimiter redefined s1  ok
+T{ s1 cleave  s" aaa" compare  -rot  s" bbb ccc" compare -> 0 0 }T  ok
+T{ : s1 s" bbb  ccc  ddd" ; -> }T  \ case 3a: lots of words, multiple space delimiter redefined s1  ok
+T{ s1 cleave  s" bbb" compare  -rot  s" ccc  ddd" compare -> 0 0 }T  ok
+T{ : s1 s\" eee\tfff\tggg" ; -> }T  \ case 3b: lots of words, tab delimter redefined s1  ok
+T{ s1 cleave  s" eee" compare  -rot  s\" fff\tggg" compare -> 0 0 }T  ok
+T{ : s1 s\" aaa\nAAA\nqqq" ; -> }T  \ case 3c: lots of words, EOL delimiter redefined s1  ok
+T{ s1 cleave  s" aaa" compare  -rot  s\" AAA\nqqq" compare -> 0 0 }T  ok
+T{ : s1 s"  xxx yyy zzz" ; -> }T  \ case 3d: lots of words, start with space delimiter redefined s1  ok
+T{ s1 cleave  s" xxx" compare  -rot  s" yyy zzz" compare -> 0 0 }T  ok
+  ok
+\ Cleave: Pathological cases  ok
+T{ : s1 s" aaa bbb ccc " ; -> }T \ case 5: Trailing space is left redefined s1  ok
+T{ s1 cleave  s" aaa" compare  -rot  s" bbb ccc " compare -> 0 0 }T  ok
+T{ : s1 s" fff " ; -> }T  \ case 6: Trailing space on single word is empty redefined s1  ok
+T{ s1 cleave  s" fff" compare  -rot  s" " compare -> 0 0 }T  ok
+T{ : s1 s"  " ; -> }T  \ case 7: Single space as word is two empty words redefined s1  ok
+T{ s1 cleave  s" " compare  -rot  s" " compare -> 0 0 }T  ok
+  ok
+  ok
+\ Hexstore: Normal cases  ok
+  ok
+create hs-test 5 allot  ok
+  ok
+decimal  ok
+create hs-want-dec  1 c, 2 c, 3 c, 4 c, 5 c,   ok
+T{ s" 1 2 3 4 5" hs-test hexstore  hs-test swap  hs-want-dec 5  compare -> 0 }T  ok
+T{ s" 1" hs-test hexstore  hs-test swap  hs-want-dec 1  compare -> 0 }T  ok
+  ok
+hex  ok
+create hs-want-hex  0A c, 0B c, 0C c, 0D c, 0E c,   ok
+T{ s" 0A 0B 0C 0D 0E" hs-test hexstore  hs-test swap  hs-want-hex 5  compare -> 0 }T  ok
+T{ s" 0A" hs-test hexstore  hs-test swap  hs-want-hex 1  compare -> 0 }T  ok
+  ok
+\ Hexstore: Pathological cases  ok
+  ok
+decimal  ok
+T{ s" " hs-test hexstore  hs-test swap  s" " compare -> 0 }T  ok
+T{ s" emergency" hs-test hexstore  hs-test swap  s" " compare -> 0 }T  ok
+T{ s" emergency induction port" hs-test hexstore  hs-test swap  s" " compare -> 0 }T  ok
+  ok
+create hs-want-dec-path  01 c, 02 c,  ok
+T{ s" 01 HONK! 02" hs-test hexstore  hs-test swap  hs-want-dec-path 2 compare -> 0 }T  ok
+T{ s" HONK! 01 02" hs-test hexstore  hs-test swap  hs-want-dec-path 2 compare -> 0 }T  ok
+T{ s" 01 02 HONK!" hs-test hexstore  hs-test swap  hs-want-dec-path 2 compare -> 0 }T  ok
+  ok
+\ ------------------------------------------------------------------------  ok
+testing tali-only words: always-native bell compile-only digit? int>name  ok
+testing tali-only words: latestnt latestxt number 0 1 2  ok
+testing tali-only words: allow-native never-native wordsize nc-limit  ok
+decimal  ok
+  ok
+\ Test for 0BRANCH not implemented  ok
+\ Test for BRANCH not implemented  ok
+\ Test for DISASM not implemented  ok
+\ Test for INPUT not implemented  ok
+\ Test for OUTPUT not implemented  ok
+\ Test for UF-STRIP not implemented  ok
+  ok
+( TODO BELL test missing)  ok
+( TODO COMPILE-ONLY test missing)  ok
+  ok
+\ Test int>name, latestnt, latestxt, and wordsize  ok
+: one 1 ;  ok
+T{ ' one int>name wordsize    -> 8 }T  ok
+T{ latestxt int>name wordsize -> 8 }T  ok
+T{ latestnt wordsize          -> 8 }T  ok
+  ok
+\ One should have been created with NN flag, so it should be compiled  ok
+\ as a JSR when used (3-bytes).  ok
+: one-a one ;  ok
+T{ ' one-a int>name wordsize -> 3 }T  ok
+  ok
+\ Test allow-native  ok
+: two 1 1 ; allow-native  ok
+\ This should just barely prevent two from being natively compiled.  ok
+15 nc-limit !  ok
+: two-a two ;  ok
+\ This should just barely allow two to be natively compiled.  ok
+16 nc-limit !  ok
+: two-b two ;  ok
+  ok
+T{ ' two   int>name wordsize -> 16 }T  ok
+T{ ' two-a int>name wordsize ->  3 }T  ok
+T{ ' two-b int>name wordsize -> 16 }T  ok
+  ok
+\ Test always-native.  ok
+: three 2 1 ; always-native  ok
+\ Three should always natively compile regardless of nc-limit.  ok
+15 nc-limit !  ok
+: three-a three ;  ok
+16 nc-limit !  ok
+: three-b three ;  ok
+  ok
+T{ ' three   int>name wordsize -> 16 }T  ok
+T{ ' three-a int>name wordsize -> 16 }T  ok
+T{ ' three-b int>name wordsize -> 16 }T  ok
+\ Sneak in extra tests for latestnt and latestxt.  ok
+T{ latestnt wordsize           -> 16 }T  ok
+T{ latestxt int>name wordsize  -> 16 }T  ok
+  ok
+  ok
+\ Test never-native.  ok
+\ Because NN is the default, we have to switch to one of the other modes first.  ok
+: four 2 2 ; always-native never-native  ok
+\ Four should never natively compile regardless of nc-limit.  ok
+\ It will always be a JSR when used in another word.  ok
+15 nc-limit !  ok
+: four-a four ;  ok
+16 nc-limit !  ok
+: four-b four ;  ok
+  ok
+T{ ' four   int>name wordsize -> 16 }T  ok
+T{ ' four-a int>name wordsize ->  3 }T  ok
+T{ ' four-b int>name wordsize ->  3 }T  ok
+\ Sneak in extra tests for latestnt and latestxt.  ok
+T{ latestnt wordsize          ->  3 }T  ok
+T{ latestxt int>name wordsize ->  3 }T  ok
+  ok
+\ Nothing is too trivial for testing!  ok
+T{ 0 -> 0 }T  ok
+T{ 1 -> 1 }T  ok
+T{ 2 -> 2 }T  ok
+\ Slightly less trivial...  ok
+T{ 0 -> 5 5 - }T  ok
+T{ 1 -> 5 4 - }T  ok
+T{ 2 -> 5 3 - }T  ok
+  ok
+\ Test for DIGIT? ( char -- u f | char f )  ok
+  ok
+T{ 36 constant max-base -> }T \ ANS standard says 2 - 36  ok
+T{ base @  constant orig-base -> }T  ok
+T{ s" 0123456789" ( addr u ) drop  constant digit_numeral -> }T  ok
+T{ s" abcdefghijklmnopqrstuvwxyz" ( addr u ) drop  constant digit_lower -> }T  ok
+T{ s" ABCDEFGHIJKLMNOPQRSTUVWXYZ" ( addr u ) drop  constant digit_upper -> }T  ok
+  ok
+\ "/" and ":" are before and after ASCII numbers  ok
+\ "@" and "[" are before and after upper case ASCII letters  ok
+\ "`" and "{" are before and after lower case ASCII letters  ok
+T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T  ok
+  ok
+: digit_numeral ( -- f )  compiled
+   true  compiled
+   base @  10 min  ( don't go outside chars )  0 ?do  compiled
+      digit_numeral i +  ( addr ) c@   compiled
+      dup emit  \ Show user what is going on  compiled
+      dup digit?  ( char  u | char  f )   compiled
+      swap 48 ( ASCII "0" ) +   ( char  f  u | char )   compiled
+      rot =  ( f f )       \ is number what it's supposed to be?  compiled
+      and  ( f )           \ conversion was signaled as success?  compiled
+      and                  \ merge with running tab flag  compiled
+   loop ;  redefined digit_numeral  ok
+  ok
+: digit_letters ( -- f )   compiled
+   true  compiled
+   base @  10 - ( grow index with base)  0 ?do  compiled
+      digit_lower i + c@    compiled
+      dup emit  compiled
+      dup digit?    compiled
+      swap 97 ( ASCII "a" ) 10 -  +  compiled
+      rot =   compiled
+      and and   compiled
+  compiled
+      digit_upper i + c@    compiled
+      dup emit  compiled
+      dup digit?   compiled
+      swap 65 ( ASCII "A" ) 10 -  +  compiled
+      rot =   compiled
+      and and   compiled
+   loop ;   ok
+  ok
+: digit_oneoff ( -- f )   compiled
+   true   compiled
+   7 0 ?do  compiled
+      digit_bad i + c@  compiled
+      dup emit  compiled
+      digit?  ( char 0 )   compiled
+      nip invert   compiled
+      and  compiled
+   loop ;  ok
+  ok
+\ All your bases are belong to us. In theory, we could condense this  ok
+\ code further, because Forth, but it would become harder to understand  ok
+: digit_all ( -- f )  compiled
+   true  compiled
+  compiled
+   max-base 1+  2 ?do  compiled
+      decimal cr ." Numerals, base " i . ." : "   compiled
+      i base !  compiled
+      digit_numeral and  compiled
+      dup ."  -> " .  \ print status of base to help find errors  compiled
+   loop   compiled
+     compiled
+   decimal cr  compiled
+   max-base 1+  11 ?do  compiled
+      decimal cr ." Letters, base " i . ." : "   compiled
+      i base !  compiled
+      digit_letters and  compiled
+      dup ."  -> " . \ uncomment for debugging  compiled
+   loop   compiled
+  compiled
+   decimal cr  compiled
+   max-base 1+ 2 ?do  compiled
+      decimal cr ." One-off chars, base " i . ." : "   compiled
+      i base !  compiled
+      digit_oneoff and  compiled
+      dup ."  -> " .  \ uncomment for debugging  compiled
+   loop ;  ok
+  ok
+T{ digit_all -> <true> }T 
+Numerals, base 2 : 01 -> -1 
+Numerals, base 3 : 012 -> -1 
+Numerals, base 4 : 0123 -> -1 
+Numerals, base 5 : 01234 -> -1 
+Numerals, base 6 : 012345 -> -1 
+Numerals, base 7 : 0123456 -> -1 
+Numerals, base 8 : 01234567 -> -1 
+Numerals, base 9 : 012345678 -> -1 
+Numerals, base 10 : 0123456789 -> -1 
+Numerals, base 11 : 0123456789 -> -1 
+Numerals, base 12 : 0123456789 -> -1 
+Numerals, base 13 : 0123456789 -> -1 
+Numerals, base 14 : 0123456789 -> -1 
+Numerals, base 15 : 0123456789 -> -1 
+Numerals, base 16 : 0123456789 -> -1 
+Numerals, base 17 : 0123456789 -> -1 
+Numerals, base 18 : 0123456789 -> -1 
+Numerals, base 19 : 0123456789 -> -1 
+Numerals, base 20 : 0123456789 -> -1 
+Numerals, base 21 : 0123456789 -> -1 
+Numerals, base 22 : 0123456789 -> -1 
+Numerals, base 23 : 0123456789 -> -1 
+Numerals, base 24 : 0123456789 -> -1 
+Numerals, base 25 : 0123456789 -> -1 
+Numerals, base 26 : 0123456789 -> -1 
+Numerals, base 27 : 0123456789 -> -1 
+Numerals, base 28 : 0123456789 -> -1 
+Numerals, base 29 : 0123456789 -> -1 
+Numerals, base 30 : 0123456789 -> -1 
+Numerals, base 31 : 0123456789 -> -1 
+Numerals, base 32 : 0123456789 -> -1 
+Numerals, base 33 : 0123456789 -> -1 
+Numerals, base 34 : 0123456789 -> -1 
+Numerals, base 35 : 0123456789 -> -1 
+Numerals, base 36 : 0123456789 -> -1 
+
+Letters, base 11 : aA -> -1 
+Letters, base 12 : aAbB -> -1 
+Letters, base 13 : aAbBcC -> -1 
+Letters, base 14 : aAbBcCdD -> -1 
+Letters, base 15 : aAbBcCdDeE -> -1 
+Letters, base 16 : aAbBcCdDeEfF -> -1 
+Letters, base 17 : aAbBcCdDeEfFgG -> -1 
+Letters, base 18 : aAbBcCdDeEfFgGhH -> -1 
+Letters, base 19 : aAbBcCdDeEfFgGhHiI -> -1 
+Letters, base 20 : aAbBcCdDeEfFgGhHiIjJ -> -1 
+Letters, base 21 : aAbBcCdDeEfFgGhHiIjJkK -> -1 
+Letters, base 22 : aAbBcCdDeEfFgGhHiIjJkKlL -> -1 
+Letters, base 23 : aAbBcCdDeEfFgGhHiIjJkKlLmM -> -1 
+Letters, base 24 : aAbBcCdDeEfFgGhHiIjJkKlLmMnN -> -1 
+Letters, base 25 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoO -> -1 
+Letters, base 26 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpP -> -1 
+Letters, base 27 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQ -> -1 
+Letters, base 28 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrR -> -1 
+Letters, base 29 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsS -> -1 
+Letters, base 30 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStT -> -1 
+Letters, base 31 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuU -> -1 
+Letters, base 32 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvV -> -1 
+Letters, base 33 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwW -> -1 
+Letters, base 34 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxX -> -1 
+Letters, base 35 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY -> -1 
+Letters, base 36 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ -> -1 
+
+One-off chars, base 2 : /:@[`{	 -> -1 
+One-off chars, base 3 : /:@[`{	 -> -1 
+One-off chars, base 4 : /:@[`{	 -> -1 
+One-off chars, base 5 : /:@[`{	 -> -1 
+One-off chars, base 6 : /:@[`{	 -> -1 
+One-off chars, base 7 : /:@[`{	 -> -1 
+One-off chars, base 8 : /:@[`{	 -> -1 
+One-off chars, base 9 : /:@[`{	 -> -1 
+One-off chars, base 10 : /:@[`{	 -> -1 
+One-off chars, base 11 : /:@[`{	 -> -1 
+One-off chars, base 12 : /:@[`{	 -> -1 
+One-off chars, base 13 : /:@[`{	 -> -1 
+One-off chars, base 14 : /:@[`{	 -> -1 
+One-off chars, base 15 : /:@[`{	 -> -1 
+One-off chars, base 16 : /:@[`{	 -> -1 
+One-off chars, base 17 : /:@[`{	 -> -1 
+One-off chars, base 18 : /:@[`{	 -> -1 
+One-off chars, base 19 : /:@[`{	 -> -1 
+One-off chars, base 20 : /:@[`{	 -> -1 
+One-off chars, base 21 : /:@[`{	 -> -1 
+One-off chars, base 22 : /:@[`{	 -> -1 
+One-off chars, base 23 : /:@[`{	 -> -1 
+One-off chars, base 24 : /:@[`{	 -> -1 
+One-off chars, base 25 : /:@[`{	 -> -1 
+One-off chars, base 26 : /:@[`{	 -> -1 
+One-off chars, base 27 : /:@[`{	 -> -1 
+One-off chars, base 28 : /:@[`{	 -> -1 
+One-off chars, base 29 : /:@[`{	 -> -1 
+One-off chars, base 30 : /:@[`{	 -> -1 
+One-off chars, base 31 : /:@[`{	 -> -1 
+One-off chars, base 32 : /:@[`{	 -> -1 
+One-off chars, base 33 : /:@[`{	 -> -1 
+One-off chars, base 34 : /:@[`{	 -> -1 
+One-off chars, base 35 : /:@[`{	 -> -1 
+One-off chars, base 36 : /:@[`{	 -> -1  ok
+T{ decimal -> }T  ok
+  ok
+  ok
+\ TODO find more edge cases for NUMBER  ok
+T{ s" 0" number -> 0 }T  ok
+T{ s" 10" number -> 10 }T  ok
+T{ s" 100" number -> 100 }T  ok
+T{ s" 1." number -> 1 0 }T  ok
+T{ hex -> }T  ok
+T{ s" 0" number -> 0 }T  ok
+T{ s" 10" number -> 10 }T  ok
+T{ s" ff" number -> FF }T  ok
+T{ decimal -> }T  ok
+  ok
+\ ------------------------------------------------------------------------  ok
+testing case-insensitivity in Tali using dup  ok
+  ok
+T{ 5 dup -> 5 5 }T  ok
+T{ 5 duP -> 5 5 }T  ok
+T{ 5 dUp -> 5 5 }T  ok
+T{ 5 dUP -> 5 5 }T  ok
+T{ 5 Dup -> 5 5 }T  ok
+T{ 5 DuP -> 5 5 }T  ok
+T{ 5 DUp -> 5 5 }T  ok
+T{ 5 DUP -> 5 5 }T  ok
+  ok
+\ ------------------------------------------------------------------------  ok
+testing tali-only words: execute-parsing  ok
+  ok
+T{ s" 0" ' parse-name execute-parsing evaluate -> 0 }T    \ built-in word  ok
+T{ s" 10" ' parse-name execute-parsing evaluate -> 10 }T  \ number  ok
+  ok
+\ Test with delimiter other than a space  ok
+T{ char +  s" 0+" ' parse execute-parsing evaluate -> 0 }T  ok
+  ok
+\ We can use EXECUTE-PARSING to define variable names at runtime  ok
+T{ s" myvar" ' variable execute-parsing -> }T  ok
+T{ 2 myvar !  myvar @  -> 2 }T  ok
+  ok
+\ Free memory used for these tests  ok
+tali_tests  ok
+  ok
+ ( Running test 'tools' from file 'tools.fs' )  ok
+\ ------------------------------------------------------------------------  ok
+testing tools words: .s ? dump name>string see state words  ok
+  ok
+\ Test for BYE not implemented  ok
+  ok
+( TODO .S test missing )  ok
+( TODO ? test missing )  ok
+( TODO DUMP test missing )  ok
+( TODO NAME>STRING missing )  ok
+( TODO SEE test missing )  ok
+( TODO WORDS test missing )  ok
+  ok
+ ( Running test 'block' from file 'block.fs' )  ok
+\ ------------------------------------------------------------------------  ok
+testing block words: BLK SCR LOAD THRU BUFFER BLOCK UPDATE FLUSH \  ok
+  ok
+marker block_tests  ok
+decimal  ok
+\ Bring in a 4-block ram drive  ok
+T{ 4 block-ramdrive-init -> }T  ok
+  ok
+\ Put a string into the first block.  ok
+T{ : teststring s" Testing Blocks!" ; -> }T  ok
+T{ : teststringlength teststring swap drop ; -> }T  ok
+T{ teststring 0 block swap move update flush -> }T  ok
+  ok
+\ See if it's in the ramdrive.  ok
+T{ ramdrive teststringlength teststring compare -> 0 }T  ok
+  ok
+\ Bring in the editor wordlist.  ok
+editor-wordlist >order  ok
+  ok
+T{ 0 erase-screen flush -> }T  ok
+  ok
+\ Make sure the test string from before is gone by looking for space  ok
+\ at the beginning of the ramdrive.  ok
+T{ s"           " ramdrive 10 compare -> 0 }T  ok
+  ok
+\ Enter screens for testing LOAD and THRU  ok
+1 enter-screen 
+ 0 * ( Test screen 1 ) 
+ 1 * ( 1 ) variable testvalue 
+ 2 * ( 2 ) 5 testvalue ! 
+ 3 * ( 3 ) variable blkinscreen 
+ 4 * ( 4 ) blk @ blkinscreen ! 
+ 5 * ( 5 ) variable blkinstring 
+ 6 * ( 6 ) s" blk @ blkinstring !" evaluate 
+ 7 * ( 7 ) variable blkinscreenA 
+ 8 * ( 8 ) blk @ blkinscreenA ! 
+ 9 * \ ( 9 ) 20 testvalue +! \ Shouldn't run 
+10 * ( 10 ) \ Test comments in blocks 1 testvalue +!  
+11 * ( 11 ) 1 testvalue +! \ This shoud be ignored 1 testvalue +! 
+12 * ( 12 )                                                         \
+13 *  ( 13 ) 1 testvalue +! 
+14 * ( 14 ) \ The above has a backslash as the very last character 
+15 * ( 15 ) \ on the line so no CR needed before giving line 13  ok
+  ok
+\ Load screen 1 and then check for the expected side effects.  ok
+T{ 1 load -> }T  ok
+  ok
+\ BLK should be 0 while in the string and 1 while in the rest of the block.  ok
+T{ blkinscreen @  -> 1 }T  ok
+T{ blkinstring @  -> 0 }T  ok
+T{ blkinscreenA @ -> 1 }T  ok
+T{ testvalue @    -> 7 }T  ok
+  ok
+2 enter-screen 
+ 0 * ( Test screen 2 ) 
+ 1 * ( 1 ) ( Test loading another screen ) 
+ 2 * ( 2 ) variable shouldbe19 ( when "2 3 thru" is run) 
+ 3 * ( 3 ) 5 shouldbe19 ! 
+ 4 * ( 4 ) variable blkinscreenB 
+ 5 * ( 5 ) blk @ blkinscreenB ! ( should be 2 ) 
+ 6 * ( 6 ) 3 load 
+ 7 * ( 7 ) blk @ constant blkinscreenD ( try a different method ) 
+ 8 * ( 8 ) 
+ 9 * ( 9 ) 
+10 * ( 10 ) 
+11 * ( 11 ) 
+12 * ( 12 ) 
+13 * ( 13 ) 
+14 * ( 14 ) \ Testing backslash at very end of a block. 
+15 * ( 15 )                                                         \ ok
+  ok
+  ok
+3 enter-screen 
+ 0 * ( Test screen 2 ) 
+ 1 * ( 1 )  
+ 2 * ( 2 )  
+ 3 * ( 3 ) shouldbe19 @ 7 + shouldbe19 ! 
+ 4 * ( 4 )  
+ 5 * ( 5 )  
+ 6 * ( 6 )  
+ 7 * ( 7 )  
+ 8 * ( 8 ) 
+ 9 * ( 9 ) 
+10 * ( 10 ) 
+11 * ( 11 ) 
+12 * ( 12 ) 
+13 * ( 13 ) 
+14 * ( 14 ) ( blkinscreen4 should be 3 because we are on screen 3 ) 
+15 * ( 15 ) ( testing the last line )     blk @ constant blkinscreenC ok
+  ok
+  ok
+T{ 2 list -> }T 
+Screen #   2
+ 0 ( Test screen 2 )                                               
+ 1 ( 1 ) ( Test loading another screen )                           
+ 2 ( 2 ) variable shouldbe19 ( when "2 3 thru" is run)             
+ 3 ( 3 ) 5 shouldbe19 !                                            
+ 4 ( 4 ) variable blkinscreenB                                     
+ 5 ( 5 ) blk @ blkinscreenB ! ( should be 2 )                      
+ 6 ( 6 ) 3 load                                                    
+ 7 ( 7 ) blk @ constant blkinscreenD ( try a different method )    
+ 8 ( 8 )                                                           
+ 9 ( 9 )                                                           
+10 ( 10 )                                                          
+11 ( 11 )                                                          
+12 ( 12 )                                                          
+13 ( 13 )                                                          
+14 ( 14 ) \ Testing backslash at very end of a block.              
+15 ( 15 )                                                         \
+ ok
+T{ scr @ -> 2 }T \ Screen 2 is the last one we listed.  ok
+  ok
+\ Load screens 2 and 3 with THRU and check for side effects.  ok
+\ shouldbe19 should be 5 + 7 + 7 because screen 2 loads screen 3.  ok
+T{ 2 3 thru -> }T redefined blkinscreenC  ok
+  ok
+T{ blkinscreenB @ -> 2  }T \ Note: blkinscreen3 is a variable.  ok
+T{ blkinscreenC   -> 3  }T \ Note: blkinscreen4 is a constant.  ok
+T{ blkinscreenD   -> 2  }T \ Note: blkinscreen5 is a constant.  ok
+T{ shouldbe19 @   -> 19 }T  ok
+  ok
+\ Release all of the memory used.  ok
+block_tests  ok
+  ok
+ ( Running test 'search' from file 'search.fs' )  ok
+\ ------------------------------------------------------------------------  ok
+testing search-order words: get-order set-order get-current set-current  ok
+testing wordlist definitions forth-wordlist search-wordlist find  ok
+  ok
+decimal  ok
+marker search_tests  ok
+  ok
+\ Set the wordlists to a known state to start.  ok
+forth-wordlist 1 set-order  ok
+forth-wordlist set-current  ok
+  ok
+\ Define two word list (wid) variables used by the tests.  ok
+VARIABLE wid1  ok
+VARIABLE wid2  ok
+  ok
+\ In order to test the search order it in necessary to remember the  ok
+\ existing search order before modifying it. The existing search order  ok
+\ is saved and the get-orderlist defined to access it.  ok
+  ok
+: save-orderlist ( widn ... wid1 n -- )  compiled
+   DUP , 0 ?DO , LOOP  compiled
+;  ok
+  ok
+CREATE order-list  ok
+T{ GET-ORDER save-orderlist -> }T  ok
+  ok
+: get-orderlist ( -- widn ... wid1 n )  compiled
+   order-list DUP @ CELLS	   ( -- ad n )  compiled
+   OVER +	                      ( -- AD AD' )  compiled
+   ?DO I @ -1 CELLS +LOOP    ( -- )  compiled
+;  ok
+  ok
+\ FORTH-WORDLIST test  ok
+T{ FORTH-WORDLIST wid1 ! -> }T  ok
+  ok
+\ SET-ORDER tests  ok
+T{ GET-ORDER OVER      -> GET-ORDER wid1 @ }T  ok
+T{ GET-ORDER SET-ORDER -> }T  ok
+T{ GET-ORDER           -> get-orderlist }T T{ get-orderlist DROP get-orderList 2* SET-ORDER -> }T  ok
+T{ GET-ORDER -> get-orderlist DROP get-orderList 2* }T  ok
+T{ get-orderlist SET-ORDER GET-ORDER -> get-orderlist }T  ok
+  ok
+: so2a GET-ORDER get-orderlist SET-ORDER ;  ok
+: so2 0 SET-ORDER so2a ;  ok
+  ok
+T{ so2 -> 0 }T	    \ 0 SET-ORDER leaves an empty search order  ok
+  ok
+: so3 -1 SET-ORDER so2a ;  ok
+: so4 ONLY so2a ;  ok
+  ok
+T{ so3 -> so4 }T	   \ -1 SET-ORDER is the same as ONLY  ok
+  ok
+\ ALSO test   Note: Modified from ANS test to restore FORTH wordlist  ok
+T{ ALSO GET-ORDER ONLY FORTH -> get-orderlist OVER SWAP 1+ }T  ok
+  ok
+\ ONLY tests  ok
+T{ ONLY FORTH GET-ORDER -> get-orderlist }T  ok
+  ok
+: so1 SET-ORDER ; \ In case it is unavailable in the forth wordlist  ok
+  ok
+T{ ONLY FORTH-WORDLIST 1 SET-ORDER get-orderlist so1 -> }T  ok
+T{ GET-ORDER -> get-orderlist }T  ok
+  ok
+\ SET-CURRENT, GET-CURRENT, and WORDLIST tests  ok
+  ok
+T{ GET-CURRENT -> wid1 @ }T  ok
+  ok
+T{ WORDLIST wid2 ! -> }T  ok
+T{ wid2 @ SET-CURRENT -> }T  ok
+T{ GET-CURRENT -> wid2 @ }T  ok
+  ok
+T{ wid1 @ SET-CURRENT -> }T  ok
+  ok
+\ DEFINITIONS tests  ok
+  ok
+T{ ONLY FORTH DEFINITIONS -> }T  ok
+T{ GET-CURRENT -> FORTH-WORDLIST }T  ok
+  ok
+T{ GET-ORDER wid2 @ SWAP 1+ SET-ORDER DEFINITIONS GET-CURRENT  ok
+-> wid2 @ }T  ok
+T{ GET-ORDER -> get-orderlist wid2 @ SWAP 1+ }T  ok
+T{ PREVIOUS GET-ORDER -> get-orderlist }T  ok
+T{ DEFINITIONS GET-CURRENT -> FORTH-WORDLIST }T  ok
+  ok
+: alsowid2 ALSO GET-ORDER wid2 @ ROT DROP SWAP SET-ORDER ;  ok
+alsowid2  ok
+: w1 1234 ;  ok
+DEFINITIONS : w1 -9876 ; IMMEDIATE redefined w1  ok
+  ok
+ONLY FORTH  ok
+T{ w1 -> 1234 }T  ok
+DEFINITIONS  ok
+T{ w1 -> 1234 }T  ok
+alsowid2  ok
+T{ w1 -> -9876 }T  ok
+DEFINITIONS T{ w1 -> -9876 }T  ok
+  ok
+ONLY FORTH DEFINITIONS  ok
+: so5 DUP IF SWAP EXECUTE THEN ;  ok
+  ok
+T{ S" w1" wid1 @ SEARCH-WORDLIST so5 -> -1  1234 }T  ok
+T{ S" w1" wid2 @ SEARCH-WORDLIST so5 ->  1 -9876 }T  ok
+  ok
+\ : c"w1" C" w1" ;  ok
+\ We don't have C" so the above has been modified to use s\" instead.  ok
+: c"w1" s\" \x02w1" drop ; ( dropping the length, as it's in the string )  ok
+T{ alsowid2 c"w1" FIND so5 ->  1 -9876 }T  ok
+T{ PREVIOUS c"w1" FIND so5 -> -1  1234 }T  ok
+  ok
+\ SEARCH-WORDLIST tests  ok
+ONLY FORTH DEFINITIONS  ok
+VARIABLE xt ' DUP xt !  ok
+VARIABLE xti ' .( xti ! \ Immediate word  ok
+  ok
+T{ S" DUP" wid1 @ SEARCH-WORDLIST -> xt  @ -1 }T  ok
+T{ S" .("  wid1 @ SEARCH-WORDLIST -> xti @  1 }T  ok
+T{ S" DUP" wid2 @ SEARCH-WORDLIST ->        0 }T  ok
+  ok
+\ FIND tests  ok
+\ FIND needs counted strings (first byte is count)  ok
+\ Tali doesn't have C", so we'll use s\" to make them.  ok
+: c"dup" s\" \x03DUP" drop ;  ok
+: c".(" s\" \x02.(" drop ;  ok
+: c"x" s\" \x0Cunknown word" drop ;  ok
+  ok
+T{ c"dup" FIND -> xt  @ -1 }T  ok
+T{ c".("  FIND -> xti @  1 }T  ok
+T{ c"x"   FIND -> c"x"   0 }T  ok
+  ok
+  ok
+search_tests  ok
+  ok
+ ( Running test 'user' from file 'user.fs' )  ok
+\ ------------------------------------------------------------------------  ok
+  ok
+\ FILE        : user.fs  ok
+\ DESCRIPTION : This file is for users to add their own tests to the  ok
+\ test suite.  To add a test, the syntax is:  ok
+\ T{ data_for_word word_to_test -> expected_results }T  ok
+\ eg.  ok
+\ T{ 5 dup -> 5 5 }T  ok
+\ If the test passes, Tali will simply report "ok".  If the test does  ok
+\ not pass, an error message will be printed.  Results are logged in  ok
+\ the file results.txt and users can run just this set of tests using  ok
+\ the command:  ok
+\ ./talitest.py -t user  ok
+  ok
+ ( Running test 'cycles' from file 'cycles.fs' )  ok
+\ ------------------------------------------------------------------------  ok
+testing cycle counts  ok
+  ok
+\ These tests time the number of cylcles each word takes to run for a  ok
+\ given input.  These tests only work with the talitest.py script  ok
+\ which has handlers watching for the reading of the special addresses  ok
+\ $F006 and $F007; they calculate the number of cycles between reading  ok
+\ from the special addresses.  The cycles elapsed can then be read  ok
+\ from the virtual memory location $F008 (as a double word)  ok
+  ok
+\ Take care when editing this file as the whitespace on the ends of lines is  ok
+\ desired to keep the CYCLE: counts lined up.  ok
+  ok
+hex  ok
+  ok
+\ The location of the result  ok
+F008 constant cycles  ok
+  ok
+\ direct byte compiled  ok
+\  lda $f006  ok
+\  lda $f007  ok
+: cycles_overhead [ AD c, 06 c, F0 c, AD c, 07 c, F0 c, ] cycles 2@ ;  ok
+  ok
+\ direct byte compiled  ok
+\  lda $F006  ok
+\  jsr (xt on stack goes here)  ok
+\  lda $f007  ok
+\ then forth code to fetch and print results.  ok
+: cycle_test_runtime  compiled
+    [ AD c, 06 c, F0 c,    \ lda $F006  ok
+      20 c,  0000 ,        \ jsr (address to be filled in)  ok
+      AD c, 07 c, F0 c, ]  \ lda $F007  compiled
+    cycles 2@              \ fetch result  compiled
+    cycles_overhead d-     \ subtract overhead  compiled
+    ." CYCLES: " 6 ud.r    \ print results  compiled
+;  ok
+  ok
+\ cycle_test updates the address of the given xt in cycle_test_runtime  ok
+\ then it runs the test.  ok
+  ok
+\ To test a word, put any arguments it needs on the stack, use tick  ok
+\ (') on the word to get it's execution token (xt) and then put  ok
+\ cycle_test, then any stack cleanup.  ok
+\ eg. 5 ' dup cycle_test 2drop  ok
+: cycle_test ( xt -- )  compiled
+    [ ' cycle_test_runtime 4 + ] literal ! cycle_test_runtime ;  ok
+  ok
+\ Some test leave lots of stuff on the stack.  ok
+\ These words help clean up the mess.  ok
+: 4drop 2drop 2drop ;  ok
+: 6drop 2drop 2drop 2drop ;  ok
+  ok
+variable myvar  ok
+5 myvar !  ok
+  ok
+decimal  ok
+\ In all of these tests, a 5 is usually just a dummy input for the  ok
+\ word to work with.  ok
+  ok
+\ skipping     cold  ok
+\ skipping     abort  ok
+\ skipping     quit  ok
+\ skipping     abort"  ok
+5            ' abs           cycle_test drop       CYCLES:     35 ok
+pad 20       ' accept        cycle_test some text  CYCLES:   1286 ok
+drop \ accept test complete  ok
+             ' align         cycle_test            CYCLES:     12 ok
+5            ' aligned       cycle_test drop       CYCLES:     12 ok
+5            ' allot         cycle_test            CYCLES:     73 ok
+: aword ;    ' always-native cycle_test            CYCLES:     74 ok
+5 5          ' and           cycle_test drop       CYCLES:     56 ok
+\ skipping     at-xy  ok
+             ' \             cycle_test            CYCLES:     41 ok
+             ' base          cycle_test drop       CYCLES:     26 ok
+: beginuntil 100 begin 1- ?dup 0= until ;  ok
+             ' beginuntil    cycle_test            CYCLES:  15462 ok
+: beginwhile 100 begin 1- ?dup while repeat ;  ok
+             ' beginwhile    cycle_test            CYCLES:  11663 ok
+             ' bell          cycle_test            CYCLES:     36 ok
+             ' bl            cycle_test drop       CYCLES:     26 ok
+here 5       ' blank         cycle_test            CYCLES:    336 ok
+5 5          ' bounds        cycle_test 2drop      CYCLES:     70 ok
+\ skipping     [char]  ok
+\ skipping     [']  ok
+\ skipping     branch  ok
+\ skipping     bye  ok
+5            ' c,            cycle_test            CYCLES:     61 ok
+5            ' c@            cycle_test drop       CYCLES:     42 ok
+5 here       ' c!            cycle_test            CYCLES:     46 ok
+5            ' cell+         cycle_test drop       CYCLES:     46 ok
+5            ' cells         cycle_test drop       CYCLES:     40 ok
+             ' char          cycle_test w drop     CYCLES:    451 ok
+5            ' char+         cycle_test drop       CYCLES:     37 ok
+5            ' chars         cycle_test drop       CYCLES:     28 ok
+pad here 5   ' cmove         cycle_test            CYCLES:    188 ok
+pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
+             ' :             cycle_test wrd ;      CYCLES:  15798 ok
+             ' :noname       cycle_test ; drop     CYCLES:     50 ok
+5            ' ,             cycle_test            CYCLES:     66 ok
+' aword      ' compile,      cycle_test            CYCLES:    907 ok
+: bword ;    ' compile-only  cycle_test            CYCLES:     72 ok
+5            ' constant      cycle_test mycnst     CYCLES:  16294 ok
+here         ' count         cycle_test 2drop      CYCLES:     59 ok
+\ skipping     cr  ok
+\ skipping     create  ok
+5. 5.        ' d-            cycle_test 2drop      CYCLES:     86 ok
+5. 5.        ' d+            cycle_test 2drop      CYCLES:     86 ok
+5.           ' d>s           cycle_test drop       CYCLES:     32 ok
+-5.          ' dabs          cycle_test 2drop      CYCLES:     78 ok
+             ' decimal       cycle_test            CYCLES:     20 ok
+\ skipping     defer  ok
+             ' depth         cycle_test drop       CYCLES:     36 ok
+char w       ' digit?        cycle_test 2drop      CYCLES:     87 ok
+\ skipping     disasm  ok
+5.           ' dnegate       cycle_test 2drop      CYCLES:     72 ok
+: do?word1 5 5 ?do loop ;  ok
+             ' do?word1      cycle_test            CYCLES:    322 ok
+: do?word2 100 0 ?do i drop loop ;  ok
+             ' do?word2      cycle_test            CYCLES:   8384 ok
+: doword 100 0 do loop ;  ok
+             ' doword        cycle_test            CYCLES:   2148 ok
+: dowordi 100 0 do i drop loop ;  ok
+             ' dowordi       cycle_test            CYCLES:   8248 ok
+: dodoword 100 0 do 10 0 do loop loop ;  ok
+             ' dodoword      cycle_test            CYCLES:  44748 ok
+: dodowordij 100 0 do 10 0 do i drop j drop loop loop ;  ok
+             ' dodowordij    cycle_test            CYCLES: 165748 ok
+: doword+loop 100 0 do 5 +loop ;  ok
+             ' doword+loop   cycle_test            CYCLES:   2418 ok
+\ skipping     does  ok
+\ skipping     .  ok
+\ skipping     ."  ok
+             ' s"            cycle_test " 2drop    CYCLES:    252 ok
+5            ' drop          cycle_test            CYCLES:     32 ok
+\ skipping     dump  ok
+5            ' dup           cycle_test 2drop      CYCLES:     48 ok
+42           ' emit          cycle_test           *CYCLES:     46 ok
+5 5          ' =             cycle_test drop       CYCLES:     64 ok
+here 5       ' erase         cycle_test            CYCLES:    338 ok
+here 5 5     ' fill          cycle_test            CYCLES:    326 ok
+s" 5"        ' evaluate      cycle_test drop       CYCLES:  17606 ok
+5 ' drop     ' execute       cycle_test            CYCLES:     84 ok
+\ skipping     exit  ok
+             ' false         cycle_test drop       CYCLES:     24 ok
+here         ' @             cycle_test drop       CYCLES:     59 ok
+\ making counted string for find  ok
+here 5 c, char a c, char w c, char o c,  ok
+char r c, char d c,  ok
+             ' find          cycle_test 2drop      CYCLES:   1209 ok
+s" aword"    ' find-name     cycle_test drop       CYCLES:    877 ok
+5. 5         ' fm/mod        cycle_test 2drop      CYCLES:   1311 ok
+5 5          ' >             cycle_test drop       CYCLES:     81 ok
+             ' here          cycle_test drop       CYCLES:     30 ok
+             ' hex           cycle_test decimal    CYCLES:     14 ok
+\ skipping     hold  ok
+\ skipping     i  ( exercised by doxxx above )  ok
+: ifloop 0 100 0 do i 2 and if 1 else -1 then + loop drop ;  ok
+             ' ifloop        cycle_test            CYCLES:  26180 ok
+: cword ;    ' immediate     cycle_test            CYCLES:     72 ok
+             ' input         cycle_test drop       CYCLES:     28 ok
+' dup        ' int>name      cycle_test drop       CYCLES:   2357 ok
+5            ' invert        cycle_test drop       CYCLES:     48 ok
+\ skipping     j  ok
+             ' key           cycle_test drop       CYCLES:     48 ok
+             ' latestnt      cycle_test drop       CYCLES:     75 ok
+             ' latestxt      cycle_test drop       CYCLES:    158 ok
+\ skipping     leave  ok
+\ skipping     [  ok
+\ skipping     <#  ok
+5 5          ' <             cycle_test drop       CYCLES:     81 ok
+\ skipping     literal  ok
+\ skipping     loop  ok
+\ skipping     +loop  ok
+5 5          ' lshift        cycle_test drop       CYCLES:    126 ok
+5 5          ' m*            cycle_test 2drop      CYCLES:    650 ok
+             ' marker        cycle_test marka      CYCLES:  18321 ok
+             ' marka         cycle_test            CYCLES:    848 ok
+5 5          ' max           cycle_test drop       CYCLES:     69 ok
+5 5          ' min           cycle_test drop       CYCLES:     54 ok
+5 5          ' -             cycle_test drop       CYCLES:     58 ok
+s" txt   "   ' -trailing     cycle_test 2drop      CYCLES:    218 ok
+here s" a"   ' move          cycle_test            CYCLES:    148 ok
+' + int>name ' name>int      cycle_test drop       CYCLES:     71 ok
+' + int>name ' name>string   cycle_test 2drop      CYCLES:     70 ok
+             ' nc-limit      cycle_test drop       CYCLES:     28 ok
+5            ' negate        cycle_test drop       CYCLES:     50 ok
+: dword ;    ' never-native  cycle_test            CYCLES:     74 ok
+5 5          ' nip           cycle_test drop       CYCLES:     48 ok
+5 5          ' <>            cycle_test drop       CYCLES:     68 ok
+5 5 5        ' -rot          cycle_test 2drop drop CYCLES:     76 ok
+s" 5"        ' number        cycle_test drop       CYCLES:   1648 ok
+\ skipping     #  ok
+\ skipping     #>  ok
+\ skipping     #s  ok
+             ' 1             cycle_test drop       CYCLES:     26 ok
+5            ' 1+            cycle_test drop       CYCLES:     37 ok
+5            ' 1-            cycle_test drop       CYCLES:     41 ok
+5 5          ' or            cycle_test drop       CYCLES:     56 ok
+             ' output        cycle_test drop       CYCLES:     28 ok
+5 5          ' over          cycle_test 2drop drop CYCLES:     48 ok
+             ' pad           cycle_test drop       CYCLES:     36 ok
+\ skipping     page  ok
+             ' parse-name    cycle_test a 2drop    CYCLES:    410 ok
+char "       ' parse         cycle_test " 2drop    CYCLES:    215 ok
+5 0          ' pick          cycle_test 2drop      CYCLES:     42 ok
+5 5          ' +             cycle_test drop       CYCLES:     58 ok
+5 here       ' +!            cycle_test            CYCLES:     86 ok
+\ skipping     postpone  ok
+myvar        ' ?             cycle_test          5 CYCLES:   3894 ok
+5            ' ?dup          cycle_test 2drop      CYCLES:     58 ok
+\ skipping     r>  ok
+\ skipping     recurse  ok
+             ' refill        cycle_test            CYCLES:    333 ok
+drop \ refill  ok
+\ skipping     ]  ok
+5 5 5        ' rot           cycle_test 2drop drop CYCLES:     76 ok
+5 5          ' rshift        cycle_test drop       CYCLES:    126 ok
+             ' s"            cycle_test " 2drop    CYCLES:    252 ok
+5            ' s>d           cycle_test 2drop      CYCLES:     47 ok
+\ skipping     ;  ok
+\ skipping     sign  ok
+s" abc" 1    ' /string       cycle_test 2drop      CYCLES:     84 ok
+\ skipping     sliteral  ok
+5. 5         ' sm/rem        cycle_test 2drop      CYCLES:   1398 ok
+             ' source        cycle_test 2drop      CYCLES:     48 ok
+             ' source-id     cycle_test drop       CYCLES:     30 ok
+             ' space         cycle_test            CYCLES:     36 ok
+1            ' spaces        cycle_test            CYCLES:    160 ok
+5 5          ' *             cycle_test drop       CYCLES:    506 ok
+             ' state         cycle_test drop       CYCLES:     28 ok
+5 here       ' !             cycle_test            CYCLES:     65 ok
+5 5          ' swap          cycle_test 2drop      CYCLES:     60 ok
+             ' '             cycle_test aword drop CYCLES:   1809 ok
+\ postponing   to ( see value )  ok
+' aword      ' >body         cycle_test drop       CYCLES:   1261 ok
+             ' >in           cycle_test drop       CYCLES:     28 ok
+0. s" 55"    ' >number       cycle_test 4drop      CYCLES:   2423 ok
+\ skipping     >r  ok
+             ' true          cycle_test drop       CYCLES:     26 ok
+5 5          ' tuck          cycle_test 2drop drop CYCLES:     72 ok
+             ' 2             cycle_test drop       CYCLES:     26 ok
+5 5          ' 2drop         cycle_test            CYCLES:     36 ok
+5 5          ' 2dup          cycle_test 4drop      CYCLES:     68 ok
+here         ' 2@            cycle_test 2drop      CYCLES:     88 ok
+5 5 5 5      ' 2over         cycle_test 6drop      CYCLES:     68 ok
+\ skipping     2r@  ok
+\ skipping     2r>  ok
+5            ' 2/            cycle_test drop       CYCLES:     46 ok
+5            ' 2*            cycle_test drop       CYCLES:     40 ok
+5. here      ' 2!            cycle_test            CYCLES:     99 ok
+5 5 5 5      ' 2swap         cycle_test 4drop      CYCLES:     92 ok
+\ skipping     2>r  ok
+             ' 2variable     cycle_test eword      CYCLES:  16943 ok
+             ' eword         cycle_test drop       CYCLES:     45 ok
+s" *"        ' type          cycle_test           *CYCLES:    121 ok
+5            ' u.            cycle_test          5 CYCLES:   3615 ok
+5 5          ' u>            cycle_test drop       CYCLES:     60 ok
+5 5          ' u<            cycle_test drop       CYCLES:     60 ok
+             ' strip-underflow   cycle_test drop   CYCLES:     28 ok
+5. 5         ' um/mod        cycle_test 2drop      CYCLES:   1260 ok
+5 5          ' um*           cycle_test 2drop      CYCLES:    474 ok
+\ skipping     unloop  ok
+             ' unused        cycle_test drop       CYCLES:     36 ok
+5            ' value         cycle_test fword      CYCLES:  17163 ok
+             ' fword         cycle_test drop       CYCLES:     58 ok
+5            ' to            cycle_test fword      CYCLES:   1137 ok
+             ' variable      cycle_test gword      CYCLES:  16944 ok
+             ' gword         cycle_test drop       CYCLES:     45 ok
+char "       ' word          cycle_test "txt" drop CYCLES:    676 ok
+\ skipping     words  ok
+' aword      ' wordsize      cycle_test drop       CYCLES:     84 ok
+5 5          ' xor           cycle_test drop       CYCLES:     56 ok
+             ' 0             cycle_test drop       CYCLES:     24 ok
+\ skipping     0branch  ok
+5            ' 0=            cycle_test drop       CYCLES:     50 ok
+5            ' 0>            cycle_test drop       CYCLES:     54 ok
+5            ' 0<            cycle_test drop       CYCLES:     47 ok
+5            ' 0<>           cycle_test drop       CYCLES:     48 ok
+  ok
+bye 
