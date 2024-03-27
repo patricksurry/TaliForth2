@@ -219,57 +219,6 @@ z_abort:
 z_quit:         ; no RTS required
 
 
-
-; This table holds all of the initial values for the variables in zero page.
-; This table is used by COLD.  This must match the zp offsets in definitions.asm
-cold_zp_table:
-        .word cp0+256+1024      ; cp moved to make room for user vars and
-                                ; block buffer
-        .word dictionary_start  ; dp
-        .word 0                 ; workword
-        .word 0                 ; insrc (SOURCE-ID is 0 for keyboard)
-        .word buffer0           ; cib
-        .word 0                 ; ciblen
-        .word 0                 ; toin
-        .word 0                 ; ip
-        .word kernel_putc       ; output
-        .word kernel_getc       ; input
-        .word 0                 ; havekey
-        .word 0                 ; state (0 = interpret)
-        .word 10                ; base
-        .word 20                ; nc-limit
-        .word 0                 ; uf_strip (off by default)
-        .word cp0               ; up (user vars put right at beginning of
-                                ; available RAM)
-        .word 0                 ; status
-cold_zp_table_end:
-
-; No further ZP variables are initialized. The variables past this point are
-; all temporaries.
-
-; This table holds the initial values for forth user variables. This table is
-; used by COLD.  This must match the user variable offsets in definitions.aasm
-cold_user_table:
-        .word 0                         ;  0 BLK
-        .word 0                         ;  2 SCR
-        .byte 0                         ;  4 CURRENT = FORTH-WORDLIST
-        .byte 4                         ;  5 #WORDLISTS (FORTH EDITOR ASSEMBLER ROOT)
-        .word dictionary_start          ;  6 FORTH-WORDLIST
-        .word editor_dictionary_start   ;  8 EDITOR-WORDLIST
-        .word assembler_dictionary_start ; a ASSEMBLER-WORDLIST
-        .word root_dictionary_start     ;  c ROOT-WORDLIST
-        .word 0,0,0,0,0,0,0,0           ;  e User wordlists
-        .byte 1                         ; 1e #ORDER
-        .byte 0,0,0,0,0,0,0,0,0         ; 1f search-order
-        .word cp0+256                   ; 28 Address of buffer (right after USER vars)
-        .word 0                         ; 2a block in buffer
-        .word 0                         ; 2c buffer status (not in use)
-        .word xt_block_word_error       ; 2e block-read vector
-        .word xt_block_word_error       ; 30 block-write vector
-        .word 0                         ; 32 'COLD
-cold_user_table_end:
-
-
 ; ## ABORT_QUOTE ( "string" -- ) "If flag TOS is true, ABORT with message"
 ; ## "abort""  tested  ANS core
         ; """https://forth-standard.org/standard/core/ABORTq
