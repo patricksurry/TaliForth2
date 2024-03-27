@@ -2170,13 +2170,17 @@ create 'saved-output  1000 allot  ok
 : saved-string ( -- addr u )  'saved-output #saved-output @ ;  ok
   ok
 \ We write our own output routine to replace the built-in one. Uses the  ok
-\ assembler macro push-a  ok
+\ assembler macro push-a.  ok
+\ Care must be taken that no registers or Tali temp variables are modified  ok
+\ by this routine.  ok
 : save-output ( c -- )   compiled
    [ push-a ]  \ "dex dex  sta 0,x  stz 1,x" - push A to TOS  compiled
-   [ phy 34 lda.z pha  35 lda.z pha ] \ Save y and tmp1.  compiled
+   [ phy pha ] \ Save Y and A.  compiled
    saved-string + c!  \ Save the character.  compiled
-   1 #saved-output +! \ Increment the string length.  compiled
-   [ pla 35 sta.z pla  34 sta.z ply ] \ Restore y and tmp1.  compiled
+   \ Increment the string length.  compiled
+   \ Can't use !+ as it uses a Tali temp variable (tmp1)  compiled
+   #saved-output @ 1+   #saved-output !  compiled
+   [ pla ply ] \ Restore A and Y.  compiled
 ;  ok
   ok
 : redirect-output ( -- )  compiled
