@@ -195,10 +195,10 @@ create 'saved-output  1000 allot
 \ assembler macro push-a
 : save-output ( c -- ) 
    [ push-a ]  \ "dex dex  sta 0,x  stz 1,x" - push A to TOS
-   [ phy 36 lda.z pha  37 lda.z pha ] \ Save y and tmp1.
+   [ phy 34 lda.z pha  35 lda.z pha ] \ Save y and tmp1.
    saved-string + c!  \ Save the character.
    1 #saved-output +! \ Increment the string length.
-   [ pla 37 sta.z pla  36 sta.z ply ] \ Restore y and tmp1.
+   [ pla 35 sta.z pla  34 sta.z ply ] \ Restore y and tmp1.
 ;
 
 : redirect-output ( -- )
