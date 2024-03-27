@@ -47,6 +47,8 @@ str_disasm_sdc     = ix
 ix += 1
 str_disasm_bra     = ix
 ix += 1
+str_disasm_0test   = ix
+ix += 1
 .endif
 
 ; Since we can't fit a 16-bit address in a register, we use indexes as offsets
@@ -58,7 +60,7 @@ string_table:
 .endif
         .word s_see_flags, s_see_nt, s_see_xt, s_see_size             ; 8-11
 .if "disassembler" in TALI_OPTIONAL_WORDS
-        .word s_disasm_lit, s_disasm_sdc, s_disasm_bra                ; 12-14
+        .word s_disasm_lit, s_disasm_sdc, s_disasm_bra, s_disasm_0test ; 12-15
 .endif
 
 s_ok:         .text " ok", 0         ; note space at beginning
@@ -83,6 +85,7 @@ s_see_size:   .text "size (decimal): ", 0
 s_disasm_lit: .text "LITERAL ", 0
 s_disasm_sdc: .text "STACK DEPTH CHECK", 0
 s_disasm_bra: .text "BRANCH ",0
+s_disasm_0test: .text "0TEST",0
 .endif
 
 ; ## ERROR STRINGS

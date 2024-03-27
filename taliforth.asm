@@ -378,7 +378,7 @@ _loop:
                 ; complaining for us
                 jsr xt_number           ; ( addr u -- u|d )
 
-                ; Otherweise, if we're interpreting, we're done
+                ; Otherwise, if we're interpreting, we're done
                 lda state
                 beq _loop
 
@@ -433,12 +433,12 @@ _got_name_token:
                 inx
                 inx                     ; ( nt )
 
-                ; Save a version of nt for error handling and compilation stuff
-                lda 0,x
-                sta tmpbranch
-                lda 1,x
-                sta tmpbranch+1
-
+                ; Whether interpreting or compiling we'll need to check the
+                ; status byte at nt+1 so let's save it now
+                jsr xt_one_plus
+                lda (0,x)
+                pha
+                jsr xt_one_minus
                 jsr xt_name_to_int      ; ( nt - xt )
 
                 ; See if we are in interpret or compile mode, 0 is interpret
@@ -448,8 +448,7 @@ _got_name_token:
                 ; We are interpreting, so EXECUTE the xt that is TOS. First,
                 ; though, see if this isn't a compile-only word, which would be
                 ; illegal. The status byte is the second one of the header.
-                ldy #1
-                lda (tmpbranch),y
+                pla
                 and #CO                 ; mask everything but Compile Only bit
                 beq _interpret
 
@@ -472,8 +471,7 @@ _compile:
                 ; IMMEDIATE word, which would mean we execute it right now even
                 ; during compilation mode. Fortunately, we saved the nt so life
                 ; is easier. The flags are in the second byte of the header
-                ldy #1
-                lda (tmpbranch),y
+                pla
                 and #IM                 ; Mask all but IM bit
                 bne _interpret          ; IMMEDIATE word, execute right now
 

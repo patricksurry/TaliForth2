@@ -192,13 +192,17 @@ create 'saved-output  1000 allot
 : saved-string ( -- addr u )  'saved-output #saved-output @ ;
 
 \ We write our own output routine to replace the built-in one. Uses the
-\ assembler macro push-a
+\ assembler macro push-a.
+\ Care must be taken that no registers or Tali temp variables are modified
+\ by this routine.
 : save-output ( c -- ) 
    [ push-a ]  \ "dex dex  sta 0,x  stz 1,x" - push A to TOS
-   [ phy 36 lda.z pha  37 lda.z pha ] \ Save y and tmp1.
+   [ phy pha ] \ Save Y and A.
    saved-string + c!  \ Save the character.
-   1 #saved-output +! \ Increment the string length.
-   [ pla 37 sta.z pla  36 sta.z ply ] \ Restore y and tmp1.
+   \ Increment the string length.
+   \ Can't use !+ as it uses a Tali temp variable (tmp1)
+   #saved-output @ 1+   #saved-output !
+   [ pla ply ] \ Restore A and Y.
 ;
 
 : redirect-output ( -- )

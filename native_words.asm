@@ -3673,6 +3673,7 @@ xt_ed:
 z_ed:           rts
 .endif
 
+
 ; ## EDITOR_WORDLIST ( -- u ) "WID for the Editor wordlist"
 ; ## "editor-wordlist"  tested  Tali Editor
         ; """ Commonly used like `editor-wordlist >order` to add the editor
@@ -3686,7 +3687,7 @@ z_ed:           rts
         ; """
 
 
-; ## ELSE (C: orig -- orig) ( -- ) "Conditional flow control"
+; ## ELSE (C: orig -- orig' ) ( -- ) "Conditional flow control"
 ; ## "else"  auto  ANS core
         ; """http://forth-standard.org/standard/core/ELSE
         ;
@@ -3695,10 +3696,9 @@ z_ed:           rts
 
 xt_else:
 xt_endof:
-                ; Put an unconditional branch.
-                ldy #>branch_runtime
-                lda #<branch_runtime
-                jsr cmpl_subroutine
+                ; Add an unconditional branch using a native jmp
+                lda #$4c        ; jmp opcode
+                jsr cmpl_a
 
                 ; Put the address of the branch address on the stack.
                 jsr xt_here
@@ -3708,42 +3708,114 @@ xt_endof:
                 jsr xt_zero
                 jsr xt_comma
 
-                ; Get the address to jump to (just after the
-                ; unconditional branch) for the IF to jump to
-                ; when false.
+                ; stash the branch target for later
+                ; and then calculate the forward branch from orig
+                jsr xt_swap         ; ( target orig )
+
+                ; fall through to xt_then
+
+xt_then:
+                ; (C: orig -- ) ( -- )
+
+                ; This is a compile-time word that writes the target address
+                ; of an earlier forward branch.  For example xt_if writes
+                ; BRANCH0 <placeholder> which wants to skip forward to here
+                ; if the condition is false.  The orig argument on the stack
+                ; is the address of the placeholder which needs to point here.
+                ;
+                ; Note this is also used by several other words that write
+                ; a forward branch, like xt_else and xt_while.
+                ;
+                ; Our compiled output so far looks like this:
+                ;
+                ;       jsr zero_branch_runtime   ; or an unconditional jmp
+                ; orig:
+                ;       lsb msb  ; placeholder address = $ffff if optimizable
+                ; ...
+                ; here:
+                ;
+                ; Normally we'd just write `here` into the placeholder address bytes.
+                ; But in some cases we can optimize using a native BEQ instead.
+                ; This requires (a) the original address is the target of 0BRANCH
+                ; and (b) here - orig - 2 is less than 128 (max native branch).
+                ; In such a case we rewrite the code as
+                ;
+                ;       jsr zero_test_runtime       ; drops TOS setting Z status bit
+                ; orig:
+                ;       beq (here - orig - 2)       ; in place of target address
+
+                ; We want to branch from orig to here, so stack it
                 jsr xt_here
-                jsr xt_rot
 
-                ; Update the original if 0branch address.
-                jsr xt_store
-z_else:
-z_endof:
-                rts
+                ; First check if orig is the target of 0BRANCH,
+                ; indicated by a placeholder of $ffff instead of the usual 0
 
+                lda (2,x)           ; get LSB at orig
+                ina                 ; was LSB $ff?  (only check for $xxff)
+                bne _no_opt
 
+                ; We have a candidate, but is it close enough?
 
-branch_runtime:
-        ; """Runtime component for a branch. Used by ELSE and ENDOF. This was
-        ; formally part of a separate word BRANCH which was later removed.
-        ; """
+                jsr xt_two_dup
+                jsr xt_swap
+                jsr xt_minus        ; ( C: orig here offset )
+                lda 1,x
+                bne _too_far        ; MSB must be zero
+                lda 0,x
+                dea                 ; we want here - orig - 2
+                dea                 ; don't care about carry
+                bmi _too_far        ; up to 127 is ok
 
-                ; The address on the Return Stack points to the last byte
-                ; of the JSR address, one byte below the branch literal
-                pla
-                sta tmpbranch
-                pla
-                sta tmpbranch+1
+                ; phew, we can actually optimize as native BEQ
 
-                ; Keep in mind: the address we just popped points one byte
-                ; lower than the branch literal we want to grab
-                ldy #1
-                lda (tmpbranch),y  ; LSB
+                sta 0,x             ; stash offset - 2
+
+                sec                 ; put orig - 2 in tmp1
+                lda 4,x
+                sbc #2
                 sta tmp1
-                iny
-                lda (tmpbranch),y  ; MSB
+                lda 5,x
+                sbc #0
                 sta tmp1+1
 
-                jmp (tmp1)
+                ; replace 0branch runtime with 0test that just sets Z
+                ldy #0
+-
+                lda beq_opt+1,y               ; skip the jsr
+                sta (tmp1),y
+                iny
+                cpy #(beq_opt_end-beq_opt-2)  ; three bytes, skip jsr and offset
+                bne -
+                lda 0,x             ; write the offset
+                sta (tmp1),y
+
+                inx                 ; clear the stack
+                inx
+                inx
+                inx
+                inx
+                inx
+                rts                 ; all done
+
+_too_far:
+                inx                 ; discard the offset we calculated
+                inx
+_no_opt:
+                ; Just stuff HERE in for the branch address back
+                ; at the IF or ELSE (origination address is on stack).
+                jsr xt_swap
+                jsr xt_store
+
+z_else:
+z_endof:
+z_then:         rts
+
+
+beq_opt:
+                jsr zero_test_runtime       ; replaces jsr zero_branch_runtime
+                beq beq_opt_end             ; the beq overwrites the placeholder
+                                            ; address with a calculated offset
+beq_opt_end:
 
 
 
@@ -5049,11 +5121,25 @@ xt_if:
                 ; Put the origination address on the stack for else/then
                 jsr xt_here
 
-                ; Stuff zero in for the branch address right now.
+                ; Stuff $ffff in for the branch address (optimizable)
                 ; THEN or ELSE will fix it later.
-                jsr xt_zero
+                jsr xt_true
                 jsr xt_comma
 z_if:           rts
+
+
+zero_test_runtime:
+        ; Drop TOS of stack setting Z flag, for optimizing short brances (see xt_then)
+                inx
+                inx
+                lda $fe,x           ; wraparound so inx doesn't wreck Z status
+                ora $ff,x
+                rts
+
+    ; footer for inline zero_test_runtime used in xt_until (excluding the rts)
+                bne zero_test_footer_end+2  ; branch fwd if non-zero
+                .byte $4c                   ; else JMP back
+zero_test_footer_end:
 
 
 zero_branch_runtime:
@@ -5063,11 +5149,12 @@ zero_branch_runtime:
         ; """
 
                 ; We use the return value on the 65c02 stack to determine
-                ; where we want to return to.
+                ; where we want to return to.  It points one byte before
+                ; the branch target address.
                 pla
-                sta tmpbranch
+                sta tmp1
                 pla
-                sta tmpbranch+1
+                sta tmp1+1
 
                 ; See if the flag is zero, which is the whole purpose of
                 ; this all
@@ -5077,48 +5164,33 @@ zero_branch_runtime:
 
                 ; Flag is TRUE, so we skip over the next two bytes. This is
                 ; the part between IF and THEN
-                lda tmpbranch   ; LSB
+                lda tmp1        ; LSB
                 clc
-                adc #2
+                adc #3          ; add one to RTS address plus two address bytes
                 sta tmp1
-                lda tmpbranch+1 ; MSB
-                adc #0          ; For carry
-                sta tmp1+1
-
-                bra _done
+                bcc _jump
+                inc tmp1+1      ; MSB
+                bra _jump
 
 _zero:
                 ; Flag is FALSE (0) so we take the jump to the address given in
                 ; the next two bytes. However, the address points to the last
                 ; byte of the JSR instruction, not to the next byte afterwards
                 ldy #1
-                lda (tmpbranch),y
-                sta tmp1
-                iny
-                lda (tmpbranch),y
-                sta tmp1+1
-
-                ; Now we have to subtract one byte from the address
-                ; given because of the way the 6502 calculates RTS
-                lda tmp1
-                bne +
-                dec tmp1+1
-+
-                dec tmp1
-
-_done:
-                ; However we got here, tmp1 has the value we push to jump
-                ; to
-                lda tmp1+1
-                pha             ; MSB first
-                lda tmp1
+                lda (tmp1),y
                 pha
+                iny
+                lda (tmp1),y
+                sta tmp1+1
+                pla
+                sta tmp1
 
+_jump:
+                ; However we got here, tmp1 has the address to jump to.
                 ; clean up the stack and jump
                 inx
                 inx
-
-                rts
+                jmp (tmp1)
 
 
 
@@ -8077,11 +8149,8 @@ xt_repeat:
 
                 ; Stuff HERE in for the branch address
                 ; to get out of the loop
-                jsr xt_here
-                jsr xt_swap
-                jsr xt_store
-
-z_repeat:       rts
+                jmp xt_then
+z_repeat:
 
 
 
@@ -9913,17 +9982,9 @@ z_swap:         rts
 
 ; ## THEN (C: orig -- ) ( -- ) "Conditional flow control"
 ; ## "then"  auto  ANS core
-        ; """http://forth-standard.org/standard/core/THEN"""
-xt_then:
-                ; Get the address to jump to.
-                jsr xt_here
-
-                ; Stuff HERE in for the branch address back
-                ; at the IF or ELSE (origination address is on stack).
-                jsr xt_swap
-                jsr xt_store
-
-z_then:         rts
+        ; """http://forth-standard.org/standard/core/THEN
+        ; This is a dummy entry, the code is shared with xt_else
+        ; """
 
 
 .if "block" in TALI_OPTIONAL_WORDS
@@ -11270,14 +11331,32 @@ z_unloop:       rts
 ; ## "until"  auto  ANS core
         ; """http://forth-standard.org/standard/core/UNTIL"""
 xt_until:
-                ; Compile a 0BRANCH
-                ldy #>zero_branch_runtime
-                lda #<zero_branch_runtime
-                jsr cmpl_subroutine
-
                 ; The address to loop back to is on the stack.
-                ; Just compile it as the destination for the
-                ; 0branch.
+                ; We could do a 0BRANCH but we can optimize with native
+                ; branching.  We'll generate code like this:
+                ;
+                ; dest:
+                ;       ...
+                ; here:
+                ;       (inline zero_test_runtime)
+                ;       bne +3
+                ;       jmp dest
+                ;
+                ; we could be clever and use beq back if short enough
+                ; to avoid the jmp but it doesn't seem worth the two cycle/3 byte saving
+
+                ldy #0
+-
+                lda zero_test_runtime,y
+                cmp #$60            ; skip RTS
+                beq +
+                jsr cmpl_a
++
+                iny
+                cpy #(zero_test_footer_end - zero_test_runtime)
+                bne -
+
+                ; add dest as the jmp target
                 jsr xt_comma
 
 z_until:        rts
@@ -11388,8 +11467,8 @@ xt_while:
                 ; address needs to go so it can be put there later.
                 jsr xt_here
 
-                ; Fill in the destination address with 0 for now.
-                jsr xt_zero
+                ; Fill in the destination address with $ffff (optimizable)
+                jsr xt_true
                 jsr xt_comma
 
                 ; Swap the two addresses on the stack.
