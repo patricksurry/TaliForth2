@@ -35,8 +35,10 @@ cold_zp_table:
 cp:         .word cp0+256+1024      ; Compiler Pointer
                                     ; moved to make room for user vars and block buffer
 dp:         .word dictionary_start  ; Dictionary Pointer
+ip:         .word 0                 ; Instruction Pointer (current xt)
 workword:   .word 0                 ; nt (not xt!) of word being compiled, except in
                                     ; a :NONAME declared word (see status)
+up:         .word cp0               ; Forth user vars at start of available RAM
 
 ; The four variables insrc, cib, ciblen, and toin must stay together in this
 ; sequence for the words INPUT>R and R>INPUT to work correctly.
@@ -46,15 +48,14 @@ cib:        .word buffer0           ; address of current input buffer
 ciblen:     .word 0                 ; length of current input buffer
 toin:       .word 0                 ; pointer to CIB (>IN in Forth)
 
-ip:         .word 0                 ; Instruction Pointer (current xt)
 output:     .word kernel_putc       ; vector for EMIT
 input:      .word kernel_getc       ; vector for KEY
 havekey:    .word 0                 ; vector for KEY?
+
 state:      .word 0                 ; STATE: -1 compile, 0 interpret
 base:       .word 10                ; number radix, default decimal
-nc_limit:   .word 20                ; byte limit for Native Compile size
 uf_strip:   .word 0                 ; flag to strip underflow detection code (0 off)
-up:         .word cp0               ; Forth user vars at start of available RAM
+
 status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
         ; Bit 7 = Redefined word message postpone
         ;         When set before calling CREATE, it will
@@ -76,20 +77,23 @@ status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
         ; Bit 0 = Current history buffer lsb
         ;
         ; status+1 is used by ACCEPT to hold history lengths.
+loopdep:    .byte 0         ; nested loop depth
 
 ; The remaining ZP variables are uninitialized temporaries.
 
     .virtual
-tmp1:       .word ?         ; temporary storage [address hard-coded in tests/ed.fs]
+tmpdsp:     .byte ?         ; temporary DSP (X) storage (single byte)
+loopend:    .word ?         ; the adjusted loop limit
+loopoff:    .word ?         ; the limit offset
+tmptos:     .word ?         ; temporary TOS storage
+tmp1:       .word ?         ; temporary storage
 tmp2:       .word ?         ; temporary storage
 tmp3:       .word ?         ; temporary storage (especially for print)
-tmpdsp:     .word ?         ; temporary DSP (X) storage (two bytes)
-tmptos:     .word ?         ; temporary TOS storage
-editor1:    .word ?         ; temporary for editors
-editor2:    .word ?         ; temporary for editors
-editor3:    .word ?         ; temporary for editors
 tohold:     .word ?         ; pointer for formatted output
 scratch:    .word ?,?,?,?   ; 8 byte scratchpad (see UM/MOD)
+.if "ed" in TALI_OPTIONAL_WORDS
+tmped:      .word ?,?,?     ; temporary for editors
+.endif
     .endvirtual
 
     .endlogical
@@ -103,6 +107,8 @@ cold_zp_table_end:
 
 cold_user_table:
     .logical 0          ; make labels here offsets that we can add to 'up'
+
+nc_limit_offset:        .word 20        ; byte limit for Native Compile size
 
 ; Block variables
 blk_offset:             .word 0         ; BLK

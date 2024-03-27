@@ -29,21 +29,21 @@ RTS instruction at the end of each word.
 | BEGIN | `begin` | ANS core | 3 | **auto** |
 | BELL | `bell` | Tali Forth | 5 | tested |
 | BL | `bl` | ANS core | 8 | **auto** |
-| BLK | `block` | ANS block | 15 | **auto** |
+| BLK | `block` | ANS block | 5 | **auto** |
 | BLKBUFFER | `blkbuffer` | Tali block | 13 | **auto** |
 | BLOCK | `block` | ANS block | 82 | **auto** |
 | BLOCK_RAMDRIVE_INIT | `block-ramdrive-init` | Tali block | 296 | **auto** |
 | BLOCK_READ | `block-read` | Tali block | 14 | **auto** |
-| BLOCK_READ_VECTOR | `block-read-vector` | Tali block | 15 | **auto** |
+| BLOCK_READ_VECTOR | `block-read-vector` | Tali block | 5 | **auto** |
 | BLOCK_WRITE | `block-write` | Tali block | 14 | **auto** |
-| BLOCK_WRITE_VECTOR | `block-write-vector` | Tali block | 15 | **auto** |
+| BLOCK_WRITE_VECTOR | `block-write-vector` | Tali block | 5 | **auto** |
 | BOUNDS | `bounds` | Gforth | 24 | **auto** |
 | BRACKET_CHAR | `[char]` | ANS core | 6 | **auto** |
 | BRACKET_TICK | `[']` | ANS core | 6 | **auto** |
-| BUFFBLOCKNUM | `buffblocknum` | Tali block | 15 | **auto** |
+| BUFFBLOCKNUM | `buffblocknum` | Tali block | 5 | **auto** |
 | BUFFER | `buffer` | ANS block | 48 | **auto** |
 | BUFFER_COLON | `buffer:` | ANS core ext | 6 | **auto** |
-| BUFFSTATUS | `buffstatus` | Tali block | 15 | **auto** |
+| BUFFSTATUS | `buffstatus` | Tali block | 5 | **auto** |
 | BYE | `bye` | ANS tools ext | 3 | tested |
 | C_COMMA | `c,` | ANS core | 10 | **auto** |
 | C_FETCH | `c@` | ANS core | 9 | **auto** |
@@ -61,7 +61,7 @@ RTS instruction at the end of each word.
 | COLON_NONAME | `:NONAME` | ANS core | 27 | **auto** |
 | COMMA | `,` | ANS core | 25 | **auto** |
 | COMPARE | `compare` | ANS string | 100 | **auto** |
-| COMPILE_COMMA | `compile,` | ANS core ext | 296 | **auto** |
+| COMPILE_COMMA | `compile,` | ANS core ext | 297 | **auto** |
 | COMPILE_ONLY | `compile-only` | Tali Forth | 11 | tested |
 | CONSTANT | `constant` | ANS core | 61 | **auto** |
 | COUNT | `count` | ANS core | 19 | **auto** |
@@ -157,13 +157,13 @@ RTS instruction at the end of each word.
 | MOVE | `move` | ANS core | 30 | **auto** |
 | NAME_TO_INT | `name>int` | Gforth | 28 | tested |
 | NAME_TO_STRING | `name>string` | Gforth | 25 | tested |
-| NC_LIMIT | `nc-limit` | Tali Forth | 10 | tested |
+| NC_LIMIT | `nc-limit` | Tali Forth | 5 | tested |
 | NEGATE | `negate` | ANS core | 16 | **auto** |
 | NEVER_NATIVE | `never-native` | Tali Forth | 13 | **auto** |
 | NIP | `nip` | ANS core ext | 13 | **auto** |
 | NOT_EQUALS | `<>` | ANS core ext | 29 | **auto** |
 | NOT_ROTE | `-rot` | Gforth | 27 | **auto** |
-| NUMBER | `number` | Tali Forth | 252 | **auto** |
+| NUMBER | `number` | Tali Forth | 249 | **auto** |
 | NUMBER_SIGN | `#` | ANS core | 52 | **auto** |
 | NUMBER_SIGN_GREATER | `#>` | ANS core | 33 | **auto** |
 | NUMBER_SIGN_S | `#s` | ANS core | 16 | **auto** |
@@ -206,7 +206,7 @@ RTS instruction at the end of each word.
 | S_QUOTE | `s"` | ANS core | 301 | **auto** |
 | S_TO_D | `s>d` | ANS core | 17 | **auto** |
 | SAVE_BUFFERS | `save-buffers` | ANS block | 26 | tested |
-| SCR | `scr` | ANS block ext | 15 | **auto** |
+| SCR | `scr` | ANS block ext | 5 | **auto** |
 | SEARCH | `search` | ANS string | 158 | **auto** |
 | SEMICOLON | `;` | ANS core | 94 | **auto** |
 | SIGN | `sign` | ANS core | 20 | **auto** |

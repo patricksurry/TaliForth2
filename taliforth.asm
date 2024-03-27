@@ -227,6 +227,20 @@ dovar:
 ; =====================================================================
 ; LOW LEVEL HELPER FUNCTIONS
 
+push_upvar_tos:
+        ; """Write addr of user page variable with offset A to TOS"""
+                dex
+                dex
+                clc
+                adc up
+                sta 0,x
+                lda up+1
+                bcc +
+                ina
++
+                sta 1,x
+                rts
+
 byte_to_ascii:
         ; """Convert byte in A to two ASCII hex digits and EMIT them"""
                 pha

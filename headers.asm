@@ -786,7 +786,7 @@ nt_allow_native:
         .text "allow-native"
 
 nt_nc_limit:
-        .byte 8, 0
+        .byte 8, NN
         .word nt_strip_underflow, xt_nc_limit, z_nc_limit
         .text "nc-limit"
 
@@ -1253,12 +1253,12 @@ nt_blkbuffer:
         .text "blkbuffer"
 
 nt_scr:
-        .byte 3, 0
+        .byte 3, NN
         .word nt_blk, xt_scr, z_scr
         .text "scr"
 
 nt_blk:
-        .byte 3, 0
+        .byte 3, NN
         .word nt_block_write, xt_blk, z_blk
         .text "blk"
 

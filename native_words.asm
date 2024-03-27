@@ -1013,18 +1013,9 @@ z_bl:           rts
 ; ## "block"  auto  ANS block
         ; """https://forth-standard.org/standard/block/BLK"""
 xt_blk:
-                ; BLK is at UP + blk_offset
-                dex
-                dex
-                clc
-                lda up
-                adc #blk_offset ; Add offset
-                sta 0,x
-                lda up+1
-                adc #0          ; Adding carry
-                sta 1,x
-
-z_blk:          rts
+                lda #blk_offset
+                jmp push_upvar_tos
+z_blk:
 .endif
 
 
@@ -1199,18 +1190,9 @@ z_block_read:   ; No RTS needed
         ; """
 xt_block_read_vector:
                 ; Get the BLOCK-READ-VECTOR address
-                dex
-                dex
-                clc
-                lda up
-                adc #blockread_offset
-                sta 0,x
-                lda up+1
-                adc #0          ; Add carry
-                sta 1,x
-
+                lda #blockread_offset
+                jmp push_upvar_tos
 z_block_read_vector:
-                rts
 .endif
 
 ; This is the default error message the vectored words BLOCK-READ and
@@ -1250,18 +1232,9 @@ z_block_write:  ; No RTS needed
         ; """
 xt_block_write_vector:
                 ; Get the BLOCK-WRITE-VECTOR address
-                dex
-                dex
-                clc
-                lda up
-                adc #blockwrite_offset
-                sta 0,x
-                lda up+1
-                adc #0          ; Add carry
-                sta 1,x
-
+                lda #blockwrite_offset
+                jmp push_upvar_tos
 z_block_write_vector:
-                rts
 .endif
 
 ; ## BOUNDS ( addr u -- addr+u addr ) "Prepare address for looping"
@@ -1319,17 +1292,9 @@ z_bracket_tick: rts
 ; ## "buffblocknum"  auto  Tali block
 xt_buffblocknum:
                 ; BUFFBLOCKNUM is at UP + buffblocknum_offset
-                dex
-                dex
-                clc
-                lda up
-                adc #buffblocknum_offset        ; Add offset
-                sta 0,x
-                lda up+1
-                adc #0                          ; Adding carry
-                sta 1,x
-
-z_buffblocknum: rts
+                lda #buffblocknum_offset
+                jmp push_upvar_tos
+z_buffblocknum:
 .endif
 
 
@@ -1392,18 +1357,9 @@ z_buffer_colon: rts
 ; ## BUFFSTATUS ( -- addr ) "Push address of variable holding buffer status"
 ; ## "buffstatus"  auto  Tali block
 xt_buffstatus:
-                ; BUFFSTATUS is at UP + buffstatus_offset
-                dex
-                dex
-                clc
-                lda up
-                adc #buffstatus_offset  ; Add offset
-                sta 0,x
-                lda up+1
-                adc #0                  ; Adding carry
-                sta 1,x
-
-z_buffstatus:   rts
+                lda #buffstatus_offset
+                jmp push_upvar_tos
+z_buffstatus:
 .endif
 
 
@@ -2078,16 +2034,18 @@ _check_size_limit:
                 jsr xt_wordsize         ; ( nt -- u )
 
                 ; Check the wordsize MSB against the user-defined limit.
+                ldy #nc_limit_offset+1
                 lda 1,x
-                cmp nc_limit+1
+                cmp (up),y
                 bcc _compile_as_code    ; user-defined limit MSB
                 bne _jumpto_compile_as_jump
 
                 ; Check the wordsize LSB against the user-defined limit.
-                lda 0,x
-                cmp nc_limit            ; user-defined limit LSB
-                bcc _compile_as_code    ; Allow native compiling for less
-                beq _compile_as_code    ; than or equal to the limit.
+                dey
+                lda (up),y              ; user-defined limit LSB
+                cmp 0,x
+                bpl _compile_as_code    ; Allow native compiling for less
+                                        ; than or equal to the limit.
 
 _jumpto_compile_as_jump:
                 ; If the wordsize is greater than the user-defined
@@ -6494,15 +6452,9 @@ z_name_to_string:
 ; ## "nc-limit"  tested  Tali Forth
 
 xt_nc_limit:
-                dex
-                dex
-                lda #<nc_limit
-                sta 0,x
-                lda #>nc_limit
-                sta 1,x
-
-z_nc_limit:     rts
-
+                lda #nc_limit_offset
+                jmp push_upvar_tos
+z_nc_limit:
 
 
 ; ## NEGATE ( n -- n ) "Two's complement"
@@ -6642,8 +6594,8 @@ xt_number:
 
                 ; we keep the flags for sign and double in tmpdsp because
                 ; we've run out of temporary variables
-                stz tmpdsp      ; flag for double
-                stz tmpdsp+1    ; flag for minus
+                ; sign will be the sign bit, and double will be bit 1
+                stz tmpdsp      ; %n000 000d
 
                 ; Push the current base onto the stack.
                 ; This is done to handle constants in a different base
@@ -6731,7 +6683,8 @@ _check_minus:
                 bne _check_dot
 
                 ; It's a minus
-                dec tmpdsp+1
+                lda #$80
+                sta tmpdsp      ; set the sign bit
                 inc 2,x         ; start one character later
                 bne +
                 inc 3,x
@@ -6763,7 +6716,7 @@ _check_dot:
 
                 ; We have a dot, which means this is a double number. Flag
                 ; the fact and reduce string length by one
-                dec tmpdsp
+                inc tmpdsp
                 dec 0,x
 
 _main:
@@ -6832,17 +6785,17 @@ _drop_original_string:
 
                 ; We have a double-cell number on the Data Stack that might
                 ; actually have a minus and might actually be single-cell
-                lda tmpdsp      ; flag for double
+                lda tmpdsp      ; flag for double/minus
+                ldy #%00100000  ; status bit 5 for double(1) or single(0)
+                asl             ; %n000 000d => %0000 00d0, C=n, Z=d
                 beq _single
 
-                ; Set status bit 5 to indicate this is a double number
-                lda #%00100000
+                ; Set status bit 5 (A=%0010 0000) to indicate a double number
+                tya
                 tsb status
 
-                ; This is a double cell number. If it had a minus, we'll have
-                ; to negate it
-                lda tmpdsp+1
-                beq _done       ; no minus, all done
+                ; This is a double cell number. If it had a minus (C=1) negate it
+                bcc _done       ; no minus, all done
 
                 jsr xt_dnegate
 
@@ -6854,12 +6807,11 @@ _single:
                 inx
 
                 ; Clear status bit 5 to indicate this is a single number
-                lda #%00100000
+                tya
                 trb status
 
-                ; If we had a minus, we'll have to negate it
-                lda tmpdsp+1
-                beq _done       ; no minus, all done
+                ; If we had a minus (C=1), we'll have to negate it
+                bcc _done       ; no minus, all done
 
                 jsr xt_negate
 _done:
@@ -9045,18 +8997,9 @@ z_save_buffers: rts
 ; ## "scr"  auto  ANS block ext
         ; """https://forth-standard.org/standard/block/SCR"""
 xt_scr:
-                ; SCR is at UP + scr_offset
-                dex
-                dex
-                clc
-                lda up
-                adc #scr_offset ; Add offset
-                sta 0,x
-                lda up+1
-                adc #0          ; Adding carry
-                sta 1,x
-
-z_scr:          rts
+                lda #scr_offset
+                jmp push_upvar_tos
+z_scr:
 .endif
 
 ; ## SEARCH ( addr1 u1 addr2 u2 -- addr3 u3 flag) "Search for a substring"
@@ -11861,12 +11804,12 @@ xt_editor_enter_screen:
                 jsr xt_drop
 
                 ; Overwrite the lines one at a time.
-                stz editor1
+                stz ed_head
 _prompt_loop:
                 ; Put the current line number on the stack.
                 dex
                 dex
-                lda editor1
+                lda ed_head
                 sta 0,x
                 stz 1,x
 
@@ -11874,9 +11817,9 @@ _prompt_loop:
                 jsr xt_editor_o
 
                 ; Move on to the next line.
-                inc editor1
+                inc ed_head
                 lda #16
-                cmp editor1
+                cmp ed_head
                 bne _prompt_loop
 
 z_editor_enter_screen:

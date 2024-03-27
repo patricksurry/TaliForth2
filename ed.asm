@@ -4,7 +4,7 @@
 ; This version: 28. Dec 2018
 
 .if "ed" in TALI_OPTIONAL_WORDS
-    
+
 ; Ed is a line-orientated editor for Tali Forth 2 based on the classic Unix
 ; editor of the same name. It is included because a) I like line editors and
 ; this is my project, so there, and b) as a very simple editor that will work
@@ -53,20 +53,19 @@
 ; that this means that we can't use two editors at the same time, which won't
 ; be a problem until we can multitask.
 
-ed_head  = editor1  ; pointer to first list element (addr) (2 bytes)
-ed_cur   = editor2  ; current line number (1 is first line) (2 bytes)
-ed_flags = editor3  ; Flags used by ed, where
+ed_head  = tmped    ; pointer to first list element (addr) (2 bytes)
+ed_cur   = tmped+2  ; current line number (1 is first line) (2 bytes)
+ed_flags = tmped+4  ; Flags used by ed, where
+ed_base  = tmped+5  ; used to hold BASE and put it back at the end.
 ;       bit 7 parameters - 0: none, 1: have at least one parameter
 ;       bit 6 changed    - 0: text not changed, 1: text was changed
 ;       bit 0 printing   - 0: no line numbers (p), 1: with line numbers (n)
-
-;  Byte editor3+1 is used to hold BASE and put it back at the end.
 
 
 ed6502:
                 ; Save the current base and set to decimal.
                 lda base
-                sta editor3+1
+                sta ed_base
                 lda #10
                 sta base
 
@@ -719,7 +718,7 @@ ed_all_done:
                 jsr xt_two_drop                 ; 2DROP ( addr-t u-t )
 
                 ; Restore the base
-                lda editor3+1
+                lda ed_base
                 sta base
 
                 rts
@@ -1244,13 +1243,13 @@ _cmd_p_done:
                 ; We arrive here with ( addr-t u-t para1 para2 f )
                 inx
                 inx                     ; fall through to _cmp_p_all_done
-                
+
                 ; Update the current line number with the last line printed.
                 lda 0,x
                 sta ed_cur
                 lda 1,x
                 sta ed_cur+1
-                
+
 _cmd_p_all_done:
                 jmp ed_next_command
 
