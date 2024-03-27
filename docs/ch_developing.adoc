@@ -8,7 +8,7 @@ in their right mind would want to program in this godforsaken language! <<DH>>
 To run Tali Forth 2 in a simulator, you will need `python3` and `py65` installed to be
 able to run `py65mon`.
 
-To assemble Tali Forth 2, you will need `64tass` and `make`.
+To assemble Tali Forth 2, you will need `64tass` (version 1.56.2625 or later) and `make`.
 
 To compile the documentation for Tali Forth 2, you will need the following tools:
 
