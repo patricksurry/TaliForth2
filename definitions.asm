@@ -11,9 +11,9 @@
 ; configured by zpage_end in platform/platform-*.asm and normally 128 bytes.
 ; The rest of zero page is free for kernel/external use (zpage_end+1 - $ff)
 ; TaliForth usage is as follows:
-;   zero page variables: 28 words = 56 bytes ($0000-$0038)
-;   Forth Data Stack: 128 - 56 - 8 = 64 bytes or 32 words
-;   Data Stack underflow floodplain: 8 bytes (to avoid catastropic underflow)
+;   zero page variables: 30 words = 60 bytes ($0000-$0038)
+;   Forth Data Stack: 128 - 60 - 8 = 60 bytes or 30 words
+;   Data Stack floodplain: 8 bytes after stack (to avoid catastrophic underflow)
 
 ; ZERO PAGE ADDRESSES/VARIABLES
 
@@ -80,8 +80,7 @@ status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
 ; The remaining ZP variables are uninitialized temporaries.
 
     .virtual
-tmpbranch:  .word ?         ; temporary storage for 0BRANCH, BRANCH only
-tmp1:       .word ?         ; temporary storage
+tmp1:       .word ?         ; temporary storage [address hard-coded in tests/ed.fs]
 tmp2:       .word ?         ; temporary storage
 tmp3:       .word ?         ; temporary storage (especially for print)
 tmpdsp:     .word ?         ; temporary DSP (X) storage (two bytes)
@@ -90,7 +89,7 @@ editor1:    .word ?         ; temporary for editors
 editor2:    .word ?         ; temporary for editors
 editor3:    .word ?         ; temporary for editors
 tohold:     .word ?         ; pointer for formatted output
-scratch:    .word ?         ; 8 byte scratchpad (see UM/MOD)
+scratch:    .word ?,?,?,?   ; 8 byte scratchpad (see UM/MOD)
     .endvirtual
 
     .endlogical

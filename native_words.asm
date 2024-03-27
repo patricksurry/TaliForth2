@@ -5138,9 +5138,9 @@ zero_branch_runtime:
                 ; where we want to return to.  It points one byte before
                 ; the branch target address.
                 pla
-                sta tmpbranch
+                sta tmp1
                 pla
-                sta tmpbranch+1
+                sta tmp1+1
 
                 ; See if the flag is zero, which is the whole purpose of
                 ; this all
@@ -5150,28 +5150,28 @@ zero_branch_runtime:
 
                 ; Flag is TRUE, so we skip over the next two bytes. This is
                 ; the part between IF and THEN
-                lda tmpbranch   ; LSB
+                lda tmp1        ; LSB
                 clc
                 adc #3          ; add one to RTS address plus two address bytes
                 sta tmp1
-                lda tmpbranch+1 ; MSB
-                adc #0          ; For carry
-                sta tmp1+1
-
-                bra _done
+                bcc _jump
+                inc tmp1+1      ; MSB
+                bra _jump
 
 _zero:
                 ; Flag is FALSE (0) so we take the jump to the address given in
                 ; the next two bytes. However, the address points to the last
                 ; byte of the JSR instruction, not to the next byte afterwards
                 ldy #1
-                lda (tmpbranch),y
-                sta tmp1
+                lda (tmp1),y
+                pha
                 iny
-                lda (tmpbranch),y
+                lda (tmp1),y
                 sta tmp1+1
+                pla
+                sta tmp1
 
-_done:
+_jump:
                 ; However we got here, tmp1 has the address to jump to.
                 ; clean up the stack and jump
                 inx
