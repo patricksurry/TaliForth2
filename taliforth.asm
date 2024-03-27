@@ -24,17 +24,15 @@ TALI_OPTION_TERSE :?= 0
 ; Default to ctrl-n/p accept history
 TALI_OPTION_HISTORY :?= 1
 
-; Label used to calculate UNUSED. Silly for Tali Forth, where we assume
-; 32 KiB RAM and 32 KiB ROM, but kept here to make the code more useful for
-; other hardware configurations
+; Label used to calculate UNUSED based on the hardware configuration in platform/
 code0:
 
-.include "definitions.asm"      ; Top-level definitions, memory map
-
-; Insert point for Tali Forth after kernel hardware setup
+; Entry point for Tali Forth after kernel hardware setup
 forth:
 
 .include "native_words.asm"     ; Native Forth words. Starts with COLD
+.include "definitions.asm"      ; Top-level definitions, memory map
+                                ; included here to put relocatable tables after native words
 .include "assembler.asm"        ; SAN assembler
 .include "disassembler.asm"     ; SAN disassembler
 .include "ed.asm"               ; Line-based editor ed6502
@@ -293,7 +291,7 @@ _overflow:
                 ; Handle overflow because we use signed numbers
                 eor #$80                ; complement negative flag
 _not_equal:
-                ora #1                  ; if overflow, we can't be eqal
+                ora #1                  ; if overflow, we can't be equal
 _done:
                 rts
 

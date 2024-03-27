@@ -7,6 +7,13 @@
 ; definitions; platform-specific definitions such as the
 ; memory map are kept in the platform folder.
 
+; TaliForth reserves the first part of zero page ($0 - zpage_end) which is
+; configured by zpage_end in platform/platform-*.asm and normally 128 bytes.
+; The rest of zero page is free for kernel/external use (zpage_end+1 - $ff)
+; TaliForth usage is as follows:
+;   zero page variables: 28 words = 56 bytes ($0000-$0038)
+;   Forth Data Stack: 128 - 56 - 8 = 64 bytes or 32 words
+;   Data Stack underflow floodplain: 8 bytes (to avoid catastropic underflow)
 
 ; ZERO PAGE ADDRESSES/VARIABLES
 
@@ -14,97 +21,126 @@
 ; the top because the Data Stack grows towards this area from dsp0: If there is
 ; an overflow, the lower, less important variables will be clobbered first,
 ; giving the system a chance to recover. In other words, they are part of the
-; floodplain.
+; overflow floodplain.
 
-; The four variables insrc, cib, ciblen, and toin must stay together in this
-; sequence for the words INPUT>R and R>INPUT to work correctly.
-; The offsets here must match the cold_zp_table defined in native_words.asm
-
-cp        = user0+0   ; Compiler Pointer
-dp        = user0+2   ; Dictionary Pointer
-workword  = user0+4   ; nt (not xt!) of word being compiled, except in
-                           ; a :NONAME declared word (see status)
-insrc     = user0+6   ; input Source for SOURCE-ID
-cib       = user0+8   ; address of current input buffer
-ciblen    = user0+10  ; length of current input buffer
-toin      = user0+12  ; pointer to CIB (>IN in Forth)
-ip        = user0+14  ; Instruction Pointer (current xt)
-output    = user0+16  ; vector for EMIT
-input     = user0+18  ; vector for KEY
-havekey   = user0+20  ; vector for KEY?
-state     = user0+22  ; STATE: -1 compile, 0 interpret
-base      = user0+24  ; number radix, default decimal
-nc_limit  = user0+26  ; limit for Native Compile size
-uf_strip  = user0+28  ; flag to strip underflow detection code
-up        = user0+30  ; User Pointer (Address of user variables)
-status    = user0+32  ; internal status information
-                           ; (used by : :NONAME ; ACCEPT)
-                           ; Bit 7 = Redefined word message postpone
-                           ;         When set before calling CREATE, it will
-                           ;         not print the "redefined xxxx" message if
-                           ;         the word exists. Instead, this bit will
-                           ;         be reused and after CREATE has run, it will
-                           ;         be set if the word was redefined and 0 if
-                           ;         not. This bit should be 0 when not in use.
-                           ; Bit 6 = 1 for normal ":" definitions
-                           ;         WORKWORD contains nt of word being compiled
-                           ;       = 0 for :NONAME definitions
-                           ;         WORKWORD contains xt of word being compiled
-                           ; Bit 5 = 1 for NUMBER returning a double word
-                           ;       = 0 for NUMBER returning a single word
-                           ; Bit 3 = 1 makes CTRL-n recall current history
-                           ;       = 0 CTRL-n recalls previous history
-                           ; Bit 2 = Current history buffer msb
-                           ; Bit 1 = Current history buffer (0-7, wraps)
-                           ; Bit 0 = Current history buffer lsb
-                           ; status+1 is used by ACCEPT to hold history lengths.
-tmpbranch = user0+34  ; temporary storage for 0BRANCH, BRANCH only
-tmp1      = user0+36  ; temporary storage
-tmp2      = user0+38  ; temporary storage
-tmp3      = user0+40  ; temporary storage (especially for print)
-tmpdsp    = user0+42  ; temporary DSP (X) storage (two bytes)
-tmptos    = user0+44  ; temporary TOS storage
-editor1   = user0+46  ; temporary for editors
-editor2   = user0+48  ; temporary for editors
-editor3   = user0+50  ; temporary for editors
-tohold    = user0+52  ; pointer for formatted output
-scratch   = user0+54  ; 8 byte scratchpad (see UM/MOD)
-
-; Zero Page:
-; Bytes used for variables: 62 ($0000-$003D)
-; First usable Data Stack location: $003E (decimal 62)
-; Bytes available for Data Stack: 128-62 = 66 --> 33 16-bit cells
+; This table defines all of the zero page variables along with their initial
+; values except the uninitialized temporaries at the end.  This table
+; is relocated to zero page by COLD.
 
 dsp0      = zpage_end-7    ; initial Data Stack Pointer
 turnkey   = zpage_end-1    ; word to resume in pre-compiled image
 
-; RAM System Variables: this must match cold_user_table in native_words.asm
+cold_zp_table:
+        .logical user0              ; make labels refer to relocated address
+
+cp:         .word cp0+256+1024      ; Compiler Pointer
+                                    ; moved to make room for user vars and block buffer
+dp:         .word dictionary_start  ; Dictionary Pointer
+workword:   .word 0                 ; nt (not xt!) of word being compiled, except in
+                                    ; a :NONAME declared word (see status)
+
+; The four variables insrc, cib, ciblen, and toin must stay together in this
+; sequence for the words INPUT>R and R>INPUT to work correctly.
+
+insrc:      .word 0                 ; input source for SOURCE-ID (0 for keyboard)
+cib:        .word buffer0           ; address of current input buffer
+ciblen:     .word 0                 ; length of current input buffer
+toin:       .word 0                 ; pointer to CIB (>IN in Forth)
+
+ip:         .word 0                 ; Instruction Pointer (current xt)
+output:     .word kernel_putc       ; vector for EMIT
+input:      .word kernel_getc       ; vector for KEY
+havekey:    .word 0                 ; vector for KEY?
+state:      .word 0                 ; STATE: -1 compile, 0 interpret
+base:       .word 10                ; number radix, default decimal
+nc_limit:   .word 20                ; byte limit for Native Compile size
+uf_strip:   .word 0                 ; flag to strip underflow detection code (0 off)
+up:         .word cp0               ; Forth user vars at start of available RAM
+status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
+        ; Bit 7 = Redefined word message postpone
+        ;         When set before calling CREATE, it will
+        ;         not print the "redefined xxxx" message if
+        ;         the word exists. Instead, this bit will
+        ;         be reused and after CREATE has run, it will
+        ;         be set if the word was redefined and 0 if
+        ;         not. This bit should be 0 when not in use.
+        ; Bit 6 = 1 for normal ":" definitions
+        ;         WORKWORD contains nt of word being compiled
+        ;       = 0 for :NONAME definitions
+        ;         WORKWORD contains xt of word being compiled
+        ; Bit 5 = 1 for NUMBER returning a double word
+        ;       = 0 for NUMBER returning a single word
+        ; Bit 3 = 1 makes CTRL-n recall current history
+        ;       = 0 CTRL-n recalls previous history
+        ; Bit 2 = Current history buffer msb
+        ; Bit 1 = Current history buffer (0-7, wraps)
+        ; Bit 0 = Current history buffer lsb
+        ;
+        ; status+1 is used by ACCEPT to hold history lengths.
+
+; The remaining ZP variables are uninitialized temporaries.
+
+    .virtual
+tmpbranch:  .word ?         ; temporary storage for 0BRANCH, BRANCH only
+tmp1:       .word ?         ; temporary storage
+tmp2:       .word ?         ; temporary storage
+tmp3:       .word ?         ; temporary storage (especially for print)
+tmpdsp:     .word ?         ; temporary DSP (X) storage (two bytes)
+tmptos:     .word ?         ; temporary TOS storage
+editor1:    .word ?         ; temporary for editors
+editor2:    .word ?         ; temporary for editors
+editor3:    .word ?         ; temporary for editors
+tohold:     .word ?         ; pointer for formatted output
+scratch:    .word ?         ; 8 byte scratchpad (see UM/MOD)
+    .endvirtual
+
+    .endlogical
+cold_zp_table_end:
+
+
+; RAM System Variables
+
+; This table defines the initial values for forth user variables above zero page,
+; which are relocated to 'up' (defaulting to cp0) by COLD.
+
+cold_user_table:
+    .logical 0          ; make labels here offsets that we can add to 'up'
+
 ; Block variables
-blk_offset = 0        ; BLK : UP + 0
-scr_offset = 2        ; SCR : UP + 2
+blk_offset:             .word 0         ; BLK
+scr_offset:             .word 0         ; SCR
 
 ; Wordlists
-current_offset = 4    ; CURRENT (byte) : UP + 4 (Compilation wordlist)
-num_wordlists_offset = 5
-                           ; #WORDLISTS (byte) : UP + 5
-wordlists_offset = 6  ; WORDLISTS (cells) : UP + 6 to UP + 29
-                           ;          (FORTH, EDITOR, ASSEMBLER, ROOT, +8 more)
-num_order_offset = 30 ; #ORDER (byte) : UP + 30
-                           ;          (Number of wordlists in search order)
-search_order_offset = 31
-                           ; SEARCH-ORDER (bytes) : UP + 31 to UP + 39
-                           ; Allowing for 9 to keep offsets even.
-max_wordlists = 12    ; Maximum number of wordlists supported
-                           ; 4 Tali built-ins + 8 user wordlists
+
+max_wordlists = 12    ; Maximum number of wordlists supported (4 built-in, 8 user wordlists)
+
+current_offset:         .byte 0         ; CURRENT = FORTH-WORDLIST (compilation wordlist)
+num_wordlists_offset:   .byte 4         ; #WORDLISTS (FORTH EDITOR ASSEMBLER ROOT)
+
+wordlists_offset:
+    .word dictionary_start              ; FORTH-WORDLIST
+    .word editor_dictionary_start       ; EDITOR-WORDLIST
+    .word assembler_dictionary_start    ; ASSEMBLER-WORDLIST
+    .word root_dictionary_start         ; ROOT-WORDLIST
+    .word 0,0,0,0,0,0,0,0               ; Space for 8 User wordlists
+
+num_order_offset:       .byte 1         ; #ORDER (Number of wordlists in search order)
+search_order_offset:
+    .byte 0,0,0,0,0,0,0,0,0             ; SEARCH-ORDER (9 bytes to keep offsets even)
 
 ; Buffer variables
-blkbuffer_offset    = 40   ; Address of buffer
-buffblocknum_offset = 42   ; Block number current in buffer
-buffstatus_offset   = 44   ; Status of buffer (bit 0 = used, bit 1 = dirty)
+
+blkbuffer_offset:       .word cp0+256   ; Address of buffer (right after USER vars)
+buffblocknum_offset:    .word 0         ; Block number current in buffer
+buffstatus_offset:      .word 0         ; Buffer status (bit 0 = used, bit 1 = dirty) (not in use)
 
 ; Block I/O vectors
-blockread_offset    = 46   ; Vector to block reading routine
-blockwrite_offset   = 48   ; Vector to block writing routine
+
+blockread_offset:       .word xt_block_word_error   ; Vector to block reading routine
+blockwrite_offset:      .word xt_block_word_error   ; Vector to block writing routine
+    .endlogical
+cold_user_table_end:
+
 
 ; ASCII CHARACTERS
 AscCC   = $03  ; break (CTRL-c)
