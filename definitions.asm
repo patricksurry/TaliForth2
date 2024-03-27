@@ -30,7 +30,8 @@
 dsp0      = zpage_end-7    ; initial Data Stack Pointer
 
 cold_zp_table:
-        .logical user0
+        .logical user0              ; make labels refer to relocated address
+
 cp:         .word cp0+256+1024      ; Compiler Pointer
                                     ; moved to make room for user vars and block buffer
 dp:         .word dictionary_start  ; Dictionary Pointer
@@ -102,7 +103,7 @@ cold_zp_table_end:
 ; which are relocated to 'up' (defaulting to cp0) by COLD.
 
 cold_user_table:
-    .logical 0          ; this makes labels here offsets that we can add to 'up'
+    .logical 0          ; make labels here offsets that we can add to 'up'
 
 ; Block variables
 blk_offset:             .word 0         ; BLK
@@ -136,8 +137,6 @@ buffstatus_offset:      .word 0         ; Buffer status (bit 0 = used, bit 1 = d
 
 blockread_offset:       .word xt_block_word_error   ; Vector to block reading routine
 blockwrite_offset:      .word xt_block_word_error   ; Vector to block writing routine
-
-                        .word 0          ; 'COLD
     .endlogical
 cold_user_table_end:
 
