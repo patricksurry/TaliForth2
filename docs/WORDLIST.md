@@ -276,10 +276,10 @@ RTS instruction at the end of each word.
 | WORDSIZE | `wordsize` | Tali Forth | 32 | **auto** |
 | XOR | `xor` | ANS core | 17 | **auto** |
 | ZERO | `0` | Tali Forth | 6 | **auto** |
-| ZERO_EQUAL | `0=` | ANS core | 19 | **auto** |
+| ZERO_EQUAL | `0=` | ANS core | 17 | **auto** |
 | ZERO_GREATER | `0>` | ANS core ext | 19 | **auto** |
 | ZERO_LESS | `0<` | ANS core | 15 | **auto** |
-| ZERO_UNEQUAL | `0<>` | ANS core ext | 17 | **auto** |
+| ZERO_UNEQUAL | `0<>` | ANS core ext | 15 | **auto** |
 | EDITOR_ENTER_SCREEN | `enter-screen` | Tali Editor | 27 | **auto** |
 | EDITOR_ERASE_SCREEN | `erase-screen` | Tali Editor | 17 | tested |
 | EDITOR_EL | `el` | Tali Editor | 17 | tested |
