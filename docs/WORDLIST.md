@@ -80,8 +80,8 @@ RTS instruction at the end of each word.
 | DIGIT_QUESTION | `digit?` | Tali Forth | 52 | **auto** |
 | DISASM | `disasm` | Tali Forth | 6 | tested |
 | DNEGATE | `dnegate` | ANS double | 26 | **auto** |
-| QUESTION_DO | `?do` | ANS core ext | 46 | **auto** |
-| DO | `do` | ANS core | 42 | **auto** |
+| QUESTION_DO | `?do` | ANS core ext | 62 | **auto** |
+| DO | `do` | ANS core | 58 | **auto** |
 | DOES | `does>` | ANS core | 14 | **auto** |
 | DOT | `.` | ANS core | 33 | **auto** |
 | DOT_PAREN | `.(` | ANS core | 14 | **auto** |
@@ -143,8 +143,8 @@ RTS instruction at the end of each word.
 | LIST | `list` | ANS block ext | 12 | tested |
 | LITERAL | `literal` | ANS core | 13 | **auto** |
 | LOAD | `load` | ANS block | 67 | **auto** |
-| LOOP | `loop` | ANS core | 84 | **auto** |
-| PLUS_LOOP | `+loop` | ANS core | 67 | **auto** |
+| LOOP | `loop` | ANS core | 99 | **auto** |
+| PLUS_LOOP | `+loop` | ANS core | 82 | **auto** |
 | LSHIFT | `lshift` | ANS core | 19 | **auto** |
 | M_STAR | `m*` | ANS core | 26 | **auto** |
 | MARKER | `marker` | ANS core ext | 61 | **auto** |

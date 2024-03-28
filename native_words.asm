@@ -2997,30 +2997,9 @@ xt_question_do:
 xt_do:
                 ; DO and ?DO share most of their code, Y flags the variant
                 ldy #0                ; 0 is DO, drop through to DO_COMMON
+
 do_common:
-                ; The word LEAVE can be used to exit LOOP/+LOOP from
-                ; anywhere inside the loop body, zero or more times.
-                ; We'll keep a pointer to the latest LEAVE address
-                ; that we need to patch in loopleave, which xt_leave
-                ; will chain backward to any prior one.
-                ; To handle nested loops we stack the current value
-                ; of loopleave here and restore it in xt_loop
-                ; after we write any chained jumps for the current loop
-
-                ; save current loopleave in case we're nested
-                dex
-                dex
-                lda loopleave
-                sta 0,x
-                lda loopleave+1
-                sta 1,x
-
-                ; For now there is no LEAVE addr to patch, which we
-                ; flag with MSB=0 since we'll never compile to zero page
-                stz loopleave+1
-
                 ; compile the (?DO) portion of ?DO if appropriate
-                tya
                 beq _compile_do
 
                 ; We came from ?DO, so compile its runtime first.
@@ -3034,21 +3013,76 @@ do_common:
                 ldy #question_do_runtime_end-question_do_runtime
                 jsr cmpl_inline_y
 
-                ; fall through
+                ; will will skip the loop if limit = start
+                ; via a placeholder jmp at the end of the prequel
+                ; so save current CP to patch the jmp target in xt_loop
+                lda cp
+                ldy cp+1
+                jsr cmpl_a      ; write two arbitrary placeholder bytes
+                jsr cmpl_a
 _compile_do:
+                ; stack either the forward jmp address for ?DO
+                ; or a word with MSB=Y=0 for DO so we know to ignore it
+                dex
+                dex
+                sta 0,x
+                tya
+                sta 1,x
+
+                ; The word LEAVE can be used to exit LOOP/+LOOP from
+                ; anywhere inside the loop body, zero or more times.
+                ; We'll use loopleave as the head of a linked list
+                ; which points at the latest LEAVE address
+                ; that we need to patch.  The xt_leave compilation
+                ; will link backward to any prior LEAVE.
+                ; To handle nested loops we stack the current value
+                ; of loopleave here and restore it in xt_loop
+                ; after we write any chained jmps for the current loop
+
+                ; save current loopleave in case we're nested
+                dex
+                dex
+                lda loopleave
+                sta 0,x
+                lda loopleave+1
+                sta 1,x
+
+                ; For now there is no LEAVE addr to patch, which we
+                ; flag with MSB=0 since we'll never compile to zero page
+                stz loopleave+1
+
                 ; compile runtime part of DO.
                 ; do this as a subroutine since it only happens once and is a big chunk of code
                 ldy #>do_runtime
                 lda #<do_runtime
                 jsr cmpl_subroutine
 
-                ; Now we're ready for the loop body.  We push HERE
-                ; to the Data Stack so LOOP/+LOOP knows where to branch
-                ; ( old-loopleave repeat-addr )
+                ; Now we're ready for the loop body.  We also push HERE
+                ; to the Data Stack so LOOP/+LOOP knows where to repeat back
+                ; ( qdo-skip old-loopleave repeat-addr )
 
                 jmp xt_here
 z_question_do:
 z_do:
+
+
+question_do_runtime:
+        ; """This is called (?DO) in some Forths. See the explanation at
+        ; do_runtime for the background on this design
+        ; """
+                ; see if TOS and NOS are equal. Change this to assembler
+                ; for speed
+                jsr xt_two_dup          ; ( n1 n2 n1 n2 )
+                jsr xt_equal            ; ( -- n1 n2 f )
+
+                jsr zero_test_runtime   ; consume f, setting Z
+                beq question_do_runtime_end+2
+                inx                     ; drop loop limits
+                inx
+                inx
+                inx
+                .byte $4c              ; jmp
+question_do_runtime_end:
 
 
 do_runtime:
@@ -3114,35 +3148,6 @@ do_runtime:
                 ; ( R: $8000-limit  $8000-limit+index )
 
                 jmp (tmp1)
-
-question_do_runtime:
-
-        ; """This is called (?DO) in some Forths. See the explanation at
-        ; do_runtime for the background on this design
-        ; """
-                ; see if TOS and NOS are equal. Change this to assembler
-                ; for speed
-                jsr xt_two_dup          ; ( n1 n2 n1 n2 )
-                jsr xt_equal            ; ( -- n1 n2 f )
-
-                lda 0,x
-                ora 1,x
-                beq _do_do
-
-                ; We're equal, so dump everything and jump beyond the loop.
-                ; But first, dump six entries off of the Data Stack
-                txa
-                clc
-                adc #6
-                tax
-
-                ; Then abort the whole loop
-                rts
-_do_do:
-                inx             ; clear flag from EQUAL off stack
-                inx             ; no RTS because this is copied into code
-question_do_runtime_end:
-
 
 
 ; ## DOES ( -- ) "Add payload when defining new words"
@@ -5392,9 +5397,8 @@ z_is:           rts
         ; Copy second loop counter from Return Stack to stack. Note we use
         ; a fudge factor for loop control; see the Control Flow section of
         ; the manual for more details.
-        ; At this point, we have the "I" counter/limit and the LEAVE address
-        ; on the stack above this (three entries), whereas the ideal Forth
-        ; implementation would just have two.
+        ; At this point, we have the "I" counter/limit
+        ; on the stack above this (two entries).
         ;
         ; Make this native compiled for speed
         ; """
@@ -5410,12 +5414,12 @@ xt_j:
                 tsx
 
                 sec
-                lda $0107,x     ; LSB
-                sbc $0109,x
+                lda $0105,x     ; LSB
+                sbc $0107,x
                 tay
 
-                lda $0108,x     ; MSB
-                sbc $010A,x
+                lda $0106,x     ; MSB
+                sbc $0108,x
 
                 ldx tmpdsp
 
@@ -5488,7 +5492,7 @@ z_latestxt:     rts
         ; http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx
         ;
         ;       : LEAVE POSTPONE BRANCH HERE SWAP 0 , ; IMMEDIATE COMPILE-ONLY
-        ;TODO
+        ;TODO update me
         ; See the Control Flow section in the manual for details of how this works.
         ; This must be native compile and not IMMEDIATE
         ; """
@@ -5760,16 +5764,16 @@ z_load:         rts
         ;       IMMEDIATE ; COMPILE-ONLY
         ; """
 xt_loop:
-                ; Copy the runtime specific to loop
-                ; Set up stack for cmpl_inline_y ( src --  ; y = # bytes )
+                ; Copy the runtime specific to loop,
+                ; ie. Y bytes from loop_runtime
                 dex
                 dex
-
-                ldy #loop_runtime_end-loop_runtime
                 lda #<loop_runtime
                 sta 0,x
                 lda #>loop_runtime
                 sta 1,x
+
+                ldy #loop_runtime_end-loop_runtime
                 jsr cmpl_inline_y
 
                 ; Now compile the runtime shared with +LOOP
@@ -5791,28 +5795,28 @@ xt_loop:
 
 xt_plus_loop:
                 ; Compile the run-time part.
-                ; Set up stack for cmpl_inline_y ( src -- ; y = # bytes)
+                ; ie. Y bytes from plus_loop_runtime
                 dex
                 dex
-
-                ldy #plus_loop_runtime_end-plus_loop_runtime
                 lda #<plus_loop_runtime
                 sta 0,x
                 lda #>plus_loop_runtime
                 sta 1,x
+
+                ldy #plus_loop_runtime_end-plus_loop_runtime
                 jsr cmpl_inline_y
 
                 ; fall through to shared runtime
 
 xt_loop_common:
                 ; The address we need to loop back to is TOS
-                ; ( old-loopleave repeat-addr )
+                ; ( qdo-skip old-loopleave repeat-addr )
 
-                ; Write the address which completes the trailing JMP
-                ; at the end of both loop runtimes
+                ; Write repeat-addr which completes the trailing JMP
+                ; at the end of both loop runtimes, repeating the loop body
                 jsr xt_comma
 
-                ; any LEAVE words want to jmp here
+                ; any LEAVE words want to jmp to the unloop we'll write here
                 ; so follow the linked list and update them
                 lda loopleave+1         ; MSB=0 means we're done
                 beq _noleave
@@ -5837,7 +5841,6 @@ _next:
                 sta loopleave+1
                 bne _next
 _noleave:
-
                 ; restore loopleave in case we were nested
                 lda 0,x
                 sta loopleave
@@ -5856,6 +5859,17 @@ _noleave:
                 dey
                 bpl -
 
+                ; Finally we're left with qdo-skip which either
+                ; points at ?DO's "skip the loop" jmp address,
+                ; or has MSB=0 for DO which we can ignore
+                lda 1,x                 ; MSB=0 means we can skip
+                beq +
+                jsr xt_here
+                jsr xt_swap
+                jmp xt_store            ; write here as the jmp target and return
+
++               inx                     ; drop the ignored word for DO
+                inx
 z_loop:
 z_plus_loop:    rts
 

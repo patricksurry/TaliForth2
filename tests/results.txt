@@ -866,11 +866,11 @@ create result  ok
 92 c, ( \\ )  ok
   ok
 T{ result here result - 2dup dump ( Make a string out of result ) 
-0F6B  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
-0F7B   ok
+0F3F  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
+0F4F   ok
    s\" \a\b\e\f\l\m\n\q\r\t\v\z\"\x41\\" 2dup dump compare -> 0 }T 
-0F7E  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
-0F8E   ok
+0F52  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
+0F62   ok
 hex  ok
   ok
 \ ------------------------------------------------------------------------  ok
@@ -2223,8 +2223,8 @@ T{ saved-string s\"  ok\ned \nq  ok\nrestore-output  " compare -> 0 }T  ok
 \ Test --- q --- Don't quit if we have unsaved changes  ok
 test-ed  ok
 saved-string dump 
-0F4D  0A 61 20 0A 7A 7A 7A 20  0A 2E 20 0A 71 20 0A 3F  .a .zzz  .. .q .?
-0F5D  0A 51 20  .Q  ok
+0F21  0A 61 20 0A 7A 7A 7A 20  0A 2E 20 0A 71 20 0A 3F  .a .zzz  .. .q .?
+0F31  0A 51 20  .Q  ok
 T{ s\" \na \nzzz \n. \nq \n?\nQ " compare -> 0 }T  ok
   ok
   ok
@@ -3326,12 +3326,12 @@ here 5       ' blank         cycle_test            CYCLES:    325 ok
 5            ' chars         cycle_test drop       CYCLES:     28 ok
 pad here 5   ' cmove         cycle_test            CYCLES:    188 ok
 pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
-             ' :             cycle_test wrd ;      CYCLES:  15826 ok
+             ' :             cycle_test wrd ;      CYCLES:  15828 ok
              ' :noname       cycle_test ; drop     CYCLES:     50 ok
 5            ' ,             cycle_test            CYCLES:     66 ok
 ' aword      ' compile,      cycle_test            CYCLES:    920 ok
 : bword ;    ' compile-only  cycle_test            CYCLES:     72 ok
-5            ' constant      cycle_test mycnst     CYCLES:  16324 ok
+5            ' constant      cycle_test mycnst     CYCLES:  16327 ok
 here         ' count         cycle_test 2drop      CYCLES:     59 ok
 \ skipping     cr  ok
 \ skipping     create  ok
@@ -3346,19 +3346,19 @@ char w       ' digit?        cycle_test 2drop      CYCLES:     86 ok
 \ skipping     disasm  ok
 5.           ' dnegate       cycle_test 2drop      CYCLES:     72 ok
 : do?word1 5 5 ?do loop ;  ok
-             ' do?word1      cycle_test            CYCLES:    322 ok
+             ' do?word1      cycle_test            CYCLES:    325 ok
 : do?word2 100 0 ?do i drop loop ;  ok
-             ' do?word2      cycle_test            CYCLES:   8384 ok
+             ' do?word2      cycle_test            CYCLES:   8371 ok
 : doword 100 0 do loop ;  ok
-             ' doword        cycle_test            CYCLES:   2148 ok
+             ' doword        cycle_test            CYCLES:   2123 ok
 : dowordi 100 0 do i drop loop ;  ok
-             ' dowordi       cycle_test            CYCLES:   8248 ok
+             ' dowordi       cycle_test            CYCLES:   8223 ok
 : dodoword 100 0 do 10 0 do loop loop ;  ok
-             ' dodoword      cycle_test            CYCLES:  44748 ok
+             ' dodoword      cycle_test            CYCLES:  42223 ok
 : dodowordij 100 0 do 10 0 do i drop j drop loop loop ;  ok
-             ' dodowordij    cycle_test            CYCLES: 165748 ok
+             ' dodowordij    cycle_test            CYCLES: 163223 ok
 : doword+loop 100 0 do 5 +loop ;  ok
-             ' doword+loop   cycle_test            CYCLES:   2418 ok
+             ' doword+loop   cycle_test            CYCLES:   2393 ok
 \ skipping     does  ok
 \ skipping     .  ok
 \ skipping     ."  ok
@@ -3368,9 +3368,9 @@ char w       ' digit?        cycle_test 2drop      CYCLES:     86 ok
 5            ' dup           cycle_test 2drop      CYCLES:     48 ok
 42           ' emit          cycle_test           *CYCLES:     46 ok
 5 5          ' =             cycle_test drop       CYCLES:     64 ok
-here 5       ' erase         cycle_test            CYCLES:    327 ok
-here 5 5     ' fill          cycle_test            CYCLES:    315 ok
-s" 5"        ' evaluate      cycle_test drop       CYCLES:  17626 ok
+here 5       ' erase         cycle_test            CYCLES:    321 ok
+here 5 5     ' fill          cycle_test            CYCLES:    309 ok
+s" 5"        ' evaluate      cycle_test drop       CYCLES:  17629 ok
 5 ' drop     ' execute       cycle_test            CYCLES:     84 ok
 \ skipping     exit  ok
              ' false         cycle_test drop       CYCLES:     24 ok
@@ -3387,10 +3387,10 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:    881 ok
 \ skipping     hold  ok
 \ skipping     i  ( exercised by doxxx above )  ok
 : ifloop 0 100 0 do i 2 and if 1 else -1 then + loop drop ;  ok
-             ' ifloop        cycle_test            CYCLES:  26180 ok
+             ' ifloop        cycle_test            CYCLES:  26155 ok
 : cword ;    ' immediate     cycle_test            CYCLES:     72 ok
              ' input         cycle_test drop       CYCLES:     28 ok
-' dup        ' int>name      cycle_test drop       CYCLES:   2346 ok
+' dup        ' int>name      cycle_test drop       CYCLES:   2357 ok
 5            ' invert        cycle_test drop       CYCLES:     48 ok
 \ skipping     j  ok
              ' key           cycle_test drop       CYCLES:     48 ok
@@ -3405,7 +3405,7 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:    881 ok
 \ skipping     +loop  ok
 5 5          ' lshift        cycle_test drop       CYCLES:    126 ok
 5 5          ' m*            cycle_test 2drop      CYCLES:    650 ok
-             ' marker        cycle_test marka      CYCLES:  18363 ok
+             ' marker        cycle_test marka      CYCLES:  18364 ok
              ' marka         cycle_test            CYCLES:    848 ok
 5 5          ' max           cycle_test drop       CYCLES:     69 ok
 5 5          ' min           cycle_test drop       CYCLES:     54 ok
@@ -3482,7 +3482,7 @@ here         ' 2@            cycle_test 2drop      CYCLES:     88 ok
 5. here      ' 2!            cycle_test            CYCLES:     99 ok
 5 5 5 5      ' 2swap         cycle_test 4drop      CYCLES:     92 ok
 \ skipping     2>r  ok
-             ' 2variable     cycle_test eword      CYCLES:  16984 ok
+             ' 2variable     cycle_test eword      CYCLES:  16987 ok
              ' eword         cycle_test drop       CYCLES:     45 ok
 s" *"        ' type          cycle_test           *CYCLES:    121 ok
 5            ' u.            cycle_test          5 CYCLES:   3615 ok
@@ -3493,7 +3493,7 @@ s" *"        ' type          cycle_test           *CYCLES:    121 ok
 5 5          ' um*           cycle_test 2drop      CYCLES:    474 ok
 \ skipping     unloop  ok
              ' unused        cycle_test drop       CYCLES:     36 ok
-5            ' value         cycle_test fword      CYCLES:  17205 ok
+5            ' value         cycle_test fword      CYCLES:  17208 ok
              ' fword         cycle_test drop       CYCLES:     58 ok
 5            ' to            cycle_test fword      CYCLES:   1138 ok
              ' variable      cycle_test gword      CYCLES:  16990 ok
