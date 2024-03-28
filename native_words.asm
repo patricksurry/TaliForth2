@@ -2151,8 +2151,10 @@ _underflow_strip:
                 ; 3 bytes if there is no underflow.
 
                 ; See if the user wants underflow stripping turned on
-                lda uf_strip
-                ora uf_strip+1
+                ldy #uf_strip_offset
+                lda (up),y
+                iny
+                ora (up),y
                 beq cmpl_inline
 
                 ; See if this word even contains underflow checking
@@ -2974,10 +2976,8 @@ z_dnegate:      rts
 ; ## "?do"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/qDO"""
 xt_question_do:
-                ; ?DO shares most of its code with DO. We use the tmp1 flag
-                ; to mark which is which
-                lda #$ff                ; -1 is ?DO, jump to common code
-                sta tmp1
+                ; ?DO shares most of its code with DO. We use Y to signal which
+                ldy #1                  ; 1 is ?DO, jump to common code
                 bra do_common           ; skip flag for DO
 
 ; ## DO ( limit start -- )(R: -- limit start)  "Start a loop"
@@ -2995,8 +2995,8 @@ xt_question_do:
         ; """
 
 xt_do:
-                ; DO and ?DO share most of their code, use tmp1 as a flag.
-                stz tmp1                ; 0 is DO, drop through to DO_COMMON
+                ; DO and ?DO share most of their code, use Y as a flag.
+                ldy #0                ; 0 is DO, drop through to DO_COMMON
 do_common:
                 ; We push HERE to the Data Stack so LOOP/+LOOP knows where to
                 ; compile the address we need to LDA at runtime
@@ -3017,7 +3017,7 @@ do_common:
                 inc cp+1
 +
                 ; compile the (?DO) portion of ?DO if appropriate
-                lda tmp1
+                tya
                 beq _compile_do
 
                 ; We came from ?DO, so compile its runtime first. We do
@@ -3057,7 +3057,7 @@ z_do:           rts
 
 do_runtime:
         ; """Runtime routine for DO loop. Note that ANS loops quit when the
-        ; boundry of limit-1 and limit is reached, a different mechanism than
+        ; boundary of limit-1 and limit is reached, a different mechanism than
         ; the FIG Forth loop (you can see which version you have by running
         ; a loop with start and limit as the same value, for instance
         ; 0 0 DO -- these will walk through the number space). We use a
@@ -5803,10 +5803,9 @@ xt_loop_common:
                 clc
                 adc cp
                 sta cp
-                lda cp+1
-                adc #0                  ; only need carry
-                sta cp+1
-
+                bcc +
+                inc cp+1
++
                 ; Complete compile of DO/?DO by replacing the six
                 ; dummy bytes by PHA instructions. The address where
                 ; they are located is on the Data Stack
@@ -5910,8 +5909,8 @@ _hack:          ; This is why this routine must be natively compiled: We
                 ; go to, which is added by the next next instruction of
                 ; LOOP/+LOOP during compile time
                 .byte $4C
-
 loop_runtime_end:
+
 
 ; ## LSHIFT ( x u -- u ) "Shift TOS left"
 ; ## "lshift"  auto  ANS core
@@ -9855,16 +9854,9 @@ z_store:        rts
         ; Default is false.
         ; """
 xt_strip_underflow:
-                dex
-                dex
-
-                lda #<uf_strip
-                sta 0,x
-                lda #>uf_strip
-                sta 1,x
-
+                lda #uf_strip_offset
+                jmp push_upvar_tos
 z_strip_underflow:
-                rts
 
 
 ; ## SWAP ( b a -- a b ) "Exchange TOS and NOS"

@@ -791,7 +791,7 @@ nt_nc_limit:
         .text "nc-limit"
 
 nt_strip_underflow:
-        .byte 15, 0
+        .byte 15, NN
         .word nt_abort, xt_strip_underflow, z_strip_underflow
         .text "strip-underflow"
 

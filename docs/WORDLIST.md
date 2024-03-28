@@ -61,7 +61,7 @@ RTS instruction at the end of each word.
 | COLON_NONAME | `:NONAME` | ANS core | 27 | **auto** |
 | COMMA | `,` | ANS core | 25 | **auto** |
 | COMPARE | `compare` | ANS string | 100 | **auto** |
-| COMPILE_COMMA | `compile,` | ANS core ext | 297 | **auto** |
+| COMPILE_COMMA | `compile,` | ANS core ext | 300 | **auto** |
 | COMPILE_ONLY | `compile-only` | Tali Forth | 11 | tested |
 | CONSTANT | `constant` | ANS core | 61 | **auto** |
 | COUNT | `count` | ANS core | 19 | **auto** |
@@ -224,7 +224,7 @@ RTS instruction at the end of each word.
 | STAR_SLASH_MOD | `*/mod` | ANS core | 15 | **auto** |
 | STATE | `state` | ANS core | 10 | **auto** |
 | STORE | `!` | ANS core | 21 | **auto** |
-| STRIP_UNDERFLOW | `strip-underflow` | Tali Forth | 10 | tested |
+| STRIP_UNDERFLOW | `strip-underflow` | Tali Forth | 5 | tested |
 | SWAP | `swap` | ANS core | 19 | **auto** |
 | THEN | `then` | ANS core | 73 | **auto** |
 | THRU | `thru` | ANS block ext | 68 | tested |

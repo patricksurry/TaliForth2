@@ -52,9 +52,8 @@ output:     .word kernel_putc       ; vector for EMIT
 input:      .word kernel_getc       ; vector for KEY
 havekey:    .word 0                 ; vector for KEY?
 
-state:      .word 0                 ; STATE: -1 compile, 0 interpret
 base:       .word 10                ; number radix, default decimal
-uf_strip:   .word 0                 ; flag to strip underflow detection code (0 off)
+state:      .word 0                 ; STATE: -1 compile, 0 interpret
 
 status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
         ; Bit 7 = Redefined word message postpone
@@ -83,8 +82,8 @@ loopdep:    .byte 0         ; nested loop depth
 
     .virtual
 tmpdsp:     .byte ?         ; temporary DSP (X) storage (single byte)
-loopend:    .word ?         ; the adjusted loop limit
-loopoff:    .word ?         ; the limit offset
+looplim:    .word ?         ; current loop adjusted limit
+loopoff:    .word ?         ; current loop limit offset
 tmptos:     .word ?         ; temporary TOS storage
 tmp1:       .word ?         ; temporary storage
 tmp2:       .word ?         ; temporary storage
@@ -109,6 +108,7 @@ cold_user_table:
     .logical 0          ; make labels here offsets that we can add to 'up'
 
 nc_limit_offset:        .word 20        ; byte limit for Native Compile size
+uf_strip_offset:        .word 0         ; flag to strip underflow detection (0 off)
 
 ; Block variables
 blk_offset:             .word 0         ; BLK
