@@ -80,8 +80,8 @@ RTS instruction at the end of each word.
 | DIGIT_QUESTION | `digit?` | Tali Forth | 52 | **auto** |
 | DISASM | `disasm` | Tali Forth | 6 | tested |
 | DNEGATE | `dnegate` | ANS double | 26 | **auto** |
-| QUESTION_DO | `?do` | ANS core ext | 63 | **auto** |
-| DO | `do` | ANS core | 57 | **auto** |
+| QUESTION_DO | `?do` | ANS core ext | 36 | **auto** |
+| DO | `do` | ANS core | 32 | **auto** |
 | DOES | `does>` | ANS core | 14 | **auto** |
 | DOT | `.` | ANS core | 33 | **auto** |
 | DOT_PAREN | `.(` | ANS core | 14 | **auto** |
@@ -136,15 +136,15 @@ RTS instruction at the end of each word.
 | KEY | `key` | ANS core | 9 | tested |
 | LATESTNT | `latestnt` | Tali Forth | 13 | **auto** |
 | LATESTXT | `latestxt` | Gforth | 6 | **auto** |
-| LEAVE | `leave` | ANS core | 5 | **auto** |
+| LEAVE | `leave` | ANS core | 29 | **auto** |
 | LEFT_BRACKET | `[` | ANS core | 4 | **auto** |
 | LESS_NUMBER_SIGN | `<#` | ANS core | 13 | **auto** |
 | LESS_THAN | `<` | ANS core | 20 | **auto** |
 | LIST | `list` | ANS block ext | 12 | tested |
 | LITERAL | `literal` | ANS core | 13 | **auto** |
 | LOAD | `load` | ANS block | 67 | **auto** |
-| LOOP | `loop` | ANS core | 93 | **auto** |
-| PLUS_LOOP | `+loop` | ANS core | 76 | **auto** |
+| LOOP | `loop` | ANS core | 74 | **auto** |
+| PLUS_LOOP | `+loop` | ANS core | 57 | **auto** |
 | LSHIFT | `lshift` | ANS core | 19 | **auto** |
 | M_STAR | `m*` | ANS core | 26 | **auto** |
 | MARKER | `marker` | ANS core ext | 61 | **auto** |
@@ -261,7 +261,7 @@ RTS instruction at the end of each word.
 | UD_DOT_R | `ud.r` | Tali double | 30 | **auto** |
 | UM_SLASH_MOD | `um/mod` | ANS core | 65 | **auto** |
 | UM_STAR | `um*` | ANS core | 69 | **auto** |
-| UNLOOP | `unloop` | ANS core | 6 | **auto** |
+| UNLOOP | `unloop` | ANS core | 4 | **auto** |
 | UNTIL | `until` | ANS core | 20 | **auto** |
 | UNUSED | `unused` | ANS core ext | 15 | **auto** |
 | UPDATE | `update` | ANS block | 8 | **auto** |

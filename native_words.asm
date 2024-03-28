@@ -2991,39 +2991,31 @@ xt_question_do:
         ; time. This is based on a suggestion by Garth Wilson, see
         ; the Control Flow section of the manual for details.
         ;
-        ; This may not be native compile. Don't check for a stack underflow
+        ; This is never native compile. Don't check for a stack underflow
         ; """
 
 xt_do:
-                ; DO and ?DO share most of their code, use Y as a flag.
+                ; DO and ?DO share most of their code, Y flags the variant
                 ldy #0                ; 0 is DO, drop through to DO_COMMON
 do_common:
-                ; We push HERE to the Data Stack so LOOP/+LOOP knows where to
-                ; compile the address we need to LDA at runtime
-                dex
-                dex
-                lda cp+1
-                sta 1,x                 ; MSB   ( limit start here )
-                lda cp
-                sta 0,x                 ; LSB
+                ; The word LEAVE can be used to exit LOOP/+LOOP from
+                ; anywhere inside the loop body, zero or more times.
+                ; We'll keep a pointer to the latest LEAVE address
+                ; we need to patch on the return stack, which xt_leave
+                ; will chain backward to any prior one.
+                ; When we compile the end of the loop body xt_loop
+                ; can write all the forward jumps
 
-                ; now advance cp by six bytes which LOOP/+LOOP will
-                ; replace with LDA/PHA instructions from loop_epilogue
+                ; we don't have a LEAVE addr to patch yet.
+                ; simply flag with MSB=0 since we never compile to zero page
+                stz loopleave+1
 
-                clc
-                adc #6
-                sta cp
-                bcc +
-                inc cp+1
-+
                 ; compile the (?DO) portion of ?DO if appropriate
                 tya
                 beq _compile_do
 
-                ; We came from ?DO, so compile its runtime first. We do
-                ; this with a quick loop because we know it has to be
-                ; Always Native anyway
-                ; set up stack for cmpl_inline_y ( src -- )
+                ; We came from ?DO, so compile its runtime first.
+                ; Set up stack for cmpl_inline_y ( src --   ; y = # bytes)
                 dex
                 dex
                 lda #<question_do_runtime
@@ -3033,8 +3025,7 @@ do_common:
                 ldy #question_do_runtime_end-question_do_runtime
                 jsr cmpl_inline_y
 
-                ; fall through to _compile_do
-
+                ; fall through
 _compile_do:
                 ; compile runtime part of DO.
                 ; do this as a subroutine since it only happens once and is a big chunk of code
@@ -3042,17 +3033,13 @@ _compile_do:
                 lda #<do_runtime
                 jsr cmpl_subroutine
 
-                ; HERE, hardcoded for speed. We put it on the Data Stack
-                ; where LOOP/+LOOP takes it from. Note this has nothing to
-                ; do with the HERE we're saving for LEAVE
-                dex
-                dex
-                lda CP          ; LSB
-                sta 0,x
-                lda CP+1        ; MSB
-                sta 1,x
+                ; Now we're ready for the loop body.  We push HERE
+                ; to the Data Stack so LOOP/+LOOP knows where to branch
+                ; back to, leaving ( #leave repeat-addr )
+
+                jmp xt_here
 z_question_do:
-z_do:           rts
+z_do:
 
 
 do_runtime:
@@ -3067,14 +3054,18 @@ do_runtime:
         ; this idea is Laxen & Perry F83. -- This routine is called (DO)
         ; in some Forths. Usually, we would define this as a separate word
         ; and compile it with COMPILE, and the Always Native (AN) flag.
-        ; However, we can do it faster if we just copy the bytes
-        ; of this routine with a simple loop in DO.
         ; """
-                ; stash return address so we can manipulate return stack
+                ; convert our return address to indirect jmp
+                ; so we can manipulate the return stack
                 pla
+                ply
+                ina
                 sta tmp1
-                pla
-                sta tmp1+1
+                bne +
+                iny
++               sty tmp1+1
+
+                ; data stack has ( limit index -- )
 
                 ; First step: create fudge factor (FUFA) by subtracting the
                 ; limit from $8000, the number that will trip the overflow
@@ -3090,6 +3081,8 @@ do_runtime:
                 pha             ; FUFA replaces limit on R stack
                 lda 2,x         ; LSB of limit
                 pha
+
+                ; ( $8000-limit index --  R: $8000-limit )
 
                 ; Second step: index is FUFA plus original index
                 clc
@@ -3109,13 +3102,9 @@ do_runtime:
                 inx
                 inx
 
-                lda tmp1+1
-                pha
-                lda tmp1
-                pha
+                ; ( R: $8000-limit  $8000-limit+index )
 
-                rts
-
+                jmp (tmp1)
 
 question_do_runtime:
 
@@ -5490,21 +5479,38 @@ z_latestxt:     rts
         ; http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx
         ;
         ;       : LEAVE POSTPONE BRANCH HERE SWAP 0 , ; IMMEDIATE COMPILE-ONLY
+        ;TODO
         ; See the Control Flow section in the manual for details of how this works.
         ; This must be native compile and not IMMEDIATE
         ; """
 
 xt_leave:
-                ; We dump the limit/start entries off the Return Stack
-                ; (four bytes)
-                pla
-                pla
-                pla
-                pla
+                ; LEAVE will eventually jump forward to the unloop but
+                ; we don't know where that is yet so at compile time
+                ; we'll write a JMP to be patched later.
+                ; Since LEAVE is allowed multiple times we'll
+                ; use the placeholder address to keep a linked list
+                ; of all the LEAVE addresses to update, headed by loopleave
 
-                rts             ; this must be compiled, so keep before z_leave
-z_leave:                        ; not reached, not compiled
+                lda #$4c
+                jsr cmpl_a      ; emit the JMP
+                lda loopleave   ; chain the prior leave address
+                jsr cmpl_a
+                lda loopleave+1
+                jsr cmpl_a
 
+                ; set head of the list to point to our placeholder
+                sec
+                lda cp
+                sbc #2
+                sta loopleave
+                lda cp+1
+                bcs +
+                dea
++               sta loopleave+1
+
+z_leave:
+                rts
 
 
 ; ## LEFT_BRACKET ( -- ) "Enter interpretation state"
@@ -5745,7 +5751,8 @@ z_load:         rts
         ;       IMMEDIATE ; COMPILE-ONLY
         ; """
 xt_loop:
-                ; Set up stack for cmpl_inline_y ( src -- )
+                ; Copy the runtime specific to loop
+                ; Set up stack for cmpl_inline_y ( src --  ; y = # bytes )
                 dex
                 dex
 
@@ -5755,7 +5762,10 @@ xt_loop:
                 lda #>loop_runtime
                 sta 1,x
                 jsr cmpl_inline_y
+
+                ; Now compile the runtime shared with +LOOP
                 bra xt_loop_common
+
 
 ; ## PLUS_LOOP ( -- ) "Finish loop construct"
 ; ## "+loop"  auto  ANS core
@@ -5772,7 +5782,7 @@ xt_loop:
 
 xt_plus_loop:
                 ; Compile the run-time part.
-                ; Set up stack for cmpl_inline_y ( src -- )
+                ; Set up stack for cmpl_inline_y ( src -- ; y = # bytes)
                 dex
                 dex
 
@@ -5783,69 +5793,56 @@ xt_plus_loop:
                 sta 1,x
                 jsr cmpl_inline_y
 
+                ; fall through to shared runtime
+
 xt_loop_common:
-                ; The address we need to loop back to is TOS. Store it so
-                ; the runtime part of +LOOP jumps back up there
+                ; The address we need to loop back to is TOS
+                ; ( leave-addr1 ... #leave repeat-addr )
+
+                ; Write the address which completes the trailing JMP
+                ; at the end of both loop runtimes
                 jsr xt_comma
 
-                ; Compile an UNLOOP for when we're all done. This is a series
-                ; of six PLA, so we just do it here instead jumping around
-                ; all over the place
+                ; any LEAVE words should forward branch to here
+                ; so we follow the chain to update them
+                lda loopleave+1         ; MSB=0 means we're done
+                beq _noleave
+_next:
+                ; stash current LEAVE addr which points to
+                ; the previous LEAVE (or 0) and replace it with HERE
+                ldy #1
+                lda (loopleave),y
+                pha
+                lda cp+1
+                sta (loopleave),y
+                dey
+                lda (loopleave),y
+                pha
+                lda cp
+                sta (loopleave),y
+
+                ; follow the chain backward
+                pla
+                sta loopleave
+                pla
+                sta loopleave+1
+                bne _next
+_noleave:
+
+                ; Compile an UNLOOP for when we're all done.
+                ; This just clears the return stack by dropping
+                ; the adjusted limit and offset.
                 lda #$68                ; opcode for PLA
-                ldy #6
+                ldy #3
 -
-                sta (cp),y
+                jsr cmpl_a
                 dey
                 bpl -
 
-                ; Adjust CP
-                lda #6
-                clc
-                adc cp
-                sta cp
-                bcc +
-                inc cp+1
-+
-                ; Complete compile of DO/?DO by replacing the six
-                ; dummy bytes by PHA instructions. The address where
-                ; they are located is on the Data Stack
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
-                inx
-                inx
-
-                ; Because of the way that CP works, we don't have to save
-                ; CP, but CP-1
-                lda cp
-                sec
-                sbc #1
-                pha             ; lsb
-                lda cp+1
-                sbc #0
-                pha             ; msb
-
-                ; now compile our template in the DO/?DO routine
-                ldy #0
--
-                lda loop_epilogue,y
-                bne +
-                pla
-+
-                sta (tmp1),y
-                iny
-                cpy #(loop_epilogue_end-loop_epilogue)
-                bne -
 z_loop:
 z_plus_loop:    rts
 
-loop_epilogue:  ; we'll use this template to push the return address
-                lda #0
-                pha
-                lda #0
-                pha
-loop_epilogue_end:
+
 
 plus_loop_runtime:
         ; """Runtime compile for +LOOP when we have an arbitrary step.
@@ -5887,6 +5884,13 @@ loop_runtime:
         ; """Runtime compile for LOOP when stepping by one.
         ; This must always be native compiled.
         ; """
+
+                ; do_runtime has set up the stack with
+                ; ( R: $8000-limit  $8000-limit+index )
+
+                ; so we can increment the top word on the stack
+                ; and look for overflow since the $8000-limit+index
+                ; hits $8000 when index reaches limit
 
                 clv             ; note inc doesn't affect V
                 ply             ; LSB of index
@@ -11205,20 +11209,12 @@ z_um_star:      rts
 
 ; ## UNLOOP ( -- )(R: n1 n2 n3 ---) "Drop loop control from Return stack"
 ; ## "unloop"  auto  ANS core
-        ; """https://forth-standard.org/standard/core/UNLOOP
-        ;
-        ; Note that 6xPLA uses just as many bytes as a loop would
-        ; """
+        ; """https://forth-standard.org/standard/core/UNLOOP"""
 xt_unloop:
                 ; Drop fudge number (limit/start from DO/?DO off the
                 ; return stack
                 pla
                 pla
-                pla
-                pla
-
-                ; Now drop the LEAVE address that was below them off
-                ; the Return Stack as well
                 pla
                 pla
 

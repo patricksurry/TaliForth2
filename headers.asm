@@ -846,7 +846,7 @@ nt_unloop:
         .text "unloop"
 
 nt_leave:
-        .byte 5, AN+CO
+        .byte 5, CO+IM
         .word nt_recurse, xt_leave, z_leave
         .text "leave"
 

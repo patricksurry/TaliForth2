@@ -84,6 +84,7 @@ loopdep:    .byte 0         ; nested loop depth
 tmpdsp:     .byte ?         ; temporary DSP (X) storage (single byte)
 looplim:    .word ?         ; current loop adjusted limit
 loopoff:    .word ?         ; current loop limit offset
+loopleave:  .word ?         ; LEAVE chaining ; TODO existing tmp
 tmptos:     .word ?         ; temporary TOS storage
 tmp1:       .word ?         ; temporary storage
 tmp2:       .word ?         ; temporary storage
