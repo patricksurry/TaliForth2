@@ -3001,13 +3001,22 @@ do_common:
                 ; The word LEAVE can be used to exit LOOP/+LOOP from
                 ; anywhere inside the loop body, zero or more times.
                 ; We'll keep a pointer to the latest LEAVE address
-                ; we need to patch on the return stack, which xt_leave
+                ; that we need to patch in loopleave, which xt_leave
                 ; will chain backward to any prior one.
-                ; When we compile the end of the loop body xt_loop
-                ; can write all the forward jumps
+                ; To handle nested loops we stack the current value
+                ; of loopleave here and restore it in xt_loop
+                ; after we write any chained jumps for the current loop
 
-                ; we don't have a LEAVE addr to patch yet.
-                ; simply flag with MSB=0 since we never compile to zero page
+                ; save current loopleave in case we're nested
+                dex
+                dex
+                lda loopleave
+                sta 0,x
+                lda loopleave+1
+                sta 1,x
+
+                ; For now there is no LEAVE addr to patch, which we
+                ; flag with MSB=0 since we'll never compile to zero page
                 stz loopleave+1
 
                 ; compile the (?DO) portion of ?DO if appropriate
@@ -3035,7 +3044,7 @@ _compile_do:
 
                 ; Now we're ready for the loop body.  We push HERE
                 ; to the Data Stack so LOOP/+LOOP knows where to branch
-                ; back to, leaving ( #leave repeat-addr )
+                ; ( old-loopleave repeat-addr )
 
                 jmp xt_here
 z_question_do:
@@ -5485,12 +5494,12 @@ z_latestxt:     rts
         ; """
 
 xt_leave:
-                ; LEAVE will eventually jump forward to the unloop but
-                ; we don't know where that is yet so at compile time
-                ; we'll write a JMP to be patched later.
+                ; LEAVE will eventually jump forward to the unloop.
+                ; We don't know where that is at compile time
+                ; so we'll write a JMP to be patched later.
                 ; Since LEAVE is allowed multiple times we'll
-                ; use the placeholder address to keep a linked list
-                ; of all the LEAVE addresses to update, headed by loopleave
+                ; use the JMP placeholder address to keep a linked list
+                ; of all LEAVE addresses to update, headed by loopleave
 
                 lda #$4c
                 jsr cmpl_a      ; emit the JMP
@@ -5797,19 +5806,19 @@ xt_plus_loop:
 
 xt_loop_common:
                 ; The address we need to loop back to is TOS
-                ; ( leave-addr1 ... #leave repeat-addr )
+                ; ( old-loopleave repeat-addr )
 
                 ; Write the address which completes the trailing JMP
                 ; at the end of both loop runtimes
                 jsr xt_comma
 
-                ; any LEAVE words should forward branch to here
-                ; so we follow the chain to update them
+                ; any LEAVE words want to jmp here
+                ; so follow the linked list and update them
                 lda loopleave+1         ; MSB=0 means we're done
                 beq _noleave
 _next:
-                ; stash current LEAVE addr which points to
-                ; the previous LEAVE (or 0) and replace it with HERE
+                ; stash current LEAVE addr which links to
+                ; the previous one (if any) and replace it with HERE
                 ldy #1
                 lda (loopleave),y
                 pha
@@ -5828,6 +5837,14 @@ _next:
                 sta loopleave+1
                 bne _next
 _noleave:
+
+                ; restore loopleave in case we were nested
+                lda 0,x
+                sta loopleave
+                lda 1,x
+                sta loopleave+1
+                inx
+                inx
 
                 ; Compile an UNLOOP for when we're all done.
                 ; This just clears the return stack by dropping
