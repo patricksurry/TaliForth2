@@ -81,9 +81,12 @@ status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
 
     .virtual
 tmpdsp:     .byte ?         ; temporary DSP (X) storage (single byte)
-loopdepth:  .byte ?         ; global loop nesting depth (-1 outside any loop)
-loopindex:  .word ?         ; current loop adjusted index (must form dword with loopfufa)
-loopfufa:   .word ?         ; current loop fudge factor ($8000-limit)
+loopctrl:   .byte ?         ; offset to current loop control block (-4 outside any loop)
+    ; each loop control block is a 4 byte dword starting at $100 and growing upward toward
+    ; the CPU aka Return stack.  loopctrl increments by four and used to Y-index the
+    ; start of the current loop control block
+loopindex = $100            ; loopindex,y is the adjusted loop index (where Y=loopctrl)
+loopfufa  = $102            ; loopfufa,y is the offset adjustment
 loopleave:  .word ?         ; LEAVE chaining ; TODO existing tmp?
 tmptos:     .word ?         ; temporary TOS storage
 tmp1:       .word ?         ; temporary storage

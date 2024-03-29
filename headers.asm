@@ -821,7 +821,7 @@ nt_i:
         .text "i"
 
 nt_j:
-        .byte 1, AN+CO
+        .byte 1, CO
         .word nt_loop, xt_j, z_j
         .text "j"
 
@@ -841,7 +841,7 @@ nt_exit:
         .text "exit"
 
 nt_unloop:
-        .byte 6, AN+CO
+        .byte 6, CO
         .word nt_leave, xt_unloop, z_unloop
         .text "unloop"
 

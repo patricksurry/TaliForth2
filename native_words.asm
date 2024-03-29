@@ -154,9 +154,10 @@ xt_quit:
                 iny
                 sta (up),y
 
-                ; loopdepth is -1 (no active loop)
-                dea
-                sta loopdepth
+                ; loopctrl points to the current 4 byte loop control block
+                ; with the first actual block at offset zero, so initialize as -4
+                lda #(256-4)
+                sta loopctrl
 
                 ; STATE is zero (interpret, not compile)
                 stz state
@@ -3102,30 +3103,13 @@ do_runtime:
         ; in some Forths. Usually, we would define this as a separate word
         ; and compile it with COMPILE, and the Always Native (AN) flag.
         ; """
-                ; convert our return address to indirect jmp
-                ; so we can manipulate the return stack
-                pla
-                ply
-                ina
-                sta tmp1
-                bne +
-                iny
-+               sty tmp1+1
+                ; add a loop control block
+                lda loopctrl
+                clc
+                adc #4
+                sta loopctrl
+                tay             ; save the block index
 
-                inc loopdepth
-                beq _fufa       ; skip on outermost loop
-
-                ; if we're nested, first push current loop context
-                ; to return stack SP: limit lsb, msb; offset lsb, msb
-
-                ;TODO this isn't zp addressing
-                ldy #3
--               lda loopindex,y
-                pha
-                dey
-                bpl -
-
-_fufa:
                 ; data stack has ( limit index -- )
                 ;
                 ; We're going to calculate adjusted loop bounds:
@@ -3143,22 +3127,22 @@ _fufa:
 
                 sec
                 lda #0
-                sbc 2,x         ; LSB of limit
-                sta loopfufa
+                sbc 2,x             ; LSB of limit
+                sta loopfufa,y      ; write to loop control block
                 lda #$80
-                sbc 3,x         ; MSB of limit
-                sta loopfufa+1  ; save FUFA for later use
+                sbc 3,x             ; MSB of limit
+                sta loopfufa+1,y
 
                 ; ( $8000-limit index --  R: $8000-limit )
 
                 ; Second step: index is FUFA plus original index
                 clc
-                lda 0,x         ; LSB of original index
-                adc loopfufa
-                sta loopindex
-                lda 1,x         ; MSB of orginal index
-                adc loopfufa+1  ; add MSB of FUFA
-                sta loopindex+1
+                lda 0,x             ; LSB of original index
+                adc loopfufa,y
+                sta loopindex,y     ; write to loop control block
+                lda 1,x             ; MSB of orginal index
+                adc loopfufa+1,y
+                sta loopindex+1,y
 
                 inx
                 inx
@@ -3167,7 +3151,7 @@ _fufa:
 
                 ; ( R: $8000-limit  $8000-limit+index )
 
-                jmp (tmp1)
+                rts
 
 
 ; ## DOES ( -- ) "Add payload when defining new words"
@@ -4296,7 +4280,7 @@ z_execute_parsing:
 ; ## EXIT ( -- ) "Return control to the calling word immediately"
 ; ## "exit"  auto  ANS core
         ; """https://forth-standard.org/standard/core/EXIT
-        ; If we're in a loop, we need to UNLOOP first and get everything
+        ; If we're in a loop, user needs to UNLOOP first and get everything
         ; we we might have put on the Return Stack off as well. This should
         ; be natively compiled.
         ; """
@@ -5051,14 +5035,16 @@ xt_i:
                 dex
                 dex
 
-                ; The fudged index and ofset are always in zero page for i.
+                ; The fudged index and ofset are stored in the current
+                ; loop control block
 
+                ldy loopctrl
                 sec
-                lda loopindex
-                sbc loopfufa
+                lda loopindex,y
+                sbc loopfufa,y
                 sta 0,x
-                lda loopindex+1
-                sbc loopfufa+1
+                lda loopindex+1,y
+                sbc loopfufa+1,y
                 sta 1,x
 
 z_i:            rts
@@ -5413,26 +5399,25 @@ z_is:           rts
         ; """
 
 xt_j:
-                ; Get the fudged index off from the stack. It's easier to
-                ; do math on the stack directly
-                ; The LSB of index is at SP+1 (first on CPU stack)
-                ; After we PHX, the index is at SP+2/3, and fufa at SP+4/5
-                phx             ; save Forth stack pointer
-                tsx
+                ; get the previous loop control
+                lda loopctrl
                 sec
-                lda $0102,x
-                sbc $0104,x
-                tay             ; Y = LSB of index - fufa
-                lda $0103,x
-                sbc $0105,x     ; A = MSB
+                sbc #4
+                tay
 
-                plx             ; restore Forth stack pointer
-                dex             ; make space and push the result
+                dex                 ; make space on the stack
                 dex
-                sty 0,x         ; LSB of de-fudged index
-                sta 1,x         ; MSB of de-fudged index
 
-z_j:            ; rts           ; never reached
+                sec
+                lda loopindex,y
+                sbc loopfufa,y
+                sta 0,x             ; LSB of index - fufa
+
+                lda loopindex+1,y
+                sbc loopfufa+1,y
+                sta 1,x             ; MSB of de-fudged index
+
+z_j:            rts
 
 
 
@@ -5891,17 +5876,18 @@ plus_loop_runtime:
         ; word called (+LOOP) or (LOOP)
         ; """
 
+                ldy loopctrl
                 clc
-                lda loopindex   ; LSB of index
-                adc 0,x         ; LSB of step
-                sta loopindex
+                lda loopindex,y
+                adc 0,x             ; LSB of step
+                sta loopindex,y
 
                 clv
-                lda loopindex+1 ; MSB of index
-                adc 1,x         ; MSB of step
-                sta loopindex+1 ; put MSB of index back on stack
+                lda loopindex+1,y   ; MSB of index
+                adc 1,x             ; MSB of step
+                sta loopindex+1,y   ; put MSB of index back on stack
 
-                inx             ; dump step from TOS
+                inx                 ; dump step from TOS
                 inx
 
                 ; If V flag is set, we're done looping and continue
@@ -5927,15 +5913,18 @@ loop_runtime:
                 ; and look for overflow since the $8000-limit+index
                 ; hits $8000 when index reaches limit
 
-                inc loopindex   ; LSB of index
-                bne _repeat     ; definitely not done
+                ldy loopctrl
+                lda loopindex,y
+                ina
+                sta loopindex,y
+                bne _repeat         ; definitely not done
 
                 ; increment MSB using ADC to get V flag when we flip from $7f to $80
                 clv
                 clc
-                lda loopindex+1
+                lda loopindex+1,y
                 adc #1
-                sta loopindex+1
+                sta loopindex+1,y
 
                 ; If V flag is set, we're done looping and continue
                 ; after the +LOOP instruction
@@ -11242,30 +11231,17 @@ z_um_star:      rts
 ; ## UNLOOP ( -- )(R: n1 n2 n3 ---) "Drop loop control from Return stack"
 ; ## "unloop"  auto  ANS core
         ; """https://forth-standard.org/standard/core/UNLOOP"""
-        ; always native
 xt_unloop:
                 ; This is used as an epliogue to each LOOP/+LOOP
-                ; as well as when we prior to EXIT'ng a loop
-                ; If we're in a nested loop we need to pull the previous
-                ; loop control vars from the return stack where we left them
-                ; and put them back into zero page.
-                ; If this was the outermost loop we just decrement the loop depth.
+                ; as well as prior to EXIT'ng a loop
+                ; We just need to drop the current loop control block
 
-                ; outermost loop inc'd from $ff to 0
-                ; so dec leaving N=1 means we're good to go
-                dec loopdepth
-                bmi z_unloop
+                lda loopctrl
+                sec
+                sbc #4
+                sta loopctrl
 
-                ; otherwise copy loopindex/loopfufa back to zero page
-                ; reversing the order we pushed them
-                ldy #0
--               pla
-                sta loopindex,y
-                iny
-                cpy #4
-                bne -
-
-z_unloop:       ; rts
+z_unloop:       rts
 
 
 ; ## UNTIL (C: dest -- ) ( -- ) "Loop flow control"
