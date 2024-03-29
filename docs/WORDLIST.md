@@ -7,9 +7,9 @@ RTS instruction at the end of each word.
 
 | NAME | FORTH WORD | SOURCE | BYTES | STATUS |
 | :--- | :--------- | :---   | ----: | :----  |
-| COLD | `cold` | Tali Forth | 173 | tested |
-| ABORT | `abort` | ANS core | 77 | tested |
-| QUIT | `quit` | ANS core | 75 | tested |
+| COLD | `cold` | Tali Forth | 176 | tested |
+| ABORT | `abort` | ANS core | 80 | tested |
+| QUIT | `quit` | ANS core | 78 | tested |
 | ABORT_QUOTE | `abort"` | ANS core | 10 | tested |
 | ABS | `abs` | ANS core | 20 | **auto** |
 | ACCEPT | `accept` | ANS core | 248 | **auto** |
@@ -124,7 +124,7 @@ RTS instruction at the end of each word.
 | HEX | `hex` | ANS core ext | 6 | **auto** |
 | HEXSTORE | `hexstore` | Tali | 82 | **auto** |
 | HOLD | `hold` | ANS core | 17 | **auto** |
-| I | `i` | ANS core | 23 | **auto** |
+| I | `i` | ANS core | 15 | **auto** |
 | IF | `if` | ANS core | 16 | **auto** |
 | IMMEDIATE | `immediate` | ANS core | 11 | **auto** |
 | INPUT | `input` | Tali Forth | 10 | tested |
@@ -132,7 +132,7 @@ RTS instruction at the end of each word.
 | INT_TO_NAME | `int>name` | Tali Forth | 114 | **auto** |
 | INVERT | `invert` | ANS core | 15 | **auto** |
 | IS | `is` | ANS core ext | 24 | **auto** |
-| J | `j` | ANS core | 25 | **auto** |
+| J | `j` | ANS core | 23 | **auto** |
 | KEY | `key` | ANS core | 9 | tested |
 | LATESTNT | `latestnt` | Tali Forth | 13 | **auto** |
 | LATESTXT | `latestxt` | Gforth | 6 | **auto** |
@@ -143,8 +143,8 @@ RTS instruction at the end of each word.
 | LIST | `list` | ANS block ext | 12 | tested |
 | LITERAL | `literal` | ANS core | 13 | **auto** |
 | LOAD | `load` | ANS block | 67 | **auto** |
-| LOOP | `loop` | ANS core | 99 | **auto** |
-| PLUS_LOOP | `+loop` | ANS core | 82 | **auto** |
+| LOOP | `loop` | ANS core | 98 | **auto** |
+| PLUS_LOOP | `+loop` | ANS core | 81 | **auto** |
 | LSHIFT | `lshift` | ANS core | 19 | **auto** |
 | M_STAR | `m*` | ANS core | 26 | **auto** |
 | MARKER | `marker` | ANS core ext | 61 | **auto** |
@@ -261,7 +261,7 @@ RTS instruction at the end of each word.
 | UD_DOT_R | `ud.r` | Tali double | 30 | **auto** |
 | UM_SLASH_MOD | `um/mod` | ANS core | 65 | **auto** |
 | UM_STAR | `um*` | ANS core | 69 | **auto** |
-| UNLOOP | `unloop` | ANS core | 4 | **auto** |
+| UNLOOP | `unloop` | ANS core | 15 | **auto** |
 | UNTIL | `until` | ANS core | 20 | **auto** |
 | UNUSED | `unused` | ANS core ext | 15 | **auto** |
 | UPDATE | `update` | ANS block | 8 | **auto** |

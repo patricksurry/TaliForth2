@@ -816,7 +816,7 @@ nt_question_do:
         .text "?do"
 
 nt_i:
-        .byte 1, AN+CO
+        .byte 1, CO
         .word nt_j, xt_i, z_i
         .text "i"
 

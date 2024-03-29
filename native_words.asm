@@ -154,6 +154,10 @@ xt_quit:
                 iny
                 sta (up),y
 
+                ; loopdepth is -1 (no active loop)
+                dea
+                sta loopdepth
+
                 ; STATE is zero (interpret, not compile)
                 stz state
                 stz state+1
@@ -3108,38 +3112,54 @@ do_runtime:
                 iny
 +               sty tmp1+1
 
-                ; data stack has ( limit index -- )
+                inc loopdepth
+                beq _fufa       ; skip on outermost loop
 
-                ; First step: create fudge factor (FUFA) by subtracting the
-                ; limit from $8000, the number that will trip the overflow
-                ; flag
+                ; if we're nested, first push current loop context
+                ; to return stack SP: limit lsb, msb; offset lsb, msb
+
+                ;TODO this isn't zp addressing
+                ldy #3
+-               lda loopindex,y
+                pha
+                dey
+                bpl -
+
+_fufa:
+                ; data stack has ( limit index -- )
+                ;
+                ; We're going to calculate adjusted loop bounds:
+                ;
+                ;   loopfufa = $8000 - limit
+                ;   loopindex = loopfufa + index
+                ;
+                ; The idea is that once we've incremented this adjusted
+                ; index at least limit-index times we'll get:
+                ;
+                ;   loopindex' = $8000 - limit + index + (limit - index)
+                ;              = $8000
+                ;
+                ; which will trigger LOOP's overflow test
+
                 sec
                 lda #0
                 sbc 2,x         ; LSB of limit
-                sta 2,x         ; save FUFA for later use
-
+                sta loopfufa
                 lda #$80
                 sbc 3,x         ; MSB of limit
-                sta 3,x         ; save FUFA for later use
-                pha             ; FUFA replaces limit on R stack
-                lda 2,x         ; LSB of limit
-                pha
+                sta loopfufa+1  ; save FUFA for later use
 
                 ; ( $8000-limit index --  R: $8000-limit )
 
                 ; Second step: index is FUFA plus original index
                 clc
                 lda 0,x         ; LSB of original index
-                adc 2,x         ; add LSB of FUFA
-                sta 0,x
+                adc loopfufa
+                sta loopindex
                 lda 1,x         ; MSB of orginal index
-                adc 3,x         ; add MSB of FUFA
-                pha
-                lda 0,x         ; LSB of index
-                pha
+                adc loopfufa+1  ; add MSB of FUFA
+                sta loopindex+1
 
-                ; we've saved the FUFA on the NOS of the R stack, so we can
-                ; use it later. Clean the Data Stack
                 inx
                 inx
                 inx
@@ -5021,35 +5041,25 @@ z_hold:         rts
 ; ## I ( -- n )(R: n -- n)  "Copy loop counter to stack"
 ; ## "i"  auto  ANS core
         ; """https://forth-standard.org/standard/core/I
-        ; Note that this is not the same as R@ because we use a fudge
-        ; factor for loop control; see the Control Flow section of the
-        ; manual for details.
+        ; See the Control Flow section of the manual for details.
         ;
-        ; We should make this native compile for speed.
+        ; This word can either be native compiled or not since
+        ; it no longer depends on the return stack.
         ; """
 
 xt_i:
                 dex
                 dex
 
-                ; Get the fudged index off of the top of the stack. It's
-                ; easier to do math on the stack directly than to pop and
-                ; push stuff around
-                phx
-                tsx
+                ; The fudged index and ofset are always in zero page for i.
 
                 sec
-                lda $0102,x     ; LSB
-                sbc $0104,x
-                tay
-
-                lda $0103,x     ; MSB
-                sbc $0105,x
-
-                plx
-
-                sta 1,x         ; MSB of de-fudged index
-                sty 0,x         ; LSB of de-fudged index
+                lda loopindex
+                sbc loopfufa
+                sta 0,x
+                lda loopindex+1
+                sbc loopfufa+1
+                sta 1,x
 
 z_i:            rts
 
@@ -5397,36 +5407,32 @@ z_is:           rts
         ; Copy second loop counter from Return Stack to stack. Note we use
         ; a fudge factor for loop control; see the Control Flow section of
         ; the manual for more details.
-        ; At this point, we have the "I" counter/limit
-        ; on the stack above this (two entries).
+        ; Since the "I" limit/fufa are in zero page, we're first up on the stack
         ;
-        ; Make this native compiled for speed
+        ; This must be native compiled since it manipulates the stack
         ; """
 
 xt_j:
-                dex
-                dex
-
                 ; Get the fudged index off from the stack. It's easier to
-                ; do math on the stack directly than to pop and push stuff
-                ; around
-                stx tmpdsp
+                ; do math on the stack directly
+                ; The LSB of index is at SP+1 (first on CPU stack)
+                ; After we PHX, the index is at SP+2/3, and fufa at SP+4/5
+                phx             ; save Forth stack pointer
                 tsx
-
                 sec
-                lda $0105,x     ; LSB
-                sbc $0107,x
-                tay
+                lda $0102,x
+                sbc $0104,x
+                tay             ; Y = LSB of index - fufa
+                lda $0103,x
+                sbc $0105,x     ; A = MSB
 
-                lda $0106,x     ; MSB
-                sbc $0108,x
-
-                ldx tmpdsp
-
-                sta 1,x         ; MSB of de-fudged index
+                plx             ; restore Forth stack pointer
+                dex             ; make space and push the result
+                dex
                 sty 0,x         ; LSB of de-fudged index
+                sta 1,x         ; MSB of de-fudged index
 
-z_j:            rts
+z_j:            ; rts           ; never reached
 
 
 
@@ -5846,33 +5852,33 @@ _noleave:
                 sta loopleave
                 lda 1,x
                 sta loopleave+1
-                inx
-                inx
 
-                ; Compile an UNLOOP for when we're all done.
-                ; This just clears the return stack by dropping
-                ; the adjusted limit and offset.
-                lda #$68                ; opcode for PLA
-                ldy #3
--
-                jsr cmpl_a
-                dey
-                bpl -
+                ;inx
+                ;inx
+                ;dex
+                ;dex
+
+                ; Clean up the loop params by appending unloop
+                lda #<xt_unloop
+                sta 0,x
+                lda #>xt_unloop
+                sta 1,x
+                jsr xt_compile_comma
 
                 ; Finally we're left with qdo-skip which either
                 ; points at ?DO's "skip the loop" jmp address,
-                ; or has MSB=0 for DO which we can ignore
-                lda 1,x                 ; MSB=0 means we can skip
+                ; wanting to skip past this whole mess to CP=HERE,
+                ; or has MSB=0 from DO which we can just ignore
+                lda 1,x                 ; MSB=0 means DO so nothing to do
                 beq +
                 jsr xt_here
                 jsr xt_swap
-                jmp xt_store            ; write here as the jmp target and return
+                jmp xt_store            ; write here as ?DO jmp target and return
 
 +               inx                     ; drop the ignored word for DO
                 inx
 z_loop:
 z_plus_loop:    rts
-
 
 
 plus_loop_runtime:
@@ -5886,16 +5892,14 @@ plus_loop_runtime:
         ; """
 
                 clc
-                pla             ; LSB of index
+                lda loopindex   ; LSB of index
                 adc 0,x         ; LSB of step
-                tay             ; temporary storage of LSB
+                sta loopindex
 
                 clv
-                pla             ; MSB of index
+                lda loopindex+1 ; MSB of index
                 adc 1,x         ; MSB of step
-                pha             ; put MSB of index back on stack
-
-                phy             ; put LSB of index back on stack
+                sta loopindex+1 ; put MSB of index back on stack
 
                 inx             ; dump step from TOS
                 inx
@@ -5923,26 +5927,23 @@ loop_runtime:
                 ; and look for overflow since the $8000-limit+index
                 ; hits $8000 when index reaches limit
 
-                clv             ; note inc doesn't affect V
-                ply             ; LSB of index
-                iny             ; add one
-                bne _skip_msb   ; definitely not done
+                inc loopindex   ; LSB of index
+                bne _repeat     ; definitely not done
 
-                pla             ; MSB of index
+                ; increment MSB using ADC to get V flag when we flip from $7f to $80
+                clv
                 clc
-                adc #1          ; use adc to get V flag
-                pha             ; put MSB of index back on stack
-
-_skip_msb:      phy             ; put LSB of index back on stack
+                lda loopindex+1
+                adc #1
+                sta loopindex+1
 
                 ; If V flag is set, we're done looping and continue
                 ; after the +LOOP instruction
-                bvs _hack+3     ; skip over JMP instruction
+                bvs _repeat+3     ; skip over JMP instruction
 
-_hack:          ; This is why this routine must be natively compiled: We
+_repeat:        ; This is why this routine must be natively compiled: We
                 ; compile the opcode for JMP here without an address to
-                ; go to, which is added by the next next instruction of
-                ; LOOP/+LOOP during compile time
+                ; go to, which is added by LOOP/+LOOP at compile time
                 .byte $4C
 loop_runtime_end:
 
@@ -11241,15 +11242,30 @@ z_um_star:      rts
 ; ## UNLOOP ( -- )(R: n1 n2 n3 ---) "Drop loop control from Return stack"
 ; ## "unloop"  auto  ANS core
         ; """https://forth-standard.org/standard/core/UNLOOP"""
+        ; always native
 xt_unloop:
-                ; Drop fudge number (limit/start from DO/?DO off the
-                ; return stack
-                pla
-                pla
-                pla
-                pla
+                ; This is used as an epliogue to each LOOP/+LOOP
+                ; as well as when we prior to EXIT'ng a loop
+                ; If we're in a nested loop we need to pull the previous
+                ; loop control vars from the return stack where we left them
+                ; and put them back into zero page.
+                ; If this was the outermost loop we just decrement the loop depth.
 
-z_unloop:       rts
+                ; outermost loop inc'd from $ff to 0
+                ; so dec leaving N=1 means we're good to go
+                dec loopdepth
+                bmi z_unloop
+
+                ; otherwise copy loopindex/loopfufa back to zero page
+                ; reversing the order we pushed them
+                ldy #0
+-               pla
+                sta loopindex,y
+                iny
+                cpy #4
+                bne -
+
+z_unloop:       ; rts
 
 
 ; ## UNTIL (C: dest -- ) ( -- ) "Loop flow control"

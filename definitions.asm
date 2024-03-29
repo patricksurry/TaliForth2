@@ -76,15 +76,15 @@ status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
         ; Bit 0 = Current history buffer lsb
         ;
         ; status+1 is used by ACCEPT to hold history lengths.
-loopdep:    .byte 0         ; nested loop depth
 
 ; The remaining ZP variables are uninitialized temporaries.
 
     .virtual
 tmpdsp:     .byte ?         ; temporary DSP (X) storage (single byte)
-looplim:    .word ?         ; current loop adjusted limit
-loopoff:    .word ?         ; current loop limit offset
-loopleave:  .word ?         ; LEAVE chaining ; TODO existing tmp
+loopdepth:  .byte ?         ; global loop nesting depth (-1 outside any loop)
+loopindex:  .word ?         ; current loop adjusted index (must form dword with loopfufa)
+loopfufa:   .word ?         ; current loop fudge factor ($8000-limit)
+loopleave:  .word ?         ; LEAVE chaining ; TODO existing tmp?
 tmptos:     .word ?         ; temporary TOS storage
 tmp1:       .word ?         ; temporary storage
 tmp2:       .word ?         ; temporary storage
