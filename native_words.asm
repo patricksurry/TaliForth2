@@ -154,9 +154,8 @@ xt_quit:
                 iny
                 sta (up),y
 
-                ; loopctrl points to the current 4 byte loop control block
-                ; with the first actual block at offset zero, so initialize as -4
-                lda #(256-4)
+                ; initialize loopctrl: see definitions.asm
+                lda #loopctrlinit
                 sta loopctrl
 
                 ; STATE is zero (interpret, not compile)
@@ -3105,10 +3104,24 @@ do_runtime:
         ; """
                 ; add a loop control block
                 lda loopctrl
-                clc
-                adc #4
+                bpl +
+                ; If this is a nested loop and we were caching (bit 7 aka I=1)
+                ; the enclosing loop, write back loopindex LSB to the LCB
+                pha
+                asl
+                asl
+                tay
+                lda loopidx0
+                sta loopindex,y
+                pla
++
+                ina
+                ora #$40        ; set I=0,P=1
                 sta loopctrl
-                tay             ; save the block index
+
+                asl             ; multiply by four (losing control bits)
+                asl             ;
+                tay             ; this gives the LCB index
 
                 ; data stack has ( limit index -- )
                 ;
@@ -3138,13 +3151,15 @@ do_runtime:
                 ; Second step: index is FUFA plus original index
                 clc
                 lda 0,x             ; LSB of original index
+                sta loopi           ; stash index in ZP
                 adc loopfufa,y
                 sta loopindex,y     ; write to loop control block
                 lda 1,x             ; MSB of orginal index
+                sta loopi+1
                 adc loopfufa+1,y
                 sta loopindex+1,y
 
-                inx
+                inx                 ; clean up the stack
                 inx
                 inx
                 inx
@@ -5036,9 +5051,29 @@ xt_i:
                 dex
 
                 ; The fudged index and ofset are stored in the current
-                ; loop control block
+                ; loop control block.  If the loop is cached we
+                ; have the current I value in zeropage
 
-                ldy loopctrl
+                lda loopctrl
+                bmi _fast       ; if bit 7, I=1 we have I precalculated
+                jsr calc_loop_index
+                bra z_i
+
+_fast:          lda loopi
+                sta 0,x
+                lda loopi+1
+                sta 1,x
+
+z_i:            rts
+
+
+calc_loop_index:
+        ; with A containing LCB index (not offset)
+        ; calculate corresponding loop index and write to TOS
+        ; used by xt_i and xt_j
+                asl
+                asl             ; x4 for LCB offset, dropping flag bits
+                tay
                 sec
                 lda loopindex,y
                 sbc loopfufa,y
@@ -5046,9 +5081,7 @@ xt_i:
                 lda loopindex+1,y
                 sbc loopfufa+1,y
                 sta 1,x
-
-z_i:            rts
-
+                rts
 
 
 ; ## IF (C: -- orig) (flag -- ) "Conditional flow control"
@@ -5399,24 +5432,13 @@ z_is:           rts
         ; """
 
 xt_j:
-                ; get the previous loop control
-                lda loopctrl
-                sec
-                sbc #4
-                tay
-
                 dex                 ; make space on the stack
                 dex
 
-                sec
-                lda loopindex,y
-                sbc loopfufa,y
-                sta 0,x             ; LSB of index - fufa
-
-                lda loopindex+1,y
-                sbc loopfufa+1,y
-                sta 1,x             ; MSB of de-fudged index
-
+                ; get the previous loop control
+                lda loopctrl
+                dea
+                jsr calc_loop_index
 z_j:            rts
 
 
@@ -5838,10 +5860,7 @@ _noleave:
                 lda 1,x
                 sta loopleave+1
 
-                ;inx
-                ;inx
-                ;dex
-                ;dex
+                ; reuse TOS
 
                 ; Clean up the loop params by appending unloop
                 lda #<xt_unloop
@@ -5876,7 +5895,11 @@ plus_loop_runtime:
         ; word called (+LOOP) or (LOOP)
         ; """
 
-                ldy loopctrl
+                lda loopctrl        ; get LCB offset
+                asl
+                asl
+                tay
+
                 clc
                 lda loopindex,y
                 adc 0,x             ; LSB of step
@@ -5901,26 +5924,58 @@ _hack:          ; This is why this routine must be natively compiled: We
                 .byte $4C
 plus_loop_runtime_end:
 
+
 loop_runtime:
         ; """Runtime compile for LOOP when stepping by one.
         ; This must always be native compiled.
         ; """
 
-                ; do_runtime has set up the stack with
-                ; ( R: $8000-limit  $8000-limit+index )
+                ; do_runtime has set up the loop control block with
+                ; loopindex:    $8000-limit+index
+                ; loopfufa:     $8000-limit
 
-                ; so we can increment the top word on the stack
-                ; and look for overflow since the $8000-limit+index
-                ; hits $8000 when index reaches limit
+                ; so we need to increment loopindex and
+                ; and look for overflow as explained in do_runtime
 
-                ldy loopctrl
-                lda loopindex,y
-                ina
+                lda loopctrl
+                bpl _notcached
+
+                ; this is the fast (cached) path when bit 7 aka I = 1
+_cached:        inc loopi           ; speculatively increment I
+                bne +
+                inc loopi+1         ; this saves a bunch of cycles for I word
++
+                inc loopidx0        ; increment the LSB of loopindex
+                bne _repeat         ; avoid expensive test most of the time
+
+                ; we might be done, so now have to check the MSB
+                asl                 ; A still contains loopctrl
+                asl                 ; x4 to get LCB offset
+                tay
+                bra _chkv
+
+_notcached:     asl                 ; loopctrl x4 gives the LCB offset
+                asl                 ; and bit 6 (P) in left in the carry
+                tay
+                lda loopindex,y     ; LSB of loop index
+
+                bcc _slow           ; P=0, take the slow road
+
+                sta loopidx0        ; cache the MSB of loopindex
+                ; set bit 7, I=1 in loopctrl to enable caching on future iterations
+                ; we could do this a bit faster with TSB but we also need A=loopctrl
+                ; when returning to the _cached path
+                lda loopctrl
+                ora #$80
+                sta loopctrl
+                bra _cached
+
+_slow:          ina                 ; update LSB
                 sta loopindex,y
                 bne _repeat         ; definitely not done
 
                 ; increment MSB using ADC to get V flag when we flip from $7f to $80
-                clv
+_chkv:          clv
                 clc
                 lda loopindex+1,y
                 adc #1
@@ -11234,11 +11289,14 @@ z_um_star:      rts
 xt_unloop:
                 ; This is used as an epliogue to each LOOP/+LOOP
                 ; as well as prior to EXIT'ng a loop
-                ; We just need to drop the current loop control block
+                ; We need to drop the current loop control block
+                ; by decrementing loopctrl and clearing both flag
+                ; bits to disable optimization since there's no point
+                ; trying to cache things in an outer loop now.
 
                 lda loopctrl
-                sec
-                sbc #4
+                dea                 ; decrement NNNNNN
+                and #loopctrlinit   ; clear the I,P cache flags
                 sta loopctrl
 
 z_unloop:       rts
