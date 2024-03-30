@@ -124,7 +124,7 @@ RTS instruction at the end of each word.
 | HEX | `hex` | ANS core ext | 6 | **auto** |
 | HEXSTORE | `hexstore` | Tali | 82 | **auto** |
 | HOLD | `hold` | ANS core | 17 | **auto** |
-| I | `i` | ANS core | 34 | **auto** |
+| I | `i` | ANS core | 20 | **auto** |
 | IF | `if` | ANS core | 16 | **auto** |
 | IMMEDIATE | `immediate` | ANS core | 11 | **auto** |
 | INPUT | `input` | Tali Forth | 10 | tested |
@@ -261,7 +261,7 @@ RTS instruction at the end of each word.
 | UD_DOT_R | `ud.r` | Tali double | 30 | **auto** |
 | UM_SLASH_MOD | `um/mod` | ANS core | 65 | **auto** |
 | UM_STAR | `um*` | ANS core | 69 | **auto** |
-| UNLOOP | `unloop` | ANS core | 7 | **auto** |
+| UNLOOP | `unloop` | ANS core | 15 | **auto** |
 | UNTIL | `until` | ANS core | 20 | **auto** |
 | UNUSED | `unused` | ANS core ext | 15 | **auto** |
 | UPDATE | `update` | ANS block | 8 | **auto** |

@@ -86,53 +86,38 @@ tmpdsp:     .byte ?         ; temporary DSP (X) storage (single byte)
 
 loopctrl:   .byte ?         ; Offset and flags for DO/LOOP/+LOOP control.
 loopidx0    .byte ?         ; cached LSB of current loop index for LOOP (not +LOOP)
-loopi       .word ?         ; cached I for current LOOP (not +LOOP)
 
-loopctrlinit = %00111111    ; initial value and mask to clear cache bits
 loopindex = $100            ; loop control block index for adjusted loopindex
 loopfufa  = $102            ; loop control block offset for limit fudge factor
 
-    ; Each loop needs two control words (loopindex and loopfufa) stored
-    ; in a 4-byte (dword) loop control block (LCB).
-    ; Remembering state across nested loops requires a stack of LCBs.
-    ; A traditional forth stores this data on the return stack
+    ; Each loop needs two control words (loopindex and loopfufa)
+    ; which are stored in a 4-byte (dword) loop control block (LCB).
+    ; Remembering state across nested loops means we need a stack of LCBs.
+    ; A traditional Forth stores these blocks directly on the return stack
     ; but it's simpler for us to use a separate stack which grows upward
     ; from $100 towards the return stack (which grows downward from $1ff).
-    ; This has the same storage requirement but is easier for us to manage.
-    ; The loopctrl stores the index of the active LCB plus two flag bits.
-    ; which let us improve single-stepping LOOP performance (not +LOOP).
-    ; The loopctrl bitmap is %IPNN NNNN.
-    ; NNNNNN is the LCB index ranging from 111111 (-1) for no active loop
-    ; through 000000, 000001, etc  The current LCB address is $100 + 4*NNNNNN.
-    ; I=1 (bit 7) means we're using loopidx0 and loopi in zp for caching.
-    ; P=1 (bit 6) means the current loop is a candidate for caching.
+    ; This requires the same storage but is easier for us to manage.
+    ; The loopctrl byte is our loop stack pointer with current LCB offset.
+    ; The loopidx0 byte caches the LSB of the current loopindex
+    ; which helps us avoid some indexed operations.
     ;
     ; Here's how the various loop words interact to manage the loop:
     ;
-    ; DO increments loopctrl to assign the next LCB, and sets I=0, P=1.
-    ; This indicates the loop might be cacheable but isn't cached yet.
+    ; DO adds 4 to loopctrl to assign the next LCB.
     ; It writes the initial values of loopindex and loopfufa to the LCB and
-    ; copies the original I value to loopi in the zero page.
+    ; copies the LSB of loopindex to loopidx0
     ;
-    ; LOOP means a single-stepped loop where caching can help since
-    ; we can use INC instead of ADC to avoid most checks 255 out of 256 times.
-    ; We can also maintain the current value of I cheaply for the I word.
-    ; It tests the I bit. If I=0 it checks the P bit. If P=1 it copies
-    ; the LSB of loopindex to zeropage and sets I=1 to enable caching.
-    ; If P=0 it increments loopindex in the LCB, checking for loop ending overflow.
-    ; If I=1 (originally or because P=1 triggered I=1) it increments
-    ; both loopidx0 and loopi in zp and does the MSB overflow check
-    ; only when loopidx0 is 0.
+    ; LOOP can inc loopidx0 and avoids the LCB unless the result is 0
+    ;
+    ; +LOOP updates loopidx0 and (if needed) the MSB loopindex. it can
+    ; also avoid some checks if we have no carry and the step is < 256
 
-    ; +LOOP ignores both flags and uses 16bit math to update loopindex in the LCB
+    ; UNLOOP subtracts 4 from loopctrl to drop the current LCB.
+    ; it copies the now current LSB of loopindex to loopidx0
+    ; so that any enclosing loop has the correct value
 
-    ; UNLOOP decrements looptctrl to drop the current LCB and clears both IP bits.
-    ; This means that any nested loop disables caching in the enclosing loop.
-
-    ; the I word copies loopi from zp if the loopctrl flag I=1, otherwise
-    ; uses 16bit math to calculate the index from the LCB (loopindex+loopfufa)
-
-    ; the J word always uses 16bit math to calculate J
+    ; the I and J words use 16bit math to calculate the index from the LCB
+    ; I can use loopidx0 for the LSB of loopindex
 
 loopleave:  .word ?         ; tmp for LEAVE chaining ;TODO could it use existing tmp?
 tmptos:     .word ?         ; temporary TOS storage

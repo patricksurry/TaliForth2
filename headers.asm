@@ -816,12 +816,12 @@ nt_question_do:
         .text "?do"
 
 nt_i:
-        .byte 1, CO+AN
+        .byte 1, CO
         .word nt_j, xt_i, z_i
         .text "i"
 
 nt_j:
-        .byte 1, CO+AN
+        .byte 1, CO
         .word nt_loop, xt_j, z_j
         .text "j"
 

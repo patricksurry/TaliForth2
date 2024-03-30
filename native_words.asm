@@ -154,8 +154,8 @@ xt_quit:
                 iny
                 sta (up),y
 
-                ; initialize loopctrl: see definitions.asm
-                lda #loopctrlinit
+                ; initialize loopctrl for no active loop
+                lda #(256-4)
                 sta loopctrl
 
                 ; STATE is zero (interpret, not compile)
@@ -3102,26 +3102,16 @@ do_runtime:
         ; in some Forths. Usually, we would define this as a separate word
         ; and compile it with COMPILE, and the Always Native (AN) flag.
         ; """
-                ; add a loop control block
-                lda loopctrl
-                bpl +
-                ; If this is a nested loop and we were caching (bit 7 aka I=1)
-                ; the enclosing loop, write back loopindex LSB to the LCB
-                pha
-                asl
-                asl
-                tay
-                lda loopidx0
-                sta loopindex,y
-                pla
+                ldy loopctrl
+                bmi +                   ; is this the first LCB?
+                lda loopidx0            ; no, write cached LSB
+                sta loopindex,y         ; back to loopindex in the LCB
 +
-                ina
-                ora #$40        ; set I=0,P=1
-                sta loopctrl
-
-                asl             ; multiply by four (losing control bits)
-                asl             ;
-                tay             ; this gives the LCB index
+                iny                     ; 4 bytes for next LCB
+                iny
+                iny
+                iny
+                sty loopctrl
 
                 ; data stack has ( limit index -- )
                 ;
@@ -3151,11 +3141,9 @@ do_runtime:
                 ; Second step: index is FUFA plus original index
                 clc
                 lda 0,x             ; LSB of original index
-                sta loopi           ; stash index in ZP
                 adc loopfufa,y
-                sta loopindex,y     ; write to loop control block
+                sta loopidx0        ; write LSB to cache not LCB
                 lda 1,x             ; MSB of orginal index
-                sta loopi+1
                 adc loopfufa+1,y
                 sta loopindex+1,y
 
@@ -5042,7 +5030,7 @@ z_hold:         rts
         ; """https://forth-standard.org/standard/core/I
         ; See the Control Flow section of the manual for details.
         ;
-        ; This word can either be native compiled or not since
+        ; This word be native compiled or not since
         ; it no longer depends on the return stack.
         ; """
 
@@ -5050,27 +5038,17 @@ xt_i:
                 dex
                 dex
 
-                ; The fudged index and ofset are stored in the current
-                ; loop control block.  If the loop is cached we
-                ; have the current I value in zeropage
+                ; The fudged index and offset are stored in the current
+                ; loop control block.  loopidx0 is cached in zp
 
-                lda loopctrl
-                bmi _fast       ; if bit 7, I=1 we have I precalculated
-                asl
-                asl             ; x4 for LCB offset, dropping flag bits
-                tay
+                ldy loopctrl
                 sec
-                lda loopindex,y
+                lda loopidx0
                 sbc loopfufa,y
                 sta 0,x
                 lda loopindex+1,y
                 sbc loopfufa+1,y
-                bra _msb
-
-_fast:          lda loopi
-                sta 0,x
-                lda loopi+1
-_msb:           sta 1,x
+                sta 1,x
 
 z_i:            rts
 
@@ -5417,20 +5395,18 @@ z_is:           rts
         ; Copy second loop counter from Return Stack to stack. Note we use
         ; a fudge factor for loop control; see the Control Flow section of
         ; the manual for more details.
-        ; Since the "I" limit/fufa are in zero page, we're first up on the stack
         ;
-        ; This must be native compiled since it manipulates the stack
+        ; This can be native compiled or not since it no longer uses the stack
         ; """
 
 xt_j:
                 dex                 ; make space on the stack
                 dex
 
-                ; 4 x (loopctrl-1) gives outer LCB offset
+                ; subtract four to get the enclosing LCB offset
                 lda loopctrl
-                dea
-                asl
-                asl             ; x4 for LCB offset, dropping flag bits
+                sec
+                sbc #4
                 tay
                 sec
                 lda loopindex,y
@@ -5885,51 +5861,10 @@ z_loop:
 z_plus_loop:    rts
 
 
-plus_loop_runtime:
-        ; """Runtime compile for +LOOP when we have an arbitrary step.
-        ; See below for loop_runtime for step=1. Note we use a fudge factor for
-        ; loop control so we can test with the Overflow Flag. See
-        ; the Control Flow section of the manual for details.
-        ; The step value is TOS in the loop. This
-        ; must always be native compiled. In some Forths, this is a separate
-        ; word called (+LOOP) or (LOOP)
-        ; """
-
-                lda loopctrl        ; get LCB offset
-                asl
-                asl
-                tay
-
-                clc
-                lda loopindex,y
-                adc 0,x             ; LSB of step
-                sta loopindex,y
-
-                clv
-                lda loopindex+1,y   ; MSB of index
-                adc 1,x             ; MSB of step
-                sta loopindex+1,y   ; put MSB of index back on stack
-
-                inx                 ; dump step from TOS
-                inx
-
-                ; If V flag is set, we're done looping and continue
-                ; after the +LOOP instruction
-                bvs _hack+3     ; skip over JMP instruction
-
-_hack:          ; This is why this routine must be natively compiled: We
-                ; compile the opcode for JMP here without an address to
-                ; go to, which is added by the next next instruction of
-                ; LOOP/+LOOP during compile time
-                .byte $4C
-plus_loop_runtime_end:
-
-
 loop_runtime:
         ; """Runtime compile for LOOP when stepping by one.
         ; This must always be native compiled.
         ; """
-
                 ; do_runtime has set up the loop control block with
                 ; loopindex:    $8000-limit+index
                 ; loopfufa:     $8000-limit
@@ -5937,49 +5872,52 @@ loop_runtime:
                 ; so we need to increment loopindex and
                 ; and look for overflow as explained in do_runtime
 
-                lda loopctrl
-                bpl _notcached
-
-                ; this is the fast (cached) path when bit 7 aka I = 1
-_cached:        inc loopi           ; speculatively increment I
-                bne +
-                inc loopi+1         ; this saves a bunch of cycles for I word
-+
                 inc loopidx0        ; increment the LSB of loopindex
                 bne _repeat         ; avoid expensive test most of the time
 
-                ; we might be done, so now have to check the MSB
-                asl                 ; A still contains loopctrl
-                asl                 ; x4 to get LCB offset
-                tay
-                bra _chkv
+                ; we might be done, but need to inc and check the MSB
 
-_notcached:     asl                 ; loopctrl x4 gives the LCB offset
-                asl                 ; and bit 6 (P) in left in the carry
-                tay
-                lda loopindex,y     ; LSB of loop index
-
-                bcc _slow           ; P=0, take the slow road
-
-                sta loopidx0        ; cache the MSB of loopindex
-                ; set bit 7, I=1 in loopctrl to enable caching on future iterations
-                ; we could do this a bit faster with TSB but we also need A=loopctrl
-                ; when returning to the _cached path
-                lda loopctrl
-                ora #$80
-                sta loopctrl
-                bra _cached
-
-_slow:          ina                 ; update LSB
-                sta loopindex,y
-                bne _repeat         ; definitely not done
-
-                ; increment MSB using ADC to get V flag when we flip from $7f to $80
-_chkv:          clv
-                clc
-                lda loopindex+1,y
-                adc #1
+                ldy loopctrl
+                ; for the +1 case we need to increment MSB and test for #$80
+                ; unlike the +LOOP case where we need V to tell us we crossed #$80
+_chkv:          lda loopindex+1,y
+                ina
+                cmp #$80
+                beq _repeat+3       ; done?  skip jmp back
                 sta loopindex+1,y
+
+_repeat:        ; This is why this routine must be natively compiled: We
+                ; compile the opcode for JMP here without an address to
+                ; go to, which is added by LOOP/+LOOP at compile time
+                .byte $4C
+loop_runtime_end:
+
+
+plus_loop_runtime:
+        ; """Runtime compile for +LOOP when we have an arbitrary step.
+        ; See below for loop_runtime when step=1. Note we use a fudge factor for
+        ; loop control so we can test with the Overflow Flag. See
+        ; the Control Flow section of the manual for details.
+        ; The step value is TOS in the loop.
+        ; This must always be native compiled.
+        ; In some Forths, this is a separate word called (+LOOP) or (LOOP)
+        ; """
+
+                clc
+                lda 0,x             ; LSB of step
+                adc loopidx0
+                sta loopidx0
+
+                inx                 ; dump step from TOS before MSB test
+                inx                 ; since we might skip it
+                lda $ff,x           ; MSB of step since 1,x == -1,x+2
+                bne _chkv           ; if it's non-zero we have to check
+                bcc _repeat         ; but if 0 and no carry, we're good
+
+_chkv:          clv
+                ldy loopctrl        ; get LCB offset
+                adc loopindex+1,y   ; MSB of index
+                sta loopindex+1,y   ; put MSB of index back on stack
 
                 ; If V flag is set, we're done looping and continue
                 ; after the +LOOP instruction
@@ -5987,9 +5925,10 @@ _chkv:          clv
 
 _repeat:        ; This is why this routine must be natively compiled: We
                 ; compile the opcode for JMP here without an address to
-                ; go to, which is added by LOOP/+LOOP at compile time
+                ; go to, which is added by the next next instruction of
+                ; LOOP/+LOOP during compile time
                 .byte $4C
-loop_runtime_end:
+plus_loop_runtime_end:
 
 
 ; ## LSHIFT ( x u -- u ) "Shift TOS left"
@@ -11290,14 +11229,18 @@ xt_unloop:
                 ; This is used as an epliogue to each LOOP/+LOOP
                 ; as well as prior to EXIT'ng a loop
                 ; We need to drop the current loop control block
-                ; by decrementing loopctrl and clearing both flag
-                ; bits to disable optimization since there's no point
-                ; trying to cache things in an outer loop now.
+                ; and restore the cached loopidx0 of the prior loop, if any
 
-                lda loopctrl
-                dea                 ; decrement NNNNNN
-                and #loopctrlinit   ; clear the I,P cache flags
-                sta loopctrl
+                ldy loopctrl
+                dey
+                dey
+                dey
+                dey
+                sty loopctrl
+                bmi z_unloop            ; no active loops?
+
+                lda loopindex,y         ; else re-cache the MSB of loopindex
+                sta loopidx0
 
 z_unloop:       rts
 
