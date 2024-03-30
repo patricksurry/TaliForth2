@@ -5056,21 +5056,6 @@ xt_i:
 
                 lda loopctrl
                 bmi _fast       ; if bit 7, I=1 we have I precalculated
-                jsr calc_loop_index
-                bra z_i
-
-_fast:          lda loopi
-                sta 0,x
-                lda loopi+1
-                sta 1,x
-
-z_i:            rts
-
-
-calc_loop_index:
-        ; with A containing LCB index (not offset)
-        ; calculate corresponding loop index and write to TOS
-        ; used by xt_i and xt_j
                 asl
                 asl             ; x4 for LCB offset, dropping flag bits
                 tay
@@ -5080,8 +5065,14 @@ calc_loop_index:
                 sta 0,x
                 lda loopindex+1,y
                 sbc loopfufa+1,y
-                sta 1,x
-                rts
+                bra _msb
+
+_fast:          lda loopi
+                sta 0,x
+                lda loopi+1
+_msb:           sta 1,x
+
+z_i:            rts
 
 
 ; ## IF (C: -- orig) (flag -- ) "Conditional flow control"
@@ -5435,10 +5426,19 @@ xt_j:
                 dex                 ; make space on the stack
                 dex
 
-                ; get the previous loop control
+                ; 4 x (loopctrl-1) gives outer LCB offset
                 lda loopctrl
                 dea
-                jsr calc_loop_index
+                asl
+                asl             ; x4 for LCB offset, dropping flag bits
+                tay
+                sec
+                lda loopindex,y
+                sbc loopfufa,y
+                sta 0,x
+                lda loopindex+1,y
+                sbc loopfufa+1,y
+                sta 1,x
 z_j:            rts
 
 

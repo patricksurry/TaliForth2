@@ -124,7 +124,7 @@ RTS instruction at the end of each word.
 | HEX | `hex` | ANS core ext | 6 | **auto** |
 | HEXSTORE | `hexstore` | Tali | 82 | **auto** |
 | HOLD | `hold` | ANS core | 17 | **auto** |
-| I | `i` | ANS core | 19 | **auto** |
+| I | `i` | ANS core | 34 | **auto** |
 | IF | `if` | ANS core | 16 | **auto** |
 | IMMEDIATE | `immediate` | ANS core | 11 | **auto** |
 | INPUT | `input` | Tali Forth | 10 | tested |
@@ -132,7 +132,7 @@ RTS instruction at the end of each word.
 | INT_TO_NAME | `int>name` | Tali Forth | 114 | **auto** |
 | INVERT | `invert` | ANS core | 15 | **auto** |
 | IS | `is` | ANS core ext | 24 | **auto** |
-| J | `j` | ANS core | 8 | **auto** |
+| J | `j` | ANS core | 25 | **auto** |
 | KEY | `key` | ANS core | 9 | tested |
 | LATESTNT | `latestnt` | Tali Forth | 13 | **auto** |
 | LATESTXT | `latestxt` | Gforth | 6 | **auto** |
