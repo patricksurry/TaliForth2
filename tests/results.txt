@@ -3356,9 +3356,9 @@ char w       ' digit?        cycle_test 2drop      CYCLES:     86 ok
 : dodoword 100 0 do 10 0 do loop loop ;  ok
              ' dodoword      cycle_test            CYCLES:  33410 ok
 : dodowordij 100 0 do 10 0 do i drop j drop loop loop ;  ok
-             ' dodowordij    cycle_test            CYCLES: 156410 ok
+             ' dodowordij    cycle_test            CYCLES: 168410 ok
 : dodowordbigi 10 0 do 1024 0 do i drop loop loop ;  ok
-             ' dodowordbigi  cycle_test            CYCLES: 781140 ok
+             ' dodowordbigi  cycle_test            CYCLES: 770940 ok
 : doword+loop 100 0 do 5 +loop ;  ok
              ' doword+loop   cycle_test            CYCLES:   2213 ok
 \ skipping     does  ok
@@ -3389,7 +3389,7 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:    928 ok
 \ skipping     hold  ok
 \ skipping     i  ( exercised by doxxx above )  ok
 : ifloop 0 100 0 do i 2 and if 1 else -1 then + loop drop ;  ok
-             ' ifloop        cycle_test            CYCLES:  25741 ok
+             ' ifloop        cycle_test            CYCLES:  25642 ok
 : cword ;    ' immediate     cycle_test            CYCLES:     72 ok
              ' input         cycle_test drop       CYCLES:     28 ok
 ' dup        ' int>name      cycle_test drop       CYCLES:   2413 ok
