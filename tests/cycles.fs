@@ -12,6 +12,7 @@ testing cycle counts
 \ desired to keep the CYCLE: counts lined up.
 
 hex
+20 nc-limit !  \ restore default that tali.fs messes with
 
 \ The location of the result
 F008 constant cycles
