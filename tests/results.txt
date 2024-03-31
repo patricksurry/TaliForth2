@@ -3243,8 +3243,8 @@ testing cycle counts  ok
 \ Take care when editing this file as the whitespace on the ends of lines is  ok
 \ desired to keep the CYCLE: counts lined up.  ok
   ok
-hex  ok
 20 nc-limit !  \ restore default that tali.fs messes with  ok
+hex  ok
   ok
 \ The location of the result  ok
 F008 constant cycles  ok
@@ -3306,7 +3306,7 @@ drop \ accept test complete  ok
              ' \             cycle_test            CYCLES:     41 ok
              ' base          cycle_test drop       CYCLES:     26 ok
 : beginuntil 100 begin 1- ?dup 0= until ;  ok
-             ' beginuntil    cycle_test            CYCLES:  13062 ok
+             ' beginuntil    cycle_test            CYCLES:  13063 ok
 : beginwhile 100 begin 1- ?dup while repeat ;  ok
              ' beginwhile    cycle_test            CYCLES:  10463 ok
              ' bell          cycle_test            CYCLES:     36 ok
@@ -3330,7 +3330,7 @@ pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
              ' :             cycle_test wrd ;      CYCLES:  15823 ok
              ' :noname       cycle_test ; drop     CYCLES:     50 ok
 5            ' ,             cycle_test            CYCLES:     66 ok
-' aword      ' compile,      cycle_test            CYCLES:    930 ok
+' aword      ' compile,      cycle_test            CYCLES:    919 ok
 : bword ;    ' compile-only  cycle_test            CYCLES:     72 ok
 5            ' constant      cycle_test mycnst     CYCLES:  16322 ok
 here         ' count         cycle_test 2drop      CYCLES:     59 ok
@@ -3353,11 +3353,11 @@ char w       ' digit?        cycle_test 2drop      CYCLES:     86 ok
 : doword 100 0 do loop ;  ok
              ' doword        cycle_test            CYCLES:   1304 ok
 : dowordi 100 0 do i drop loop ;  ok
-             ' dowordi       cycle_test            CYCLES:   6003 ok
+             ' dowordi       cycle_test            CYCLES:   5904 ok
 : dodoword 100 0 do 10 0 do loop loop ;  ok
              ' dodoword      cycle_test            CYCLES:  42704 ok
 : dodowordij 100 0 do 10 0 do i drop j drop loop loop ;  ok
-             ' dodowordij    cycle_test            CYCLES: 150004 ok
+             ' dodowordij    cycle_test            CYCLES: 149704 ok
 : dodowordbigi 10 0 do 1024 0 do i drop loop loop ;  ok
              ' dodowordbigi  cycle_test            CYCLES: 587424 ok
 : doword+loop 100 0 do 5 +loop ;  ok
@@ -3381,7 +3381,7 @@ here         ' @             cycle_test drop       CYCLES:     59 ok
 \ making counted string for find  ok
 here 5 c, char a c, char w c, char o c,  ok
 char r c, char d c,  ok
-             ' find          cycle_test 2drop      CYCLES:   1268 ok
+             ' find          cycle_test 2drop      CYCLES:   1264 ok
 s" aword"    ' find-name     cycle_test drop       CYCLES:    932 ok
 5. 5         ' fm/mod        cycle_test 2drop      CYCLES:   1311 ok
 5 5          ' >             cycle_test drop       CYCLES:     81 ok
@@ -3498,7 +3498,7 @@ s" *"        ' type          cycle_test           *CYCLES:    121 ok
              ' unused        cycle_test drop       CYCLES:     36 ok
 5            ' value         cycle_test fword      CYCLES:  17251 ok
              ' fword         cycle_test drop       CYCLES:     58 ok
-5            ' to            cycle_test fword      CYCLES:   1145 ok
+5            ' to            cycle_test fword      CYCLES:   1142 ok
              ' variable      cycle_test gword      CYCLES:  17033 ok
              ' gword         cycle_test drop       CYCLES:     45 ok
 char "       ' word          cycle_test "txt" drop CYCLES:    676 ok
