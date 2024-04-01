@@ -73,7 +73,10 @@ drop \ accept test complete
 \ skipping     at-xy
              ' \             cycle_test           
              ' base          cycle_test drop      
-\ skipping     begin
+: beginuntil 100 begin 1- ?dup 0= until ;
+             ' beginuntil    cycle_test           
+: beginwhile 100 begin 1- ?dup while repeat ;
+             ' beginwhile    cycle_test           
              ' bell          cycle_test           
              ' bl            cycle_test drop      
 here 5       ' blank         cycle_test           
@@ -111,8 +114,20 @@ here         ' count         cycle_test 2drop
 char w       ' digit?        cycle_test 2drop     
 \ skipping     disasm
 5.           ' dnegate       cycle_test 2drop     
-\ skipping     ?do
-\ skipping     do
+: do?word1 5 5 ?do loop ;
+             ' do?word1      cycle_test           
+: do?word2 100 0 ?do i drop loop ;
+             ' do?word2      cycle_test           
+: doword 100 0 do loop ;
+             ' doword        cycle_test           
+: dowordi 100 0 do i drop loop ;
+             ' dowordi       cycle_test           
+: dodoword 100 0 do 10 0 do loop loop ;
+             ' dodoword      cycle_test           
+: dodowordij 100 0 do 10 0 do i drop j drop loop loop ;
+             ' dodowordij    cycle_test           
+: doword+loop 100 0 do 5 +loop ;
+             ' doword+loop   cycle_test           
 \ skipping     does
 \ skipping     .
 \ skipping     ."
@@ -139,7 +154,9 @@ s" aword"    ' find-name     cycle_test drop
              ' here          cycle_test drop      
              ' hex           cycle_test decimal   
 \ skipping     hold
-\ skipping     i
+\ skipping     i  ( exercised by doxxx above )
+: ifloop 0 100 0 do i 2 and if 1 else -1 then + loop drop ;
+             ' ifloop        cycle_test           
 : cword ;    ' immediate     cycle_test           
              ' input         cycle_test drop      
 ' dup        ' int>name      cycle_test drop      
@@ -242,7 +259,7 @@ s" *"        ' type          cycle_test
 5            ' u.            cycle_test         
 5 5          ' u>            cycle_test drop      
 5 5          ' u<            cycle_test drop      
-             ' strip-underflow   cycle_test drop      
+             ' strip-underflow   cycle_test drop  
 5. 5         ' um/mod        cycle_test 2drop     
 5 5          ' um*           cycle_test 2drop     
 \ skipping     unloop
@@ -262,4 +279,3 @@ char "       ' word          cycle_test "txt" drop
 5            ' 0>            cycle_test drop      
 5            ' 0<            cycle_test drop      
 5            ' 0<>           cycle_test drop      
-

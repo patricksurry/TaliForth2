@@ -18,24 +18,30 @@ TALI_OPTIONAL_WORDS :?= [ "ed", "editor", "ramdrive", "block", "environment?", "
 ; Default line ending is line feed.
 TALI_OPTION_CR_EOL :?= [ "lf" ]
 
-; Label used to calculate UNUSED. Silly for Tali Forth, where we assume
-; 32 KiB RAM and 32 KiB ROM, but kept here to make the code more useful for
-; other hardware configurations
+; Default to verbose strings
+TALI_OPTION_TERSE :?= 0
+
+; Default to ctrl-n/p accept history
+TALI_OPTION_HISTORY :?= 1
+
+; Label used to calculate UNUSED based on the hardware configuration in platform/
 code0:
 
-.include "definitions.asm"      ; Top-level definitions, memory map
-
-; Insert point for Tali Forth after kernel hardware setup
+; Entry point for Tali Forth after kernel hardware setup
 forth:
 
 .include "native_words.asm"     ; Native Forth words. Starts with COLD
+.include "definitions.asm"      ; Top-level definitions, memory map
+                                ; included here to put relocatable tables after native words
 .include "assembler.asm"        ; SAN assembler
 .include "disassembler.asm"     ; SAN disassembler
 .include "ed.asm"               ; Line-based editor ed6502
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
+.if ! TALI_OPTION_TERSE         ; omit startup strings if terse
 .binary "forth_words.asc"
+.endif
 forth_words_end:
 
 ; User-defined Forth words, see forth_code/README.md
@@ -93,7 +99,6 @@ cmpl_a:
                 inc cp+1
 _done:
                 rts
-
 
 ; =====================================================================
 ; CODE FIELD ROUTINES
@@ -283,7 +288,7 @@ _overflow:
                 ; Handle overflow because we use signed numbers
                 eor #$80                ; complement negative flag
 _not_equal:
-                ora #1                  ; if overflow, we can't be eqal
+                ora #1                  ; if overflow, we can't be equal
 _done:
                 rts
 
@@ -370,7 +375,7 @@ _loop:
                 ; complaining for us
                 jsr xt_number           ; ( addr u -- u|d )
 
-                ; Otherweise, if we're interpreting, we're done
+                ; Otherwise, if we're interpreting, we're done
                 lda state
                 beq _loop
 
@@ -419,12 +424,12 @@ _got_name_token:
                 inx
                 inx                     ; ( nt )
 
-                ; Save a version of nt for error handling and compilation stuff
-                lda 0,x
-                sta tmpbranch
-                lda 1,x
-                sta tmpbranch+1
-
+                ; Whether interpreting or compiling we'll need to check the
+                ; status byte at nt+1 so let's save it now
+                jsr xt_one_plus
+                lda (0,x)
+                pha
+                jsr xt_one_minus
                 jsr xt_name_to_int      ; ( nt - xt )
 
                 ; See if we are in interpret or compile mode, 0 is interpret
@@ -434,8 +439,7 @@ _got_name_token:
                 ; We are interpreting, so EXECUTE the xt that is TOS. First,
                 ; though, see if this isn't a compile-only word, which would be
                 ; illegal. The status byte is the second one of the header.
-                ldy #1
-                lda (tmpbranch),y
+                pla
                 and #CO                 ; mask everything but Compile Only bit
                 beq _interpret
 
@@ -458,8 +462,7 @@ _compile:
                 ; IMMEDIATE word, which would mean we execute it right now even
                 ; during compilation mode. Fortunately, we saved the nt so life
                 ; is easier. The flags are in the second byte of the header
-                ldy #1
-                lda (tmpbranch),y
+                pla
                 and #IM                 ; Mask all but IM bit
                 bne _interpret          ; IMMEDIATE word, execute right now
 

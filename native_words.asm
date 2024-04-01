@@ -95,6 +95,7 @@ _load_user_vars_loop:
 
                 jsr xt_evaluate
 
+.if TALI_OPTION_HISTORY
                 ; Initialize all of the history buffers by putting a zero in
                 ; each length byte.
                 stz hist_buff
@@ -105,7 +106,7 @@ _load_user_vars_loop:
                 stz hist_buff+$280
                 stz hist_buff+$300
                 stz hist_buff+$380
-
+.endif
                 ; fall through to ABORT
 
 
@@ -145,6 +146,13 @@ xt_quit:
                 ; SOURCE-ID is zero (keyboard input)
                 stz insrc
                 stz insrc+1
+
+                ; BLK is zero
+                lda #0
+                ldy #blk_offset
+                sta (up),y
+                iny
+                sta (up),y
 
                 ; STATE is zero (interpret, not compile)
                 stz state
@@ -209,57 +217,6 @@ _print:
 z_cold:
 z_abort:
 z_quit:         ; no RTS required
-
-
-
-; This table holds all of the initial values for the variables in zero page.
-; This table is used by COLD.  This must match the zp offsets in definitions.asm
-cold_zp_table:
-        .word cp0+256+1024      ; cp moved to make room for user vars and
-                                ; block buffer
-        .word dictionary_start  ; dp
-        .word 0                 ; workword
-        .word 0                 ; insrc (SOURCE-ID is 0 for keyboard)
-        .word buffer0           ; cib
-        .word 0                 ; ciblen
-        .word 0                 ; toin
-        .word 0                 ; ip
-        .word kernel_putc       ; output
-        .word kernel_getc       ; input
-        .word 0                 ; havekey
-        .word 0                 ; state (0 = interpret)
-        .word 10                ; base
-        .word 20                ; nc-limit
-        .word 0                 ; uf_strip (off by default)
-        .word cp0               ; up (user vars put right at beginning of
-                                ; available RAM)
-        .word 0                 ; status
-cold_zp_table_end:
-
-; No further ZP variables are initialized. The variables past this point are
-; all temporaries.
-
-; This table holds the initial values for forth user variables. This table is
-; used by COLD.  This must match the user variable offsets in definitions.aasm
-cold_user_table:
-        .word 0                         ;  0 BLK
-        .word 0                         ;  2 SCR
-        .byte 0                         ;  4 CURRENT = FORTH-WORDLIST
-        .byte 4                         ;  5 #WORDLISTS (FORTH EDITOR ASSEMBLER ROOT)
-        .word dictionary_start          ;  6 FORTH-WORDLIST
-        .word editor_dictionary_start   ;  8 EDITOR-WORDLIST
-        .word assembler_dictionary_start ; a ASSEMBLER-WORDLIST
-        .word root_dictionary_start     ;  c ROOT-WORDLIST
-        .word 0,0,0,0,0,0,0,0           ;  e User wordlists
-        .byte 1                         ; 1e #ORDER
-        .byte 0,0,0,0,0,0,0,0,0         ; 1f search-order
-        .word cp0+256                   ; 28 Address of buffer (right after USER vars)
-        .word 0                         ; 2a block in buffer
-        .word 0                         ; 2c buffer status (not in use)
-        .word xt_block_word_error       ; 2e block-read vector
-        .word xt_block_word_error       ; 30 block-write vector
-        .word 0                         ; 32 'COLD
-cold_user_table_end:
 
 
 ; ## ABORT_QUOTE ( "string" -- ) "If flag TOS is true, ABORT with message"
@@ -401,12 +358,13 @@ accept_loop:
                 cmp #AscDEL     ; (CTRL-h)
                 beq _backspace
 
+.if TALI_OPTION_HISTORY
                 ; Check for CTRL-p and CTRL-n to recall input history
                 cmp #AscCP
                 beq _ctrl_p
                 cmp #AscCN
                 beq _ctrl_n
-
+.endif
                 ; That's enough for now. Save and echo character.
                 sta (tmp1),y
                 iny
@@ -448,6 +406,7 @@ _backspace:
 
                 bra accept_loop
 
+.if TALI_OPTION_HISTORY
 _ctrl_p:
                 ; CTRL-p was pressed. Recall the previous input buffer.
 
@@ -590,9 +549,14 @@ _save_history_loop:
                 bra _save_history_loop
 
 _save_history_done:
+.else
+accept_done:            ; nothing to do if we're not saving history
+.endif
+
 z_accept:
                 rts
 
+.if TALI_OPTION_HISTORY
 accept_total_recall:
         ; """Internal subroutine for ACCEPT that recalls history entry"""
 
@@ -630,7 +594,7 @@ accept_total_recall:
                 lda #$7F
 +
                 rts
-
+.endif
 
 
 ; ## ACTION_OF ( "name" -- xt ) "Get named deferred word's xt"
@@ -947,9 +911,43 @@ z_at_xy:        rts
 
 
 ; ## BACKSLASH ( -- ) "Ignore rest of line"
-; ## "\"  auto  ANS core ext
-        ; """https://forth-standard.org/standard/core/bs"""
+; ## "\"  auto  ANS block ext
+        ; """https://forth-standard.org/standard/block/bs"""
 xt_backslash:
+                ; Check BLK to see if we are interpreting a block
+                ldy #blk_offset
+                lda (up),y
+                iny
+                ora (up),y
+                beq backslash_not_block
+
+                ; We are in a block.  Move toin to next multiple of 64.
+
+                ; First, however, we have to see if we are at an exact
+                ; multiple of 64+1, which happens when a \ is at the end
+                ; of a line (in which case we do nothing).  We also have
+                ; to check for exact multiple of 64, which will happen with
+                ; a backslash at the very end of a block.
+                lda toin
+                and #$3F
+                beq z_backslash
+                cmp #$01
+                beq z_backslash
+
+                ; Not at the end of the line (beginning of next line,
+                ; after parsing the \, technically), so move to the
+                ; next line.
+                lda toin
+                and #$C0        ; Clear lower bits to move to beginning of line.
+
+                clc             ; Add $40 (64 decimal) to move to next line.
+                adc #$40
+                sta toin
+                bcc z_backslash
+                inc toin+1
+                bra z_backslash
+
+backslash_not_block:
                 lda ciblen
                 sta toin
                 lda ciblen+1
@@ -2030,7 +2028,7 @@ xt_compile_comma:
                 bne _check_nt
 
                 ; No nt in dictionary. Just compile as a JSR.
-                jmp _compile_as_jump
+                jmp compile_as_jump
 
 _check_nt:
                 ; put nt away for safe keeping
@@ -2067,7 +2065,7 @@ _compile_check:
                 and #NN
                 beq _check_size_limit
 
-                jmp _compile_as_jump    ; too far for BRA
+                jmp compile_as_jump    ; too far for BRA
 
 _check_size_limit:
                 ; Native compile is a legal option, but we need to see what
@@ -2094,7 +2092,7 @@ _check_size_limit:
 _jumpto_compile_as_jump:
                 ; If the wordsize is greater than the user-defined
                 ; limit, it will be compiled as a subroutine jump.
-                jmp _compile_as_jump    ; too far for BRA
+                jmp compile_as_jump    ; too far for BRA
 
 _compile_as_code:
                 ; We arrive here with the length of the word's code TOS and
@@ -2129,12 +2127,12 @@ _compile_as_code:
                 ldy #0
 
 _strip_loop:
-                lda _strip_table,y      ; LSB of first word
+                lda strip_table,y      ; LSB of first word
                 cmp 4,x                 ; LSB of xt
                 bne _next_entry
 
                 ; LSB is the same, test MSB
-                lda _strip_table+1,y
+                lda strip_table+1,y
                 cmp 5,x
                 beq _found_entry
 
@@ -2143,8 +2141,8 @@ _strip_loop:
 _next_entry:
                 ; Not a word that needs stripping, so check next entry in table
                 ; Let's see if we're done with the table (marked by zero entry)
-                lda _strip_table,y      ; pointing to LSB
-                ora _strip_table+1,y    ; get MSB
+                lda strip_table,y      ; pointing to LSB
+                ora strip_table+1,y    ; get MSB
                 beq _underflow_strip    ; table done, let's get out of here
 
                 iny
@@ -2163,7 +2161,7 @@ _found_entry:
                 ; Get the adjustment out of the size table. We were clever
                 ; enough to make sure the cut on both ends of the code is
                 ; is the same size.
-                lda _strip_size,y
+                lda strip_size,y
                 sta tmptos              ; save a copy
 
                 ; Adjust xt: Start later
@@ -2197,12 +2195,12 @@ _underflow_strip:
                 ; See if the user wants underflow stripping turned on
                 lda uf_strip
                 ora uf_strip+1
-                beq _specials_done
+                beq cmpl_inline
 
                 ; See if this word even contains underflow checking
                 lda tmp3
                 and #UF
-                beq _specials_done
+                beq cmpl_inline
 
                 ; If we arrived here, underflow has to go. It's always 3 bytes
                 ; long. Note hat PICK is a special case.
@@ -2225,7 +2223,7 @@ _underflow_strip:
 +
 
                 ; --- END OF SPECIAL CASES ---
-_specials_done:
+cmpl_inline:    ; ( src dst u -- )
                 ; Store size of area to be copied for calculation of
                 ; new CP. We have to do this after all of the special cases
                 ; because they might change the size
@@ -2248,22 +2246,36 @@ _specials_done:
                 adc cp+1
                 sta cp+1
 
-                bra _done
+                rts
 
-_strip_table:
+cmpl_inline_y:      ; with ( src -- ) and Y = # bytes, write to CP
+                dex             ; set up stack as ( src dst n -- )
+                dex
+                dex
+                dex
+
+                sty 0,x
+                stz 1,x             ; assume < 256 bytes
+                lda cp
+                sta 2,x
+                lda cp+1
+                sta 3,x
+                bra cmpl_inline
+
+strip_table:
                ; List of words we strip the Return Stack antics from
                ; during native compile, zero terminated. The index here
                ; must be the same as for the sizes
                 .word xt_r_from, xt_r_fetch, xt_to_r    ; R>, R@, >R
                 .word xt_two_to_r, xt_two_r_from, 0000  ; 2>R, 2R>, EOL
 
-_strip_size:
+strip_size:
                 ; List of bytes to be stripped from the words that get their
                 ; Return Stack antics removed during native compile. Index must
                 ; be the same as for the xts. Zero terminated.
                 .byte 4, 4, 4, 6, 6, 0          ; R>, R@, >R, 2>R, 2R>, EOL
 
-_compile_as_jump:
+compile_as_jump:
                 ; Compile xt as a subroutine jump
                 lda #$20
                 sta (cp)
@@ -2285,7 +2297,6 @@ _compile_as_jump:
 +
                 inx             ; drop xt
                 inx
-_done:
 z_compile_comma:
                 rts
 
@@ -2408,6 +2419,7 @@ z_count:        rts
 ; ## "cr"  auto  ANS core
         ; """https://forth-standard.org/standard/core/CR"""
 xt_cr:
+
 .if "cr" in TALI_OPTION_CR_EOL
                 lda #AscCR
                 jsr emit_a
@@ -2764,7 +2776,6 @@ _done:
 z_dabs:         rts
 
 
-
 ; ## DECIMAL ( -- ) "Change radix base to decimal"
 ; ## "decimal"  auto  ANS core
         ; """https://forth-standard.org/standard/core/DECIMAL"""
@@ -2955,6 +2966,7 @@ z_digit_question:
                 rts
 
 
+.if "disassembler" in TALI_OPTIONAL_WORDS
 ; ## DISASM ( addr u -- ) "Disassemble a block of memory"
 ; ## "disasm"  tested  Tali Forth
         ; """Convert a segment of memory to assembler output. This
@@ -2969,6 +2981,7 @@ xt_disasm:
                 jsr disassembler
 
 z_disasm:       rts
+.endif
 
 
 ; ## DNEGATE ( d -- d ) "Negate double cell number"
@@ -3031,27 +3044,19 @@ do_common:
                 ; compile the address we need to LDA at runtime
                 dex
                 dex
-                lda cp
-                sta 0,x                 ; LSB
                 lda cp+1
                 sta 1,x                 ; MSB   ( limit start here )
+                lda cp
+                sta 0,x                 ; LSB
 
-                ; now we compile six dummy bytes that LOOP/+LOOP will
-                ; replace by the actual LDA/PHA instructions
-                lda #5                  ; we don't really care about the value,
-                tay                     ; so we use 5 to be tricky
-_loop:
-                sta (CP),y
-                dey
-                bpl _loop
+                ; now advance cp by six bytes which LOOP/+LOOP will
+                ; replace with LDA/PHA instructions from loop_epilogue
 
-                ; update CP
-                ina             ; we used 5 as a dummy value, this is why
                 clc
-                adc CP
-                sta CP
+                adc #6
+                sta cp
                 bcc +
-                inc CP+1
+                inc cp+1
 +
                 ; compile the (?DO) portion of ?DO if appropriate
                 lda tmp1
@@ -3060,41 +3065,24 @@ _loop:
                 ; We came from ?DO, so compile its runtime first. We do
                 ; this with a quick loop because we know it has to be
                 ; Always Native anyway
+                ; set up stack for cmpl_inline_y ( src -- )
+                dex
+                dex
+                lda #<question_do_runtime
+                sta 0,x
+                lda #>question_do_runtime
+                sta 1,x
                 ldy #question_do_runtime_end-question_do_runtime
-                phy             ; save counter to calculate new CP
--
-                lda question_do_runtime,y
-                sta (cp),y
-                dey
-                bpl -
+                jsr cmpl_inline_y
 
-                ; adjust CP
-                pla             ; retrieve counter
-                clc
-                adc cp
-                sta cp
-                lda cp+1
-                adc #0          ; only care about carry
-                sta cp+1        ; fall through to _compile_do
+                ; fall through to _compile_do
 
 _compile_do:
                 ; compile runtime part of DO.
-                ldy #do_runtime_end-do_runtime  ; counter
-                phy             ; save counter to calculate new CP
--
-                lda do_runtime,y
-                sta (cp),y
-                dey
-                bpl -
-
-                ; adjust CP
-                pla             ; retrieve counter
-                clc
-                adc cp
-                sta cp
-                lda cp+1
-                adc #0          ; only care about carry
-                sta cp+1
+                ; do this as a subroutine since it only happens once and is a big chunk of code
+                ldy #>do_runtime
+                lda #<do_runtime
+                jsr cmpl_subroutine
 
                 ; HERE, hardcoded for speed. We put it on the Data Stack
                 ; where LOOP/+LOOP takes it from. Note this has nothing to
@@ -3124,6 +3112,12 @@ do_runtime:
         ; However, we can do it faster if we just copy the bytes
         ; of this routine with a simple loop in DO.
         ; """
+                ; stash return address so we can manipulate return stack
+                pla
+                sta tmp1
+                pla
+                sta tmp1+1
+
                 ; First step: create fudge factor (FUFA) by subtracting the
                 ; limit from $8000, the number that will trip the overflow
                 ; flag
@@ -3155,8 +3149,15 @@ do_runtime:
                 inx
                 inx
                 inx
-                inx             ; no RTS because this is copied into code
-do_runtime_end:
+                inx
+
+                lda tmp1+1
+                pha
+                lda tmp1
+                pha
+
+                rts
+
 
 question_do_runtime:
 
@@ -3442,7 +3443,6 @@ _done:
 z_dot_s:        rts
 
 
-
 ; ## D_DOT ( d -- ) "Print double"
 ; ## "d."  tested  ANS double
         ; """http://forth-standard.org/standard/double/Dd"""
@@ -3465,7 +3465,6 @@ xt_d_dot:
                 jsr xt_space
 
 z_d_dot:        rts
-
 
 
 ; ## D_DOT_R ( d u -- ) "Print double right-justified u wide"
@@ -3493,7 +3492,6 @@ xt_d_dot_r:
                 jsr xt_type
 
 z_d_dot_r:      rts
-
 
 
 ; ## DROP ( u -- ) "Pop top entry on Data Stack"
@@ -3661,6 +3659,7 @@ xt_ed:
 z_ed:           rts
 .endif
 
+
 ; ## EDITOR_WORDLIST ( -- u ) "WID for the Editor wordlist"
 ; ## "editor-wordlist"  tested  Tali Editor
         ; """ Commonly used like `editor-wordlist >order` to add the editor
@@ -3674,7 +3673,7 @@ z_ed:           rts
         ; """
 
 
-; ## ELSE (C: orig -- orig) ( -- ) "Conditional flow control"
+; ## ELSE (C: orig -- orig' ) ( -- ) "Conditional flow control"
 ; ## "else"  auto  ANS core
         ; """http://forth-standard.org/standard/core/ELSE
         ;
@@ -3683,10 +3682,9 @@ z_ed:           rts
 
 xt_else:
 xt_endof:
-                ; Put an unconditional branch.
-                ldy #>branch_runtime
-                lda #<branch_runtime
-                jsr cmpl_subroutine
+                ; Add an unconditional branch using a native jmp
+                lda #$4c        ; jmp opcode
+                jsr cmpl_a
 
                 ; Put the address of the branch address on the stack.
                 jsr xt_here
@@ -3696,42 +3694,114 @@ xt_endof:
                 jsr xt_zero
                 jsr xt_comma
 
-                ; Get the address to jump to (just after the
-                ; unconditional branch) for the IF to jump to
-                ; when false.
+                ; stash the branch target for later
+                ; and then calculate the forward branch from orig
+                jsr xt_swap         ; ( target orig )
+
+                ; fall through to xt_then
+
+xt_then:
+                ; (C: orig -- ) ( -- )
+
+                ; This is a compile-time word that writes the target address
+                ; of an earlier forward branch.  For example xt_if writes
+                ; BRANCH0 <placeholder> which wants to skip forward to here
+                ; if the condition is false.  The orig argument on the stack
+                ; is the address of the placeholder which needs to point here.
+                ;
+                ; Note this is also used by several other words that write
+                ; a forward branch, like xt_else and xt_while.
+                ;
+                ; Our compiled output so far looks like this:
+                ;
+                ;       jsr zero_branch_runtime   ; or an unconditional jmp
+                ; orig:
+                ;       lsb msb  ; placeholder address = $ffff if optimizable
+                ; ...
+                ; here:
+                ;
+                ; Normally we'd just write `here` into the placeholder address bytes.
+                ; But in some cases we can optimize using a native BEQ instead.
+                ; This requires (a) the original address is the target of 0BRANCH
+                ; and (b) here - orig - 2 is less than 128 (max native branch).
+                ; In such a case we rewrite the code as
+                ;
+                ;       jsr zero_test_runtime       ; drops TOS setting Z status bit
+                ; orig:
+                ;       beq (here - orig - 2)       ; in place of target address
+
+                ; We want to branch from orig to here, so stack it
                 jsr xt_here
-                jsr xt_rot
 
-                ; Update the original if 0branch address.
-                jsr xt_store
-z_else:
-z_endof:
-                rts
+                ; First check if orig is the target of 0BRANCH,
+                ; indicated by a placeholder of $ffff instead of the usual 0
 
+                lda (2,x)           ; get LSB at orig
+                ina                 ; was LSB $ff?  (only check for $xxff)
+                bne _no_opt
 
+                ; We have a candidate, but is it close enough?
 
-branch_runtime:
-        ; """Runtime component for a branch. Used by ELSE and ENDOF. This was
-        ; formally part of a separate word BRANCH which was later removed.
-        ; """
+                jsr xt_two_dup
+                jsr xt_swap
+                jsr xt_minus        ; ( C: orig here offset )
+                lda 1,x
+                bne _too_far        ; MSB must be zero
+                lda 0,x
+                dea                 ; we want here - orig - 2
+                dea                 ; don't care about carry
+                bmi _too_far        ; up to 127 is ok
 
-                ; The address on the Return Stack points to the last byte
-                ; of the JSR address, one byte below the branch literal
-                pla
-                sta tmpbranch
-                pla
-                sta tmpbranch+1
+                ; phew, we can actually optimize as native BEQ
 
-                ; Keep in mind: the address we just popped points one byte
-                ; lower than the branch literal we want to grab
-                ldy #1
-                lda (tmpbranch),y  ; LSB
+                sta 0,x             ; stash offset - 2
+
+                sec                 ; put orig - 2 in tmp1
+                lda 4,x
+                sbc #2
                 sta tmp1
-                iny
-                lda (tmpbranch),y  ; MSB
+                lda 5,x
+                sbc #0
                 sta tmp1+1
 
-                jmp (tmp1)
+                ; replace 0branch runtime with 0test that just sets Z
+                ldy #0
+-
+                lda beq_opt+1,y               ; skip the jsr
+                sta (tmp1),y
+                iny
+                cpy #(beq_opt_end-beq_opt-2)  ; three bytes, skip jsr and offset
+                bne -
+                lda 0,x             ; write the offset
+                sta (tmp1),y
+
+                inx                 ; clear the stack
+                inx
+                inx
+                inx
+                inx
+                inx
+                rts                 ; all done
+
+_too_far:
+                inx                 ; discard the offset we calculated
+                inx
+_no_opt:
+                ; Just stuff HERE in for the branch address back
+                ; at the IF or ELSE (origination address is on stack).
+                jsr xt_swap
+                jsr xt_store
+
+z_else:
+z_endof:
+z_then:         rts
+
+
+beq_opt:
+                jsr zero_test_runtime       ; replaces jsr zero_branch_runtime
+                beq beq_opt_end             ; the beq overwrites the placeholder
+                                            ; address with a calculated offset
+beq_opt_end:
 
 
 
@@ -3827,7 +3897,7 @@ z_endcase:      rts
         ; HEX
         ; : ENVIRONMENT? ( C-ADDR U -- FALSE | I*X TRUE )
         ; CASE
-        ; S" /COUNTED-STRING"    STRING_OF  7FFF TRUE ENDOF
+        ; S" /COUNTED-STRING"    STRING_OF    FF TRUE ENDOF
         ; S" /HOLD"              STRING_OF    FF TRUE ENDOF
         ; S" /PAD"               STRING_OF    54 TRUE ENDOF ( 84 DECIMAL )
         ; S" ADDRESS-UNIT-BITS"  STRING_OF     8 TRUE ENDOF
@@ -4022,7 +4092,7 @@ env_table_double:
         .word envs_max_d, envs_max_ud, 0000
 
 env_results_single:
-        .word $7FFF     ; /COUNTED-STRING
+        .word $00FF     ; /COUNTED-STRING
         .word $00FF     ; /HOLD
         .word $0054     ; /PAD (this is 84 decimal)
         .word $0008     ; ADDRESS-UNIT-BITS (keep "$" to avoid octal!)
@@ -4634,7 +4704,6 @@ _done:
 z_fm_slash_mod: rts
 
 
-
 .if "wordlist" in TALI_OPTIONAL_WORDS
 ; ## FORTH ( -- ) "Replace first WID in search order with Forth-Wordlist"
 ; ## "forth"  auto  ANS search ext
@@ -5005,18 +5074,18 @@ xt_i:
                 ; Get the fudged index off of the top of the stack. It's
                 ; easier to do math on the stack directly than to pop and
                 ; push stuff around
-                stx tmpdsp
+                phx
                 tsx
 
                 sec
-                lda $0101,x     ; LSB
-                sbc $0103,x
+                lda $0102,x     ; LSB
+                sbc $0104,x
                 tay
 
-                lda $0102,x     ; MSB
-                sbc $0104,x
+                lda $0103,x     ; MSB
+                sbc $0105,x
 
-                ldx tmpdsp
+                plx
 
                 sta 1,x         ; MSB of de-fudged index
                 sty 0,x         ; LSB of de-fudged index
@@ -5038,11 +5107,25 @@ xt_if:
                 ; Put the origination address on the stack for else/then
                 jsr xt_here
 
-                ; Stuff zero in for the branch address right now.
+                ; Stuff $ffff in for the branch address (optimizable)
                 ; THEN or ELSE will fix it later.
-                jsr xt_zero
+                jsr xt_true
                 jsr xt_comma
 z_if:           rts
+
+
+zero_test_runtime:
+        ; Drop TOS of stack setting Z flag, for optimizing short brances (see xt_then)
+                inx
+                inx
+                lda $fe,x           ; wraparound so inx doesn't wreck Z status
+                ora $ff,x
+                rts
+
+    ; footer for inline zero_test_runtime used in xt_until (excluding the rts)
+                bne zero_test_footer_end+2  ; branch fwd if non-zero
+                .byte $4c                   ; else JMP back
+zero_test_footer_end:
 
 
 zero_branch_runtime:
@@ -5052,11 +5135,12 @@ zero_branch_runtime:
         ; """
 
                 ; We use the return value on the 65c02 stack to determine
-                ; where we want to return to.
+                ; where we want to return to.  It points one byte before
+                ; the branch target address.
                 pla
-                sta tmpbranch
+                sta tmp1
                 pla
-                sta tmpbranch+1
+                sta tmp1+1
 
                 ; See if the flag is zero, which is the whole purpose of
                 ; this all
@@ -5066,48 +5150,33 @@ zero_branch_runtime:
 
                 ; Flag is TRUE, so we skip over the next two bytes. This is
                 ; the part between IF and THEN
-                lda tmpbranch   ; LSB
+                lda tmp1        ; LSB
                 clc
-                adc #2
+                adc #3          ; add one to RTS address plus two address bytes
                 sta tmp1
-                lda tmpbranch+1 ; MSB
-                adc #0          ; For carry
-                sta tmp1+1
-
-                bra _done
+                bcc _jump
+                inc tmp1+1      ; MSB
+                bra _jump
 
 _zero:
                 ; Flag is FALSE (0) so we take the jump to the address given in
                 ; the next two bytes. However, the address points to the last
                 ; byte of the JSR instruction, not to the next byte afterwards
                 ldy #1
-                lda (tmpbranch),y
-                sta tmp1
-                iny
-                lda (tmpbranch),y
-                sta tmp1+1
-
-                ; Now we have to subtract one byte from the address
-                ; given because of the way the 6502 calculates RTS
-                lda tmp1
-                bne +
-                dec tmp1+1
-+
-                dec tmp1
-
-_done:
-                ; However we got here, tmp1 has the value we push to jump
-                ; to
-                lda tmp1+1
-                pha             ; MSB first
-                lda tmp1
+                lda (tmp1),y
                 pha
+                iny
+                lda (tmp1),y
+                sta tmp1+1
+                pla
+                sta tmp1
 
+_jump:
+                ; However we got here, tmp1 has the address to jump to.
                 ; clean up the stack and jump
                 inx
                 inx
-
-                rts
+                jmp (tmp1)
 
 
 
@@ -5710,19 +5779,25 @@ z_load:         rts
 ; ## LOOP ( -- ) "Finish loop construct"
 ; ## "loop"  auto  ANS core
         ; """https://forth-standard.org/standard/core/LOOP
-        ; Compile-time part of LOOP. This does nothing more but push 1 on
-        ; the stack and then call +LOOP.
+        ; Compile-time part of LOOP. This is specialized to
+        ; increment by one.
         ;
         ; In Forth, this is
         ;       : LOOP  POSTPONE 1 POSTPONE (+LOOP) , POSTPONE UNLOOP ;
         ;       IMMEDIATE ; COMPILE-ONLY
         ; """
 xt_loop:
-                ; Have the finished word push 1 on the stack
-                ldy #>xt_one
-                lda #<xt_one
-                jsr cmpl_subroutine     ; drop through to +LOOP
+                ; Set up stack for cmpl_inline_y ( src -- )
+                dex
+                dex
 
+                ldy #loop_runtime_end-loop_runtime
+                lda #<loop_runtime
+                sta 0,x
+                lda #>loop_runtime
+                sta 1,x
+                jsr cmpl_inline_y
+                bra xt_loop_common
 
 ; ## PLUS_LOOP ( -- ) "Finish loop construct"
 ; ## "+loop"  auto  ANS core
@@ -5738,26 +5813,19 @@ xt_loop:
         ; """
 
 xt_plus_loop:
-                ; Compile the run-time part. We do this with a short loop
-                ; and not a call to COMPILE, because it has to be natively
-                ; coded anyway.
+                ; Compile the run-time part.
+                ; Set up stack for cmpl_inline_y ( src -- )
+                dex
+                dex
+
                 ldy #plus_loop_runtime_end-plus_loop_runtime
-                phy             ; save counter to adjust CP
--
-                lda plus_loop_runtime,y
-                sta (cp),y
-                dey
-                bpl -
+                lda #<plus_loop_runtime
+                sta 0,x
+                lda #>plus_loop_runtime
+                sta 1,x
+                jsr cmpl_inline_y
 
-                ; Adjust CP
-                pla
-                clc
-                adc cp
-                sta cp
-                lda cp+1
-                adc #0          ; only need carry
-                sta cp+1
-
+xt_loop_common:
                 ; The address we need to loop back to is TOS. Store it so
                 ; the runtime part of +LOOP jumps back up there
                 jsr xt_comma
@@ -5796,39 +5864,35 @@ xt_plus_loop:
                 lda cp
                 sec
                 sbc #1
-                sta tmp2
+                pha             ; lsb
                 lda cp+1
                 sbc #0
-                sta tmp2+1
+                pha             ; msb
 
-                ; now compile this in the DO/?DO routine
+                ; now compile our template in the DO/?DO routine
                 ldy #0
-
-                lda #$A9        ; opcode for LDA immediate
+-
+                lda loop_epilogue,y
+                bne +
+                pla
++
                 sta (tmp1),y
                 iny
-                lda tmp2+1      ; MSB
-                sta (tmp1),y
-                iny
-                lda #$48        ; Opcode for PHA
-                sta (tmp1),y
-                iny
-
-                lda #$A9        ; opcode for LDA immediate
-                sta (tmp1),y
-                iny
-                lda tmp2        ; LSB
-                sta (tmp1),y
-                iny
-                lda #$48        ; Opcode for PHA
-                sta (tmp1),y
+                cpy #(loop_epilogue_end-loop_epilogue)
+                bne -
 z_loop:
 z_plus_loop:    rts
 
+loop_epilogue:  ; we'll use this template to push the return address
+                lda #0
+                pha
+                lda #0
+                pha
+loop_epilogue_end:
 
 plus_loop_runtime:
-        ; """Runtime compile for loop control. This is used for both +LOOP and
-        ; LOOP which are defined at high level. Note we use a fudge factor for
+        ; """Runtime compile for +LOOP when we have an arbitrary step.
+        ; See below for loop_runtime for step=1. Note we use a fudge factor for
         ; loop control so we can test with the Overflow Flag. See
         ; the Control Flow section of the manual for details.
         ; The step value is TOS in the loop. This
@@ -5846,8 +5910,7 @@ plus_loop_runtime:
                 adc 1,x         ; MSB of step
                 pha             ; put MSB of index back on stack
 
-                tya             ; put LSB of index back on stack
-                pha
+                phy             ; put LSB of index back on stack
 
                 inx             ; dump step from TOS
                 inx
@@ -5861,9 +5924,36 @@ _hack:          ; This is why this routine must be natively compiled: We
                 ; go to, which is added by the next next instruction of
                 ; LOOP/+LOOP during compile time
                 .byte $4C
-
 plus_loop_runtime_end:
 
+loop_runtime:
+        ; """Runtime compile for LOOP when stepping by one.
+        ; This must always be native compiled.
+        ; """
+
+                clv             ; note inc doesn't affect V
+                ply             ; LSB of index
+                iny             ; add one
+                bne _skip_msb   ; definitely not done
+
+                pla             ; MSB of index
+                clc
+                adc #1          ; use adc to get V flag
+                pha             ; put MSB of index back on stack
+
+_skip_msb:      phy             ; put LSB of index back on stack
+
+                ; If V flag is set, we're done looping and continue
+                ; after the +LOOP instruction
+                bvs _hack+3     ; skip over JMP instruction
+
+_hack:          ; This is why this routine must be natively compiled: We
+                ; compile the opcode for JMP here without an address to
+                ; go to, which is added by the next next instruction of
+                ; LOOP/+LOOP during compile time
+                .byte $4C
+
+loop_runtime_end:
 
 ; ## LSHIFT ( x u -- u ) "Shift TOS left"
 ; ## "lshift"  auto  ANS core
@@ -5890,7 +5980,6 @@ _done:
                 inx
 
 z_lshift:       rts
-
 
 
 ; ## M_STAR ( n n -- d ) "16 * 16 --> 32"
@@ -5930,7 +6019,6 @@ xt_m_star:
                 jsr xt_dnegate
 _done:
 z_m_star:       rts
-
 
 
 ; ## MARKER ( "name" -- ) "Create a deletion boundry"
@@ -6275,7 +6363,6 @@ _loop:
 _done:
 z_minus_trailing:
                 rts
-
 
 
 ; ## MOD ( n1 n2 -- n ) "Divide NOS by TOS and return the remainder"
@@ -6898,7 +6985,6 @@ _loop:
 
 z_number_sign_s:
                 rts
-
 
 
 ; ## OF (C: -- of-sys) (x1 x2 -- |x1) "Conditional flow control"
@@ -8026,11 +8112,8 @@ xt_repeat:
 
                 ; Stuff HERE in for the branch address
                 ; to get out of the loop
-                jsr xt_here
-                jsr xt_swap
-                jsr xt_store
-
-z_repeat:       rts
+                jmp xt_then
+z_repeat:
 
 
 
@@ -8385,7 +8468,6 @@ z_search_wordlist:
 .endif
 
 
-
 ; ## SEE ( "name" -- ) "Print information about a Forth word"
 ; ## "see" tested  ANS tools
         ; """https://forth-standard.org/standard/tools/SEE
@@ -8477,16 +8559,18 @@ _flag_loop:
                 jsr xt_cr
 
                 ; Dump hex and disassemble
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 jsr xt_two_dup          ; ( xt u xt u )
+.endif
                 jsr xt_dump
                 jsr xt_cr
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 jsr xt_disasm
-
+.endif
                 pla
                 sta base
 
 z_see:          rts
-
 
 
 .if "wordlist" in TALI_OPTIONAL_WORDS
@@ -8588,7 +8672,7 @@ z_set_order:    rts
 xt_s_quote:
                 ; tmp2 will be used to determine if we are handling
                 ; escaped characters or not.  In this case, we are
-                ; not, so set it to zero.
+                ; not, so set it to zero.  (cf S_BACKSLASH_QUOTE)
                 stz tmp2
                 stz tmp2+1
 
@@ -8733,110 +8817,60 @@ _esc_x_second_digit:
 
                 jmp _save_character
 
+_esc_tr_table:
+    ; 26 character translation for simple escapes
+    ; 0 indicates no translation, hi bit indicates special
+    .byte   7               ; a -> BEL (ASCII value 7)
+    .byte   8               ; b -> Backspace (ASCII value 8)
+    .byte   0,0             ; c, d no escape
+    .byte   27              ; e -> ESC (ASCII value 27)
+    .byte   12              ; f -> FF (ASCII value 12)
+    .byte   0,0,0,0,0       ; g,h,i,j,k
+    .byte   10              ; l -> LF (ASCII value 10)
+    .byte   13+128          ; m -> CR/LF pair (ASCII values 13, 10)
+    ; n has configurable behavior which we hard-code in the table
+.if "cr" in TALI_OPTION_CR_EOL
+.if "lf" in TALI_OPTION_CR_EOL
+    .byte   13+128          ; n behaves like m --> cr/lf
+.else
+    .byte   13              ; n behaves like r --> cr
+.endif
+.else
+    .byte   10              ; n behaves like l --> lf
+.endif
+    .byte   0,0             ; o,p
+    .byte   34              ; q -> Double quote (ASCII value 34)
+    .byte   13              ; r ->  CR (ASCII value 13)
+    .byte   0               ; s
+    .byte   9               ; t -> Horizontal TAB (ASCII value 9)
+    .byte   0               ; u
+    .byte   11              ; v -> Vertical TAB (ASCII value 11)
+    .byte   0,0,0           ; w,x,y   (x is a special case later)
+    .byte   0+128           ; z -> NULL (ASCII value 0)
+
 _check_esc_chars:
                 ; Clear the escaped character flag (because we are
                 ; handling it right here)
                 stz tmp2+1
 
-                ; Process the escaped character
-_check_esc_a:
+                ; is it character a-z ?
                 cmp #'a'
-                bne _check_esc_b
+                bmi _check_esc_quote
+                cmp #'z'+1
+                bpl _check_esc_quote
+                ; check translation table
+                tay
+                lda _esc_tr_table - 'a',y   ; fake base address to index with a-z directly
+                bne _esc_replace
+                tya                     ; revert if no translation
+                bra _check_esc_quote
 
-                ; BEL (ASCII value 7)
-                lda #7
-                jmp _save_character
-
-_check_esc_b:
-                cmp #'b'
-                bne _check_esc_e
-
-                ; Backspace (ASCII value 8)
-                lda #8
-                jmp _save_character
-
-_check_esc_e:
-                cmp #'e'
-                bne _check_esc_f
-
-                ; ESC (ASCII value 27)
-                lda #27
-                bra _save_character
-
-_check_esc_f:
-                cmp #'f'
-                bne _check_esc_l
-
-                ; FF (ASCII value 12)
-                lda #12
-                bra _save_character
-
-_check_esc_l:
-                cmp #'l'
-                bne _check_esc_m
-
-                ; LF (ASCII value 10)
-                lda #10
-                bra _save_character
-
-_check_esc_m:
-                ; This one is not like the others because we save two
-                ; characters
-                cmp #'m'
-                bne _check_esc_n
-
-                ; CR/LF pair (ASCII values 13, 10)
-                lda #13
-                jsr cmpl_a
-                lda #10
-                bra _save_character
-
-_check_esc_n:
-                cmp #'n'
-                bne _check_esc_q
-
-                ; newline, impl. dependant, using LF (ASCII values 10)
-                lda #10
-                bra _save_character
-
-_check_esc_q:
-                cmp #'q'
-                bne _check_esc_r
-
-                ; Double quote (ASCII value 34)
-                lda #34
-                bra _save_character
-
-_check_esc_r:
-                cmp #'r'
-                bne _check_esc_t
-
-                ; CR (ASCII value 13)
-                lda #13
-                bra _save_character
-
-_check_esc_t:
-                cmp #'t'
-                bne _check_esc_v
-
-                ; Horizontal TAB (ASCII value 9)
-                lda #9
-                bra _save_character
-
-_check_esc_v:
-                cmp #'v'
-                bne _check_esc_z
-
-                ; Vertical TAB (ASCII value 11)
-                lda #11
-                bra _save_character
-
-_check_esc_z:
-                cmp #'z'
-                bne _check_esc_quote
-
-                ; NULL (ASCII value 0)
-                lda #0
+_esc_replace:   bpl _save_character     ; simple replacement
+                ; handle specials with hi bit set (NUL and CR/LF)
+                and #$7f                ; clear hi bit
+                beq _save_character     ; NUL we can just output
+                jsr cmpl_a              ; else output first char (CR)
+                lda #10                 ; followed by LF
                 bra _save_character
 
 _check_esc_quote:
@@ -8954,7 +8988,6 @@ _found_string_end:
 
 _done:
 z_s_quote:      rts
-
 
 
 ; ## S_TO_D ( u -- d ) "Convert single cell number to double cell"
@@ -9374,7 +9407,6 @@ z_slash_mod:
 z_slash:        rts
 
 
-
 ; ## SLASH_MOD ( n1 n2 -- n3 n4 ) "Divide NOS by TOS with a remainder"
 ; ## "/mod"  auto  ANS core
         ; """https://forth-standard.org/standard/core/DivMOD
@@ -9593,10 +9625,10 @@ sliteral_runtime:
 
 
 
-; ## SM_SLASH_REM ( d n1 -- n2 n3 ) "Symmetic signed division"
+; ## SM_SLASH_REM ( d n1 -- n2 n3 ) "Symmetric signed division"
 ; ## "sm/rem"  auto  ANS core
         ; """https://forth-standard.org/standard/core/SMDivREM
-        ; Symmetic signed division. Compare FM/MOD. Based on F-PC 3.6
+        ; Symmetric signed division. Compare FM/MOD. Based on F-PC 3.6
         ; by Ulrich Hoffmann. See http://www.xlerb.de/uho/ansi.seq
         ;
         ; Forth:
@@ -9913,17 +9945,9 @@ z_swap:         rts
 
 ; ## THEN (C: orig -- ) ( -- ) "Conditional flow control"
 ; ## "then"  auto  ANS core
-        ; """http://forth-standard.org/standard/core/THEN"""
-xt_then:
-                ; Get the address to jump to.
-                jsr xt_here
-
-                ; Stuff HERE in for the branch address back
-                ; at the IF or ELSE (origination address is on stack).
-                jsr xt_swap
-                jsr xt_store
-
-z_then:         rts
+        ; """http://forth-standard.org/standard/core/THEN
+        ; This is a dummy entry, the code is shared with xt_else
+        ; """
 
 
 .if "block" in TALI_OPTIONAL_WORDS
@@ -10401,7 +10425,6 @@ _done:
                 sta 5,x
 
 z_to_number:    rts
-
 
 
 .if "wordlist" in TALI_OPTIONAL_WORDS
@@ -11271,14 +11294,32 @@ z_unloop:       rts
 ; ## "until"  auto  ANS core
         ; """http://forth-standard.org/standard/core/UNTIL"""
 xt_until:
-                ; Compile a 0BRANCH
-                ldy #>zero_branch_runtime
-                lda #<zero_branch_runtime
-                jsr cmpl_subroutine
-
                 ; The address to loop back to is on the stack.
-                ; Just compile it as the destination for the
-                ; 0branch.
+                ; We could do a 0BRANCH but we can optimize with native
+                ; branching.  We'll generate code like this:
+                ;
+                ; dest:
+                ;       ...
+                ; here:
+                ;       (inline zero_test_runtime)
+                ;       bne +3
+                ;       jmp dest
+                ;
+                ; we could be clever and use beq back if short enough
+                ; to avoid the jmp but it doesn't seem worth the two cycle/3 byte saving
+
+                ldy #0
+-
+                lda zero_test_runtime,y
+                cmp #$60            ; skip RTS
+                beq +
+                jsr cmpl_a
++
+                iny
+                cpy #(zero_test_footer_end - zero_test_runtime)
+                bne -
+
+                ; add dest as the jmp target
                 jsr xt_comma
 
 z_until:        rts
@@ -11389,8 +11430,8 @@ xt_while:
                 ; address needs to go so it can be put there later.
                 jsr xt_here
 
-                ; Fill in the destination address with 0 for now.
-                jsr xt_zero
+                ; Fill in the destination address with $ffff (optimizable)
+                jsr xt_true
                 jsr xt_comma
 
                 ; Swap the two addresses on the stack.
@@ -11715,14 +11756,10 @@ xt_zero_equal:
 
                 lda 0,x
                 ora 1,x
-                beq _zero
-
-                ; not a zero, so we need a FALSE flag (0)
-                lda #0
-                bra _store
+                beq _zero       ; if 0, A is inverse of the TRUE (-1) we want
+                lda #$ff        ; else set A inverse of the FALSE (0) we want
 _zero:
-                ; We have a zero, so we need a TRUE flag (-1)
-                lda #$ff
+                eor #$ff        ; now just invert
 _store:
                 sta 0,x
                 sta 1,x
@@ -11784,15 +11821,11 @@ z_zero_less:    rts
 xt_zero_unequal:
                 jsr underflow_1
 
-                ldy #0          ; default false
-
                 lda 0,x
                 ora 1,x
-                beq _got_zero
-
-                dey
-_got_zero:
-                tya
+                beq _zero
+                lda #$ff
+_zero:
                 sta 0,x
                 sta 1,x
 

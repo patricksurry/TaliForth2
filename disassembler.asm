@@ -22,6 +22,7 @@
 ;       scratch (used for handling literals and JSRs)
 
 disassembler:
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 jsr xt_cr       ; ( addr u )
 _byte_loop:
                 ; Print address at start of the line. Note we use whatever
@@ -200,63 +201,52 @@ _print_mnemonic:
                 sta 0,x
                 stz 1,x
                 jsr xt_spaces
-                
-; Special handlers
-                ; Handle literals specially.
-                lda #<literal_runtime
+
+                ldy #(_end_handlers - _special_handlers - 4)
+_check_handler: lda _special_handlers,y
                 cmp scratch+1
-                bne _not_literal
-                lda #>literal_runtime
+                bne _next_handler
+                lda _special_handlers+1,y
                 cmp scratch+2
-                bne _not_literal
-                ; It's a literal.
-                jsr disasm_literal
-                jmp _printing_done
-                
-_not_literal:
-                ; Handle string literals specially.
-                lda #<sliteral_runtime
-                cmp scratch+1
-                bne _not_sliteral
-                lda #>sliteral_runtime
-                cmp scratch+2
-                bne _not_sliteral
-                ; It's a literal.
-                jsr disasm_sliteral
-                jmp _printing_done
-_not_sliteral:
-                ; Handle 0branch
-                lda #<zero_branch_runtime
-                cmp scratch+1
-                bne _not_0branch
-                lda #>zero_branch_runtime
-                cmp scratch+2
-                bne _not_0branch
-                ; It's a 0branch.
-                jsr disasm_0branch
-                jmp _printing_done
-_not_0branch
-                ; Handle branch
-                lda #<branch_runtime
-                cmp scratch+1
-                bne _not_branch
-                lda #>branch_runtime
-                cmp scratch+2
-                bne _not_branch
-                ; It's a branch.
-                jsr disasm_branch
-                jmp _printing_done
-_not_branch
+                beq _run_handler
+_next_handler:  dey
+                dey
+                dey
+                dey
+                bpl _check_handler
+
+_not_special:
                 ; Try the generic JSR handler, which will use the target of the
                 ; JSR as an XT and print the name if it exists.
                 jsr disasm_jsr
                 jmp _printing_done
 
+_run_handler:
+                lda _special_handlers+2,y
+                sta scratch+3
+                lda _special_handlers+3,y
+                sta scratch+4
+                jsr _dispatch_handler
+                jmp _printing_done
+
+_dispatch_handler:
+                jmp (scratch+3)
+
+; Special handlers
+_special_handlers:
+    .word literal_runtime,      disasm_literal
+    .word sliteral_runtime,     disasm_sliteral
+    .word zero_branch_runtime,  disasm_0branch
+    .word zero_test_runtime,    disasm_0test
+    .word do_runtime,           disasm_do
+_end_handlers:
+
+
 _not_jsr:
                 ; See if the instruction is a jump (instruction still in A)
                 ; (Strings start with a jump over the data.)
                 cmp #$4C
-                bne _printing_done
+                bne _not_jmp
 
                 ; We have a branch.  See if it's a string by looking for
                 ; a JSR sliteral_runtime at the jump target address.
@@ -295,7 +285,53 @@ _not_jsr:
 
                 ; It's a string literal jump.
                 jsr disasm_sliteral_jump
-_printing_done:                
+                jmp _printing_done
+
+_not_jmp:
+                ; is it a native branch instruction with one byte relative addressing?
+                ; opcodes are bra: $80 and bxx: %xxx1 0000
+                ; if so we'll display the branch target address
+
+                ; destructive test on opcode in A
+                cmp #$80            ; is it bra?
+                beq _is_rel
+                and #$1f
+                eor #$10            ; do bottom five bits match xxx10000 ?
+                bne _printing_done
+_is_rel:
+                ; treat opr as signed byte and add to addr following operand: (addr+1) + 1
+                ; scratch+1 contains the operand (offset), stack has (addr+1 u-1)
+                ldy #'v'            ; we'll indicate branch forward or back with v or ^
+                dex
+                dex
+                stz 1,x
+                lda scratch+1
+                sta 0,x
+                bpl +
+                dec 1,x             ; for negative offsets extend the sign bit so add works out
+                ldy #'^'            ; it's a backward branch
++               sec                 ; start counting from address after opcode
+                adc 4,x
+                sta 0,x
+                lda 1,x
+                adc 5,x
+                sta 1,x
+
+                phy                 ; save the direction indicator
+
+                dex
+                dex
+                lda #9
+                sta 0,x
+                stz 1,x
+                jsr xt_u_dot_r      ; print the destination with 5 leading spaces
+
+                lda #AscSp          ; print space and branch direction indicator
+                jsr emit_a
+                pla
+                jsr emit_a
+
+_printing_done:
                 jsr xt_cr
 
                 ; Housekeeping: Next byte
@@ -358,7 +394,7 @@ disasm_sliteral_jump:
                 jsr xt_one_minus
                 jsr xt_swap ; ( new_addr new_n )
                 rts
-                
+
 ; String literal handler
 disasm_sliteral:
                 lda #'S'
@@ -371,14 +407,14 @@ disasm_sliteral:
                 ; for each value.
                 jsr xt_swap             ; switch to (u addr)
                 jsr xt_one_plus
-                
+
                 jsr xt_dup
                 jsr xt_fetch
                 jsr xt_u_dot            ; Print the address of the string
                 ; Move along two bytes (already moved address one) to skip over the constant.
                 jsr xt_two
                 jsr xt_plus
-                
+
                 jsr xt_dup
                 jsr xt_question         ; Print the length of the string
                 ; Move along to the very last byte of the data.
@@ -394,7 +430,7 @@ disasm_sliteral:
                 stz 1,x
                 jsr xt_minus            ; ( addr+4 u-4 )
                 rts
-                
+
 
 ; 0BRANCH handler
 disasm_0branch:
@@ -408,6 +444,18 @@ disasm_branch:
                 ; The address after the 0BRANCH is handled the same as a literal.
                 bra disasm_print_literal
 
+disasm_0test:
+                lda #str_disasm_0test
+                jsr print_string_no_lf
+                jmp emit_a
+
+; DO handler
+disasm_do:
+                lda #'D'
+                jsr emit_a
+                lda #'O'
+                jmp emit_a
+
 ; Literal handler
 disasm_literal:
                 lda #str_disasm_lit
@@ -419,7 +467,7 @@ disasm_print_literal:
                 jsr xt_one_plus
 
                 jsr xt_dup
-                jsr xt_question ; Print the value at the adress
+                jsr xt_question ; Print the value at the address
                 ; Move along two bytes (already moved address one) to skip over the constant.
                 jsr xt_one_plus
                 jsr xt_swap ; (addr+2 u)
@@ -428,7 +476,7 @@ disasm_print_literal:
                 rts
 
 ; JSR handler
-disasm_jsr: 
+disasm_jsr:
                 ; The address of the JSR is in scratch+1 and scratch+2.
                 ; The current stack is already ( addr u ) where addr is the address of the last byte of
                 ; the JSR target address, and we want to leave it like that so moving on to the next byte
@@ -440,7 +488,7 @@ disasm_jsr:
                 sta 0,x
                 lda scratch+2
                 sta 1,x
-                ; ( xt ) 
+                ; ( xt )
                 jsr xt_int_to_name
                 ; int>name returns zero if we just don't know.
                 lda 0,x
@@ -473,7 +521,7 @@ _disasm_no_nt:
                 jsr compare_16bit
                 beq _disasm_jsr_uflow_check_upper
                 bcs _disasm_jsr_unknown
-_disasm_jsr_uflow_check_upper:                
+_disasm_jsr_uflow_check_upper:
                 ; Compare to upper underflow addresses
                 lda #<underflow_4
                 sta 0,x
@@ -484,13 +532,14 @@ _disasm_jsr_uflow_check_upper:
                 bcc _disasm_jsr_unknown
 _disasm_jsr_soc:
                 ; It's an underflow check.
-                lda #str_disasm_sdc  
+                lda #str_disasm_sdc
                 jsr print_string_no_lf  ; "STACK DEPTH CHECK"
 _disasm_jsr_unknown:
                 jsr xt_two_drop
                 rts
-                
-        
+.endif
+
+.if "disassembler" in TALI_OPTIONAL_WORDS || "assembler" in TALI_OPTIONAL_WORDS
 ; =========================================================
 oc_index_table:
         ; Lookup table for the instruction data (length of instruction in
@@ -576,7 +625,7 @@ oc_table:
         ; ( addr u ) and then mask all but the bits 2-0 of the TOS.
 
         ; To make debugging easier, we keep the raw numbers for the lengths of
-        ; the instruction and mnemonicis and let the assembler do the math
+        ; the instruction and mnemonics and let the assembler do the math
         ; required to shift and add. The actual mnemonic string follows after
         ; and is not zero terminated because we have the length in bits 2 to 0.
 
@@ -584,7 +633,7 @@ oc_table:
 	oc01:	.text 2*64+7, "ora.zxi"
 ;      (oc02)
 ;      (oc03)
-        oc04:   .text 2*64+5, "tsb.z"
+    oc04:   .text 2*64+5, "tsb.z"
 	oc05:	.text 2*64+5, "ora.z"
 	oc06:	.text 2*64+5, "asl.z"
 ;      (oc07)
@@ -854,6 +903,6 @@ oc_table:
 
         ; Common routine for opcodes that are not supported by the 65c02
 	oc__:	.text 1, "?"
-
+.endif
 ; used to calculate size of assembled disassembler code
 disassembler_end:
