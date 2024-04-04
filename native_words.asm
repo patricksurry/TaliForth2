@@ -154,7 +154,8 @@ xt_quit:
                 iny
                 sta (up),y
 
-                ; initialize loopctrl for no active loop
+                ; initialize loopctrl to indicate no active loop
+                ; see definitions.asm
                 lda #(256-4)
                 sta loopctrl
 
@@ -3017,7 +3018,7 @@ do_common:
                 ldy #question_do_runtime_end-question_do_runtime
                 jsr cmpl_inline_y
 
-                ; will will skip the loop if limit = start
+                ; We will skip the loop if limit = start
                 ; via a placeholder jmp at the end of the prequel
                 ; so save current CP to patch the jmp target in xt_loop
                 lda cp
@@ -3052,7 +3053,7 @@ _compile_do:
                 sta 1,x
 
                 ; For now there is no LEAVE addr to patch, which we
-                ; flag with MSB=0 since we'll never compile to zero page
+                ; flag with MSB=0 (zero page) which is never a compilation target
                 stz loopleave+1
 
                 ; compile runtime part of DO.
@@ -3107,11 +3108,11 @@ do_runtime:
                 lda loopidx0            ; no, write cached LSB
                 sta loopindex,y         ; back to loopindex in the LCB
 +
-                iny                     ; 4 bytes for next LCB
+                iny                     ; Reserve 4 bytes for next LCB
                 iny
                 iny
                 iny
-                sty loopctrl
+                sty loopctrl            ; Udpate LCB stack pointer
 
                 ; data stack has ( limit index -- )
                 ;
@@ -4283,9 +4284,8 @@ z_execute_parsing:
 ; ## EXIT ( -- ) "Return control to the calling word immediately"
 ; ## "exit"  auto  ANS core
         ; """https://forth-standard.org/standard/core/EXIT
-        ; If we're in a loop, user needs to UNLOOP first and get everything
-        ; we we might have put on the Return Stack off as well. This should
-        ; be natively compiled.
+        ; If we're in a loop, user should UNLOOP first to clean up
+        ; any loop control. This should be natively compiled.
         ; """
 
 xt_exit:
@@ -5028,9 +5028,9 @@ z_hold:         rts
 ; ## I ( -- n )(R: n -- n)  "Copy loop counter to stack"
 ; ## "i"  auto  ANS core
         ; """https://forth-standard.org/standard/core/I
-        ; See the Control Flow section of the manual for details.
+        ; See definitions.asm and the Control Flow section of the manual.
         ;
-        ; This word be native compiled or not since
+        ; This word can be native compiled or not since
         ; it no longer depends on the return stack.
         ; """
 
@@ -5039,11 +5039,11 @@ xt_i:
                 dex
 
                 ; The fudged index and offset are stored in the current
-                ; loop control block.  loopidx0 is cached in zp
+                ; loop control block, with loopidx0 cached in zp
 
                 ldy loopctrl
                 sec
-                lda loopidx0
+                lda loopidx0        ; cached LSB of loopindex
                 sbc loopfufa,y
                 sta 0,x
                 lda loopindex+1,y
@@ -5481,8 +5481,8 @@ z_latestxt:     rts
         ; http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx
         ;
         ;       : LEAVE POSTPONE BRANCH HERE SWAP 0 , ; IMMEDIATE COMPILE-ONLY
-        ;TODO update me
-        ; See the Control Flow section in the manual for details of how this works.
+        ; See definitions.asm and the Control Flow section in the manual
+        ; for details of how this works.
         ; This must be native compile and not IMMEDIATE
         ; """
 
@@ -5875,11 +5875,11 @@ loop_runtime:
                 inc loopidx0        ; increment the LSB of loopindex
                 bne _repeat         ; avoid expensive test most of the time
 
-                ; we might be done, but need to inc and check the MSB
+                ; we might be done so need to inc and check the MSB
 
                 ldy loopctrl
-                ; for the +1 case we need to increment MSB and test for #$80
-                ; unlike the +LOOP case where we need V to tell us we crossed #$80
+                ; for the +1 case we can increment MSB and test for #$80
+                ; unlike the +LOOP case where we use V to flag crossing #$80
 _chkv:          lda loopindex+1,y
                 ina
                 cmp #$80
@@ -11239,7 +11239,7 @@ xt_unloop:
                 sty loopctrl
                 bmi z_unloop            ; no active loops?
 
-                lda loopindex,y         ; else re-cache the MSB of loopindex
+                lda loopindex,y         ; else re-cache the LSB of loopindex
                 sta loopidx0
 
 z_unloop:       rts

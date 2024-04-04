@@ -10,6 +10,8 @@ marker tali_tests
 0s constant <false>
 1s constant <true>
 
+nc-limit @ constant old-limit
+
 \ ------------------------------------------------------------------------
 testing gforth words: bounds find-name latestxt name>int name>string
 \ Test for COLD not implemented
@@ -38,7 +40,7 @@ T{ s\" \t\teee" -leading  s" eee" compare -> 0 }T   \ two leading tabs
 T{ s\" \nddd" -leading  s" ddd" compare -> 0 }T   \ one leading LF
 T{ s\" \n\neee" -leading  s" eee" compare -> 0 }T   \ two leading LF
 
-\ Cleave: Normal cases. 
+\ Cleave: Normal cases.
 T{ : s1 s" " ; -> }T \ case 1: empty string
 T{ s1 cleave  s" " compare  -rot  s" " compare -> 0 0 }T
 T{ : s1 s" aaa" ; -> }T  \ case 2: one word
@@ -68,12 +70,12 @@ T{ s1 cleave  s" " compare  -rot  s" " compare -> 0 0 }T
 create hs-test 5 allot
 
 decimal
-create hs-want-dec  1 c, 2 c, 3 c, 4 c, 5 c, 
+create hs-want-dec  1 c, 2 c, 3 c, 4 c, 5 c,
 T{ s" 1 2 3 4 5" hs-test hexstore  hs-test swap  hs-want-dec 5  compare -> 0 }T
 T{ s" 1" hs-test hexstore  hs-test swap  hs-want-dec 1  compare -> 0 }T
 
 hex
-create hs-want-hex  0A c, 0B c, 0C c, 0D c, 0E c, 
+create hs-want-hex  0A c, 0B c, 0C c, 0D c, 0E c,
 T{ s" 0A 0B 0C 0D 0E" hs-test hexstore  hs-test swap  hs-want-hex 5  compare -> 0 }T
 T{ s" 0A" hs-test hexstore  hs-test swap  hs-want-hex 1  compare -> 0 }T
 
@@ -187,40 +189,40 @@ T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T
 : digit_numeral ( -- f )
    true
    base @  10 min  ( don't go outside chars )  0 ?do
-      digit_numeral i +  ( addr ) c@ 
+      digit_numeral i +  ( addr ) c@
       dup emit  \ Show user what is going on
-      dup digit?  ( char  u | char  f ) 
-      swap 48 ( ASCII "0" ) +   ( char  f  u | char ) 
+      dup digit?  ( char  u | char  f )
+      swap 48 ( ASCII "0" ) +   ( char  f  u | char )
       rot =  ( f f )       \ is number what it's supposed to be?
       and  ( f )           \ conversion was signaled as success?
       and                  \ merge with running tab flag
-   loop ; 
+   loop ;
 
-: digit_letters ( -- f ) 
+: digit_letters ( -- f )
    true
    base @  10 - ( grow index with base)  0 ?do
-      digit_lower i + c@  
+      digit_lower i + c@
       dup emit
-      dup digit?  
+      dup digit?
       swap 97 ( ASCII "a" ) 10 -  +
-      rot = 
-      and and 
+      rot =
+      and and
 
-      digit_upper i + c@  
+      digit_upper i + c@
       dup emit
-      dup digit? 
+      dup digit?
       swap 65 ( ASCII "A" ) 10 -  +
-      rot = 
-      and and 
-   loop ; 
+      rot =
+      and and
+   loop ;
 
-: digit_oneoff ( -- f ) 
-   true 
+: digit_oneoff ( -- f )
+   true
    7 0 ?do
       digit_bad i + c@
       dup emit
-      digit?  ( char 0 ) 
-      nip invert 
+      digit?  ( char 0 )
+      nip invert
       and
    loop ;
 
@@ -230,23 +232,23 @@ T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T
    true
 
    max-base 1+  2 ?do
-      decimal cr ." Numerals, base " i . ." : " 
+      decimal cr ." Numerals, base " i . ." : "
       i base !
       digit_numeral and
       dup ."  -> " .  \ print status of base to help find errors
-   loop 
-   
+   loop
+
    decimal cr
    max-base 1+  11 ?do
-      decimal cr ." Letters, base " i . ." : " 
+      decimal cr ." Letters, base " i . ." : "
       i base !
       digit_letters and
       dup ."  -> " . \ uncomment for debugging
-   loop 
+   loop
 
    decimal cr
    max-base 1+ 2 ?do
-      decimal cr ." One-off chars, base " i . ." : " 
+      decimal cr ." One-off chars, base " i . ." : "
       i base !
       digit_oneoff and
       dup ."  -> " .  \ uncomment for debugging
@@ -291,6 +293,8 @@ T{ char +  s" 0+" ' parse execute-parsing evaluate -> 0 }T
 \ We can use EXECUTE-PARSING to define variable names at runtime
 T{ s" myvar" ' variable execute-parsing -> }T
 T{ 2 myvar !  myvar @  -> 2 }T
+
+old-limit nc-limit !
 
 \ Free memory used for these tests
 tali_tests

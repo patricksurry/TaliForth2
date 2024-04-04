@@ -2560,6 +2560,8 @@ marker tali_tests  ok
 0s constant <false>  ok
 1s constant <true>  ok
   ok
+nc-limit @ constant old-limit  ok
+  ok
 \ ------------------------------------------------------------------------  ok
 testing gforth words: bounds find-name latestxt name>int name>string  ok
 \ Test for COLD not implemented  ok
@@ -2588,7 +2590,7 @@ T{ s\" \t\teee" -leading  s" eee" compare -> 0 }T   \ two leading tabs  ok
 T{ s\" \nddd" -leading  s" ddd" compare -> 0 }T   \ one leading LF  ok
 T{ s\" \n\neee" -leading  s" eee" compare -> 0 }T   \ two leading LF  ok
   ok
-\ Cleave: Normal cases.   ok
+\ Cleave: Normal cases.  ok
 T{ : s1 s" " ; -> }T \ case 1: empty string  ok
 T{ s1 cleave  s" " compare  -rot  s" " compare -> 0 0 }T  ok
 T{ : s1 s" aaa" ; -> }T  \ case 2: one word redefined s1  ok
@@ -2618,12 +2620,12 @@ T{ s1 cleave  s" " compare  -rot  s" " compare -> 0 0 }T  ok
 create hs-test 5 allot  ok
   ok
 decimal  ok
-create hs-want-dec  1 c, 2 c, 3 c, 4 c, 5 c,   ok
+create hs-want-dec  1 c, 2 c, 3 c, 4 c, 5 c,  ok
 T{ s" 1 2 3 4 5" hs-test hexstore  hs-test swap  hs-want-dec 5  compare -> 0 }T  ok
 T{ s" 1" hs-test hexstore  hs-test swap  hs-want-dec 1  compare -> 0 }T  ok
   ok
 hex  ok
-create hs-want-hex  0A c, 0B c, 0C c, 0D c, 0E c,   ok
+create hs-want-hex  0A c, 0B c, 0C c, 0D c, 0E c,  ok
 T{ s" 0A 0B 0C 0D 0E" hs-test hexstore  hs-test swap  hs-want-hex 5  compare -> 0 }T  ok
 T{ s" 0A" hs-test hexstore  hs-test swap  hs-want-hex 1  compare -> 0 }T  ok
   ok
@@ -2737,40 +2739,40 @@ T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T  ok
 : digit_numeral ( -- f )  compiled
    true  compiled
    base @  10 min  ( don't go outside chars )  0 ?do  compiled
-      digit_numeral i +  ( addr ) c@   compiled
+      digit_numeral i +  ( addr ) c@  compiled
       dup emit  \ Show user what is going on  compiled
-      dup digit?  ( char  u | char  f )   compiled
-      swap 48 ( ASCII "0" ) +   ( char  f  u | char )   compiled
+      dup digit?  ( char  u | char  f )  compiled
+      swap 48 ( ASCII "0" ) +   ( char  f  u | char )  compiled
       rot =  ( f f )       \ is number what it's supposed to be?  compiled
       and  ( f )           \ conversion was signaled as success?  compiled
       and                  \ merge with running tab flag  compiled
-   loop ;  redefined digit_numeral  ok
+   loop ; redefined digit_numeral  ok
   ok
-: digit_letters ( -- f )   compiled
+: digit_letters ( -- f )  compiled
    true  compiled
    base @  10 - ( grow index with base)  0 ?do  compiled
-      digit_lower i + c@    compiled
+      digit_lower i + c@  compiled
       dup emit  compiled
-      dup digit?    compiled
+      dup digit?  compiled
       swap 97 ( ASCII "a" ) 10 -  +  compiled
-      rot =   compiled
-      and and   compiled
+      rot =  compiled
+      and and  compiled
   compiled
-      digit_upper i + c@    compiled
+      digit_upper i + c@  compiled
       dup emit  compiled
-      dup digit?   compiled
+      dup digit?  compiled
       swap 65 ( ASCII "A" ) 10 -  +  compiled
-      rot =   compiled
-      and and   compiled
-   loop ;   ok
+      rot =  compiled
+      and and  compiled
+   loop ;  ok
   ok
-: digit_oneoff ( -- f )   compiled
-   true   compiled
+: digit_oneoff ( -- f )  compiled
+   true  compiled
    7 0 ?do  compiled
       digit_bad i + c@  compiled
       dup emit  compiled
-      digit?  ( char 0 )   compiled
-      nip invert   compiled
+      digit?  ( char 0 )  compiled
+      nip invert  compiled
       and  compiled
    loop ;  ok
   ok
@@ -2780,23 +2782,23 @@ T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T  ok
    true  compiled
   compiled
    max-base 1+  2 ?do  compiled
-      decimal cr ." Numerals, base " i . ." : "   compiled
+      decimal cr ." Numerals, base " i . ." : "  compiled
       i base !  compiled
       digit_numeral and  compiled
       dup ."  -> " .  \ print status of base to help find errors  compiled
-   loop   compiled
-     compiled
+   loop  compiled
+  compiled
    decimal cr  compiled
    max-base 1+  11 ?do  compiled
-      decimal cr ." Letters, base " i . ." : "   compiled
+      decimal cr ." Letters, base " i . ." : "  compiled
       i base !  compiled
       digit_letters and  compiled
       dup ."  -> " . \ uncomment for debugging  compiled
-   loop   compiled
+   loop  compiled
   compiled
    decimal cr  compiled
    max-base 1+ 2 ?do  compiled
-      decimal cr ." One-off chars, base " i . ." : "   compiled
+      decimal cr ." One-off chars, base " i . ." : "  compiled
       i base !  compiled
       digit_oneoff and  compiled
       dup ."  -> " .  \ uncomment for debugging  compiled
@@ -2939,6 +2941,8 @@ T{ char +  s" 0+" ' parse execute-parsing evaluate -> 0 }T  ok
 \ We can use EXECUTE-PARSING to define variable names at runtime  ok
 T{ s" myvar" ' variable execute-parsing -> }T  ok
 T{ 2 myvar !  myvar @  -> 2 }T  ok
+  ok
+old-limit nc-limit !  ok
   ok
 \ Free memory used for these tests  ok
 tali_tests  ok
@@ -3243,7 +3247,6 @@ testing cycle counts  ok
 \ Take care when editing this file as the whitespace on the ends of lines is  ok
 \ desired to keep the CYCLE: counts lined up.  ok
   ok
-20 nc-limit !  \ restore default that tali.fs messes with  ok
 hex  ok
   ok
 \ The location of the result  ok

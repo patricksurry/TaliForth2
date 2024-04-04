@@ -11,7 +11,6 @@ testing cycle counts
 \ Take care when editing this file as the whitespace on the ends of lines is
 \ desired to keep the CYCLE: counts lined up.
 
-20 nc-limit !  \ restore default that tali.fs messes with
 hex
 
 \ The location of the result

@@ -87,16 +87,18 @@ tmpdsp:     .byte ?         ; temporary DSP (X) storage (single byte)
 loopctrl:   .byte ?         ; Offset and flags for DO/LOOP/+LOOP control.
 loopidx0    .byte ?         ; cached LSB of current loop index for LOOP (not +LOOP)
 
-loopindex = $100            ; loop control block index for adjusted loopindex
-loopfufa  = $102            ; loop control block offset for limit fudge factor
+lcbstack = $100
+loopindex = lcbstack+0      ; loop control block index for adjusted loopindex
+loopfufa  = lcbstack+2      ; loop control block offset for limit fudge factor
 
     ; Each loop needs two control words (loopindex and loopfufa)
     ; which are stored in a 4-byte (dword) loop control block (LCB).
     ; Remembering state across nested loops means we need a stack of LCBs.
     ; A traditional Forth stores these blocks directly on the return stack
-    ; but it's simpler for us to use a separate stack which grows upward
-    ; from $100 towards the return stack (which grows downward from $1ff).
+    ; but it's simpler for us to use a separate stack.
     ; This requires the same storage but is easier for us to manage.
+    ; We use the space underneath the return stack with our stack
+    ; growing upward towards it, but the specific location is arbitrary.
     ; The loopctrl byte is our loop stack pointer with current LCB offset.
     ; The loopidx0 byte caches the LSB of the current loopindex
     ; which helps us avoid some indexed operations.
@@ -107,15 +109,16 @@ loopfufa  = $102            ; loop control block offset for limit fudge factor
     ; It writes the initial values of loopindex and loopfufa to the LCB and
     ; copies the LSB of loopindex to loopidx0
     ;
-    ; LOOP can inc loopidx0 and avoids the LCB unless the result is 0
+    ; LOOP usually just increments the LSB in loopidx0, avoiding the LCB
+    ; altogether unless the LSB overflows.
     ;
-    ; +LOOP updates loopidx0 and (if needed) the MSB loopindex. it can
+    ; +LOOP updates loopidx0 and (if needed) the loopindex MSB. it can
     ; also avoid some checks if we have no carry and the step is < 256
-
+    ;
     ; UNLOOP subtracts 4 from loopctrl to drop the current LCB.
-    ; it copies the now current LSB of loopindex to loopidx0
+    ; it restores LSB of the now current loopindex to loopidx0
     ; so that any enclosing loop has the correct value
-
+    ;
     ; the I and J words use 16bit math to calculate the index from the LCB
     ; I can use loopidx0 for the LSB of loopindex
 

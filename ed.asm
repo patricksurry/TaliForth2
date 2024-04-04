@@ -56,10 +56,10 @@
 ed_head  = tmped    ; pointer to first list element (addr) (2 bytes)
 ed_cur   = tmped+2  ; current line number (1 is first line) (2 bytes)
 ed_flags = tmped+4  ; Flags used by ed, where
-ed_base  = tmped+5  ; used to hold BASE and put it back at the end.
 ;       bit 7 parameters - 0: none, 1: have at least one parameter
 ;       bit 6 changed    - 0: text not changed, 1: text was changed
 ;       bit 0 printing   - 0: no line numbers (p), 1: with line numbers (n)
+ed_base  = tmped+5  ; used to hold BASE and put it back at the end.
 
 
 ed6502:
