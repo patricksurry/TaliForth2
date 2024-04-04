@@ -1,4 +1,5 @@
 #include "fake65c02.h"
+#include "io.h"
 
 #include <fcntl.h>
 #include <stdint.h>
@@ -11,9 +12,8 @@ uint8_t memory[65536];
 int rws[65536];
 int writes[65536];
 
-int getc_addr = 0xf004, putc_addr = 0xf001, blkio_addr = 0xf010,
-    tstart_addr = 0xf006, tstop_addr = 0xf007, timer_addr = 0xf008, ticks = 0,
-    mark = 0, shutdown = 0;
+int getc_addr, peekc_addr, putc_addr, blkio_addr, timer_addr;
+int ticks = 0, mark = 0, shutdown = 0;
 
 /*
 blkio supports the following action values.  write the action value
@@ -40,18 +40,22 @@ uint8_t read6502(uint16_t addr) {
   char buf[1];
   int ch, delta;
   if (addr == getc_addr) {
-    ch = getchar();
+    while (!_kbhit()) {
+    }
+    ch = _getc();
     shutdown = (ch == EOF);
-    ch = ch == 10 ? 13 : ch;
     memory[addr] = (uint8_t)ch;
-  } else if (addr == tstart_addr) {
+  } else if (addr == peekc_addr) {
+    ch = _kbhit() ? (_getc() | 0x80) : 0;
+    memory[addr] = (uint8_t)ch;
+  } else if (addr == timer_addr /* start timer */) {
     mark = ticks;
-  } else if (addr == tstop_addr) {
+  } else if (addr == timer_addr + 1 /* stop timer */) {
     delta = ticks - mark;
-    memory[timer_addr] = (uint8_t)((delta >> 16) & 0xff);
-    memory[timer_addr + 1] = (uint8_t)((delta >> 24) & 0xff);
-    memory[timer_addr + 2] = (uint8_t)((delta >> 0) & 0xff);
-    memory[timer_addr + 3] = (uint8_t)((delta >> 8) & 0xff);
+    memory[timer_addr + 2] = (uint8_t)((delta >> 16) & 0xff);
+    memory[timer_addr + 3] = (uint8_t)((delta >> 24) & 0xff);
+    memory[timer_addr + 4] = (uint8_t)((delta >> 0) & 0xff);
+    memory[timer_addr + 5] = (uint8_t)((delta >> 8) & 0xff);
   }
   rws[addr] += 1;
   return memory[addr];
@@ -61,7 +65,7 @@ void write6502(uint16_t addr, uint8_t val) {
   char *line;
   int n;
   if (addr == putc_addr) {
-    putc((int)val, stdout);
+    _putc(val);
   } else if (addr == blkio_addr) {
     blkiop->status = 0xff;
     shutdown = val == 0xff;
@@ -100,8 +104,9 @@ int main(int argc, char *argv[]) {
   FILE *fin, *fout;
   const char *romfile = NULL, *blkfile = NULL;
   int addr = -1, reset = -1, max_ticks = -1, errflg = 0, sz = 0, c;
+  int io = 0xf000;
 
-  while ((c = getopt(argc, argv, ":r:a:g:t:i:o:x:c:b:")) != -1) {
+  while ((c = getopt(argc, argv, ":r:a:g:t:m:b:")) != -1) {
     switch (c) {
     case 'r':
       romfile = optarg;
@@ -115,22 +120,11 @@ int main(int argc, char *argv[]) {
     case 't':
       max_ticks = strtol(optarg, NULL, 0);
       break;
-    case 'i':
-      getc_addr = strtol(optarg, NULL, 0);
-      break;
-    case 'o':
-      putc_addr = strtol(optarg, NULL, 0);
+    case 'm':
+      io = strtol(optarg, NULL, 0);
       break;
     case 'b':
       blkfile = optarg;
-      break;
-    case 'x':
-      blkio_addr = strtol(optarg, NULL, 0);
-      break;
-    case 'c':
-      tstart_addr = strtol(optarg, NULL, 0);
-      tstop_addr = tstart_addr + 1;
-      timer_addr = tstart_addr + 2;
       break;
     case ':': /* -f or -o without operand */
       fprintf(stderr, "Option -%c requires an argument\n", optopt);
@@ -141,24 +135,27 @@ int main(int argc, char *argv[]) {
       errflg++;
     }
   }
+
+  putc_addr = io + 1;
+  getc_addr = io + 4;
+  peekc_addr = io + 5;
+  timer_addr = io + 6;
+  blkio_addr = io + 16;
+
   if (romfile == NULL)
     errflg++;
 
   if (errflg) {
-    fprintf(
-        stderr,
-        "Usage: c65 -r file.rom [...]\n"
-        "Options:\n"
-        "-?              : Show this message\n"
-        "-r <file>       : Load file to memory and reset into it\n"
-        "-a <address>    : Address to load (default top of address space)\n"
-        "-g <address>    : Set reset vector @ 0xfffc to <address>\n"
-        "-t <ticks>      : Run for max ticks (default forever)\n"
-        "-i <address>    : magic read for getc (default 0xf004)\n"
-        "-o <address>    : magic write for putc (default 0xf001)\n"
-        "-c <address>    : magic r/w for cycle counting (default 0xf006...b) 0x"
-        "-x <address>    : magic blk device (default 0xf010...5)\n"
-        "-b <file>       : binary block file backing blk device");
+    fprintf(stderr,
+            "Usage: c65 -r file.rom [...]\n"
+            "Options:\n"
+            "-?         : Show this message\n"
+            "-r <file>  : Load file to memory and reset into it\n"
+            "-a <addr>  : Address to load (default top of address space)\n"
+            "-g <addr>  : Set reset vector @ 0xfffc to <address>\n"
+            "-t <ticks> : Run for max ticks (default forever)\n"
+            "-m <addr>  : Set magic IO base address (default 0xf000)"
+            "-b <file>  : binary block file backing blk device");
     exit(2);
   }
 
@@ -194,6 +191,7 @@ int main(int argc, char *argv[]) {
   reset6502();
   show_cpu();
 
+  set_terminal_nb();
   while (ticks != max_ticks && !shutdown)
     ticks += step6502();
 
