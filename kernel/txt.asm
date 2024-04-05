@@ -75,7 +75,7 @@ wrp_new_line:
 
 wrp_putc:   ; buffer output via cb0 to kernel_putc
         cmp #0
-        beq _force          ; force break if done
+        beq _force          ; force break if done, adding NL after each string
         cmp #AscLF          ; hard LF?
         bne _chkws
 
@@ -141,7 +141,7 @@ _page:  lda #42
 
 
 txt_typez:   ;  (txt_strz, txt_digrams via buf1) -> buf0
-    ; undo woozy prep for dizzy, pulls from buf1 (dizzy), pushes to buf0 (output
+    ; undo woozy prep for dizzy, pulls from buf1 (dizzy), pushes to buf0 (output)
         stz txt_shift       ; shift state, 0 = none, 1 = capitalize, 2 = all caps
         stz txt_repeat      ; repeat count for output (0 means once)
 
