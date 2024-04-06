@@ -1,17 +1,16 @@
 #!/usr/bin/python3
-"""Talitest creates a py65 65C02 emulator running Tali Forth 2 and
-feeds it tests, saving the results.  This script requires py65 version
-1.1.0 or later already be installed (`pip install --upgrade py65`).
+"""Talitest_c65 starts the c65 65C02 emulator running Tali Forth 2 and
+feeds it tests, saving the results.
 
-RUNNING     : Run talitest.py from the tests directory.
+RUNNING     : Run talitest_c65.py from the tests directory.
 
 Results will be found in results.txt when finished.
 
-PROGRAMMERS : Sam Colwell and Scot W. Stevenson
-FILE        : talitest.py
+PROGRAMMERS : Sam Colwell, Scot W. Stevenson, Patrick Surry
+FILE        : talitest_c65.py
 
 First version: 16. May 2018
-This version: 13. Dec 2018
+This version: 06. Apr 2024
 """
 
 import argparse
