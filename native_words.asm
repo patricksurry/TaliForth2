@@ -1,8 +1,10 @@
 ; Low-level Forth word routines
 ; Tali Forth 2 for the 65c02
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
+; Patrick Surry
 ; First version: 19. Jan 2014
-; This version: 03. Jan 2018
+; This version: 06. Apr 2024
 
 ; This list is ordered alphabetically by the names of the words, not their
 ; strings (so "!" is sorted as "STORE"). However, we start off with COLD,

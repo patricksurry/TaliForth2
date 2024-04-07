@@ -1,7 +1,8 @@
 ; Definitions for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Modified by Patrick Surry
 ; First version: 01. Apr 2016 (Liara Forth)
-; This version: 29. Jan 2020
+; This version: 06. Apr 2024
 
 ; This file is included by taliforth.asm. These are the general
 ; definitions; platform-specific definitions such as the

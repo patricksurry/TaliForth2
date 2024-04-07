@@ -1,5 +1,6 @@
 ; List of Strings for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Modified by Sam Colwell and Patrick Surry
 ; First version: 01. Apr 2016 (for Liara Forth)
 ; This version: 23. Mar 2024
 
