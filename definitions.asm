@@ -1,7 +1,8 @@
 ; Definitions for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Modified by Patrick Surry
 ; First version: 01. Apr 2016 (Liara Forth)
-; This version: 29. Jan 2020
+; This version: 06. Apr 2024
 
 ; This file is included by taliforth.asm. These are the general
 ; definitions; platform-specific definitions such as the
@@ -36,8 +37,10 @@ cold_zp_table:
 cp:         .word cp0+256+1024      ; Compiler Pointer
                                     ; moved to make room for user vars and block buffer
 dp:         .word dictionary_start  ; Dictionary Pointer
+ip:         .word 0                 ; Instruction Pointer (current xt)
 workword:   .word 0                 ; nt (not xt!) of word being compiled, except in
                                     ; a :NONAME declared word (see status)
+up:         .word cp0               ; Forth user vars at start of available RAM
 
 ; The four variables insrc, cib, ciblen, and toin must stay together in this
 ; sequence for the words INPUT>R and R>INPUT to work correctly.
@@ -47,15 +50,13 @@ cib:        .word buffer0           ; address of current input buffer
 ciblen:     .word 0                 ; length of current input buffer
 toin:       .word 0                 ; pointer to CIB (>IN in Forth)
 
-ip:         .word 0                 ; Instruction Pointer (current xt)
 output:     .word kernel_putc       ; vector for EMIT
 input:      .word kernel_getc       ; vector for KEY
 havekey:    .word 0                 ; vector for KEY?
-state:      .word 0                 ; STATE: -1 compile, 0 interpret
+
 base:       .word 10                ; number radix, default decimal
-nc_limit:   .word 20                ; byte limit for Native Compile size
-uf_strip:   .word 0                 ; flag to strip underflow detection code (0 off)
-up:         .word cp0               ; Forth user vars at start of available RAM
+state:      .word 0                 ; STATE: -1 compile, 0 interpret
+
 status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
         ; Bit 7 = Redefined word message postpone
         ;         When set before calling CREATE, it will
@@ -81,16 +82,58 @@ status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
 ; The remaining ZP variables are uninitialized temporaries.
 
     .virtual
-tmp1:       .word ?         ; temporary storage [address hard-coded in tests/ed.fs]
+tmpdsp:     .byte ?         ; temporary DSP (X) storage (single byte)
+
+; Loop control data
+
+loopctrl:   .byte ?         ; Offset and flags for DO/LOOP/+LOOP control.
+loopidx0    .byte ?         ; cached LSB of current loop index for LOOP (not +LOOP)
+
+lcbstack = $100
+loopindex = lcbstack+0      ; loop control block index for adjusted loopindex
+loopfufa  = lcbstack+2      ; loop control block offset for limit fudge factor
+
+    ; Each loop needs two control words (loopindex and loopfufa)
+    ; which are stored in a 4-byte (dword) loop control block (LCB).
+    ; Remembering state across nested loops means we need a stack of LCBs.
+    ; A traditional Forth stores these blocks directly on the return stack
+    ; but it's simpler for us to use a separate stack.
+    ; This requires the same storage but is easier for us to manage.
+    ; We use the space underneath the return stack with our stack
+    ; growing upward towards it, but the specific location is arbitrary.
+    ; The loopctrl byte is our loop stack pointer with current LCB offset.
+    ; The loopidx0 byte caches the LSB of the current loopindex
+    ; which helps us avoid some indexed operations.
+    ;
+    ; Here's how the various loop words interact to manage the loop:
+    ;
+    ; DO adds 4 to loopctrl to assign the next LCB.
+    ; It writes the initial values of loopindex and loopfufa to the LCB and
+    ; copies the LSB of loopindex to loopidx0
+    ;
+    ; LOOP usually just increments the LSB in loopidx0, avoiding the LCB
+    ; altogether unless the LSB overflows.
+    ;
+    ; +LOOP updates loopidx0 and (if needed) the loopindex MSB. it can
+    ; also avoid some checks if we have no carry and the step is < 256
+    ;
+    ; UNLOOP subtracts 4 from loopctrl to drop the current LCB.
+    ; it restores LSB of the now current loopindex to loopidx0
+    ; so that any enclosing loop has the correct value
+    ;
+    ; the I and J words use 16bit math to calculate the index from the LCB
+    ; I can use loopidx0 for the LSB of loopindex
+
+loopleave:  .word ?         ; tmp for LEAVE chaining ;TODO could it use existing tmp?
+tmptos:     .word ?         ; temporary TOS storage
+tmp1:       .word ?         ; temporary storage
 tmp2:       .word ?         ; temporary storage
 tmp3:       .word ?         ; temporary storage (especially for print)
-tmpdsp:     .word ?         ; temporary DSP (X) storage (two bytes)
-tmptos:     .word ?         ; temporary TOS storage
-editor1:    .word ?         ; temporary for editors
-editor2:    .word ?         ; temporary for editors
-editor3:    .word ?         ; temporary for editors
 tohold:     .word ?         ; pointer for formatted output
 scratch:    .word ?,?,?,?   ; 8 byte scratchpad (see UM/MOD)
+.if "ed" in TALI_OPTIONAL_WORDS
+tmped:      .word ?,?,?     ; temporary for editors
+.endif
     .endvirtual
 
     .endlogical
@@ -104,6 +147,9 @@ cold_zp_table_end:
 
 cold_user_table:
     .logical 0          ; make labels here offsets that we can add to 'up'
+
+nc_limit_offset:        .word 20        ; byte limit for Native Compile size
+uf_strip_offset:        .word 0         ; flag to strip underflow detection (0 off)
 
 ; Block variables
 blk_offset:             .word 0         ; BLK

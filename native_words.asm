@@ -1,8 +1,10 @@
 ; Low-level Forth word routines
 ; Tali Forth 2 for the 65c02
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
+; Patrick Surry
 ; First version: 19. Jan 2014
-; This version: 03. Jan 2018
+; This version: 06. Apr 2024
 
 ; This list is ordered alphabetically by the names of the words, not their
 ; strings (so "!" is sorted as "STORE"). However, we start off with COLD,
@@ -167,6 +169,11 @@ xt_quit:
                 sta (up),y
                 iny
                 sta (up),y
+
+                ; initialize loopctrl to indicate no active loop
+                ; see definitions.asm
+                lda #(256-4)
+                sta loopctrl
 
                 ; STATE is zero (interpret, not compile)
                 stz state
@@ -1027,18 +1034,9 @@ z_bl:           rts
 ; ## "block"  auto  ANS block
         ; """https://forth-standard.org/standard/block/BLK"""
 xt_blk:
-                ; BLK is at UP + blk_offset
-                dex
-                dex
-                clc
-                lda up
-                adc #blk_offset ; Add offset
-                sta 0,x
-                lda up+1
-                adc #0          ; Adding carry
-                sta 1,x
-
-z_blk:          rts
+                lda #blk_offset
+                jmp push_upvar_tos
+z_blk:
 .endif
 
 
@@ -1213,18 +1211,9 @@ z_block_read:   ; No RTS needed
         ; """
 xt_block_read_vector:
                 ; Get the BLOCK-READ-VECTOR address
-                dex
-                dex
-                clc
-                lda up
-                adc #blockread_offset
-                sta 0,x
-                lda up+1
-                adc #0          ; Add carry
-                sta 1,x
-
+                lda #blockread_offset
+                jmp push_upvar_tos
 z_block_read_vector:
-                rts
 .endif
 
 ; This is the default error message the vectored words BLOCK-READ and
@@ -1264,18 +1253,9 @@ z_block_write:  ; No RTS needed
         ; """
 xt_block_write_vector:
                 ; Get the BLOCK-WRITE-VECTOR address
-                dex
-                dex
-                clc
-                lda up
-                adc #blockwrite_offset
-                sta 0,x
-                lda up+1
-                adc #0          ; Add carry
-                sta 1,x
-
+                lda #blockwrite_offset
+                jmp push_upvar_tos
 z_block_write_vector:
-                rts
 .endif
 
 ; ## BOUNDS ( addr u -- addr+u addr ) "Prepare address for looping"
@@ -1333,17 +1313,9 @@ z_bracket_tick: rts
 ; ## "buffblocknum"  auto  Tali block
 xt_buffblocknum:
                 ; BUFFBLOCKNUM is at UP + buffblocknum_offset
-                dex
-                dex
-                clc
-                lda up
-                adc #buffblocknum_offset        ; Add offset
-                sta 0,x
-                lda up+1
-                adc #0                          ; Adding carry
-                sta 1,x
-
-z_buffblocknum: rts
+                lda #buffblocknum_offset
+                jmp push_upvar_tos
+z_buffblocknum:
 .endif
 
 
@@ -1406,18 +1378,9 @@ z_buffer_colon: rts
 ; ## BUFFSTATUS ( -- addr ) "Push address of variable holding buffer status"
 ; ## "buffstatus"  auto  Tali block
 xt_buffstatus:
-                ; BUFFSTATUS is at UP + buffstatus_offset
-                dex
-                dex
-                clc
-                lda up
-                adc #buffstatus_offset  ; Add offset
-                sta 0,x
-                lda up+1
-                adc #0                  ; Adding carry
-                sta 1,x
-
-z_buffstatus:   rts
+                lda #buffstatus_offset
+                jmp push_upvar_tos
+z_buffstatus:
 .endif
 
 
@@ -2092,16 +2055,18 @@ _check_size_limit:
                 jsr xt_wordsize         ; ( nt -- u )
 
                 ; Check the wordsize MSB against the user-defined limit.
+                ldy #nc_limit_offset+1
                 lda 1,x
-                cmp nc_limit+1
+                cmp (up),y
                 bcc _compile_as_code    ; user-defined limit MSB
                 bne _jumpto_compile_as_jump
 
                 ; Check the wordsize LSB against the user-defined limit.
-                lda 0,x
-                cmp nc_limit            ; user-defined limit LSB
-                bcc _compile_as_code    ; Allow native compiling for less
-                beq _compile_as_code    ; than or equal to the limit.
+                dey
+                lda (up),y              ; user-defined limit LSB
+                cmp 0,x
+                bpl _compile_as_code    ; Allow native compiling for less
+                                        ; than or equal to the limit.
 
 _jumpto_compile_as_jump:
                 ; If the wordsize is greater than the user-defined
@@ -2207,8 +2172,10 @@ _underflow_strip:
                 ; 3 bytes if there is no underflow.
 
                 ; See if the user wants underflow stripping turned on
-                lda uf_strip
-                ora uf_strip+1
+                ldy #uf_strip_offset
+                lda (up),y
+                iny
+                ora (up),y
                 beq cmpl_inline
 
                 ; See if this word even contains underflow checking
@@ -3030,10 +2997,8 @@ z_dnegate:      rts
 ; ## "?do"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/qDO"""
 xt_question_do:
-                ; ?DO shares most of its code with DO. We use the tmp1 flag
-                ; to mark which is which
-                lda #$ff                ; -1 is ?DO, jump to common code
-                sta tmp1
+                ; ?DO shares most of its code with DO. We use Y to signal which
+                ldy #1                  ; 1 is ?DO, jump to common code
                 bra do_common           ; skip flag for DO
 
 ; ## DO ( limit start -- )(R: -- limit start)  "Start a loop"
@@ -3047,39 +3012,19 @@ xt_question_do:
         ; time. This is based on a suggestion by Garth Wilson, see
         ; the Control Flow section of the manual for details.
         ;
-        ; This may not be native compile. Don't check for a stack underflow
+        ; This is never native compile. Don't check for a stack underflow
         ; """
 
 xt_do:
-                ; DO and ?DO share most of their code, use tmp1 as a flag.
-                stz tmp1                ; 0 is DO, drop through to DO_COMMON
+                ; DO and ?DO share most of their code, Y flags the variant
+                ldy #0                ; 0 is DO, drop through to DO_COMMON
+
 do_common:
-                ; We push HERE to the Data Stack so LOOP/+LOOP knows where to
-                ; compile the address we need to LDA at runtime
-                dex
-                dex
-                lda cp+1
-                sta 1,x                 ; MSB   ( limit start here )
-                lda cp
-                sta 0,x                 ; LSB
-
-                ; now advance cp by six bytes which LOOP/+LOOP will
-                ; replace with LDA/PHA instructions from loop_epilogue
-
-                clc
-                adc #6
-                sta cp
-                bcc +
-                inc cp+1
-+
                 ; compile the (?DO) portion of ?DO if appropriate
-                lda tmp1
                 beq _compile_do
 
-                ; We came from ?DO, so compile its runtime first. We do
-                ; this with a quick loop because we know it has to be
-                ; Always Native anyway
-                ; set up stack for cmpl_inline_y ( src -- )
+                ; We came from ?DO, so compile its runtime first.
+                ; Set up stack for cmpl_inline_y ( src --   ; y = # bytes)
                 dex
                 dex
                 lda #<question_do_runtime
@@ -3089,31 +3034,81 @@ do_common:
                 ldy #question_do_runtime_end-question_do_runtime
                 jsr cmpl_inline_y
 
-                ; fall through to _compile_do
-
+                ; We will skip the loop if limit = start
+                ; via a placeholder jmp at the end of the prequel
+                ; so save current CP to patch the jmp target in xt_loop
+                lda cp
+                ldy cp+1
+                jsr cmpl_a      ; write two arbitrary placeholder bytes
+                jsr cmpl_a
 _compile_do:
+                ; stack either the forward jmp address for ?DO
+                ; or a word with MSB=Y=0 for DO so we know to ignore it
+                dex
+                dex
+                sta 0,x
+                tya
+                sta 1,x
+
+                ; The word LEAVE can be used to exit LOOP/+LOOP from
+                ; anywhere inside the loop body, zero or more times.
+                ; We'll use loopleave as the head of a linked list
+                ; which points at the latest LEAVE address
+                ; that we need to patch.  The xt_leave compilation
+                ; will link backward to any prior LEAVE.
+                ; To handle nested loops we stack the current value
+                ; of loopleave here and restore it in xt_loop
+                ; after we write any chained jmps for the current loop
+
+                ; save current loopleave in case we're nested
+                dex
+                dex
+                lda loopleave
+                sta 0,x
+                lda loopleave+1
+                sta 1,x
+
+                ; For now there is no LEAVE addr to patch, which we
+                ; flag with MSB=0 (zero page) which is never a compilation target
+                stz loopleave+1
+
                 ; compile runtime part of DO.
                 ; do this as a subroutine since it only happens once and is a big chunk of code
                 ldy #>do_runtime
                 lda #<do_runtime
                 jsr cmpl_subroutine
 
-                ; HERE, hardcoded for speed. We put it on the Data Stack
-                ; where LOOP/+LOOP takes it from. Note this has nothing to
-                ; do with the HERE we're saving for LEAVE
-                dex
-                dex
-                lda CP          ; LSB
-                sta 0,x
-                lda CP+1        ; MSB
-                sta 1,x
+                ; Now we're ready for the loop body.  We also push HERE
+                ; to the Data Stack so LOOP/+LOOP knows where to repeat back
+                ; ( qdo-skip old-loopleave repeat-addr )
+
+                jmp xt_here
 z_question_do:
-z_do:           rts
+z_do:
+
+
+question_do_runtime:
+        ; """This is called (?DO) in some Forths. See the explanation at
+        ; do_runtime for the background on this design
+        ; """
+                ; see if TOS and NOS are equal. Change this to assembler
+                ; for speed
+                jsr xt_two_dup          ; ( n1 n2 n1 n2 )
+                jsr xt_equal            ; ( -- n1 n2 f )
+
+                jsr zero_test_runtime   ; consume f, setting Z
+                beq question_do_runtime_end+2
+                inx                     ; drop loop limits
+                inx
+                inx
+                inx
+                .byte $4c              ; jmp
+question_do_runtime_end:
 
 
 do_runtime:
         ; """Runtime routine for DO loop. Note that ANS loops quit when the
-        ; boundry of limit-1 and limit is reached, a different mechanism than
+        ; boundary of limit-1 and limit is reached, a different mechanism than
         ; the FIG Forth loop (you can see which version you have by running
         ; a loop with start and limit as the same value, for instance
         ; 0 0 DO -- these will walk through the number space). We use a
@@ -3123,84 +3118,60 @@ do_runtime:
         ; this idea is Laxen & Perry F83. -- This routine is called (DO)
         ; in some Forths. Usually, we would define this as a separate word
         ; and compile it with COMPILE, and the Always Native (AN) flag.
-        ; However, we can do it faster if we just copy the bytes
-        ; of this routine with a simple loop in DO.
         ; """
-                ; stash return address so we can manipulate return stack
-                pla
-                sta tmp1
-                pla
-                sta tmp1+1
+                ldy loopctrl
+                bmi +                   ; is this the first LCB?
+                lda loopidx0            ; no, write cached LSB
+                sta loopindex,y         ; back to loopindex in the LCB
++
+                iny                     ; Reserve 4 bytes for next LCB
+                iny
+                iny
+                iny
+                sty loopctrl            ; Udpate LCB stack pointer
 
-                ; First step: create fudge factor (FUFA) by subtracting the
-                ; limit from $8000, the number that will trip the overflow
-                ; flag
+                ; data stack has ( limit index -- )
+                ;
+                ; We're going to calculate adjusted loop bounds:
+                ;
+                ;   loopfufa = $8000 - limit
+                ;   loopindex = loopfufa + index
+                ;
+                ; The idea is that once we've incremented this adjusted
+                ; index at least limit-index times we'll get:
+                ;
+                ;   loopindex' = $8000 - limit + index + (limit - index)
+                ;              = $8000
+                ;
+                ; which will trigger LOOP's overflow test
+
                 sec
                 lda #0
-                sbc 2,x         ; LSB of limit
-                sta 2,x         ; save FUFA for later use
-
+                sbc 2,x             ; LSB of limit
+                sta loopfufa,y      ; write to loop control block
                 lda #$80
-                sbc 3,x         ; MSB of limit
-                sta 3,x         ; save FUFA for later use
-                pha             ; FUFA replaces limit on R stack
-                lda 2,x         ; LSB of limit
-                pha
+                sbc 3,x             ; MSB of limit
+                sta loopfufa+1,y
+
+                ; ( $8000-limit index --  R: $8000-limit )
 
                 ; Second step: index is FUFA plus original index
                 clc
-                lda 0,x         ; LSB of original index
-                adc 2,x         ; add LSB of FUFA
-                sta 0,x
-                lda 1,x         ; MSB of orginal index
-                adc 3,x         ; add MSB of FUFA
-                pha
-                lda 0,x         ; LSB of index
-                pha
+                lda 0,x             ; LSB of original index
+                adc loopfufa,y
+                sta loopidx0        ; write LSB to cache not LCB
+                lda 1,x             ; MSB of orginal index
+                adc loopfufa+1,y
+                sta loopindex+1,y
 
-                ; we've saved the FUFA on the NOS of the R stack, so we can
-                ; use it later. Clean the Data Stack
-                inx
+                inx                 ; clean up the stack
                 inx
                 inx
                 inx
 
-                lda tmp1+1
-                pha
-                lda tmp1
-                pha
+                ; ( R: $8000-limit  $8000-limit+index )
 
                 rts
-
-
-question_do_runtime:
-
-        ; """This is called (?DO) in some Forths. See the explanation at
-        ; do_runtime for the background on this design
-        ; """
-                ; see if TOS and NOS are equal. Change this to assembler
-                ; for speed
-                jsr xt_two_dup          ; ( n1 n2 n1 n2 )
-                jsr xt_equal            ; ( -- n1 n2 f )
-
-                lda 0,x
-                ora 1,x
-                beq _do_do
-
-                ; We're equal, so dump everything and jump beyond the loop.
-                ; But first, dump six entries off of the Data Stack
-                txa
-                clc
-                adc #6
-                tax
-
-                ; Then abort the whole loop
-                rts
-_do_do:
-                inx             ; clear flag from EQUAL off stack
-                inx             ; no RTS because this is copied into code
-question_do_runtime_end:
-
 
 
 ; ## DOES ( -- ) "Add payload when defining new words"
@@ -4329,9 +4300,8 @@ z_execute_parsing:
 ; ## EXIT ( -- ) "Return control to the calling word immediately"
 ; ## "exit"  auto  ANS core
         ; """https://forth-standard.org/standard/core/EXIT
-        ; If we're in a loop, we need to UNLOOP first and get everything
-        ; we we might have put on the Return Stack off as well. This should
-        ; be natively compiled.
+        ; If we're in a loop, user should UNLOOP first to clean up
+        ; any loop control. This should be natively compiled.
         ; """
 
 xt_exit:
@@ -5074,38 +5044,29 @@ z_hold:         rts
 ; ## I ( -- n )(R: n -- n)  "Copy loop counter to stack"
 ; ## "i"  auto  ANS core
         ; """https://forth-standard.org/standard/core/I
-        ; Note that this is not the same as R@ because we use a fudge
-        ; factor for loop control; see the Control Flow section of the
-        ; manual for details.
+        ; See definitions.asm and the Control Flow section of the manual.
         ;
-        ; We should make this native compile for speed.
+        ; This word can be native compiled or not since
+        ; it no longer depends on the return stack.
         ; """
 
 xt_i:
                 dex
                 dex
 
-                ; Get the fudged index off of the top of the stack. It's
-                ; easier to do math on the stack directly than to pop and
-                ; push stuff around
-                phx
-                tsx
+                ; The fudged index and offset are stored in the current
+                ; loop control block, with loopidx0 cached in zp
 
+                ldy loopctrl
                 sec
-                lda $0102,x     ; LSB
-                sbc $0104,x
-                tay
-
-                lda $0103,x     ; MSB
-                sbc $0105,x
-
-                plx
-
-                sta 1,x         ; MSB of de-fudged index
-                sty 0,x         ; LSB of de-fudged index
+                lda loopidx0        ; cached LSB of loopindex
+                sbc loopfufa,y
+                sta 0,x
+                lda loopindex+1,y
+                sbc loopfufa+1,y
+                sta 1,x
 
 z_i:            rts
-
 
 
 ; ## IF (C: -- orig) (flag -- ) "Conditional flow control"
@@ -5450,36 +5411,26 @@ z_is:           rts
         ; Copy second loop counter from Return Stack to stack. Note we use
         ; a fudge factor for loop control; see the Control Flow section of
         ; the manual for more details.
-        ; At this point, we have the "I" counter/limit and the LEAVE address
-        ; on the stack above this (three entries), whereas the ideal Forth
-        ; implementation would just have two.
         ;
-        ; Make this native compiled for speed
+        ; This can be native compiled or not since it no longer uses the stack
         ; """
 
 xt_j:
-                dex
+                dex                 ; make space on the stack
                 dex
 
-                ; Get the fudged index off from the stack. It's easier to
-                ; do math on the stack directly than to pop and push stuff
-                ; around
-                stx tmpdsp
-                tsx
-
+                ; subtract four to get the enclosing LCB offset
+                lda loopctrl
                 sec
-                lda $0107,x     ; LSB
-                sbc $0109,x
+                sbc #4
                 tay
-
-                lda $0108,x     ; MSB
-                sbc $010A,x
-
-                ldx tmpdsp
-
-                sta 1,x         ; MSB of de-fudged index
-                sty 0,x         ; LSB of de-fudged index
-
+                sec
+                lda loopindex,y
+                sbc loopfufa,y
+                sta 0,x
+                lda loopindex+1,y
+                sbc loopfufa+1,y
+                sta 1,x
 z_j:            rts
 
 
@@ -5546,21 +5497,38 @@ z_latestxt:     rts
         ; http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx
         ;
         ;       : LEAVE POSTPONE BRANCH HERE SWAP 0 , ; IMMEDIATE COMPILE-ONLY
-        ; See the Control Flow section in the manual for details of how this works.
+        ; See definitions.asm and the Control Flow section in the manual
+        ; for details of how this works.
         ; This must be native compile and not IMMEDIATE
         ; """
 
 xt_leave:
-                ; We dump the limit/start entries off the Return Stack
-                ; (four bytes)
-                pla
-                pla
-                pla
-                pla
+                ; LEAVE will eventually jump forward to the unloop.
+                ; We don't know where that is at compile time
+                ; so we'll write a JMP to be patched later.
+                ; Since LEAVE is allowed multiple times we'll
+                ; use the JMP placeholder address to keep a linked list
+                ; of all LEAVE addresses to update, headed by loopleave
 
-                rts             ; this must be compiled, so keep before z_leave
-z_leave:                        ; not reached, not compiled
+                lda #$4c
+                jsr cmpl_a      ; emit the JMP
+                lda loopleave   ; chain the prior leave address
+                jsr cmpl_a
+                lda loopleave+1
+                jsr cmpl_a
 
+                ; set head of the list to point to our placeholder
+                sec
+                lda cp
+                sbc #2
+                sta loopleave
+                lda cp+1
+                bcs +
+                dea
++               sta loopleave+1
+
+z_leave:
+                rts
 
 
 ; ## LEFT_BRACKET ( -- ) "Enter interpretation state"
@@ -5824,17 +5792,21 @@ z_load:         rts
         ;       IMMEDIATE ; COMPILE-ONLY
         ; """
 xt_loop:
-                ; Set up stack for cmpl_inline_y ( src -- )
+                ; Copy the runtime specific to loop,
+                ; ie. Y bytes from loop_runtime
                 dex
                 dex
-
-                ldy #loop_runtime_end-loop_runtime
                 lda #<loop_runtime
                 sta 0,x
                 lda #>loop_runtime
                 sta 1,x
+
+                ldy #loop_runtime_end-loop_runtime
                 jsr cmpl_inline_y
+
+                ; Now compile the runtime shared with +LOOP
                 bra xt_loop_common
+
 
 ; ## PLUS_LOOP ( -- ) "Finish loop construct"
 ; ## "+loop"  auto  ANS core
@@ -5851,146 +5823,152 @@ xt_loop:
 
 xt_plus_loop:
                 ; Compile the run-time part.
-                ; Set up stack for cmpl_inline_y ( src -- )
+                ; ie. Y bytes from plus_loop_runtime
                 dex
                 dex
-
-                ldy #plus_loop_runtime_end-plus_loop_runtime
                 lda #<plus_loop_runtime
                 sta 0,x
                 lda #>plus_loop_runtime
                 sta 1,x
+
+                ldy #plus_loop_runtime_end-plus_loop_runtime
                 jsr cmpl_inline_y
 
+                ; fall through to shared runtime
+
 xt_loop_common:
-                ; The address we need to loop back to is TOS. Store it so
-                ; the runtime part of +LOOP jumps back up there
+                ; The address we need to loop back to is TOS
+                ; ( qdo-skip old-loopleave repeat-addr )
+
+                ; Write repeat-addr which completes the trailing JMP
+                ; at the end of both loop runtimes, repeating the loop body
                 jsr xt_comma
 
-                ; Compile an UNLOOP for when we're all done. This is a series
-                ; of six PLA, so we just do it here instead jumping around
-                ; all over the place
-                lda #$68                ; opcode for PLA
-                ldy #6
--
-                sta (cp),y
+                ; any LEAVE words want to jmp to the unloop we'll write here
+                ; so follow the linked list and update them
+                lda loopleave+1         ; MSB=0 means we're done
+                beq _noleave
+_next:
+                ; stash current LEAVE addr which links to
+                ; the previous one (if any) and replace it with HERE
+                ldy #1
+                lda (loopleave),y
+                pha
+                lda cp+1
+                sta (loopleave),y
                 dey
-                bpl -
-
-                ; Adjust CP
-                lda #6
-                clc
-                adc cp
-                sta cp
-                lda cp+1
-                adc #0                  ; only need carry
-                sta cp+1
-
-                ; Complete compile of DO/?DO by replacing the six
-                ; dummy bytes by PHA instructions. The address where
-                ; they are located is on the Data Stack
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
-                inx
-                inx
-
-                ; Because of the way that CP works, we don't have to save
-                ; CP, but CP-1
+                lda (loopleave),y
+                pha
                 lda cp
-                sec
-                sbc #1
-                pha             ; lsb
-                lda cp+1
-                sbc #0
-                pha             ; msb
+                sta (loopleave),y
 
-                ; now compile our template in the DO/?DO routine
-                ldy #0
--
-                lda loop_epilogue,y
-                bne +
+                ; follow the chain backward
                 pla
-+
-                sta (tmp1),y
-                iny
-                cpy #(loop_epilogue_end-loop_epilogue)
-                bne -
+                sta loopleave
+                pla
+                sta loopleave+1
+                bne _next
+_noleave:
+                ; restore loopleave in case we were nested
+                lda 0,x
+                sta loopleave
+                lda 1,x
+                sta loopleave+1
+
+                ; reuse TOS
+
+                ; Clean up the loop params by appending unloop
+                lda #<xt_unloop
+                sta 0,x
+                lda #>xt_unloop
+                sta 1,x
+                jsr xt_compile_comma
+
+                ; Finally we're left with qdo-skip which either
+                ; points at ?DO's "skip the loop" jmp address,
+                ; wanting to skip past this whole mess to CP=HERE,
+                ; or has MSB=0 from DO which we can just ignore
+                lda 1,x                 ; MSB=0 means DO so nothing to do
+                beq +
+                jsr xt_here
+                jsr xt_swap
+                jmp xt_store            ; write here as ?DO jmp target and return
+
++               inx                     ; drop the ignored word for DO
+                inx
 z_loop:
 z_plus_loop:    rts
 
-loop_epilogue:  ; we'll use this template to push the return address
-                lda #0
-                pha
-                lda #0
-                pha
-loop_epilogue_end:
+
+loop_runtime:
+        ; """Runtime compile for LOOP when stepping by one.
+        ; This must always be native compiled.
+        ; """
+                ; do_runtime has set up the loop control block with
+                ; loopindex:    $8000-limit+index
+                ; loopfufa:     $8000-limit
+
+                ; so we need to increment loopindex and
+                ; and look for overflow as explained in do_runtime
+
+                inc loopidx0        ; increment the LSB of loopindex
+                bne _repeat         ; avoid expensive test most of the time
+
+                ; we might be done so need to inc and check the MSB
+
+                ldy loopctrl
+                ; for the +1 case we can increment MSB and test for #$80
+                ; unlike the +LOOP case where we use V to flag crossing #$80
+_chkv:          lda loopindex+1,y
+                ina
+                cmp #$80
+                beq _repeat+3       ; done?  skip jmp back
+                sta loopindex+1,y
+
+_repeat:        ; This is why this routine must be natively compiled: We
+                ; compile the opcode for JMP here without an address to
+                ; go to, which is added by LOOP/+LOOP at compile time
+                .byte $4C
+loop_runtime_end:
+
 
 plus_loop_runtime:
         ; """Runtime compile for +LOOP when we have an arbitrary step.
-        ; See below for loop_runtime for step=1. Note we use a fudge factor for
+        ; See below for loop_runtime when step=1. Note we use a fudge factor for
         ; loop control so we can test with the Overflow Flag. See
         ; the Control Flow section of the manual for details.
-        ; The step value is TOS in the loop. This
-        ; must always be native compiled. In some Forths, this is a separate
-        ; word called (+LOOP) or (LOOP)
+        ; The step value is TOS in the loop.
+        ; This must always be native compiled.
+        ; In some Forths, this is a separate word called (+LOOP) or (LOOP)
         ; """
 
                 clc
-                pla             ; LSB of index
-                adc 0,x         ; LSB of step
-                tay             ; temporary storage of LSB
+                lda 0,x             ; LSB of step
+                adc loopidx0
+                sta loopidx0
 
-                clv
-                pla             ; MSB of index
-                adc 1,x         ; MSB of step
-                pha             ; put MSB of index back on stack
+                inx                 ; dump step from TOS before MSB test
+                inx                 ; since we might skip it
+                lda $ff,x           ; MSB of step since 1,x == -1,x+2
+                bne _chkv           ; if it's non-zero we have to check
+                bcc _repeat         ; but if 0 and no carry, we're good
 
-                phy             ; put LSB of index back on stack
-
-                inx             ; dump step from TOS
-                inx
+_chkv:          clv
+                ldy loopctrl        ; get LCB offset
+                adc loopindex+1,y   ; MSB of index
+                sta loopindex+1,y   ; put MSB of index back on stack
 
                 ; If V flag is set, we're done looping and continue
                 ; after the +LOOP instruction
-                bvs _hack+3     ; skip over JMP instruction
+                bvs _repeat+3     ; skip over JMP instruction
 
-_hack:          ; This is why this routine must be natively compiled: We
+_repeat:        ; This is why this routine must be natively compiled: We
                 ; compile the opcode for JMP here without an address to
                 ; go to, which is added by the next next instruction of
                 ; LOOP/+LOOP during compile time
                 .byte $4C
 plus_loop_runtime_end:
 
-loop_runtime:
-        ; """Runtime compile for LOOP when stepping by one.
-        ; This must always be native compiled.
-        ; """
-
-                clv             ; note inc doesn't affect V
-                ply             ; LSB of index
-                iny             ; add one
-                bne _skip_msb   ; definitely not done
-
-                pla             ; MSB of index
-                clc
-                adc #1          ; use adc to get V flag
-                pha             ; put MSB of index back on stack
-
-_skip_msb:      phy             ; put LSB of index back on stack
-
-                ; If V flag is set, we're done looping and continue
-                ; after the +LOOP instruction
-                bvs _hack+3     ; skip over JMP instruction
-
-_hack:          ; This is why this routine must be natively compiled: We
-                ; compile the opcode for JMP here without an address to
-                ; go to, which is added by the next next instruction of
-                ; LOOP/+LOOP during compile time
-                .byte $4C
-
-loop_runtime_end:
 
 ; ## LSHIFT ( x u -- u ) "Shift TOS left"
 ; ## "lshift"  auto  ANS core
@@ -6531,15 +6509,9 @@ z_name_to_string:
 ; ## "nc-limit"  tested  Tali Forth
 
 xt_nc_limit:
-                dex
-                dex
-                lda #<nc_limit
-                sta 0,x
-                lda #>nc_limit
-                sta 1,x
-
-z_nc_limit:     rts
-
+                lda #nc_limit_offset
+                jmp push_upvar_tos
+z_nc_limit:
 
 
 ; ## NEGATE ( n -- n ) "Two's complement"
@@ -6679,8 +6651,8 @@ xt_number:
 
                 ; we keep the flags for sign and double in tmpdsp because
                 ; we've run out of temporary variables
-                stz tmpdsp      ; flag for double
-                stz tmpdsp+1    ; flag for minus
+                ; sign will be the sign bit, and double will be bit 1
+                stz tmpdsp      ; %n000 000d
 
                 ; Push the current base onto the stack.
                 ; This is done to handle constants in a different base
@@ -6768,7 +6740,8 @@ _check_minus:
                 bne _check_dot
 
                 ; It's a minus
-                dec tmpdsp+1
+                lda #$80
+                sta tmpdsp      ; set the sign bit
                 inc 2,x         ; start one character later
                 bne +
                 inc 3,x
@@ -6800,7 +6773,7 @@ _check_dot:
 
                 ; We have a dot, which means this is a double number. Flag
                 ; the fact and reduce string length by one
-                dec tmpdsp
+                inc tmpdsp
                 dec 0,x
 
 _main:
@@ -6869,17 +6842,17 @@ _drop_original_string:
 
                 ; We have a double-cell number on the Data Stack that might
                 ; actually have a minus and might actually be single-cell
-                lda tmpdsp      ; flag for double
+                lda tmpdsp      ; flag for double/minus
+                ldy #%00100000  ; status bit 5 for double(1) or single(0)
+                asl             ; %n000 000d => %0000 00d0, C=n, Z=d
                 beq _single
 
-                ; Set status bit 5 to indicate this is a double number
-                lda #%00100000
+                ; Set status bit 5 (A=%0010 0000) to indicate a double number
+                tya
                 tsb status
 
-                ; This is a double cell number. If it had a minus, we'll have
-                ; to negate it
-                lda tmpdsp+1
-                beq _done       ; no minus, all done
+                ; This is a double cell number. If it had a minus (C=1) negate it
+                bcc _done       ; no minus, all done
 
                 jsr xt_dnegate
 
@@ -6891,12 +6864,11 @@ _single:
                 inx
 
                 ; Clear status bit 5 to indicate this is a single number
-                lda #%00100000
+                tya
                 trb status
 
-                ; If we had a minus, we'll have to negate it
-                lda tmpdsp+1
-                beq _done       ; no minus, all done
+                ; If we had a minus (C=1), we'll have to negate it
+                bcc _done       ; no minus, all done
 
                 jsr xt_negate
 _done:
@@ -9082,18 +9054,9 @@ z_save_buffers: rts
 ; ## "scr"  auto  ANS block ext
         ; """https://forth-standard.org/standard/block/SCR"""
 xt_scr:
-                ; SCR is at UP + scr_offset
-                dex
-                dex
-                clc
-                lda up
-                adc #scr_offset ; Add offset
-                sta 0,x
-                lda up+1
-                adc #0          ; Adding carry
-                sta 1,x
-
-z_scr:          rts
+                lda #scr_offset
+                jmp push_upvar_tos
+z_scr:
 .endif
 
 ; ## SEARCH ( addr1 u1 addr2 u2 -- addr3 u3 flag) "Search for a substring"
@@ -9949,16 +9912,9 @@ z_store:        rts
         ; Default is false.
         ; """
 xt_strip_underflow:
-                dex
-                dex
-
-                lda #<uf_strip
-                sta 0,x
-                lda #>uf_strip
-                sta 1,x
-
+                lda #uf_strip_offset
+                jmp push_upvar_tos
 z_strip_underflow:
-                rts
 
 
 ; ## SWAP ( b a -- a b ) "Exchange TOS and NOS"
@@ -11307,22 +11263,23 @@ z_um_star:      rts
 
 ; ## UNLOOP ( -- )(R: n1 n2 n3 ---) "Drop loop control from Return stack"
 ; ## "unloop"  auto  ANS core
-        ; """https://forth-standard.org/standard/core/UNLOOP
-        ;
-        ; Note that 6xPLA uses just as many bytes as a loop would
-        ; """
+        ; """https://forth-standard.org/standard/core/UNLOOP"""
 xt_unloop:
-                ; Drop fudge number (limit/start from DO/?DO off the
-                ; return stack
-                pla
-                pla
-                pla
-                pla
+                ; This is used as an epliogue to each LOOP/+LOOP
+                ; as well as prior to EXIT'ng a loop
+                ; We need to drop the current loop control block
+                ; and restore the cached loopidx0 of the prior loop, if any
 
-                ; Now drop the LEAVE address that was below them off
-                ; the Return Stack as well
-                pla
-                pla
+                ldy loopctrl
+                dey
+                dey
+                dey
+                dey
+                sty loopctrl
+                bmi z_unloop            ; no active loops?
+
+                lda loopindex,y         ; else re-cache the LSB of loopindex
+                sta loopidx0
 
 z_unloop:       rts
 
@@ -11477,7 +11434,7 @@ xt_while:
 z_while:        rts
 
 
-; ## WITHIN ( n1 n2 n3 -- ) "See if within a range"
+; ## WITHIN ( n1 n2 n3 -- ) "Test n1 within range [n2, n3) or outwith [n3, n2)"
 ; ## "within"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/WITHIN
         ;
@@ -11898,12 +11855,12 @@ xt_editor_enter_screen:
                 jsr xt_drop
 
                 ; Overwrite the lines one at a time.
-                stz editor1
+                stz ed_head
 _prompt_loop:
                 ; Put the current line number on the stack.
                 dex
                 dex
-                lda editor1
+                lda ed_head
                 sta 0,x
                 stz 1,x
 
@@ -11911,9 +11868,9 @@ _prompt_loop:
                 jsr xt_editor_o
 
                 ; Move on to the next line.
-                inc editor1
+                inc ed_head
                 lda #16
-                cmp editor1
+                cmp ed_head
                 bne _prompt_loop
 
 z_editor_enter_screen:

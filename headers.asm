@@ -785,12 +785,12 @@ nt_allow_native:
         .text "allow-native"
 
 nt_nc_limit:
-        .byte 8, 0
+        .byte 8, NN
         .word nt_strip_underflow, xt_nc_limit, z_nc_limit
         .text "nc-limit"
 
 nt_strip_underflow:
-        .byte 15, 0
+        .byte 15, NN
         .word nt_abort, xt_strip_underflow, z_strip_underflow
         .text "strip-underflow"
 
@@ -815,12 +815,12 @@ nt_question_do:
         .text "?do"
 
 nt_i:
-        .byte 1, AN+CO
+        .byte 1, CO
         .word nt_j, xt_i, z_i
         .text "i"
 
 nt_j:
-        .byte 1, AN+CO
+        .byte 1, CO
         .word nt_loop, xt_j, z_j
         .text "j"
 
@@ -840,12 +840,12 @@ nt_exit:
         .text "exit"
 
 nt_unloop:
-        .byte 6, AN+CO
+        .byte 6, CO
         .word nt_leave, xt_unloop, z_unloop
         .text "unloop"
 
 nt_leave:
-        .byte 5, AN+CO
+        .byte 5, CO+IM
         .word nt_recurse, xt_leave, z_leave
         .text "leave"
 
@@ -1252,12 +1252,12 @@ nt_blkbuffer:
         .text "blkbuffer"
 
 nt_scr:
-        .byte 3, 0
+        .byte 3, NN
         .word nt_blk, xt_scr, z_scr
         .text "scr"
 
 nt_blk:
-        .byte 3, 0
+        .byte 3, NN
         .word nt_block_write, xt_blk, z_blk
         .text "blk"
 

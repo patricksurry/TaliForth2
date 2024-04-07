@@ -1,8 +1,9 @@
 ; Tali Forth 2 for the 65c02
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
 ; Sam Colwell
+; Patrick Surry
 ; First version: 19. Jan 2014 (Tali Forth 1)
-; This version: 08. Jan 2024 (Version 1.0)
+; This version: 06. Apr 2024 (Version 1.1)
 
 ; This is the main file for Tali Forth 2
 
@@ -229,6 +230,20 @@ dovar:
 
 ; =====================================================================
 ; LOW LEVEL HELPER FUNCTIONS
+
+push_upvar_tos:
+        ; """Write addr of user page variable with offset A to TOS"""
+                dex
+                dex
+                clc
+                adc up
+                sta 0,x
+                lda up+1
+                bcc +
+                ina
++
+                sta 1,x
+                rts
 
 byte_to_ascii:
         ; """Convert byte in A to two ASCII hex digits and EMIT them"""

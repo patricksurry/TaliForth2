@@ -1,8 +1,8 @@
 ; Disassembler for Tali Forth 2
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
-; Updated by Sam Colwell
+; Updated by Sam Colwell and Patrick Surry
 ; First version: 28. Apr 2018
-; This version: 31. Dec 2022
+; This version: 06. Apr 2024
 
 ; This is the default disassembler for Tali Forth 2. Use by passing
 ; the address and length of the block of memory to be disassembled:

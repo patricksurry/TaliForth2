@@ -65,13 +65,11 @@ docs/WORDLIST.md: taliforth-py65mon.bin
 # Convenience target for regular tests.
 tests:	tests/results.txt
 
-ctests: $(TEST_SOURCES)
-	(  cat tests/tester.fs; \
-	   for f in $(notdir $(TEST_SUITE)); do \
-	       echo "\n ( Running test '$${f%.fs}' from file '$$f' )"; \
-		   cat tests/$$f; \
-	   done; \
-	) | c65/c65 -r taliforth-py65mon.bin | grep -v c65: > tests/results.txt
+ctests: taliforth-py65mon.bin $(TEST_SOURCES)
+    # Build the c65 simulator.
+	make -C c65
+	# Run all of the tests.
+	cd tests && $(PYTHON) ./talitest_c65.py
 
 tests/results.txt:	taliforth-py65mon.bin $(TEST_SOURCES)
 	cd tests && $(PYTHON) ./talitest.py

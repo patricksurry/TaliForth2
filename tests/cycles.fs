@@ -126,6 +126,8 @@ char w       ' digit?        cycle_test 2drop
              ' dodoword      cycle_test           
 : dodowordij 100 0 do 10 0 do i drop j drop loop loop ;
              ' dodowordij    cycle_test           
+: dodowordbigi 10 0 do 1024 0 do i drop loop loop ;
+             ' dodowordbigi  cycle_test           
 : doword+loop 100 0 do 5 +loop ;
              ' doword+loop   cycle_test           
 \ skipping     does
