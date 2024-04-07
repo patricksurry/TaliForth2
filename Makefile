@@ -26,7 +26,10 @@ else
 endif
 
 COMMON_SOURCES=taliforth.asm definitions.asm native_words.asm headers.asm strings.asm forth_words.asc user_words.asc disassembler.asm ed.asm assembler.asm
-TEST_SOURCES=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs tests/facility.fs tests/tali.fs tests/tools.fs tests/block.fs tests/user.fs tests/cycles.fs tests/talitest.py tests/ed.fs tests/search.fs tests/asm.fs
+TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
+    tests/facility.fs tests/ed.fs tests/asm.fs tests/tali.fs \
+    tests/tools.fs tests/block.fs tests/search.fs tests/user.fs tests/cycles.fs
+TEST_SOURCES=tests/talitest.py $(TEST_SUITE)
 
 all: taliforth-py65mon.bin docs/WORDLIST.md
 clean:
@@ -61,6 +64,12 @@ docs/WORDLIST.md: taliforth-py65mon.bin
 
 # Convenience target for regular tests.
 tests:	tests/results.txt
+
+ctests: taliforth-py65mon.bin $(TEST_SOURCES)
+    # Build the c65 simulator.
+	make -C c65
+	# Run all of the tests.
+	cd tests && $(PYTHON) ./talitest_c65.py
 
 tests/results.txt:	taliforth-py65mon.bin $(TEST_SOURCES)
 	cd tests && $(PYTHON) ./talitest.py
