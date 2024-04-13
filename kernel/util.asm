@@ -19,7 +19,7 @@ _delay12:
 
 
 rng_798:   ; (rand16) -> (a, rand16) const x, y
-    ; the non-zero two byte pair @ rand16 x is randomized with a 16-bit xorshift generator
+    ; randomize the non-zero two byte pair @ rand16 using a 16-bit xorshift generator
     ; on exit A contains the (random) high byte; X, Y are unchanged
     ; see https://en.wikipedia.org/wiki/Xorshift
     ; code adapted from https://codebase64.org/doku.php?id=base:16bit_xorshift_random_generator

@@ -1,5 +1,7 @@
 txt_init:
-        ; bhead/tail are 600/700
+        ; set up two circular one page buffers
+        ; both buffers start with head=tail,
+        ; with buffer 0 at $600, buffer 1 at $700
         stz cb_head
         stz cb_tail
         stz cb_head+2

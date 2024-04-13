@@ -1,4 +1,22 @@
-; ## RANDOM ( -- n ) "Return a random word"
+xt_le:
+        jsr xt_greater_than
+        lda 0,x
+        eor #$ff
+        sta 0,x
+        sta 1,x
+z_le:
+        rts
+
+xt_ge:
+        jsr xt_less_than
+        lda 0,x
+        eor #$ff
+        sta 0,x
+        sta 1,x
+z_ge:
+        rts
+
+; ## RANDOM ( -- n ) "Return a non-zero random word"
 ; ## "random"  tested ad hoc
 xt_random:
         jsr rng_798
@@ -9,6 +27,66 @@ xt_random:
         lda rand16+1
         sta 1,x
 z_random:
+        rts
+
+; ## RANDINT( n -- k ) "Return random unsigned k in [0, n) without modulo bias"
+; ## "randint"  tested ad hoc
+xt_randint:
+        txa                 ; set up stack for initial division
+        sec
+        sbc #6
+        tax
+        lda #$ff
+        sta 5,x
+        sta 4,x
+        stz 3,x
+        stz 2,x
+        lda 7,x
+        sta 1,x
+        lda 6,x
+        sta 0,x
+        ; ( n {$ffff 0} n )
+        jsr xt_um_slash_mod         ; ( ud u -- rem quo )
+        ; ( n rem quo )
+_retry:
+        jsr xt_nip
+        jsr xt_over
+        jsr xt_random
+        jsr xt_one_minus            ; random is non-zero, so -1
+        ; ( n quo n rand0 )
+        jsr xt_zero
+        jsr xt_rot
+        ; ( n quo {rand0 0} n )
+        ; use /mod to get the candidate remainder, but discard
+        ; if the quotient rand0 // n == $ffff // n since not all
+        ; potential results are equally represented at the tail end
+        jsr xt_um_slash_mod
+        ; ( n quo rem quo' )
+        jsr xt_rot
+        jsr xt_tuck
+        ; ( n rem quo quo' quo )
+        inx                 ; 2drop and compare
+        inx
+        inx
+        inx
+        lda $fc,x
+        cmp $fe,x
+        bne _done
+        lda $fd,x
+        cmp $ff,x
+        bne _done
+        bra _retry
+_done:
+        ; ( n k quo )
+        inx
+        inx
+        inx
+        inx
+        lda $fe,x
+        sta 0,x
+        lda $ff,x
+        sta 1,x
+z_randint:
         rts
 
 

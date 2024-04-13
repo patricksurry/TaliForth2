@@ -1,7 +1,22 @@
+nt_ge:
+        .byte 2, 0
+        .word nt_le, xt_ge, z_ge
+        .text ">="
+
+nt_le:
+        .byte 2, 0
+        .word nt_random, xt_le, z_le
+        .text "<="
+
 nt_random:
         .byte 6, 0
-        .word nt_tolower, xt_random, z_random
+        .word nt_randint, xt_random, z_random
         .text "random"
+
+nt_randint:
+        .byte 7, 0
+        .word nt_tolower, xt_randint, z_randint
+        .text "randint"
 
 nt_tolower:
         .byte 7, 0

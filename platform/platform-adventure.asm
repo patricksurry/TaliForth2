@@ -56,7 +56,8 @@
 ;    $0300  +-------------------+
 ;           | Native forth vars |
 ;    $0400  +-------------------+
-;           |  1K block buffer  |
+;           |                   |  <- $400 used for user cmd
+;           |  1K block buffer  |  <- $600/$700 used for text decompression
 ;    $0800  +-------------------+  cp0
 ;           |  |                |
 ;           |  v  Dictionary    |
@@ -232,7 +233,8 @@ kernel_getc:
         ; """
 _loop:
                 lda py65_getc
-                beq _loop
+                ; in a non-blocking version we should inc rand16 l/h (skip 0)
+                beq _loop           ; c65 is blocking so this isn't needed
                 pha
                 jsr wrp_new_page
                 pla
