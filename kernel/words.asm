@@ -200,6 +200,13 @@ z_asciiz:
         rts
 
 
+blk_action = $c010
+blk_status = $c011
+blk_number = $c012
+blk_buffer = $c014
+
+blk_loader = $400
+
 ; ## blk_write ( blk buf -- ) "write a 1024-byte block from buf to blk"
 ; ## "blk-write"  tested ad hoc
 xt_blk_write:
@@ -223,14 +230,14 @@ z_blk_read:
 
 blkrw:      ; ( blk buf -- blk buf ) ; Y = 1/2 for r/w
         lda 0,x
-        sta $c014       ; buffer
+        sta blk_buffer
         lda 1,x
-        sta $c015
+        sta blk_buffer+1
         lda 2,x
-        sta $c012       ; blk number
+        sta blk_number
         lda 3,x
-        sta $c013
-        sty $c010       ; go
+        sta blk_number+1
+        sty blk_action
         rts
 
 
@@ -276,6 +283,65 @@ _cleanup:
 z_blk_read_n:
 z_blk_write_n:
         rts
+
+xt_blk_boot:
+        lda #$ff
+        sta blk_status
+        lda #$0
+        sta blk_action
+        lda blk_status
+        beq _chkfmt
+
+        lda #<_enodev
+        ldy #>_enodev
+_err:
+        sta tmp3
+        sty tmp3+1
+        jsr print_common
+        jmp xt_cr
+
+_badblk:
+        lda #<_ebadblk
+        ldy #>_ebadblk
+        bra _err
+
+_enodev:
+        .text "no block device", 0
+_ebadblk:
+        .text "bad boot block", 0
+
+_chkfmt:
+        jsr xt_zero             ; 0 <blk_loader> blk-read
+        dex
+        dex
+        lda #<blk_loader
+        sta 0,x
+        lda #>blk_loader
+        sta 1,x
+        jsr xt_blk_read
+
+        ; valid boot block looks like TF<length16><code...>
+        lda blk_loader
+        cmp #'T'
+        bne _badblk
+        lda blk_loader+1
+        cmp #'F'
+        bne _badblk
+        dex
+        dex
+        dex
+        dex
+        lda #<blk_loader+4
+        sta 2,x
+        lda #>blk_loader+4
+        sta 3,x
+        lda blk_loader+2
+        sta 0,x
+        lda blk_loader+3
+        sta 1,x
+        jmp xt_evaluate
+
+z_blk_boot:
 
 
 ; ## shutdown ( -- ) "exit the matrix aka c65"

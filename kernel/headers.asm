@@ -35,8 +35,13 @@ nt_blk_read:
 
 nt_blk_write:
         .byte 9, 0
-        .word nt_blk_read_n, xt_blk_write, z_blk_write
+        .word nt_blk_boot, xt_blk_write, z_blk_write
         .text "blk-write"
+
+nt_blk_boot:
+        .byte 8, 0
+        .word nt_blk_read_n, xt_blk_boot, z_blk_boot
+        .text "blk-boot"
 
 nt_blk_read_n:
         .byte 10, 0
