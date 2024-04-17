@@ -2589,15 +2589,14 @@ _name_loop:
                 lda (tmptos),y
 
                 ; Make sure it goes into the dictionary in lower case.
-                cmp #$5B         ; ASCII '[' (one past Z)
+                cmp #'Z'+1
                 bcs _store_name
-                cmp #$41        ; ASCII 'A'
+                cmp #'A'
                 bcc _store_name
 
                 ; An uppercase letter has been located. Make it
                 ; lowercase.
-                clc
-                adc #$20
+                ora #$20
 
                 ; Fall into _store_name.
 
@@ -2607,7 +2606,7 @@ _store_name:
                 dec tmp2
                 bne _name_loop
 
-                ; After thename string comes the code field, starting at the
+                ; After the name string comes the code field, starting at the
                 ; current xt of this word, which is initially a jump to the
                 ; subroutine to DOVAR. We code this jump by hand
                 lda #$20        ; opcode of JSR
@@ -4439,12 +4438,10 @@ _wordlist_loop:
                 ldy #num_order_offset   ; Compare to byte variable #ORDER
                 lda tmp3
                 cmp (up),y              ; Check to see if we are done
-                bne _have_string
 
                 ; We ran out of wordlists to search.
-                jmp _fail_done
+                beq _fail_done
 
-_have_string:
                 ; set up first loop iteration
 
                 ; Get the current wordlist id
@@ -4465,93 +4462,12 @@ _have_string:
                 lda (up),y
                 sta tmp1+1
 
-                lda 2,x                 ; Address of mystery string
-                sta tmp2
-                lda 3,x
-                sta tmp2+1
+                jsr find_header_name
+                bne _success
 
-_loop:
-                ; first quick test: Are strings the same length?
-                lda (tmp1)
-                cmp 0,x
-                bne _next_entry
-
-_compare_string:
-                ; are the same length, so we now have to compare each
-                ; character
-
-                ; second quick test: Is the first character the same?
-                lda (tmp2)      ; first character of mystery string
-
-                ; Lowercase the incoming charcter.
-                cmp #$5B        ; ASCII '[' (one past Z)
-                bcs _compare_first
-                cmp #$41        ; ASCII 'A'
-                bcc _compare_first
-
-                ; An uppercase letter has been located.  Make it
-                ; lowercase.
-                clc
-                adc #$20
-
-_compare_first:
-                ldy #8          ; Offset in nt to name
-                cmp (tmp1),y    ; first character of current word
-                bne _next_entry
-
-                ; String length is the same and the first character is the
-                ; same. If the length of the string is 1, we're already done
-                lda 0,x
-                dea
-                beq _success
-
-                ; No such luck: The strings are the same length and the first
-                ; char is the same, but the word is more than one char long.
-                ; So we suck it up and compare every single character. We go
-                ; from back to front, because words like CELLS and CELL+ would
-                ; take longer otherwise. We can also shorten the loop by one
-                ; because we've already compared the first char.
-
-                ; The string of the word we're testing against is 8 bytes down
-                lda tmp1
-                pha             ; Preserve tmp1 on the return stack.
-                clc
-                adc #8
-                sta tmp1        ; Reusing tmp1 temporarily for string check.
-                lda tmp1+1
-                pha             ; Preserve tmp1+1 on the return stack.
-                adc #0          ; we only need the carry
-                sta tmp1+1
-
-                ldy 0,x         ; index is length of string minus 1
-                dey
-
-_string_loop:
-                lda (tmp2),y    ; last char of mystery string
-
-                ; Lowercase the incoming charcter.
-                cmp #$5B         ; ASCII '[' (one past Z)
-                bcs _check_char
-                cmp #$41        ; ASCII 'A'
-                bcc _check_char
-
-                ; An uppercase letter has been located.  Make it
-                ; lowercase.
-                clc
-                adc #$20
-
-_check_char:
-                cmp (tmp1),y    ; last char of word we're testing against
-                bne _next_entry_tmp1
-
-                dey
-                bne _string_loop
-
-_success_tmp1:
-                pla             ; Restore tmp1 from the return stack.
-                sta tmp1+1
-                pla
-                sta tmp1
+                ; Move on to the next wordlist in the search order.
+                inc tmp3
+                bra _wordlist_loop
 
 _success:
                 ; The strings match. Put correct nt NOS, because we'll drop
@@ -4562,33 +4478,6 @@ _success:
                 sta 3,x
 
                 bra _done
-
-_next_entry_tmp1:
-                pla             ; Restore tmp1 from the return stack.
-                sta tmp1+1
-                pla
-                sta tmp1
-
-_next_entry:
-                ; Not the same, so we get the next word. Next header
-                ; address is two bytes down
-                ldy #2
-                lda (tmp1),y
-                pha
-                iny
-                lda (tmp1),y
-                sta tmp1+1
-                pla
-                sta tmp1
-
-                ; If we got a zero, we've walked the whole Dictionary and
-                ; return as a failure, otherwise try again
-                ora tmp1+1
-                bne _loop
-
-                ; Move on to the next wordlist in the search order.
-                inc tmp3
-                jmp _wordlist_loop
 
 _fail_done:
                 stz 2,x         ; failure flag
@@ -8256,18 +8145,14 @@ xt_search_wordlist:
                 ; check for special case of an empty string (length zero)
                 lda 0,x
                 ora 1,x
-                bne _check_wordlist
-                jmp _done
+                beq _done
 
-_check_wordlist:
                 ; Check for special case of empty wordlist
                 ; (dictionary pointer, in tmp2, is 0)
                 lda tmp2
                 ora tmp2+1
-                bne _have_string
-                jmp _done
+                beq _done
 
-_have_string:
                 ; set up first loop iteration
                 lda (tmp2)              ; nt of first word in Dictionary
                 sta tmp1
@@ -8279,95 +8164,9 @@ _have_string:
                 lda (tmp2)
                 sta tmp1+1
 
-                ; Reuse tmp2 to hold the address of the mystery string.
-                lda 2,x                 ; Address of mystery string
-                sta tmp2
-                lda 3,x
-                sta tmp2+1
+                jsr find_header_name
+                beq _fail_done
 
-_loop:
-                ; first quick test: Are strings the same length?
-                lda (tmp1)
-                cmp 0,x
-                bne _next_entry
-
-_compare_string:
-                ; are the same length, so we now have to compare each
-                ; character
-
-                ; second quick test: Is the first character the same?
-                lda (tmp2)      ; first character of mystery string
-
-                ; Lowercase the incoming charcter.
-                cmp #$5B        ; ASCII '[' (one past Z)
-                bcs _compare_first
-                cmp #$41        ; ASCII 'A'
-                bcc _compare_first
-
-                ; An uppercase letter has been located.  Make it
-                ; lowercase.
-                clc
-                adc #$20
-
-_compare_first:
-                ldy #8          ; Offset in nt to name
-                cmp (tmp1),y    ; first character of current word
-                bne _next_entry
-
-                ; string length are the same and the first character is the
-                ; same. If the length of the string is 1, we're already done
-                lda 0,x
-                dea
-                beq _success
-
-                ; No such luck: The strings are the same length and the first
-                ; char is the same, but the word is more than one char long.
-                ; So we suck it up and compare every single character. We go
-                ; from back to front, because words like CELLS and CELL+ would
-                ; take longer otherwise. We can also shorten the loop by one
-                ; because we've already compared the first char.
-
-                ; The string of the word we're testing against is 8 bytes down
-                lda tmp1
-                pha             ; Preserve tmp1 on the return stack.
-                clc
-                adc #8
-                sta tmp1        ; Reusing tmp1 temporarily for string check.
-                lda tmp1+1
-                pha             ; Preserve tmp1+1 on the return stack.
-                adc #0          ; we only need the carry
-                sta tmp1+1
-
-                ldy 0,x         ; index is length of string minus 1
-                dey
-
-_string_loop:
-                lda (tmp2),y    ; last char of mystery string
-
-                ; Lowercase the incoming charcter.
-                cmp #$5B         ; ASCII '[' (one past Z)
-                bcs _check_char
-                cmp #$41        ; ASCII 'A'
-                bcc _check_char
-
-                ; An uppercase letter has been located.  Make it
-                ; lowercase.
-                clc
-                adc #$20
-_check_char:
-                cmp (tmp1),y    ; last char of word we're testing against
-                bne _next_entry_tmp1
-
-                dey
-                bne _string_loop
-
-_success_tmp1:
-                pla             ; Restore tmp1 from the return stack.
-                sta tmp1+1
-                pla
-                sta tmp1
-
-_success:
                 ; The strings match. Drop the count and put correct nt TOS
                 inx
                 inx
@@ -8404,29 +8203,6 @@ _immediate:
                 stz 1,x
 
                 bra _done_nodrop
-
-_next_entry_tmp1:
-                pla             ; Restore tmp1 from the return stack.
-                sta tmp1+1
-                pla
-                sta tmp1
-_next_entry:
-                ; Not the same, so we get the next word. Next header
-                ; address is two bytes down
-                ldy #2
-                lda (tmp1),y
-                pha
-                iny
-                lda (tmp1),y
-                sta tmp1+1
-                pla
-                sta tmp1
-
-                ; If we got a zero, we've walked the whole Dictionary and
-                ; return as a failure, otherwise try again
-                ora tmp1+1
-                beq _fail_done
-                jmp _loop
 
 _fail_done:
                 stz 2,x         ; failure flag

@@ -268,6 +268,114 @@ _nibble_to_ascii:
 
                 rts
 
+
+find_header_name:
+        ; """Given <266 char string ( addr  n -- )
+        ; and tmp1 pointing at an NT header, search each
+        ; linked header looking for a matching name.
+        ; Each header has length at NT, name at NT+8
+        ; and next header pointer at NT+2 with 0 marking the end.
+        ; On success tmp1 points at the matching NT, with A=$ff and Z=0.
+        ; On failure tmp1 is 0, A=0 and Z=1.
+        ; Stomps tmp2.
+        ; """
+
+                lda 2,x                 ; Copy mystery string to tmp2
+                sta tmp2
+                lda 3,x
+                sta tmp2+1
+
+_next_nt:
+                ldy #8
+
+                ; first quick test: Are strings the same length?
+                lda (tmp1)
+                cmp 0,x
+                bne _compared
+
+                ; second quick test: could first characters be equal?
+                lda (tmp2)      ; first character of mystery string
+                eor (tmp1),y    ; equal bits will xor as zeros
+                and #%11011111  ; ignore upper/lower case bit
+                bne _compared   ; definitely not equal if any bits differ
+
+                ; Same length and probably same first character
+                ; (though we still have to check properly).
+                ; Suck it up and compare all characters. We go
+                ; from back to front, because words like CELLS and CELL+ would
+                ; take longer otherwise.
+
+                ; The string of the word we're testing against is 8 bytes down
+                lda tmp1
+                pha             ; Preserve tmp1 on the return stack.
+                clc
+                adc #8
+                sta tmp1        ; Reusing tmp1 temporarily for string check.
+                lda tmp1+1
+                pha             ; Preserve tmp1+1 on the return stack.
+                adc #0          ; we only need the carry
+                sta tmp1+1
+
+                ldy 0,x         ; index is length of string minus 1
+                dey
+
+_next_char:
+                lda (tmp2),y    ; last char of mystery string
+
+                ; Lowercase the incoming charcter.
+                cmp #'Z'+1
+                bcs _check_char
+                cmp #'A'
+                bcc _check_char
+
+                ; Convert uppercase letter to lowercase.
+                ora #$20
+
+_check_char:
+                cmp (tmp1),y    ; last char of word we're testing against
+                bne _restore
+
+                dey
+                bpl _next_char
+
+                ; on equality we'll fall through with y = $ff
+                ; otherwise we've branched here with y <> $ff
+_restore:
+                pla             ; Restore tmp1 from the return stack.
+                sta tmp1+1
+                pla
+                sta tmp1
+
+_compared:
+                ; if we fell through on success, y is $ff
+                ; otherwise the comparison failed with y <> $ff
+                ; including the cases where we branched early and y = 8
+                tya             ; ensure A is non-zero on success
+                iny             ; if y+1 is 0 we found a match
+                beq _done
+
+_next_entry:
+                ; Not the same, so we get the next word. Next header
+                ; address is two bytes down
+                ldy #2
+                lda (tmp1),y
+                pha
+                iny
+                lda (tmp1),y
+                sta tmp1+1
+                pla
+                sta tmp1
+
+                ; If we got a zero, we've walked the whole Dictionary and
+                ; return as a failure, otherwise try again
+                ora tmp1+1
+                bne _next_nt
+
+_done:          cmp #0          ; A is 0 on failure and $ff on success
+                rts
+
+
+
 compare_16bit:
         ; """Compare TOS/NOS and return results in form of the 65c02 flags
         ; Adapted from Leventhal "6502 Assembly Language Subroutines", see
