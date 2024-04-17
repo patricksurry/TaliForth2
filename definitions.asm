@@ -28,9 +28,10 @@
 ; values except the uninitialized temporaries at the end.  This table
 ; is relocated to zero page by COLD.
 
-dsp0      = zpage_end-7    ; initial Data Stack Pointer
-turnkey   = zpage_end-1    ; word to resume in pre-compiled image
+dsp0      = zpage_end-7             ; initial Data Stack Pointer
 
+turnkey   = $fff8                   ; location of xt to run in a pre-compiled image
+                                    ; normally filled with zero before vectors
 cold_zp_table:
         .logical user0              ; make labels refer to relocated address
 

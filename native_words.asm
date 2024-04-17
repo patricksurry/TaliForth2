@@ -76,7 +76,7 @@ _load_user_vars_loop:
 
                 ; Define high-level words in forth_words.asc via EVALUATE,
                 ; followed by any user-defined words from user_words.asc.
-                ; These are stored sequentially in ROM so we can evaluaet them together.
+                ; These are stored sequentially in ROM so we can evaluate them together.
                 ; If you have neither, this section can be commented out.
                 dex
                 dex
@@ -96,11 +96,21 @@ _load_user_vars_loop:
                 sta 1,x
 
                 jsr xt_evaluate
+.if TALI_STARTUP
+                dex
+                dex
+                lda #<TALI_STARTUP
+                sta 0,x
+                lda #>TALI_STARTUP
+                sta 1,x
+                jsr xt_execute
+.endif
                 bra _skip_turnkey
+
 _turnkey:
-                ; special entry point to execute word stored at zpage_end-1
-                ; all we need to do is set up the data stack pointer
-                ; and execute the pre-compiled xt stored at turnkey
+                ; special entry point to execute turnkey xt
+                ; in a prebuilt memory image with existing state
+                ; simply set up the data stack pointer
                 ; then fall back into abort on completion
                 sei
                 ldx #dsp0-2

@@ -7,7 +7,7 @@ RTS instruction at the end of each word.
 
 | NAME | FORTH WORD | SOURCE | BYTES | STATUS |
 | :--- | :--------- | :---   | ----: | :----  |
-| COLD | `cold` | Tali Forth | 177 | tested |
+| COLD | `cold` | Tali Forth | 195 | tested |
 | ABORT | `abort` | ANS core | 81 | tested |
 | QUIT | `quit` | ANS core | 79 | tested |
 | ABORT_QUOTE | `abort"` | ANS core | 10 | tested |

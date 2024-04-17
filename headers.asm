@@ -1433,12 +1433,10 @@ nt_forth:
 +
 .endif
 
-.if "disassembler" in TALI_OPTIONAL_WORDS
 nt_see: .byte 3, NN
         .word +, xt_see, z_see
         .text "see"
 +
-.endif
 
 .if "ed" in TALI_OPTIONAL_WORDS
 nt_ed:                  ; ed6502
@@ -1448,8 +1446,10 @@ nt_ed:                  ; ed6502
 +
 .endif
 
-.if "adventure" in TALI_OPTIONAL_WORDS
-.include "kernel/headers.asm"
+TALI_USER_HEADERS :?= ""
+.if TALI_USER_HEADERS
+.include TALI_USER_HEADERS
++
 .endif
 
 nt_cold:

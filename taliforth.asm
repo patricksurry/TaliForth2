@@ -25,6 +25,9 @@ TALI_OPTION_TERSE :?= 0
 ; Default to ctrl-n/p accept history
 TALI_OPTION_HISTORY :?= 1
 
+; Optional XT of a word to run on startup
+TALI_STARTUP :?= 0
+
 ; Label used to calculate UNUSED based on the hardware configuration in platform/
 code0:
 
@@ -37,9 +40,6 @@ forth:
 .include "assembler.asm"        ; SAN assembler
 .include "disassembler.asm"     ; SAN disassembler
 .include "ed.asm"               ; Line-based editor ed6502
-.if "adventure" in TALI_OPTIONAL_WORDS
-.include "kernel/kernel.asm"
-.endif
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
