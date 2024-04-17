@@ -270,14 +270,14 @@ _nibble_to_ascii:
 
 
 find_header_name:
-        ; """Given <266 char string ( addr  n -- )
+        ; """Given a string on the stack ( addr  n ) with n at most 255
         ; and tmp1 pointing at an NT header, search each
         ; linked header looking for a matching name.
         ; Each header has length at NT, name at NT+8
         ; and next header pointer at NT+2 with 0 marking the end.
         ; On success tmp1 points at the matching NT, with A=$ff and Z=0.
         ; On failure tmp1 is 0, A=0 and Z=1.
-        ; Stomps tmp2.
+        ; Stomps tmp2.  The stack is unchanged.
         ; """
 
                 lda 2,x                 ; Copy mystery string to tmp2
