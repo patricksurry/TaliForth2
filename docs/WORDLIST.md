@@ -66,7 +66,7 @@ RTS instruction at the end of each word.
 | CONSTANT | `constant` | ANS core | 61 | **auto** |
 | COUNT | `count` | ANS core | 19 | **auto** |
 | CR | `cr` | ANS core | 5 | **auto** |
-| CREATE | `create` | ANS core | 212 | **auto** |
+| CREATE | `create` | ANS core | 211 | **auto** |
 | D_MINUS | `d-` | ANS double | 32 | **auto** |
 | D_PLUS | `d+` | ANS double | 32 | **auto** |
 | D_TO_S | `d>s` | ANS double | 5 | **auto** |
@@ -111,7 +111,7 @@ RTS instruction at the end of each word.
 | FALSE | `false` | ANS core ext | 6 | **auto** |
 | FETCH | `@` | ANS core | 18 | **auto** |
 | FIND | `find` | ANS core | 71 | **auto** |
-| FIND_NAME | `find-name` | Gforth | 171 | **auto** |
+| FIND_NAME | `find-name` | Gforth | 67 | **auto** |
 | FLUSH | `flush` | ANS block | 9 | **auto** |
 | FM_SLASH_MOD | `fm/mod` | ANS core | 54 | **auto** |
 | FORTH | `forth` | ANS search ext | 6 | **auto** |
@@ -199,7 +199,7 @@ RTS instruction at the end of each word.
 | ROT | `rot` | ANS core | 27 | **auto** |
 | RSHIFT | `rshift` | ANS core | 19 | **auto** |
 | S_BACKSLASH_QUOTE | `s\"` | ANS core | 9 | **auto** |
-| SEARCH_WORDLIST | `search-wordlist` | ANS search | 224 | **auto** |
+| SEARCH_WORDLIST | `search-wordlist` | ANS search | 115 | **auto** |
 | SEE | `see` | ANS tools | 141 | tested |
 | SET_CURRENT | `set-current` | ANS search | 11 | **auto** |
 | SET_ORDER | `set-order` | ANS search | 51 | **auto** |

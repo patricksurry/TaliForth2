@@ -285,19 +285,18 @@ find_header_name:
                 lda 3,x
                 sta tmp2+1
 
-_next_nt:
-                ldy #8
-
+_loop:
                 ; first quick test: Are strings the same length?
                 lda (tmp1)
                 cmp 0,x
-                bne _compared
+                bne _next_entry
 
                 ; second quick test: could first characters be equal?
                 lda (tmp2)      ; first character of mystery string
-                eor (tmp1),y    ; equal bits will xor as zeros
-                and #%11011111  ; ignore upper/lower case bit
-                bne _compared   ; definitely not equal if any bits differ
+                ldy #8
+                eor (tmp1),y    ; flag any mismatched bits
+                and #%11011111  ; but ignore upper/lower case bit
+                bne _next_entry ; definitely not equal if any bits differ
 
                 ; Same length and probably same first character
                 ; (though we still have to check properly).
@@ -307,15 +306,16 @@ _next_nt:
 
                 ; The string of the word we're testing against is 8 bytes down
                 lda tmp1
-                pha             ; Preserve tmp1 on the return stack.
+                pha             ; Save original address on the stack
                 clc
                 adc #8
-                sta tmp1        ; Reusing tmp1 temporarily for string check.
+                sta tmp1
                 lda tmp1+1
-                pha             ; Preserve tmp1+1 on the return stack.
-                adc #0          ; we only need the carry
+                pha
+                bcc +
+                ina
                 sta tmp1+1
-
++
                 ldy 0,x         ; index is length of string minus 1
                 dey
 
@@ -333,30 +333,24 @@ _next_char:
 
 _check_char:
                 cmp (tmp1),y    ; last char of word we're testing against
-                bne _restore
+                bne _reset_tmp1
 
                 dey
                 bpl _next_char
 
-                ; on equality we'll fall through with y = $ff
-                ; otherwise we've branched here with y <> $ff
-_restore:
-                pla             ; Restore tmp1 from the return stack.
+        ; if we fall through on success, and only then, Y is $ff
+_reset_tmp1:
+                pla
                 sta tmp1+1
                 pla
                 sta tmp1
 
-_compared:
-                ; if we fell through on success, y is $ff
-                ; otherwise the comparison failed with y <> $ff
-                ; including the cases where we branched early and y = 8
-                tya             ; ensure A is non-zero on success
-                iny             ; if y+1 is 0 we found a match
+                tya             ; leave A = $ff on success
+                iny             ; if Y was $ff, we succeeded
                 beq _done
 
 _next_entry:
-                ; Not the same, so we get the next word. Next header
-                ; address is two bytes down
+                ; Otherwise move on to next header address
                 ldy #2
                 lda (tmp1),y
                 pha
@@ -369,10 +363,10 @@ _next_entry:
                 ; If we got a zero, we've walked the whole Dictionary and
                 ; return as a failure, otherwise try again
                 ora tmp1+1
-                bne _next_nt
+                bne _loop
 
-_done:          cmp #0          ; A is 0 on failure and $ff on success
-                rts
+_done:          cmp #0      ; A is 0 on failure and $ff on success
+                rts         ; so cmp #0 sets Z on failure and clears on success
 
 
 
