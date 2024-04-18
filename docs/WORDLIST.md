@@ -203,7 +203,7 @@ RTS instruction at the end of each word.
 | SEE | `see` | ANS tools | 141 | tested |
 | SET_CURRENT | `set-current` | ANS search | 11 | **auto** |
 | SET_ORDER | `set-order` | ANS search | 51 | **auto** |
-| S_QUOTE | `s"` | ANS core | 301 | **auto** |
+| S_QUOTE | `s"` | ANS core | 295 | **auto** |
 | S_TO_D | `s>d` | ANS core | 17 | **auto** |
 | SAVE_BUFFERS | `save-buffers` | ANS block | 26 | tested |
 | SCR | `scr` | ANS block ext | 5 | **auto** |
@@ -229,7 +229,7 @@ RTS instruction at the end of each word.
 | THEN | `then` | ANS core | 73 | **auto** |
 | THRU | `thru` | ANS block ext | 68 | tested |
 | TICK | `'` | ANS core | 31 | **auto** |
-| TO | `to` | ANS core ext | 91 | **auto** |
+| TO | `to` | ANS core ext | 72 | **auto** |
 | TO_BODY | `>body` | ANS core | 34 | **auto** |
 | TO_IN | `>in` | ANS core | 10 | **auto** |
 | TO_NUMBER | `>number` | ANS core | 159 | **auto** |

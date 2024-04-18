@@ -198,6 +198,13 @@ AscDEL  = $7f  ; delete (CTRL-h)
 AscCP   = $10  ; CTRL-p (used to recall previous input history)
 AscCN   = $0e  ; CTRL-n (used to recall next input history)
 
+; OPCODES
+; some common instructions we use when emitting code
+
+OpJSR   = $20
+OpJMP   = $4C
+OpRTS   = $60
+
 ; DICTIONARY FLAGS
 ; The first two bits are currently unused
 CO = 1  ; Compile Only

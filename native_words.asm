@@ -341,7 +341,7 @@ _not_zero:
                 ; time. This bit will be cleared on the first CTRL-n or CTRL-p
                 ; received and won't be used to calculate the history buffer
                 ; offset.
-                ora #$08
+                ora #$8
                 sta status
 
 accept_loop:
@@ -598,7 +598,7 @@ accept_total_recall:
                 tya
                 cmp #$80
                 bcc +
-                lda #$7F
+                lda #$7f
 +
                 rts
 .endif
@@ -644,7 +644,7 @@ xt_again:
                 ; so we have the range and don't have to calculate the
                 ; offset.
                 ldy #0
-                lda #$4C        ; JMP
+                lda #OpJMP
                 sta (cp),y
                 iny
 
@@ -899,11 +899,11 @@ xt_at_xy:
 
                 lda #AscESC
                 jsr emit_a
-                lda #$5B        ; ASCII for "["
+                lda #'['
                 jsr emit_a
                 jsr xt_one_plus ; AT-XY is zero based, but ANSI is 1 based
                 jsr print_u
-                lda #$3B        ; ASCII for ";"
+                lda #';'
                 jsr emit_a
                 jsr xt_one_plus ; AT-XY is zero based, but ANSI is 1 based
                 jsr print_u
@@ -936,16 +936,16 @@ xt_backslash:
                 ; to check for exact multiple of 64, which will happen with
                 ; a backslash at the very end of a block.
                 lda toin
-                and #$3F
+                and #$3f
                 beq z_backslash
-                cmp #$01
+                cmp #$1
                 beq z_backslash
 
                 ; Not at the end of the line (beginning of next line,
                 ; after parsing the \, technically), so move to the
                 ; next line.
                 lda toin
-                and #$C0        ; Clear lower bits to move to beginning of line.
+                and #$c0        ; Clear lower bits to move to beginning of line.
 
                 clc             ; Add $40 (64 decimal) to move to next line.
                 adc #$40
@@ -1934,7 +1934,7 @@ _str1_done:
                 ; Falls into less (str1 is out but str2 has more)
 _less:
                 ; Return -1
-                lda #$FF
+                lda #$ff
                 sta 6,x
                 sta 7,x
                 bra _done
@@ -2244,7 +2244,7 @@ strip_size:
 
 compile_as_jump:
                 ; Compile xt as a subroutine jump
-                lda #$20
+                lda #OpJSR
                 sta (cp)
 
                 ldy #1
@@ -2462,7 +2462,7 @@ _redefined_name:
 _new_name:
                 inx                     ; Drop flag (0) from find-name.
                 inx
-                lda #$7F                ; Clear bit 0 of status to indicate new word.
+                lda #$7f                ; Clear bit 0 of status to indicate new word.
                 and status
                 sta status
 
@@ -2609,7 +2609,7 @@ _store_name:
                 ; After the name string comes the code field, starting at the
                 ; current xt of this word, which is initially a jump to the
                 ; subroutine to DOVAR. We code this jump by hand
-                lda #$20        ; opcode of JSR
+                lda #OpJSR
                 sta (tmp1),y
                 iny
                 lda #<dovar
@@ -3349,7 +3349,7 @@ xt_dot_s:
                 jsr xt_depth    ; ( -- u )
 
                 ; Print stack depth in brackets
-                lda #$3c        ; ASCII for "<"
+                lda #'<'
                 jsr emit_a
 
                 ; We keep a copy of the number of the things on the stack
@@ -3366,7 +3366,7 @@ xt_dot_s:
 
                 jsr print_u
 
-                lda #$3e        ; ASCII for ">"
+                lda #'>'
                 jsr emit_a
                 lda #AscSP      ; ASCII for SPACE
                 jsr emit_a
@@ -3653,7 +3653,7 @@ z_ed:           rts
 xt_else:
 xt_endof:
                 ; Add an unconditional branch using a native jmp
-                lda #$4c        ; jmp opcode
+                lda #OpJMP
                 jsr cmpl_a
 
                 ; Put the address of the branch address on the stack.
@@ -4394,7 +4394,7 @@ _found_word:
                 and #IM
                 bne _immediate          ; bit set, we're immediate
 
-                lda #$FF                ; We're not immediate, return -1
+                lda #$ff                ; We're not immediate, return -1
                 sta 0,x
                 sta 1,x
                 bra _done
@@ -4581,7 +4581,7 @@ z_forth:
 ; being evaluated.  Evaluate's normal behavior is to zero BLK.
 load_evaluate:
                 ; Set a flag (using tmp1) to not zero BLK
-                lda #$FF
+                lda #$ff
                 sta tmp1
                 bra load_evaluate_start
 
@@ -5237,11 +5237,11 @@ z_int_to_name:  rts
 xt_invert:
                 jsr underflow_1
 
-                lda #$FF
+                lda #$ff
                 eor 0,x         ; LSB
                 sta 0,x
 
-                lda #$FF
+                lda #$ff
                 eor 1,x         ; MSB
                 sta 1,x
 
@@ -5384,7 +5384,7 @@ xt_leave:
                 ; use the JMP placeholder address to keep a linked list
                 ; of all LEAVE addresses to update, headed by loopleave
 
-                lda #$4c
+                lda #OpJMP
                 jsr cmpl_a      ; emit the JMP
                 lda loopleave   ; chain the prior leave address
                 jsr cmpl_a
@@ -6433,7 +6433,7 @@ xt_not_equals:
                 cmp 3,x
                 bne _not_equal
 
-                lda #$FF
+                lda #$ff
                 bra _done
 
 _not_equal:
@@ -6515,30 +6515,30 @@ xt_number:
                 ; Look at the first character.
                 lda (2,x)
 _check_dec:
-                cmp #$23        ; ASCII for "#"
+                cmp #'#'
                 bne _check_hex
                 ; Switch temporarily to decimal
-                lda #$0A
+                lda #10
                 bra _base_changed
 _check_hex:
-                cmp #$24        ; ASCII for "$"
+                cmp #'$'
                 bne _check_binary
                 ; Switch temporarily to hexadecimal
-                lda #$10
+                lda #16
                 bra _base_changed
 _check_binary:
-                cmp #$25        ; ASCII for "%"
+                cmp #'%'
                 bne _check_char
                 ; Switch temporarily to hexadecimal
-                lda #$02
+                lda #2
                 bra _base_changed
 _check_char:
-                cmp #$27        ; ASCII for "'"
+                cmp #"'"
                 bne _check_minus
                 ; Character constants should have a length of 3
                 ; and another single quote in position 3.
                 lda 0,x         ; Get the length
-                cmp #$03
+                cmp #3
                 bne _not_a_char
                 lda 1,x
                 bne _not_a_char ; No compare needed to check for non-zero.
@@ -6553,7 +6553,7 @@ _check_char:
                 adc #0          ; only need carry
                 sta tmptos+1
                 lda (tmptos)
-                cmp #$27        ; ASCII for "'"
+                cmp #"'"
                 bne _not_a_char
                 ; The char we want is between the single quotes.
                 inc 2,x
@@ -6585,7 +6585,7 @@ _base_changed:
 _check_minus:
                 ; If the first character is a minus, strip it off and set
                 ; the flag
-                cmp #$2D        ; ASCII for "-"
+                cmp #'-'
                 bne _check_dot
 
                 ; It's a minus
@@ -6665,10 +6665,10 @@ _number_error:
                 jsr xt_two_drop ; >NUMBER modified addr u
                 jsr xt_two_drop ; ud   (partially converted number)
 
-                lda #$3E        ; ASCII for ">"
+                lda #'>'
                 jsr emit_a
                 jsr xt_type
-                lda #$3C        ; ASCII for "<"
+                lda #'<'
                 jsr emit_a
                 jsr xt_space
 
@@ -6936,7 +6936,7 @@ xt_only:
                 ; Put -1 on data stack.
                 dex
                 dex
-                lda #$FF
+                lda #$ff
                 sta 0,x
                 sta 1,x
 
@@ -7148,7 +7148,7 @@ z_pad:          rts
 xt_page:
                 lda #AscESC
                 jsr emit_a
-                lda #$5B        ; ASCII for "["
+                lda #'['
                 jsr emit_a
                 lda #'2'
                 jsr emit_a
@@ -7816,7 +7816,7 @@ xt_recurse:
                 ; instruction
                 ldy #0
 
-                lda #$20        ; opcode for JSR
+                lda #OpJSR
                 sta (cp),y
                 iny
 
@@ -7928,7 +7928,7 @@ xt_refill:
                 stz toin
                 stz toin+1
 
-                lda #$FF                ; overwrite with TRUE flag
+                lda #$ff                ; overwrite with TRUE flag
                 sta 0,x
                 sta 1,x
 
@@ -7981,7 +7981,7 @@ z_repeat:
         ; This is an immediate word.
         ; """
 xt_right_bracket:
-                lda #$FF
+                lda #$ff
                 sta state
                 sta state+1
 z_right_bracket:
@@ -8070,7 +8070,7 @@ xt_s_backslash_quote:
                 ; so set it to $FF (the upper byte will be used to
                 ; determine if we just had a \ and the next character
                 ; needs to be modifed as an escaped character).
-                lda #$FF
+                lda #$ff
                 sta tmp2
                 stz tmp2+1
 
@@ -8090,9 +8090,9 @@ convert_hex_value:
         bcc _digit
 
         ; It's A-F
-        and #$DF                ; Make it uppercase.
+        and #$df                ; Make it uppercase.
         sec
-        sbc #'7'                 ; gives value 10 for 'A'
+        sbc #'7'                ; gives value 10 for 'A'
         bra _done
 
 _digit:
@@ -8189,7 +8189,7 @@ xt_search_wordlist:
                 and #IM
                 bne _immediate          ; bit set, we're immediate
 
-                lda #$FF                ; We're not immediate, return -1
+                lda #$ff                ; We're not immediate, return -1
                 sta 0,x
                 sta 1,x
                 bra _done_nodrop
@@ -8276,7 +8276,7 @@ _flag_loop:
                 pha
                 and #%00000001
                 clc
-                adc #$30                ; ASCII "0"
+                adc #'0'
                 jsr emit_a
                 jsr xt_space
 
@@ -8345,7 +8345,7 @@ z_set_current:  rts
 
 xt_set_order:
                 ; Test for -1 TOS
-                lda #$FF
+                lda #$ff
                 cmp 1,x
                 bne _start
                 cmp 0,x
@@ -8431,7 +8431,7 @@ s_quote_start:
 
                 ; Put a jmp over the string data with address to be filled
                 ; in later.
-                lda #$4C
+                lda #OpJMP
                 jsr cmpl_a
 
                 ; Address to be filled in later, just use $4C for the moment
@@ -8619,12 +8619,8 @@ _esc_replace:   bpl _save_character     ; simple replacement
                 bra _save_character
 
 _check_esc_quote:
-                cmp #$22
-                bne _check_esc_x
-
-                ; Double quote (ASCII value 34)
-                lda #34
-                bra _save_character
+                cmp #'"'
+                beq _save_character
 
 _check_esc_x:
                 cmp #'x'
@@ -8635,35 +8631,32 @@ _check_esc_x:
                 ; and combine them as two hex digits. We do this by
                 ; clearing bit 6 of tmp2+1 to indicate we are in a digit
                 ; and using bit 0 to keep track of which digit we are on.
-                lda #$BE        ; Clear bits 6 and 0
+                lda #%10111110        ; Clear bits 6 and 0
                 sta tmp2+1
                 bra _next_character
 
 _check_esc_backslash:
-                cmp #$5C
-                bne _not_escaped
-
-                ; Backslash (ASCII value 92)
-                lda #92
+                cmp #'\'
+                bne _regular_char
                 bra _save_character
 
 _not_escaped:
                 ; Check for the backslash to see if we should escape
                 ; the next char.
-                cmp #$5C        ; The backslash char
+                cmp #'\'
                 bne _regular_char
 
                 ; We found a backslash.  Don't save anyhing, but set
                 ; a flag (in tmp2+1) to handle the next char. We don't
                 ; try to get the next char here as it may require a
                 ; refill of the input buffer.
-                lda #$FF
+                lda #$ff
                 sta tmp2+1
                 bra _next_character
 
 _regular_char:
                 ; Check if the current character is the end of the string.
-                cmp #$22        ; ASCII for "
+                cmp #'"'
                 beq _found_string_end
 
 _save_character:
@@ -8819,7 +8812,7 @@ xt_search:
                 ; the second string and put a true flag.
                 inx             ; Remove u2
                 inx
-                lda #$FF        ; Turn addr2 into a true flag
+                lda #$ff        ; Turn addr2 into a true flag
                 sta 0,x
                 sta 1,x
                 jmp z_search
@@ -8947,7 +8940,7 @@ _letters_match:
                 inx
                 inx             ; drop u2
                 inx
-                lda #$FF
+                lda #$ff
                 sta 0,x         ; Turn addr2 into a true flag.
                 sta 1,x
 
@@ -8975,7 +8968,7 @@ xt_semicolon:
 
                 ; This is a :NONAME word - just put an RTS on the end and
                 ; the address (held in workword) on the stack.
-                lda #$60                ; opcode for RTS
+                lda #OpRTS
                 jsr cmpl_a
 
                 dex
@@ -8999,7 +8992,7 @@ _colonword:
 
                 ; Allocate one further byte and save the RTS instruction
                 ; there
-                lda #$60                ; opcode for RTS
+                lda #OpRTS
                 jsr cmpl_a
 
                 ; Before we formally add the word to the Dictionary, we
@@ -9089,7 +9082,7 @@ xt_sign:
                 inx
                 bra _done
 _minus:
-                lda #$2D        ; ASCII for "-"
+                lda #'-'
                 sta 0,x         ; overwrite TOS
                 stz 1,x         ; paranoid
 
@@ -9120,7 +9113,7 @@ xt_slash:
 
 xt_slash_mod:
                 ; Note that /MOD accesses this code
-                lda #$FF
+                lda #$ff
                 pha             ; falls through to _common
 
 slashmod_common:
@@ -9204,7 +9197,7 @@ xt_sliteral:
 
                 ; Put a jmp over the string data with address to be filled
                 ; in later.
-                lda #$4C
+                lda #OpJMP
                 jsr cmpl_a
 
                 ; Address to be filled in later.
@@ -9836,52 +9829,36 @@ xt_to:
                 ora state+1
                 beq _interpret
 
-                ; Well, we're compiling. We want to end up with simple
-                ; code that just takes the number that is TOS and saves
-                ; it in the address of the xt we were just given. So we
-                ; want to compile this routine:
-                ;
-                ;       lda 0,x                 - B5 00
-                ;       sta <ADDR_LSB>          - 8D LSB MSB
-                ;       lda 1,x                 - B5 01
-                ;       sta <ADDR_LSB>          - 8D LSB MSB
-                ;       inx                     - E8
-                ;       inx                     - E8
-                ;
-                ; which at least is nice and short. Other than that, we pretty
-                ; much have to do this the hard and long way, because with the
-                ; LSBs and MSBs, we can't really put the numbers in a data
-                ; range and store them with a loop. Sigh.
+                ; compile a fragment that takes number TOS
+                ; and saves to the address of the xt we were just given.
+                ; we'll use a template and replace marker $ff bytes
+                ; with the appropriate addresses.
 
-                ldy #$00                ; Code for LDA 0,X
-                lda #$B5
-                jsr cmpl_word
+                ; stash target address bytes so we can pop in this order:
+                ; lsb+ msb+ lsb msb
 
-                lda #$8D                ; Code for STA abs
-                jsr cmpl_a
-
-                ldy tmp1+1              ; MSB goes in Y
+                lda tmp1+1
+                tay             ; save msb for later
                 lda tmp1
-                jsr cmpl_word
-
-                ldy #$01                ; Code for LDA 1,X
-                lda #$B5
-                jsr cmpl_word
-
-                lda #$8D                ; Code for STA abs
-                jsr cmpl_a
-
-                inc tmp1                ; Calculate MSB
+                phy             ; push msb and lsb of tmp1
+                pha
+                ina             ; calc tmp1++
                 bne +
-                inc tmp1+1
+                iny
 +
-                ldy tmp1+1              ; MSB goes in Y
-                lda tmp1
-                jsr cmpl_word
+                phy             ; push msb and lsb of tmp1++
+                pha
 
-                ldy #$E8                ; Code for INX
-                tya
-                jsr cmpl_word
+                ldy #0
+_copy_runtime:  lda to_runtime,y
+                cmp #$ff        ; placeholder byte?
+                bne +
+                pla             ; grab next address byte
++
+                jsr cmpl_a
+                iny
+                cpy #to_runtime_end - to_runtime
+                bne _copy_runtime
 
                 bra _done
 
@@ -9907,6 +9884,16 @@ _interpret:
 _done:
 z_to:           rts
 
+to_runtime:
+    ; fragment compiled for to_runtime with ffff bytes
+    ; replaced with appropriate addresses
+                lda 1,x
+                sta $ffff               ; addr MSB
+                lda 0,x
+                sta $ffff               ; addr LSB
+                inx
+                inx
+to_runtime_end:
 
 
 ; ## TO_BODY ( xt -- addr ) "Return a word's Code Field Area (CFA)"
@@ -10225,7 +10212,7 @@ z_to_r:         rts
 xt_true:
                 dex
                 dex
-                lda #$FF
+                lda #$ff
                 sta 0,x
                 sta 1,x
 
@@ -11040,7 +11027,7 @@ xt_until:
                 ldy #0
 -
                 lda zero_test_runtime,y
-                cmp #$60            ; skip RTS
+                cmp #OpRTS
                 beq +
                 jsr cmpl_a
 +
@@ -11794,7 +11781,7 @@ xt_editor_o:
                 jsr xt_two
                 jsr xt_u_dot_r
                 jsr xt_space
-                lda #42         ; ASCII for *
+                lda #'*'
                 jsr emit_a
                 jsr xt_space
 
