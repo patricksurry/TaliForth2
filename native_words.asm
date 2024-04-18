@@ -5177,10 +5177,9 @@ _no_match:
                 lda tmp2
                 adc #2
                 sta tmp2
-                lda tmp2+1
-                adc #0          ; only care about carry
-                sta tmp2+1
-
+                bcc +
+                inc tmp2+1
++
                 ldy #0
                 lda (tmp2),y
                 pha
@@ -6347,11 +6346,9 @@ xt_name_to_string:
                 lda 2,x         ; LSB
                 clc
                 adc #8
-                tay
-                lda 3,x         ; MSB
-                adc #0          ; just need carry
-                sta 3,x
-                sty 2,x
+                sta 2,x
+                bcc z_name_to_string
+                inc 3,x         ; MSB
 
 z_name_to_string:
                 rts
@@ -7466,9 +7463,9 @@ _eol:
                 clc
                 adc tmptos+1
                 sta toin
-                lda toin+1
-                adc #0          ; we only need the carry
-                sta toin+1
+                bcc +
+                inc toin+1
++
 _done:
 z_parse_name:
 z_parse:        rts
@@ -9949,9 +9946,8 @@ xt_to_body:
                 lda 2,x         ; LSB
                 adc #3
                 sta 2,x
-                lda 3,x         ; MSB
-                adc #0          ; we conly care about the carry
-                sta 3,x         ; Fall through to _no_cfa
+                bcc _no_cfa
+                inc 3,x         ; MSB
 _no_cfa:
                 inx             ; get rid of the nt
                 inx
@@ -11264,9 +11260,8 @@ _found_char:
                 clc
                 adc cp
                 sta cp
-                lda cp+1
-                adc #0                  ; we only need the carry
-                sta cp+1
+                bcc z_word
+                inc cp+1
 z_word:         rts
 
 
@@ -11744,10 +11739,9 @@ _line_loop:
                 lda #64
                 adc 0,x
                 sta 0,x
-                lda 1,x
-                adc #0      ; Add carry
-                sta 1,x
-
+                bcc +
+                inc 1,x
++
                 ; Increment the line number (held in tmp3)
                 inc tmp3
 
