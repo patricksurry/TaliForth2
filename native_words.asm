@@ -9774,53 +9774,38 @@ xt_to:
                 adc #0                  ; we just want the carry
                 sta tmp1+1
 
-                inx
-                inx                     ; ( [n] )
-
-                ; Now it gets ugly. See which state we are in
+                ; Now check which state we are in
                 lda state
                 ora state+1
                 beq _interpret
 
-                ; compile a fragment that takes number TOS
-                ; and saves to the address of the xt we were just given.
-                ; we'll use a template and replace marker $ff bytes
-                ; with the appropriate addresses.
+                ; Compiling, so we arrive with just ( xt ) on the stack.
+                ; We need to generate code that writes a number
+                ; from TOS to the address in tmp1
+                ; i.e. LITERAL tmp1 !
 
-                ; stash target address bytes so we can pop in this order:
-                ; lsb+ msb+ lsb msb
-
+                lda tmp1            ; replace TOS with tmp1
+                sta 0,x
                 lda tmp1+1
-                tay             ; save msb for later
-                lda tmp1
-                phy             ; push msb and lsb of tmp1
-                pha
-                ina             ; calc tmp1++
-                bne +
-                iny
-+
-                phy             ; push msb and lsb of tmp1++
-                pha
+                sta 1,x
 
-                ldy #0
-_copy_runtime:  lda to_runtime,y
-                cmp #$ff        ; placeholder byte?
-                bne +
-                pla             ; grab next address byte
-+
-                jsr cmpl_a
-                iny
-                cpy #to_runtime_end - to_runtime
-                bne _copy_runtime
+                jsr xt_literal      ; generate the runtime for LITERAL tmp1
+
+                ldy #>xt_store      ; write the runtime for !
+                lda #<xt_store
+                jsr cmpl_subroutine
 
                 bra _done
 
 _interpret:
-                ; We're interpreting, so we arrive here with n
+                ; We're interpreting, so we arrive here with ( n xt )
                 ; on the stack. This is an annoying place to put
                 ; the underflow check because we can't
                 ; automatically strip it out
-                jsr underflow_1
+                jsr underflow_2
+
+                inx
+                inx                     ; leaving just ( n )
 
                 ; We skip over the jump to DOCONST and store the number
                 ; in the Program Field Area (PDF, in this case more a
@@ -9836,17 +9821,6 @@ _interpret:
                 inx
 _done:
 z_to:           rts
-
-to_runtime:
-    ; fragment compiled for to_runtime with ffff bytes
-    ; replaced with appropriate addresses
-                lda 1,x
-                sta $ffff               ; addr MSB
-                lda 0,x
-                sta $ffff               ; addr LSB
-                inx
-                inx
-to_runtime_end:
 
 
 ; ## TO_BODY ( xt -- addr ) "Return a word's Code Field Area (CFA)"

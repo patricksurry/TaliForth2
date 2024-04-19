@@ -229,7 +229,7 @@ RTS instruction at the end of each word.
 | THEN | `then` | ANS core | 73 | **auto** |
 | THRU | `thru` | ANS block ext | 68 | tested |
 | TICK | `'` | ANS core | 31 | **auto** |
-| TO | `to` | ANS core ext | 72 | **auto** |
+| TO | `to` | ANS core ext | 59 | **auto** |
 | TO_BODY | `>body` | ANS core | 34 | **auto** |
 | TO_IN | `>in` | ANS core | 10 | **auto** |
 | TO_NUMBER | `>number` | ANS core | 159 | **auto** |
