@@ -341,7 +341,7 @@ _not_zero:
                 ; time. This bit will be cleared on the first CTRL-n or CTRL-p
                 ; received and won't be used to calculate the history buffer
                 ; offset.
-                ora #$8
+                ora #%00001000
                 sta status
 
 accept_loop:
@@ -640,30 +640,14 @@ z_action_of:           rts
 xt_again:
                 jsr underflow_1
 
-                ; Add the opcode for a JMP. We use JMP instead of BRA
-                ; so we have the range and don't have to calculate the
-                ; offset.
-                ldy #0
-                lda #OpJMP
-                sta (cp),y
-                iny
+                ; Compile a JMP back to TOS address.
+                ; We use JMP instead of BRA so range doesn't matter
+                ; and we avoid calculating the offset
+                lda 1,x
+                tay
+                lda 0,x         ; A=LSB, Y=MSB
+                jsr cmpl_jump
 
-                lda 0,x         ; LSB of address
-                sta (cp),y
-                iny
-
-                lda 1,x         ; MSB of address
-                sta (cp),y
-                iny
-
-                ; Allot the space we just used
-                tya
-                clc
-                adc cp
-                sta cp
-                bcc _done
-                inc cp+1
-_done:
                 inx
                 inx
 
@@ -2243,25 +2227,10 @@ strip_size:
                 .byte 4, 4, 4, 6, 6, 0          ; R>, R@, >R, 2>R, 2R>, EOL
 
 compile_as_jump:
-                ; Compile xt as a subroutine jump
-                lda #OpJSR
-                sta (cp)
-
-                ldy #1
+                ; Compile xt as a subroutine call
                 pla             ; LSB
-                sta (cp),y
-                iny
-                pla             ; MSB
-                sta (cp),y
-
-                ; allot space we just used
-                lda #3
-                clc
-                adc cp
-                sta cp
-                bcc +
-                inc cp+1
-+
+                ply             ; MSB
+                jsr cmpl_subroutine
                 inx             ; drop xt
                 inx
 z_compile_comma:
@@ -3024,8 +2993,9 @@ do_common:
                 ; so save current CP to patch the jmp target in xt_loop
                 lda cp
                 ldy cp+1
-                jsr cmpl_a      ; write two arbitrary placeholder bytes
-                jsr cmpl_a
+                pha
+                jsr cmpl_word      ; write two arbitrary placeholder bytes
+                pla
 _compile_do:
                 ; stack either the forward jmp address for ?DO
                 ; or a word with MSB=Y=0 for DO so we know to ignore it
@@ -3652,17 +3622,12 @@ z_ed:           rts
 
 xt_else:
 xt_endof:
-                ; Add an unconditional branch using a native jmp
-                lda #OpJMP
-                jsr cmpl_a
-
                 ; Put the address of the branch address on the stack.
                 jsr xt_here
+                jsr xt_one_plus
 
-                ; Use zero for the branch address for now.
-                ; THEN will fill it in later.
-                jsr xt_zero
-                jsr xt_comma
+                ; Add an unconditional branch using a native jmp
+                jsr cmpl_jump
 
                 ; stash the branch target for later
                 ; and then calculate the forward branch from orig
@@ -4957,10 +4922,11 @@ xt_if:
                 ; Put the origination address on the stack for else/then
                 jsr xt_here
 
-                ; Stuff $ffff in for the branch address (optimizable)
+                ; Use $ffff for the branch address to flag as optimizable
                 ; THEN or ELSE will fix it later.
-                jsr xt_true
-                jsr xt_comma
+                lda #$ff
+                tay
+                jsr cmpl_word
 z_if:           rts
 
 
@@ -5384,12 +5350,9 @@ xt_leave:
                 ; use the JMP placeholder address to keep a linked list
                 ; of all LEAVE addresses to update, headed by loopleave
 
-                lda #OpJMP
-                jsr cmpl_a      ; emit the JMP
-                lda loopleave   ; chain the prior leave address
-                jsr cmpl_a
-                lda loopleave+1
-                jsr cmpl_a
+                lda loopleave
+                ldy loopleave+1
+                jsr cmpl_jump   ; emit the JMP chaining prior leave address
 
                 ; set head of the list to point to our placeholder
                 sec
@@ -8429,14 +8392,9 @@ s_quote_start:
                 dex
                 dex
 
-                ; Put a jmp over the string data with address to be filled
-                ; in later.
-                lda #OpJMP
-                jsr cmpl_a
-
-                ; Address to be filled in later, just use $4C for the moment
-                jsr cmpl_a
-                jsr cmpl_a
+                ; Put a jmp over the string data with arbitrary address
+                ; to be filled in later.
+                jsr cmpl_jump
 
                 ; Save the current value of HERE on the data stack for the
                 ; address of the string.
@@ -9197,12 +9155,7 @@ xt_sliteral:
 
                 ; Put a jmp over the string data with address to be filled
                 ; in later.
-                lda #OpJMP
-                jsr cmpl_a
-
-                ; Address to be filled in later.
-                jsr cmpl_a
-                jsr cmpl_a
+                jsr cmpl_jump
 
                 ; Turn the data stack from ( addr u ) into
                 ; ( here u addr here u ) so move can be called with
@@ -11147,8 +11100,9 @@ xt_while:
                 jsr xt_here
 
                 ; Fill in the destination address with $ffff (optimizable)
-                jsr xt_true
-                jsr xt_comma
+                lda #$ff
+                tay
+                jsr cmpl_word
 
                 ; Swap the two addresses on the stack.
                 jsr xt_swap

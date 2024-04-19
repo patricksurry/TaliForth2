@@ -74,13 +74,13 @@ user_words_end:
 cmpl_subroutine:
                 ; This is the entry point to compile JSR <ADDR>
                 pha             ; save LSB of address
-                lda #$20        ; load opcode for JSR
-                bra cmpl_common
+                lda #OpJSR      ; load opcode for JSR
+                bra +
 cmpl_jump:
                 ; This is the entry point to compile JMP <ADDR>
                 pha             ; save LSB of address
-                lda #$4c        ; load opcode for JMP, fall thru to cmpl_common
-cmpl_common:
+                lda #OpJMP      ; load opcode for JMP, fall thru
++
                 ; At this point, A contains the opcode to be compiled,
                 ; the LSB of the address is on the 65c02 stack, and the MSB of
                 ; the address is in Y
@@ -258,11 +258,11 @@ _nibble_to_ascii:
         ; """Private helper function for byte_to_ascii: Print lower nibble
         ; of A and and EMIT it. This does the actual work.
         ; """
-                and #$0F
+                and #$f
                 ora #'0'
-                cmp #$3A        ; '9+1
+                cmp #'9'+1
                 bcc +
-                adc #$06
+                adc #6
 
 +               jmp emit_a
 
@@ -499,7 +499,7 @@ _loop:
                 ; We're compiling, so there is a bit more work.  Check
                 ; status bit 5 to see if it's a single or double-cell
                 ; number.
-                lda #$20
+                lda #%00100000
                 bit status
                 beq _single_number
 
@@ -606,7 +606,7 @@ is_printable:
         ; discussion of various ways to do this
                 cmp #AscSP              ; $20
                 bcc _done
-                cmp #$7F + 1             ; '~'
+                cmp #$7f + 1             ; '~'
                 bcs _failed
 
                 sec
