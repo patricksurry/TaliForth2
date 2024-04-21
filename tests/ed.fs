@@ -1,5 +1,5 @@
 \ ------------------------------------------------------------------------
-testing editor words: ed
+testing editor words: ed:
 
 decimal
 marker ed-tests 
@@ -14,7 +14,7 @@ marker ed-tests
 \ --- a command ---
 
 \ Simple adding of text; want aaaa bbbb
-ed
+ed:
 a
 aaaa
 bbbb
@@ -25,7 +25,7 @@ q
 T{ 10000 10  s\" aaaa\nbbbb\n" compare -> 10000 10 0 }T
 
 \ Add text to end of existing text; want aaaa bbbb cccc
-ed
+ed:
 a
 aaaa
 bbbb
@@ -40,7 +40,7 @@ T{ 10000 15  s\" aaaa\nbbbb\ncccc\n" compare -> 10000 15 0 }T
 
 \ Add a line between two lines of existing text
 \ Want aaaa cccc bbbb
-ed
+ed:
 a
 aaaa
 bbbb
@@ -54,7 +54,7 @@ T{ 10000 15  s\" aaaa\ncccc\nbbbb\n" compare -> 10000 15 0 }T
 
 \ Add two lines between two existing lines of existing text
 \ Want: aaaa cccc dddd bbbb
-ed
+ed:
 a
 aaaa
 bbbb
@@ -68,7 +68,7 @@ q
 T{ 10000 20  s\" aaaa\ncccc\ndddd\nbbbb\n" compare -> 10000 20 0 }T
 
 \ Add a line above existing text; want bbbb aaaa 
-ed
+ed:
 a
 aaaa
 .
@@ -83,7 +83,7 @@ T{ 10000 10  s\" bbbb\naaaa\n" compare -> 10000 10 0 }T
 \ --- d command ---
 
 \ Delete first of two lines; want bbbb
-ed
+ed:
 a
 aaaa
 bbbb
@@ -94,7 +94,7 @@ q
 T{ 10000 5  s\" bbbb\n" compare -> 10000 5 0 }T
 
 \ Delete second of two lines; want aaaa
-ed
+ed:
 a
 aaaa
 bbbb
@@ -107,7 +107,7 @@ T{ 10000 5  s\" aaaa\n" compare -> 10000 5 0 }T
 \ --- i command ---
 
 \ Simple adding of text; want qqqq rrrr
-ed
+ed:
 i
 qqqq
 rrrr
@@ -117,7 +117,7 @@ q
 T{ 10000 10  s\" qqqq\nrrrr\n" compare -> 10000 10 0 }T
 
 \ Add text to start of existing text; want tttt dddd aaaa
-ed
+ed:
 a
 dddd
 aaaa
@@ -132,7 +132,7 @@ T{ 10000 15  s\" tttt\ndddd\naaaa\n" compare -> 10000 15 0 }T
 
 \ Add a line between two lines of existing text
 \ Want mmmm oooo gggg
-ed
+ed:
 a
 mmmm
 gggg
@@ -146,7 +146,7 @@ T{ 10000 15  s\" mmmm\noooo\ngggg\n" compare -> 10000 15 0 }T
 
 \ Add two lines between two existing lines of existing text
 \ Want: tttt cccc dddd ssss
-ed
+ed:
 a
 tttt
 ssss
@@ -160,7 +160,7 @@ q
 T{ 10000 20  s\" tttt\ncccc\ndddd\nssss\n" compare -> 10000 20 0 }T
 
 \ Add a line above existing text; want uuuu zzzz 
-ed
+ed:
 a
 zzzz
 .
@@ -229,16 +229,16 @@ cr .( >>>> )  saved-string type  .( <<<< ) cr
 
 \ Most simple test and setup: Start and end
 redirect-output
-ed
+ed:
 q
 restore-output 
-2drop  \ ed returns ( addr u ), don't need that at the moment
-T{ saved-string s\"  ok\ned \nq  ok\nrestore-output  " compare -> 0 }T
-\                   A--------A  A-------------------A  <-- This is boilerplate          
+2drop  \ ed: returns ( addr u ), don't need that at the moment
+T{ saved-string s\"  ok\ned: \nq  ok\nrestore-output  " compare -> 0 }T
+\                   A---------A  A-------------------A  <-- This is boilerplate
 
 \ Cut down on noise
 : test-ed ( -- addr u )
-   redirect-output ed ( payload executed here ) restore-output
+   redirect-output ed: ( payload executed here ) restore-output
    2drop              \ remove ed's output 
    saved-string  ( addr u ) 
 ; 

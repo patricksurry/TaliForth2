@@ -972,7 +972,7 @@ nt_star_slash:
 nt_backslash:
         .byte 1, IM
         .word nt_move, xt_backslash, z_backslash
-        .byte $5c
+        .byte '\'
 
 nt_move:
         .byte 4, NN+UF
@@ -1440,9 +1440,9 @@ nt_see: .byte 3, NN
 
 .if "ed" in TALI_OPTIONAL_WORDS
 nt_ed:                  ; ed6502
-        .byte 2, NN
+        .byte 3, NN
         .word +, xt_ed, z_ed
-        .text "ed"
+        .text "ed:"
 +
 .endif
 

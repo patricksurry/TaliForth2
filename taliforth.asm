@@ -3,7 +3,7 @@
 ; Sam Colwell
 ; Patrick Surry
 ; First version: 19. Jan 2014 (Tali Forth 1)
-; This version: 06. Apr 2024 (Version 1.1)
+; This version: 21. Apr 2024 (Version 1.1)
 
 ; This is the main file for Tali Forth 2
 
@@ -77,13 +77,13 @@ user_words_end:
 cmpl_subroutine:
                 ; This is the entry point to compile JSR <ADDR>
                 pha             ; save LSB of address
-                lda #$20        ; load opcode for JSR
-                bra cmpl_common
+                lda #OpJSR      ; load opcode for JSR
+                bra +
 cmpl_jump:
                 ; This is the entry point to compile JMP <ADDR>
                 pha             ; save LSB of address
-                lda #$4c        ; load opcode for JMP, fall thru to cmpl_common
-cmpl_common:
+                lda #OpJMP      ; load opcode for JMP, fall thru
++
                 ; At this point, A contains the opcode to be compiled,
                 ; the LSB of the address is on the 65c02 stack, and the MSB of
                 ; the address is in Y
@@ -261,15 +261,117 @@ _nibble_to_ascii:
         ; """Private helper function for byte_to_ascii: Print lower nibble
         ; of A and and EMIT it. This does the actual work.
         ; """
-                and #$0F
+                and #$F
                 ora #'0'
-                cmp #$3A        ; '9+1
+                cmp #'9'+1
                 bcc +
-                adc #$06
+                adc #6
 
 +               jmp emit_a
 
                 rts
+
+
+find_header_name:
+        ; """Given a string on the stack ( addr  n ) with n at most 255
+        ; and tmp1 pointing at an NT header, search each
+        ; linked header looking for a matching name.
+        ; Each header has length at NT, name at NT+8
+        ; and next header pointer at NT+2 with 0 marking the end.
+        ; On success tmp1 points at the matching NT, with A=$FF and Z=0.
+        ; On failure tmp1 is 0, A=0 and Z=1.
+        ; Stomps tmp2.  The stack is unchanged.
+        ; """
+
+                lda 2,x                 ; Copy mystery string to tmp2
+                sta tmp2
+                lda 3,x
+                sta tmp2+1
+
+_loop:
+                ; first quick test: Are strings the same length?
+                lda (tmp1)
+                cmp 0,x
+                bne _next_entry
+
+                ; second quick test: could first characters be equal?
+                lda (tmp2)      ; first character of mystery string
+                ldy #8
+                eor (tmp1),y    ; flag any mismatched bits
+                and #%11011111  ; but ignore upper/lower case bit
+                bne _next_entry ; definitely not equal if any bits differ
+
+                ; Same length and probably same first character
+                ; (though we still have to check properly).
+                ; Suck it up and compare all characters. We go
+                ; from back to front, because words like CELLS and CELL+ would
+                ; take longer otherwise.
+
+                ; The string of the word we're testing against is 8 bytes down
+                lda tmp1
+                pha             ; Save original address on the stack
+                clc
+                adc #8
+                sta tmp1
+                lda tmp1+1
+                pha
+                bcc +
+                ina
+                sta tmp1+1
++
+                ldy 0,x         ; index is length of string minus 1
+                dey
+
+_next_char:
+                lda (tmp2),y    ; last char of mystery string
+
+                ; Lowercase the incoming charcter.
+                cmp #'Z'+1
+                bcs _check_char
+                cmp #'A'
+                bcc _check_char
+
+                ; Convert uppercase letter to lowercase.
+                ora #$20
+
+_check_char:
+                cmp (tmp1),y    ; last char of word we're testing against
+                bne _reset_tmp1
+
+                dey
+                bpl _next_char
+
+        ; if we fall through on success, and only then, Y is $FF
+_reset_tmp1:
+                pla
+                sta tmp1+1
+                pla
+                sta tmp1
+
+                tya             ; leave A = $FF on success
+                iny             ; if Y was $FF, we succeeded
+                beq _done
+
+_next_entry:
+                ; Otherwise move on to next header address
+                ldy #2
+                lda (tmp1),y
+                pha
+                iny
+                lda (tmp1),y
+                sta tmp1+1
+                pla
+                sta tmp1
+
+                ; If we got a zero, we've walked the whole Dictionary and
+                ; return as a failure, otherwise try again
+                ora tmp1+1
+                bne _loop
+
+_done:          cmp #0      ; A is 0 on failure and $FF on success
+                rts         ; so cmp #0 sets Z on failure and clears on success
+
+
 
 compare_16bit:
         ; """Compare TOS/NOS and return results in form of the 65c02 flags
@@ -400,7 +502,7 @@ _loop:
                 ; We're compiling, so there is a bit more work.  Check
                 ; status bit 5 to see if it's a single or double-cell
                 ; number.
-                lda #$20
+                lda #%00100000
                 bit status
                 beq _single_number
 
