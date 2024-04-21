@@ -4259,17 +4259,12 @@ xt_exit:
 z_exit:                         ; never reached
 
 
-
 ; ## FALSE ( -- f ) "Push flag FALSE to Data Stack"
 ; ## "false"  auto  ANS core ext
-        ; """https://forth-standard.org/standard/core/FALSE"""
-xt_false:
-                dex
-                dex
-                stz 0,x
-                stz 1,x
-
-z_false:        rts
+        ; """https://forth-standard.org/standard/core/FALSE
+        ;
+        ; This is a dummy header, FALSE shares the actual code with ZERO.
+        ; """
 
 
 ; ## FETCH ( addr -- n ) "Push cell content from memory to stack"
@@ -11375,9 +11370,10 @@ z_xor:          rts
 ; ## ZERO ( -- 0 ) "Push 0 to Data Stack"
 ; ## "0"  auto  Tali Forth
         ; """The disassembler assumes that this routine does not use Y. Note
-        ; that CASE and FORTH-WORDLIST use the same routine, as the WD for Forth
-        ; is 0."""
+        ; that CASE, FALSE, and FORTH-WORDLIST use the same routine to place 
+        ; a 0 on the data stack."""
 xt_case:
+xt_false:
 xt_forth_wordlist:
 xt_zero:
                 dex             ; push
@@ -11385,6 +11381,7 @@ xt_zero:
                 stz 0,x
                 stz 1,x
 z_case:
+z_false:
 z_forth_wordlist:
 z_zero:
                 rts
