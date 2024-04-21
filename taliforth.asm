@@ -41,6 +41,8 @@ forth:
 .include "disassembler.asm"     ; SAN disassembler
 .include "ed.asm"               ; Line-based editor ed6502
 
+.include "token.asm"            ; token threading test
+
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
 .if ! TALI_OPTION_TERSE         ; omit startup strings if terse
