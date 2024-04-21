@@ -2,7 +2,7 @@
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
 ; Modified by Patrick Surry
 ; First version: 01. Apr 2016 (Liara Forth)
-; This version: 06. Apr 2024
+; This version: 21. Apr 2024
 
 ; This file is included by taliforth.asm. These are the general
 ; definitions; platform-specific definitions such as the
@@ -10,7 +10,7 @@
 
 ; TaliForth reserves the first part of zero page ($0 - zpage_end) which is
 ; configured by zpage_end in platform/platform-*.asm and normally 128 bytes.
-; The rest of zero page is free for kernel/external use (zpage_end+1 - $ff)
+; The rest of zero page is free for kernel/external use (zpage_end+1 - $FF)
 ; TaliForth usage is as follows:
 ;   zero page variables: 30 words = 60 bytes ($0000-$0038)
 ;   Forth Data Stack: 128 - 60 - 8 = 60 bytes or 30 words
@@ -190,13 +190,13 @@ cold_user_table_end:
 AscCC   = $03  ; break (CTRL-c)
 AscBELL = $07  ; bell sound
 AscBS   = $08  ; backspace
-AscLF   = $0a  ; line feed
-AscCR   = $0d  ; carriage return
-AscESC  = $1b  ; escape
+AscLF   = $0A  ; line feed
+AscCR   = $0D  ; carriage return
+AscESC  = $1B  ; escape
 AscSP   = $20  ; space
-AscDEL  = $7f  ; delete (CTRL-h)
+AscDEL  = $7F  ; delete (CTRL-h)
 AscCP   = $10  ; CTRL-p (used to recall previous input history)
-AscCN   = $0e  ; CTRL-n (used to recall next input history)
+AscCN   = $0E  ; CTRL-n (used to recall next input history)
 
 ; OPCODES
 ; some common instructions we use when emitting code
@@ -204,6 +204,7 @@ AscCN   = $0e  ; CTRL-n (used to recall next input history)
 OpJSR   = $20
 OpJMP   = $4C
 OpRTS   = $60
+OpBRA   = $80
 
 ; DICTIONARY FLAGS
 ; The first two bits are currently unused

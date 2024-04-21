@@ -3,7 +3,7 @@
 ; Sam Colwell
 ; Patrick Surry
 ; First version: 19. Jan 2014 (Tali Forth 1)
-; This version: 06. Apr 2024 (Version 1.1)
+; This version: 21. Apr 2024 (Version 1.1)
 
 ; This is the main file for Tali Forth 2
 
@@ -258,7 +258,7 @@ _nibble_to_ascii:
         ; """Private helper function for byte_to_ascii: Print lower nibble
         ; of A and and EMIT it. This does the actual work.
         ; """
-                and #$f
+                and #$F
                 ora #'0'
                 cmp #'9'+1
                 bcc +
@@ -275,7 +275,7 @@ find_header_name:
         ; linked header looking for a matching name.
         ; Each header has length at NT, name at NT+8
         ; and next header pointer at NT+2 with 0 marking the end.
-        ; On success tmp1 points at the matching NT, with A=$ff and Z=0.
+        ; On success tmp1 points at the matching NT, with A=$FF and Z=0.
         ; On failure tmp1 is 0, A=0 and Z=1.
         ; Stomps tmp2.  The stack is unchanged.
         ; """
@@ -338,15 +338,15 @@ _check_char:
                 dey
                 bpl _next_char
 
-        ; if we fall through on success, and only then, Y is $ff
+        ; if we fall through on success, and only then, Y is $FF
 _reset_tmp1:
                 pla
                 sta tmp1+1
                 pla
                 sta tmp1
 
-                tya             ; leave A = $ff on success
-                iny             ; if Y was $ff, we succeeded
+                tya             ; leave A = $FF on success
+                iny             ; if Y was $FF, we succeeded
                 beq _done
 
 _next_entry:
@@ -365,7 +365,7 @@ _next_entry:
                 ora tmp1+1
                 bne _loop
 
-_done:          cmp #0      ; A is 0 on failure and $ff on success
+_done:          cmp #0      ; A is 0 on failure and $FF on success
                 rts         ; so cmp #0 sets Z on failure and clears on success
 
 
@@ -606,7 +606,7 @@ is_printable:
         ; discussion of various ways to do this
                 cmp #AscSP              ; $20
                 bcc _done
-                cmp #$7f + 1             ; '~'
+                cmp #$7F + 1             ; '~'
                 bcs _failed
 
                 sec

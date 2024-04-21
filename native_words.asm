@@ -4,7 +4,7 @@
 ; Sam Colwell
 ; Patrick Surry
 ; First version: 19. Jan 2014
-; This version: 06. Apr 2024
+; This version: 21. Apr 2024
 
 ; This list is ordered alphabetically by the names of the words, not their
 ; strings (so "!" is sorted as "STORE"). However, we start off with COLD,
@@ -332,7 +332,7 @@ _not_zero:
                 ; Select the next history buffer. Clear bit 3 first (so overflow
                 ; from bit 2 to 3 is OK)
                 lda status
-                and #$f7
+                and #$F7
 
                 ; Increment the buffer number (overflow from 7 to 0 OK)
                ina
@@ -447,7 +447,7 @@ _ctrl_n:
                 ; This isn't the first time CTRL-n has been pressed, select the
                 ; next history buffer. Clear bit 3 first (so overflow is OK)
                 lda status
-                and #$f7
+                and #$F7
 
                 ; Increment the buffer number (overflow from 7 to 0 OK)
                ina
@@ -598,7 +598,7 @@ accept_total_recall:
                 tya
                 cmp #$80
                 bcc +
-                lda #$7f
+                lda #$7F
 +
                 rts
 .endif
@@ -797,7 +797,7 @@ xt_allow_native:
                 jsr current_to_dp
                 ldy #1          ; offset for status byte
                 lda (dp),y
-                and #$ff-NN-AN  ; AN and NN flag is clear.
+                and #$FF-NN-AN  ; AN and NN flag is clear.
                 sta (dp),y
 z_allow_native:
                 rts
@@ -825,7 +825,7 @@ xt_always_native:
                 ldy #1          ; offset for status byte
                 lda (dp),y
                 ora #AN         ; Make sure AN flag is set
-                and #$ff-NN     ; and NN flag is clear.
+                and #$FF-NN     ; and NN flag is clear.
                 sta (dp),y
 z_always_native:
                 rts
@@ -920,7 +920,7 @@ xt_backslash:
                 ; to check for exact multiple of 64, which will happen with
                 ; a backslash at the very end of a block.
                 lda toin
-                and #$3f
+                and #$3F
                 beq z_backslash
                 cmp #$1
                 beq z_backslash
@@ -929,7 +929,7 @@ xt_backslash:
                 ; after parsing the \, technically), so move to the
                 ; next line.
                 lda toin
-                and #$c0        ; Clear lower bits to move to beginning of line.
+                and #$C0        ; Clear lower bits to move to beginning of line.
 
                 clc             ; Add $40 (64 decimal) to move to next line.
                 adc #$40
@@ -1918,7 +1918,7 @@ _str1_done:
                 ; Falls into less (str1 is out but str2 has more)
 _less:
                 ; Return -1
-                lda #$ff
+                lda #$FF
                 sta 6,x
                 sta 7,x
                 bra _done
@@ -2431,7 +2431,7 @@ _redefined_name:
 _new_name:
                 inx                     ; Drop flag (0) from find-name.
                 inx
-                lda #$7f                ; Clear bit 0 of status to indicate new word.
+                lda #$7F                ; Clear bit 0 of status to indicate new word.
                 and status
                 sta status
 
@@ -2875,7 +2875,7 @@ xt_digit_question:
                 bcs _case_done          ; not lower case, too high
 
                 clc                     ; just right
-                adc #$e0                ; offset to upper case (wraps)
+                adc #$E0                ; offset to upper case (wraps)
 
 _case_done:
                 ; get rid of the gap between "9" and "A" so we can treat
@@ -3057,7 +3057,7 @@ question_do_runtime:
                 inx
                 inx
                 inx
-                .byte $4c              ; jmp
+                .byte OpJMP             ; jmp
 question_do_runtime_end:
 
 
@@ -3651,7 +3651,7 @@ xt_then:
                 ;
                 ;       jsr zero_branch_runtime   ; or an unconditional jmp
                 ; orig:
-                ;       lsb msb  ; placeholder address = $ffff if optimizable
+                ;       lsb msb  ; placeholder address = $FFFF if optimizable
                 ; ...
                 ; here:
                 ;
@@ -3669,10 +3669,10 @@ xt_then:
                 jsr xt_here
 
                 ; First check if orig is the target of 0BRANCH,
-                ; indicated by a placeholder of $ffff instead of the usual 0
+                ; indicated by a placeholder of $FFFF instead of the usual 0
 
                 lda (2,x)           ; get LSB at orig
-                ina                 ; was LSB $ff?  (only check for $xxff)
+                ina                 ; was LSB $FF?  (only check for $XXFF)
                 bne _no_opt
 
                 ; We have a candidate, but is it close enough?
@@ -3969,7 +3969,7 @@ _double_result:
 
                 ; fall through to _set_flag
 _set_flag:
-                lda #$ff
+                lda #$FF
                 sta 0,x
                 sta 1,x                 ; ( res f )
 
@@ -4059,7 +4059,7 @@ xt_equal:
                 cmp 3,x
                 bne _false
 
-                lda #$ff
+                lda #$FF
                 bra _done
 
 _false:         lda #0                  ; drop thru to done
@@ -4359,7 +4359,7 @@ _found_word:
                 and #IM
                 bne _immediate          ; bit set, we're immediate
 
-                lda #$ff                ; We're not immediate, return -1
+                lda #$FF                ; We're not immediate, return -1
                 sta 0,x
                 sta 1,x
                 bra _done
@@ -4546,7 +4546,7 @@ z_forth:
 ; being evaluated.  Evaluate's normal behavior is to zero BLK.
 load_evaluate:
                 ; Set a flag (using tmp1) to not zero BLK
-                lda #$ff
+                lda #$FF
                 sta tmp1
                 bra load_evaluate_start
 
@@ -4607,7 +4607,7 @@ _nozero:
                 jsr xt_input_to_r
 
                 ; set SOURCE-ID to -1
-                lda #$ff
+                lda #$FF
                 sta insrc
                 sta insrc+1
 
@@ -4922,9 +4922,9 @@ xt_if:
                 ; Put the origination address on the stack for else/then
                 jsr xt_here
 
-                ; Use $ffff for the branch address to flag as optimizable
+                ; Use $FFFF for the branch address to flag as optimizable
                 ; THEN or ELSE will fix it later.
-                lda #$ff
+                lda #$FF
                 tay
                 jsr cmpl_word
 z_if:           rts
@@ -4934,13 +4934,13 @@ zero_test_runtime:
         ; Drop TOS of stack setting Z flag, for optimizing short brances (see xt_then)
                 inx
                 inx
-                lda $fe,x           ; wraparound so inx doesn't wreck Z status
-                ora $ff,x
+                lda $FE,x           ; wraparound so inx doesn't wreck Z status
+                ora $FF,x
                 rts
 
     ; footer for inline zero_test_runtime used in xt_until (excluding the rts)
                 bne zero_test_footer_end+2  ; branch fwd if non-zero
-                .byte $4c                   ; else JMP back
+                .byte OpJMP                 ; else JMP back
 zero_test_footer_end:
 
 
@@ -5203,11 +5203,11 @@ z_int_to_name:  rts
 xt_invert:
                 jsr underflow_1
 
-                lda #$ff
+                lda #$FF
                 eor 0,x         ; LSB
                 sta 0,x
 
-                lda #$ff
+                lda #$FF
                 eor 1,x         ; MSB
                 sta 1,x
 
@@ -5742,7 +5742,7 @@ _chkv:          lda loopindex+1,y
 _repeat:        ; This is why this routine must be natively compiled: We
                 ; compile the opcode for JMP here without an address to
                 ; go to, which is added by LOOP/+LOOP at compile time
-                .byte $4C
+                .byte OpJMP
 loop_runtime_end:
 
 
@@ -5763,7 +5763,7 @@ plus_loop_runtime:
 
                 inx                 ; dump step from TOS before MSB test
                 inx                 ; since we might skip it
-                lda $ff,x           ; MSB of step since 1,x == -1,x+2
+                lda $FF,x           ; MSB of step since 1,x == -1,x+2
                 bne _chkv           ; if it's non-zero we have to check
                 bcc _repeat         ; but if 0 and no carry, we're good
 
@@ -5780,7 +5780,7 @@ _repeat:        ; This is why this routine must be natively compiled: We
                 ; compile the opcode for JMP here without an address to
                 ; go to, which is added by the next next instruction of
                 ; LOOP/+LOOP during compile time
-                .byte $4C
+                .byte OpJMP
 plus_loop_runtime_end:
 
 
@@ -6351,7 +6351,7 @@ xt_never_native:
                 ldy #1          ; offset for status byte
                 lda (dp),y
                 ora #NN         ; Make sure NN flag is set
-                and #$ff-AN     ; and AN flag is clear.
+                and #$FF-AN     ; and AN flag is clear.
                 sta (dp),y
 z_never_native:
                 rts
@@ -6396,7 +6396,7 @@ xt_not_equals:
                 cmp 3,x
                 bne _not_equal
 
-                lda #$ff
+                lda #$FF
                 bra _done
 
 _not_equal:
@@ -6899,7 +6899,7 @@ xt_only:
                 ; Put -1 on data stack.
                 dex
                 dex
-                lda #$ff
+                lda #$FF
                 sta 0,x
                 sta 1,x
 
@@ -7891,7 +7891,7 @@ xt_refill:
                 stz toin
                 stz toin+1
 
-                lda #$ff                ; overwrite with TRUE flag
+                lda #$FF                ; overwrite with TRUE flag
                 sta 0,x
                 sta 1,x
 
@@ -7944,7 +7944,7 @@ z_repeat:
         ; This is an immediate word.
         ; """
 xt_right_bracket:
-                lda #$ff
+                lda #$FF
                 sta state
                 sta state+1
 z_right_bracket:
@@ -8033,7 +8033,7 @@ xt_s_backslash_quote:
                 ; so set it to $FF (the upper byte will be used to
                 ; determine if we just had a \ and the next character
                 ; needs to be modifed as an escaped character).
-                lda #$ff
+                lda #$FF
                 sta tmp2
                 stz tmp2+1
 
@@ -8053,7 +8053,7 @@ convert_hex_value:
         bcc _digit
 
         ; It's A-F
-        and #$df                ; Make it uppercase.
+        and #$DF                ; Make it uppercase.
         sec
         sbc #'7'                ; gives value 10 for 'A'
         bra _done
@@ -8152,7 +8152,7 @@ xt_search_wordlist:
                 and #IM
                 bne _immediate          ; bit set, we're immediate
 
-                lda #$ff                ; We're not immediate, return -1
+                lda #$FF                ; We're not immediate, return -1
                 sta 0,x
                 sta 1,x
                 bra _done_nodrop
@@ -8308,7 +8308,7 @@ z_set_current:  rts
 
 xt_set_order:
                 ; Test for -1 TOS
-                lda #$ff
+                lda #$FF
                 cmp 1,x
                 bne _start
                 cmp 0,x
@@ -8570,7 +8570,7 @@ _check_esc_chars:
 
 _esc_replace:   bpl _save_character     ; simple replacement
                 ; handle specials with hi bit set (NUL and CR/LF)
-                and #$7f                ; clear hi bit
+                and #$7F                ; clear hi bit
                 beq _save_character     ; NUL we can just output
                 jsr cmpl_a              ; else output first char (CR)
                 lda #10                 ; followed by LF
@@ -8608,7 +8608,7 @@ _not_escaped:
                 ; a flag (in tmp2+1) to handle the next char. We don't
                 ; try to get the next char here as it may require a
                 ; refill of the input buffer.
-                lda #$ff
+                lda #$FF
                 sta tmp2+1
                 bra _next_character
 
@@ -8770,7 +8770,7 @@ xt_search:
                 ; the second string and put a true flag.
                 inx             ; Remove u2
                 inx
-                lda #$ff        ; Turn addr2 into a true flag
+                lda #$FF        ; Turn addr2 into a true flag
                 sta 0,x
                 sta 1,x
                 jmp z_search
@@ -8898,7 +8898,7 @@ _letters_match:
                 inx
                 inx             ; drop u2
                 inx
-                lda #$ff
+                lda #$FF
                 sta 0,x         ; Turn addr2 into a true flag.
                 sta 1,x
 
@@ -9071,7 +9071,7 @@ xt_slash:
 
 xt_slash_mod:
                 ; Note that /MOD accesses this code
-                lda #$ff
+                lda #$FF
                 pha             ; falls through to _common
 
 slashmod_common:
@@ -10139,7 +10139,7 @@ z_to_r:         rts
 xt_true:
                 dex
                 dex
-                lda #$ff
+                lda #$FF
                 sta 0,x
                 sta 1,x
 
@@ -10691,7 +10691,7 @@ xt_u_greater_than:
                 inx
 
                 lda #0
-                adc #$ff
+                adc #$FF
                 sta 0,x         ; store flag
                 sta 1,x
 
@@ -10711,7 +10711,7 @@ xt_u_less_than:
                 inx
 
                 lda #0
-                adc #$ff
+                adc #$FF
                 sta 0,x         ; store flag
                 sta 1,x
 
@@ -11073,8 +11073,8 @@ xt_while:
                 ; address needs to go so it can be put there later.
                 jsr xt_here
 
-                ; Fill in the destination address with $ffff (optimizable)
-                lda #$ff
+                ; Fill in the destination address with $FFFF (optimizable)
+                lda #$FF
                 tay
                 jsr cmpl_word
 
@@ -11400,9 +11400,9 @@ xt_zero_equal:
                 lda 0,x
                 ora 1,x
                 beq _zero       ; if 0, A is inverse of the TRUE (-1) we want
-                lda #$ff        ; else set A inverse of the FALSE (0) we want
+                lda #$FF        ; else set A inverse of the FALSE (0) we want
 _zero:
-                eor #$ff        ; now just invert
+                eor #$FF        ; now just invert
 _store:
                 sta 0,x
                 sta 1,x
@@ -11467,7 +11467,7 @@ xt_zero_unequal:
                 lda 0,x
                 ora 1,x
                 beq _zero
-                lda #$ff
+                lda #$FF
 _zero:
                 sta 0,x
                 sta 1,x

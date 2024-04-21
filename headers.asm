@@ -973,7 +973,7 @@ nt_star_slash:
 nt_backslash:
         .byte 1, IM
         .word nt_move, xt_backslash, z_backslash
-        .byte $5c
+        .byte '\'
 
 nt_move:
         .byte 4, NN+UF

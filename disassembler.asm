@@ -191,7 +191,7 @@ _print_mnemonic:
                 ; scratch has opcode ($20 for JSR)
                 ; scratch+1 and scratch+2 have address if it's a JSR.
                 lda scratch
-                cmp #$20
+                cmp #OpJSR
                 bne _not_jsr
 
                 ; It's a JSR.  Print 5 spaces as an offset.
@@ -245,7 +245,7 @@ _end_handlers:
 _not_jsr:
                 ; See if the instruction is a jump (instruction still in A)
                 ; (Strings start with a jump over the data.)
-                cmp #$4C
+                cmp #OpJMP
                 bne _not_jmp
 
                 ; We have a branch.  See if it's a string by looking for
@@ -261,7 +261,7 @@ _not_jsr:
                 ; Get the first byte at the jmp target address.
                 lda (scratch+3)
 
-                cmp #$20 ; check for JSR
+                cmp #OpJSR ; check for JSR
                 bne _printing_done
                 ; Next byte
                 inc scratch+3
@@ -293,9 +293,9 @@ _not_jmp:
                 ; if so we'll display the branch target address
 
                 ; destructive test on opcode in A
-                cmp #$80            ; is it bra?
+                cmp #OpBRA            ; is it bra?
                 beq _is_rel
-                and #$1f
+                and #$1F
                 eor #$10            ; do bottom five bits match xxx10000 ?
                 bne _printing_done
 _is_rel:
@@ -548,67 +548,67 @@ oc_index_table:
 
         ; Opcodes 00-0F
         .word oc00, oc01, oc__, oc__, oc04, oc05, oc06, oc__
-        .word oc08, oc09, oc0a, oc__, oc0c, oc0d, oc0e, oc0f
+        .word oc08, oc09, oc0A, oc__, oc0C, oc0D, oc0E, oc0F
 
         ; Opcodes 10-1F
         .word oc10, oc11, oc12, oc__, oc14, oc15, oc16, oc17
-        .word oc18, oc19, oc1a, oc__, oc1c, oc1d, oc__, oc1f
+        .word oc18, oc19, oc1A, oc__, oc1C, oc1D, oc__, oc1F
 
         ; Opcodes 20-2F
         .word oc20, oc21, oc__, oc__, oc24, oc25, oc26, oc27
-        .word oc28, oc29, oc2a, oc__, oc2c, oc2d, oc2e, oc2f
+        .word oc28, oc29, oc2A, oc__, OC2C, oc2D, oc2E, oc2F
 
         ; Opcodes 30-3F
         .word oc30, oc31, oc32, oc__, oc34, oc35, oc36, oc37
-        .word oc38, oc39, oc3a, oc__, oc3c, oc3d, oc3e, oc0f
+        .word oc38, oc39, oc3A, oc__, oc3C, oc3D, oc3E, oc0F
 
         ; Opcodes 40-4F
         .word oc40, oc41, oc__, oc__, oc__, oc45, oc46, oc47
-        .word oc48, oc49, oc4a, oc__, oc4c, oc4d, oc4e, oc4f
+        .word oc48, oc49, oc4A, oc__, oc4C, oc4D, oc4E, oc4F
 
         ; Opcodes 50-5F
         .word oc50, oc51, oc52, oc__, oc__, oc55, oc56, oc57
-        .word oc58, oc59, oc5a, oc__, oc__, oc__, oc5e, oc5f
+        .word oc58, oc59, oc5A, oc__, oc__, oc__, oc5E, oc5F
 
         ; Opcodes 60-6F
         .word oc60, oc61, oc__, oc__, oc64, oc65, oc66, oc67
-        .word oc68, oc69, oc6a, oc__, oc6c, oc6d, oc6e, oc6f
+        .word oc68, oc69, oc6A, oc__, oc6C, oc6D, oc6E, oc6F
 
         ; Opcodes 70-7F
         .word oc70, oc71, oc72, oc__, oc74, oc75, oc76, oc77
-        .word oc78, oc79, oc7a, oc__, oc7c, oc7d, oc7e, oc7f
+        .word oc78, oc79, oc7A, oc__, oc7C, oc7D, oc7E, oc7F
 
         ; Opcodes 80-8F
         .word oc80, oc81, oc__, oc__, oc84, oc85, oc86, oc__
-        .word oc88, oc89, oc8a, oc__, oc8c, oc8d, oc8e, oc8f
+        .word oc88, oc89, oc8A, oc__, oc8C, oc8D, oc8E, oc8F
 
         ; Opcodes 90-9F
         .word oc90, oc91, oc92, oc__, oc94, oc95, oc96, oc97
-        .word oc98, oc99, oc9a, oc__, oc9c, oc9d, oc9e, oc9f
+        .word oc98, oc99, oc9A, oc__, oc9C, oc9D, oc9E, oc9F
 
         ; Opcodes A0-AF
-        .word oca0, oca1, oca2, oc__, oca4, oca5, oca6, oca7
-        .word oca8, oca9, ocaa, oc__, ocac, ocad, ocae, ocaf
+        .word ocA0, ocA1, ocA2, oc__, ocA4, ocA5, ocA6, ocA7
+        .word ocA8, ocA9, ocAA, oc__, ocAC, ocAD, ocAE, ocAF
 
         ; Opcodes B0-BF
-        .word ocb0, ocb1, ocb2, oc__, ocb4, ocb5, ocb6, ocb7
-        .word ocb8, ocb9, ocba, oc__, ocbc, ocbd, ocbe, ocbf
+        .word ocB0, ocB1, ocB2, oc__, ocB4, ocB5, ocB6, ocB7
+        .word ocB8, ocB9, ocBA, oc__, ocBC, ocBD, ocBE, ocBF
 
         ; Opcodes C0-CF
-        .word occ0, occ1, oc__, oc__, occ4, occ5, occ6, occ7
-        .word occ8, occ9, occa, oc__, occc, occd, occe, occf
+        .word ocC0, ocC1, oc__, oc__, ocC4, ocC5, ocC6, ocC7
+        .word ocC8, ocC9, ocCA, oc__, ocCC, ocCD, ocCE, ocCF
 
         ; Opcodes D0-DF
-        .word ocd0, ocd1, ocd2, oc__, oc__, ocd5, ocd6, ocd7
-        .word ocd8, ocd9, ocda, oc__, oc__, ocdd, ocde, ocdf
+        .word ocD0, ocD1, ocD2, oc__, oc__, ocD5, ocD6, ocD7
+        .word ocD8, ocD9, ocDA, oc__, oc__, ocDD, ocDE, ocDF
 
         ; Opcodes E0-EF
-        .word oce0, oce1, oc__, oc__, oce4, oce5, oce6, oce7
-        .word oce8, oce9, ocea, oc__, ocec, oced, ocee, ocef
+        .word ocE0, ocE1, oc__, oc__, ocE4, ocE5, ocE6, ocE7
+        .word ocE8, ocE9, ocEA, oc__, ocEC, ocED, ocEE, ocEF
 
         ; Opcodes F0-FF
-        .word ocf0, ocf1, ocf2, oc__, oc__, ocf5, ocf6, ocf7
-        .word ocf8, ocf9, ocfa, oc__, oc__, ocfd, ocfe, ocff
+        .word ocF0, ocF1, ocF2, oc__, oc__, ocF5, ocF6, ocF7
+        .word ocF8, ocF9, ocFA, oc__, oc__, ocFD, ocFE, ocFF
 
 
 ; =========================================================
@@ -639,12 +639,12 @@ oc_table:
 ;      (oc07)
 	oc08:	.text 1*64+3, "php"
 	oc09:	.text 2*64+5, "ora.#"
-	oc0a:	.text 1*64+5, "asl.a"
-;      (oc0b)
-	oc0c:	.text 3*64+3, "tsb"
-	oc0d:	.text 3*64+3, "ora"
-	oc0e:	.text 3*64+3, "asl"
-	oc0f:	.text 3*64+4, "bbr0"
+	oc0A:	.text 1*64+5, "asl.a"
+;      (oc0B)
+	oc0C:	.text 3*64+3, "tsb"
+	oc0D:	.text 3*64+3, "ora"
+	oc0E:	.text 3*64+3, "asl"
+	oc0F:	.text 3*64+4, "bbr0"
 
 	oc10:	.text 2*64+3, "bpl"
 	oc11:	.text 2*64+7, "ora.ziy"
@@ -656,12 +656,12 @@ oc_table:
 	oc17:	.text 2*64+6, "rmb1.z"
 	oc18:	.text 1*64+3, "clc"
 	oc19:	.text 3*64+5, "ora.y"
-	oc1a:	.text 1*64+5, "inc.a"
-;      (oc1b:)
-	oc1c:	.text 3*64+3, "trb"
-	oc1d:	.text 3*64+5, "ora.x"
-;      (oc1e:)
-	oc1f:	.text 3*64+5, "asl.x"
+	oc1A:	.text 1*64+5, "inc.a"
+;      (oc1B:)
+	oc1C:	.text 3*64+3, "trb"
+	oc1D:	.text 3*64+5, "ora.x"
+;      (oc1E:)
+	oc1F:	.text 3*64+5, "asl.x"
 
 	oc20:	.text 3*64+3, "jsr"
 	oc21:	.text 2*64+7, "and.zxi"
@@ -673,12 +673,12 @@ oc_table:
 	oc27:	.text 2*64+6, "rmb2.z"
 	oc28:	.text 1*64+3, "plp"
 	oc29:	.text 2*64+5, "and.#"
-	oc2a:	.text 1*64+5, "rol.a"
-;      (oc2b:)
-	oc2c:	.text 3*64+3, "bit"
-	oc2d:	.text 3*64+4, "and."
-	oc2e:	.text 3*64+3, "rol"
-	oc2f:	.text 3*64+4, "bbr2"
+	oc2A:	.text 1*64+5, "rol.a"
+;      (oc2B:)
+	oc2C:	.text 3*64+3, "bit"
+	oc2D:	.text 3*64+4, "and."
+	oc2E:	.text 3*64+3, "rol"
+	oc2F:	.text 3*64+4, "bbr2"
 
 	oc30:	.text 2*64+3, "bmi"
 	oc31:	.text 2*64+7, "and.ziy"
@@ -690,12 +690,12 @@ oc_table:
 	oc37:	.text 2*64+6, "rmb3.z"
 	oc38:	.text 1*64+3, "sec"
 	oc39:	.text 3*64+5, "and.y"
-	oc3a:	.text 1*64+5, "dec.a"
-;      (oc3b:)
-	oc3c:	.text 3*64+5, "bit.x"
-	oc3d:	.text 3*64+5, "and.x"
-	oc3e:	.text 3*64+5, "rol.x"
-	oc3f:	.text 3*64+4, "bbr3"
+	oc3A:	.text 1*64+5, "dec.a"
+;      (oc3B:)
+	oc3C:	.text 3*64+5, "bit.x"
+	oc3D:	.text 3*64+5, "and.x"
+	oc3E:	.text 3*64+5, "rol.x"
+	oc3F:	.text 3*64+4, "bbr3"
 
 	oc40:	.text 1*64+3, "rti"
 	oc41:	.text 2*64+7, "eor.zxi"
@@ -707,12 +707,12 @@ oc_table:
 	oc47:	.text 2*64+6, "rbm4.z"
 	oc48:	.text 1*64+3, "pha"
 	oc49:	.text 2*64+5, "eor.#"
-	oc4a:	.text 1*64+5, "lsr.a"
-;      (oc4b:)
-	oc4c:	.text 3*64+3, "jmp"
-	oc4d:	.text 3*64+3, "eor"
-	oc4e:	.text 3*64+3, "lsr"
-	oc4f:	.text 3*64+4, "bbr4"
+	oc4A:	.text 1*64+5, "lsr.a"
+;      (oc4B:)
+	oc4C:	.text 3*64+3, "jmp"
+	oc4D:	.text 3*64+3, "eor"
+	oc4E:	.text 3*64+3, "lsr"
+	oc4F:	.text 3*64+4, "bbr4"
 
 	oc50:	.text 2*64+3, "bvc"
 	oc51:	.text 2*64+7, "eor.ziy"
@@ -724,12 +724,12 @@ oc_table:
 	oc57:	.text 2*64+6, "rbm5.z"
 	oc58:	.text 1*64+3, "cli"
 	oc59:	.text 3*64+5, "eor.y"
-	oc5a:	.text 1*64+3, "phy"
-;      (oc5b:)
-;      (oc5c:)
-	oc5d:	.text 3*64+5, "eor.x"
-	oc5e:	.text 3*64+5, "lsr.x"
-	oc5f:	.text 3*64+4, "bbr5"
+	oc5A:	.text 1*64+3, "phy"
+;      (oc5B:)
+;      (oc5C:)
+	oc5D:	.text 3*64+5, "eor.x"
+	oc5E:	.text 3*64+5, "lsr.x"
+	oc5F:	.text 3*64+4, "bbr5"
 
 	oc60:	.text 1*64+3, "rts"
 	oc61:	.text 2*64+7, "adc.zxi"
@@ -741,12 +741,12 @@ oc_table:
 	oc67:	.text 2*64+6, "rmb6.z"
 	oc68:	.text 1*64+3, "pla"
 	oc69:	.text 2*64+5, "adc.#"
-	oc6a:	.text 1*64+5, "ror.a"
-;      (oc6b:)
-	oc6c:	.text 3*64+5, "jmp.i"
-	oc6d:	.text 3*64+3, "adc"
-	oc6e:	.text 3*64+3, "ror"
-	oc6f:	.text 3*64+4, "bbr6"
+	oc6A:	.text 1*64+5, "ror.a"
+;      (oc6B:)
+	oc6C:	.text 3*64+5, "jmp.i"
+	oc6D:	.text 3*64+3, "adc"
+	oc6E:	.text 3*64+3, "ror"
+	oc6F:	.text 3*64+4, "bbr6"
 
 	oc70:	.text 2*64+3, "bvs"
 	oc71:	.text 2*64+7, "adc.ziy"
@@ -758,12 +758,12 @@ oc_table:
 	oc77:	.text 2*64+6, "rmb7.z"
 	oc78:	.text 1*64+3, "sei"
 	oc79:	.text 3*64+5, "adc.y"
-	oc7a:	.text 1*64+3, "ply"
-;      (oc7b:)
-	oc7c:	.text 3*64+6, "jmp.xi"
-	oc7d:	.text 3*64+5, "adc.x"
-	oc7e:	.text 3*64+5, "ror.x"
-	oc7f:	.text 3*64+4, "bbr7"
+	oc7A:	.text 1*64+3, "ply"
+;      (oc7B:)
+	oc7C:	.text 3*64+6, "jmp.xi"
+	oc7D:	.text 3*64+5, "adc.x"
+	oc7E:	.text 3*64+5, "ror.x"
+	oc7F:	.text 3*64+4, "bbr7"
 
 	oc80:	.text 2*64+3, "bra"
 	oc81:	.text 2*64+7, "sta.zxi"
@@ -775,12 +775,12 @@ oc_table:
 ;      (oc87:)
 	oc88:	.text 1*64+3, "dey"
 	oc89:	.text 2*64+5, "bit.#"
-	oc8a:	.text 1*64+3, "txa"
-;      (oc8b:)
-	oc8c:	.text 3*64+3, "sty"
-	oc8d:	.text 3*64+3, "sta"
-	oc8e:	.text 3*64+3, "stx"
-	oc8f:	.text 3*64+4, "bbs0"
+	oc8A:	.text 1*64+3, "txa"
+;      (oc8B:)
+	oc8C:	.text 3*64+3, "sty"
+	oc8D:	.text 3*64+3, "sta"
+	oc8E:	.text 3*64+3, "stx"
+	oc8F:	.text 3*64+4, "bbs0"
 
 	oc90:	.text 2*64+3, "bcc"
 	oc91:	.text 2*64+7, "sta.ziy"
@@ -792,114 +792,114 @@ oc_table:
 	oc97:	.text 2*64+6, "smb1.z"
 	oc98:	.text 1*64+3, "tya"
 	oc99:	.text 3*64+5, "sta.y"
-	oc9a:	.text 1*64+3, "txs"
-;      (oc9b:)
-	oc9c:	.text 3*64+3, "stz"
-	oc9d:	.text 3*64+5, "sta.x"
-	oc9e:	.text 3*64+5, "stz.x"
-	oc9f:	.text 3*64+4, "bbs1"
+	oc9A:	.text 1*64+3, "txs"
+;      (oc9B:)
+	oc9C:	.text 3*64+3, "stz"
+	oc9D:	.text 3*64+5, "sta.x"
+	oc9E:	.text 3*64+5, "stz.x"
+	oc9F:	.text 3*64+4, "bbs1"
 
-	oca0:	.text 2*64+5, "ldy.#"
-	oca1:	.text 2*64+7, "lda.zxi"
-	oca2:	.text 2*64+5, "ldx.#"
-;      (oca3:)
-	oca4:	.text 2*64+5, "ldy.z"
-	oca5:	.text 2*64+5, "lda.z"
-	oca6:	.text 2*64+5, "ldx.z"
-	oca7:	.text 2*64+6, "smb2.z"
-	oca8:	.text 1*64+3, "tay"
-	oca9:	.text 2*64+5, "lda.#"
-	ocaa:	.text 1*64+3, "tax"
-;      (ocab:)
-	ocac:	.text 3*64+3, "ldy"
-	ocad:	.text 3*64+3, "lda"
-	ocae:	.text 3*64+3, "ldx"
-	ocaf:	.text 3*64+4, "bbs2"
+	ocA0:	.text 2*64+5, "ldy.#"
+	ocA1:	.text 2*64+7, "lda.zxi"
+	ocA2:	.text 2*64+5, "ldx.#"
+;      (ocA3:)
+	ocA4:	.text 2*64+5, "ldy.z"
+	ocA5:	.text 2*64+5, "lda.z"
+	ocA6:	.text 2*64+5, "ldx.z"
+	ocA7:	.text 2*64+6, "smb2.z"
+	ocA8:	.text 1*64+3, "tay"
+	ocA9:	.text 2*64+5, "lda.#"
+	ocAA:	.text 1*64+3, "tax"
+;      (ocAB:)
+	ocAC:	.text 3*64+3, "ldy"
+	ocAD:	.text 3*64+3, "lda"
+	ocAE:	.text 3*64+3, "ldx"
+	ocAF:	.text 3*64+4, "bbs2"
 
-	ocb0:	.text 2*64+3, "bcs"
-	ocb1:	.text 2*64+7, "lda.ziy"
-	ocb2:	.text 2*64+6, "lda.zi"
-;      (ocb3:)
-	ocb4:	.text 2*64+6, "ldy.zx"
-	ocb5:	.text 2*64+6, "lda.zx"
-	ocb6:	.text 2*64+6, "ldx.zy"
-	ocb7:	.text 2*64+6, "smb3.z"
-	ocb8:	.text 1*64+3, "clv"
-	ocb9:	.text 3*64+5, "lda.y"
-	ocba:	.text 1*64+3, "tsx"
-;      (ocbb:)
-	ocbc:	.text 3*64+5, "ldy.x"
-	ocbd:	.text 3*64+5, "lda.x"
-	ocbe:	.text 3*64+5, "ldx.y"
-	ocbf:	.text 3*64+4, "bbs4"
+	ocB0:	.text 2*64+3, "bcs"
+	ocB1:	.text 2*64+7, "lda.ziy"
+	ocB2:	.text 2*64+6, "lda.zi"
+;      (ocB3:)
+	ocB4:	.text 2*64+6, "ldy.zx"
+	ocB5:	.text 2*64+6, "lda.zx"
+	ocB6:	.text 2*64+6, "ldx.zy"
+	ocB7:	.text 2*64+6, "smb3.z"
+	ocB8:	.text 1*64+3, "clv"
+	ocB9:	.text 3*64+5, "lda.y"
+	ocBA:	.text 1*64+3, "tsx"
+;      (ocBB:)
+	ocBC:	.text 3*64+5, "ldy.x"
+	ocBD:	.text 3*64+5, "lda.x"
+	ocBE:	.text 3*64+5, "ldx.y"
+	ocBF:	.text 3*64+4, "bbs4"
 
-	occ0:	.text 2*64+5, "cpy.#"
-	occ1:	.text 2*64+7, "cmp.zxi"
-;      (occ2:)
-;      (occ3:)
-	occ4:	.text 2*64+5, "cpy.z"
-	occ5:	.text 2*64+5, "cmp.z"
-	occ6:	.text 2*64+5, "dec.z"
-	occ7:	.text 2*64+6, "smb4.z"
-	occ8:	.text 1*64+3, "iny"
-	occ9:	.text 2*64+5, "cmp.#"
-	occa:	.text 1*64+3, "dex"
-;      (occb:)
-	occc:	.text 3*64+3, "cpy"
-	occd:	.text 3*64+3, "cmp"
-	occe:	.text 3*64+3, "dec"
-	occf:	.text 3*64+4, "bbs4"
+	ocC0:	.text 2*64+5, "cpy.#"
+	ocC1:	.text 2*64+7, "cmp.zxi"
+;      (ocC2:)
+;      (ocC3:)
+	ocC4:	.text 2*64+5, "cpy.z"
+	ocC5:	.text 2*64+5, "cmp.z"
+	ocC6:	.text 2*64+5, "dec.z"
+	ocC7:	.text 2*64+6, "smb4.z"
+	ocC8:	.text 1*64+3, "iny"
+	ocC9:	.text 2*64+5, "cmp.#"
+	ocCA:	.text 1*64+3, "dex"
+;      (ocCB:)
+	ocCC:	.text 3*64+3, "cpy"
+	ocCD:	.text 3*64+3, "cmp"
+	ocCE:	.text 3*64+3, "dec"
+	ocCF:	.text 3*64+4, "bbs4"
 
-	ocd0:	.text 2*64+3, "bne"
-	ocd1:	.text 2*64+7, "cmp.ziy"
-	ocd2:	.text 2*64+6, "cmp.zi"
-;      (ocd3:)
-;      (ocd4:)
-	ocd5:	.text 2*64+6, "cmp.zx"
-	ocd6:	.text 2*64+6, "dec.zx"
-	ocd7:	.text 2*64+6, "smb5.z"
-	ocd8:	.text 1*64+3, "cld"
-	ocd9:	.text 3*64+5, "cmp.y"
-	ocda:	.text 1*64+3, "phx"
-;      (ocdb:)
-;      (ocdc:)
-	ocdd:	.text 3*64+5, "cmp.x"
-	ocde:	.text 3*64+5, "dec.x"
-	ocdf:	.text 3*64+4, "bbs5"
+	ocD0:	.text 2*64+3, "bne"
+	ocD1:	.text 2*64+7, "cmp.ziy"
+	ocD2:	.text 2*64+6, "cmp.zi"
+;      (ocD3:)
+;      (ocD4:)
+	ocD5:	.text 2*64+6, "cmp.zx"
+	ocD6:	.text 2*64+6, "dec.zx"
+	ocD7:	.text 2*64+6, "smb5.z"
+	ocD8:	.text 1*64+3, "cld"
+	ocD9:	.text 3*64+5, "cmp.y"
+	ocDA:	.text 1*64+3, "phx"
+;      (ocDB:)
+;      (ocDC:)
+	ocDD:	.text 3*64+5, "cmp.x"
+	ocDE:	.text 3*64+5, "dec.x"
+	ocDF:	.text 3*64+4, "bbs5"
 
-	oce0:	.text 2*64+5, "cpx.#"
-	oce1:	.text 2*64+7, "sbc.zxi"
-;      (oce2:)
-;      (oce3:)
-	oce4:	.text 2*64+5, "cpx.z"
-	oce5:	.text 2*64+5, "sbc.z"
-	oce6:	.text 2*64+5, "inc.z"
-	oce7:	.text 2*64+6, "smb6.z"
-	oce8:	.text 1*64+3, "inx"
-	oce9:	.text 2*64+5, "sbc.#"
-	ocea:	.text 1*64+3, "nop"
-;      (oceb:)
-	ocec:	.text 3*64+3, "cpx"
-	oced:	.text 3*64+3, "sbc"
-	ocee:	.text 3*64+3, "inc"
-	ocef:	.text 3*64+4, "bbs6"
+	ocE0:	.text 2*64+5, "cpx.#"
+	ocE1:	.text 2*64+7, "sbc.zxi"
+;      (ocE2:)
+;      (ocE3:)
+	ocE4:	.text 2*64+5, "cpx.z"
+	ocE5:	.text 2*64+5, "sbc.z"
+	ocE6:	.text 2*64+5, "inc.z"
+	ocE7:	.text 2*64+6, "smb6.z"
+	ocE8:	.text 1*64+3, "inx"
+	ocE9:	.text 2*64+5, "sbc.#"
+	ocEA:	.text 1*64+3, "nop"
+;      (ocEB:)
+	ocEC:	.text 3*64+3, "cpx"
+	ocED:	.text 3*64+3, "sbc"
+	ocEE:	.text 3*64+3, "inc"
+	ocEF:	.text 3*64+4, "bbs6"
 
-	ocf0:	.text 2*64+3, "beq"
-	ocf1:	.text 2*64+7, "sbc.ziy"
-	ocf2:	.text 2*64+6, "sbc.zi"
-;      (ocf3:)
-;      (ocf4:)
-	ocf5:	.text 2*64+6, "sbc.zx"
-	ocf6:	.text 2*64+6, "inc.zx"
-	ocf7:	.text 2*64+6, "smb7.z"
-	ocf8:	.text 1*64+3, "sed"
-	ocf9:	.text 3*64+5, "sbc.y"
-	ocfa:	.text 1*64+3, "plx"
-;      (ocfb:)
-;      (ocfc:)
-	ocfd:	.text 3*64+5, "sbc.x"
-	ocfe:	.text 3*64+5, "inc.x"
-	ocff:	.text 3*64+4, "bbs7"
+	ocF0:	.text 2*64+3, "beq"
+	ocF1:	.text 2*64+7, "sbc.ziy"
+	ocF2:	.text 2*64+6, "sbc.zi"
+;      (ocF3:)
+;      (ocF4:)
+	ocF5:	.text 2*64+6, "sbc.zx"
+	ocF6:	.text 2*64+6, "inc.zx"
+	ocF7:	.text 2*64+6, "smb7.z"
+	ocF8:	.text 1*64+3, "sed"
+	ocF9:	.text 3*64+5, "sbc.y"
+	ocFA:	.text 1*64+3, "plx"
+;      (ocFB:)
+;      (ocFC:)
+	ocFD:	.text 3*64+5, "sbc.x"
+	ocFE:	.text 3*64+5, "inc.x"
+	ocFF:	.text 3*64+4, "bbs7"
 
         ; Common routine for opcodes that are not supported by the 65c02
 	oc__:	.text 1, "?"
