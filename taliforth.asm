@@ -31,12 +31,12 @@ code0:
 ; Entry point for Tali Forth after kernel hardware setup
 forth:
 
-.include "native_words.asm"     ; Native Forth words. Starts with COLD
+.include "native.asm"           ; Native Forth words. Starts with COLD
 .include "definitions.asm"      ; Top-level definitions, memory map
                                 ; included here to put relocatable tables after native words
-.include "assembler.asm"        ; SAN assembler
-.include "disassembler.asm"     ; SAN disassembler
-.include "ed.asm"               ; Line-based editor ed6502
+.if "disassembler" in TALI_OPTIONAL_WORDS || "assembler" in TALI_OPTIONAL_WORDS
+    .include "opcodes.asm"
+.endif
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:

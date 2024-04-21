@@ -1319,14 +1319,17 @@ nt_load:
 
 nt_thru:
         .byte 4, UF
-        .word nt_list, xt_thru, z_thru
+        .word +, xt_thru, z_thru
         .text "thru"
++
 
+.if "editor" in TALI_OPTIONAL_WORDS
 nt_list:
         .byte 4, UF
         .word +, xt_list, z_list
         .text "list"
 +
+.endif
 .endif
 
 .if "block" in TALI_OPTIONAL_WORDS && "ramdrive" in TALI_OPTIONAL_WORDS
