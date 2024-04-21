@@ -1969,7 +1969,7 @@ testing facility words: at-xy page   ok
   ok
  ( Running test 'ed' from file 'ed.fs' )  ok
 \ ------------------------------------------------------------------------  ok
-testing editor words: ed  ok
+testing editor words: ed:  ok
   ok
 decimal  ok
 marker ed-tests   ok
@@ -1984,7 +1984,7 @@ marker ed-tests   ok
 \ --- a command ---  ok
   ok
 \ Simple adding of text; want aaaa bbbb  ok
-ed 
+ed: 
 a 
 aaaa 
 bbbb 
@@ -1996,7 +1996,7 @@ q  ok
 T{ 10000 10  s\" aaaa\nbbbb\n" compare -> 10000 10 0 }T  ok
   ok
 \ Add text to end of existing text; want aaaa bbbb cccc  ok
-ed 
+ed: 
 a 
 aaaa 
 bbbb 
@@ -2012,7 +2012,7 @@ T{ 10000 15  s\" aaaa\nbbbb\ncccc\n" compare -> 10000 15 0 }T  ok
   ok
 \ Add a line between two lines of existing text  ok
 \ Want aaaa cccc bbbb  ok
-ed 
+ed: 
 a 
 aaaa 
 bbbb 
@@ -2027,7 +2027,7 @@ T{ 10000 15  s\" aaaa\ncccc\nbbbb\n" compare -> 10000 15 0 }T  ok
   ok
 \ Add two lines between two existing lines of existing text  ok
 \ Want: aaaa cccc dddd bbbb  ok
-ed 
+ed: 
 a 
 aaaa 
 bbbb 
@@ -2042,7 +2042,7 @@ q  ok
 T{ 10000 20  s\" aaaa\ncccc\ndddd\nbbbb\n" compare -> 10000 20 0 }T  ok
   ok
 \ Add a line above existing text; want bbbb aaaa   ok
-ed 
+ed: 
 a 
 aaaa 
 . 
@@ -2058,7 +2058,7 @@ T{ 10000 10  s\" bbbb\naaaa\n" compare -> 10000 10 0 }T  ok
 \ --- d command ---  ok
   ok
 \ Delete first of two lines; want bbbb  ok
-ed 
+ed: 
 a 
 aaaa 
 bbbb 
@@ -2070,7 +2070,7 @@ q  ok
 T{ 10000 5  s\" bbbb\n" compare -> 10000 5 0 }T  ok
   ok
 \ Delete second of two lines; want aaaa  ok
-ed 
+ed: 
 a 
 aaaa 
 bbbb 
@@ -2084,7 +2084,7 @@ T{ 10000 5  s\" aaaa\n" compare -> 10000 5 0 }T  ok
 \ --- i command ---  ok
   ok
 \ Simple adding of text; want qqqq rrrr  ok
-ed 
+ed: 
 i 
 qqqq 
 rrrr 
@@ -2095,7 +2095,7 @@ q  ok
 T{ 10000 10  s\" qqqq\nrrrr\n" compare -> 10000 10 0 }T  ok
   ok
 \ Add text to start of existing text; want tttt dddd aaaa  ok
-ed 
+ed: 
 a 
 dddd 
 aaaa 
@@ -2111,7 +2111,7 @@ T{ 10000 15  s\" tttt\ndddd\naaaa\n" compare -> 10000 15 0 }T  ok
   ok
 \ Add a line between two lines of existing text  ok
 \ Want mmmm oooo gggg  ok
-ed 
+ed: 
 a 
 mmmm 
 gggg 
@@ -2126,7 +2126,7 @@ T{ 10000 15  s\" mmmm\noooo\ngggg\n" compare -> 10000 15 0 }T  ok
   ok
 \ Add two lines between two existing lines of existing text  ok
 \ Want: tttt cccc dddd ssss  ok
-ed 
+ed: 
 a 
 tttt 
 ssss 
@@ -2141,7 +2141,7 @@ q  ok
 T{ 10000 20  s\" tttt\ncccc\ndddd\nssss\n" compare -> 10000 20 0 }T  ok
   ok
 \ Add a line above existing text; want uuuu zzzz   ok
-ed 
+ed: 
 a 
 zzzz 
 . 
@@ -2213,13 +2213,13 @@ cr .( >>>> )  saved-string type  .( <<<< ) cr
   ok
 \ Most simple test and setup: Start and end  ok
 redirect-output  ok
-2drop  \ ed returns ( addr u ), don't need that at the moment  ok
-T{ saved-string s\"  ok\ned \nq  ok\nrestore-output  " compare -> 0 }T  ok
-\                   A--------A  A-------------------A  <-- This is boilerplate            ok
+2drop  \ ed: returns ( addr u ), don't need that at the moment  ok
+T{ saved-string s\"  ok\ned: \nq  ok\nrestore-output  " compare -> 0 }T  ok
+\                   A---------A  A-------------------A  <-- This is boilerplate  ok
   ok
 \ Cut down on noise  ok
 : test-ed ( -- addr u )  compiled
-   redirect-output ed ( payload executed here ) restore-output  compiled
+   redirect-output ed: ( payload executed here ) restore-output  compiled
    2drop              \ remove ed's output   compiled
    saved-string  ( addr u )   compiled
 ;   ok
@@ -3334,7 +3334,7 @@ here 5       ' blank         cycle_test            CYCLES:    327 ok
 5            ' chars         cycle_test drop       CYCLES:     28 ok
 pad here 5   ' cmove         cycle_test            CYCLES:    188 ok
 pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
-             ' :             cycle_test wrd ;      CYCLES:  15161 ok
+             ' :             cycle_test wrd ;      CYCLES:  15177 ok
              ' :noname       cycle_test ; drop     CYCLES:     50 ok
 5            ' ,             cycle_test            CYCLES:     66 ok
 ' aword      ' compile,      cycle_test            CYCLES:    919 ok
@@ -3519,4 +3519,4 @@ char "       ' word          cycle_test "txt" drop CYCLES:    670 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     48 ok
   ok
-$ff $f010 ! c65: PC=9ff1 A=ff X=74 Y=01 S=f9 FLAGS=<N1 V0 B0 D0 I1 Z0 C0> ticks=144282099
+$ff $f010 ! c65: PC=9ff1 A=ff X=74 Y=01 S=f9 FLAGS=<N1 V0 B0 D0 I1 Z0 C0> ticks=144274980

@@ -1441,9 +1441,9 @@ nt_see: .byte 3, NN
 
 .if "ed" in TALI_OPTIONAL_WORDS
 nt_ed:                  ; ed6502
-        .byte 2, NN
+        .byte 3, NN
         .word +, xt_ed, z_ed
-        .text "ed"
+        .text "ed:"
 +
 .endif
 

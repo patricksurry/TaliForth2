@@ -95,8 +95,8 @@ https://forth-standard.org/standard/string/DivSTRING
 
 `0`:: _Tali Forth_ ( -- 0 ) "Push 0 to Data Stack"
 The disassembler assumes that this routine does not use Y. Note
-that CASE and FORTH-WORDLIST use the same routine, as the WD for Forth
-is 0.
+that CASE, FALSE, and FORTH-WORDLIST use the same routine to place
+a 0 on the data stack.
 
 `0<`:: _ANS core_ ( n -- f ) "Return a TRUE flag if TOS negative"
 https://forth-standard.org/standard/core/Zeroless
@@ -611,9 +611,8 @@ tests/tali.fs for examples.
 
 `exit`:: _ANS core_ ( -- ) "Return control to the calling word immediately"
 https://forth-standard.org/standard/core/EXIT
-If we're in a loop, we need to UNLOOP first and get everything
-we we might have put on the Return Stack off as well. This should
-be natively compiled.
+If we're in a loop, user should UNLOOP first to clean up
+any loop control. This should be natively compiled.
 
 `false`:: _ANS core ext_ ( -- f ) "Push flag FALSE to Data Stack"
 https://forth-standard.org/standard/core/FALSE
@@ -679,9 +678,7 @@ https://github.com/philburk/pforth/blob/master/fth/numberio.fth
 
 `i`:: _ANS core_ ( -- n )(R: n -- n)  "Copy loop counter to stack"
 https://forth-standard.org/standard/core/I
-Note that this is not the same as R@ because we use a fudge
-factor for loop control; see the Control Flow section of the
-manual for details.
+See definitions.asm and the Control Flow section of the manual.
 
 `if`:: _ANS core_ (C: -- orig) (flag -- ) "Conditional flow control"
 http://forth-standard.org/standard/core/IF
@@ -714,9 +711,6 @@ https://forth-standard.org/standard/core/J
 Copy second loop counter from Return Stack to stack. Note we use
 a fudge factor for loop control; see the Control Flow section of
 the manual for more details.
-At this point, we have the "I" counter/limit and the LEAVE address
-on the stack above this (three entries), whereas the ideal Forth
-implementation would just have two.
 
 `key`:: _ANS core_ ( -- char ) "Get one character from the input"
 `l`:: _Tali Editor_ ( -- ) "List the current screen"
@@ -1102,7 +1096,7 @@ second one so the variable is initialized to zero
 `while`:: _ANS core_ ( C: dest -- orig dest ) ( x -- ) "Loop flow control"
 http://forth-standard.org/standard/core/WHILE
 
-`within`:: _ANS core ext_ ( n1 n2 n3 -- ) "See if within a range"
+`within`:: _ANS core ext_ ( n1 n2 n3 -- ) "Test n1 within range [n2, n3) or outwith [n3, n2)"
 https://forth-standard.org/standard/core/WITHIN
 
 `word`:: _ANS core_ ( char "name " -- caddr ) "Parse input stream"
