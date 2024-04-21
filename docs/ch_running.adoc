@@ -75,7 +75,7 @@ block-write-vector block-read block-read-vector save-buffers block update
 buffer empty-buffers flush load thru list block-ramdrive-init definitions 
 wordlist search-wordlist set-current get-current set-order get-order 
 root-wordlist assembler-wordlist editor-wordlist forth-wordlist only also 
-previous >order order forth see ed cold bye
+previous >order order forth see ed: cold bye
 ----
 
 NOTE: This list might be outdated. To get the current list, run `words` from

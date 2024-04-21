@@ -209,7 +209,7 @@ _command_mode:
 _prefix_dot:
                 ; --- . --- Designate current line for further operations
                 lda (cib)
-                cmp #$2e                ; ASCII '.'
+                cmp #'.'                ; ASCII '.'
                 bne _prefix_dollar
 
                 jsr ed_have_text
@@ -302,9 +302,9 @@ _prefix_dollar:
 _prefix_percent:
                 ; --- % and , --- Designate whole text for futher operations
                 lda (cib)
-                cmp #$25                ; ASCII '%'
+                cmp #'%'                ; ASCII '%'
                 beq _whole_text
-                cmp #$2c                ; ASCII ','
+                cmp #','                ; ASCII ','
                 bne _prefix_semicolon
 
 _whole_text:
@@ -337,7 +337,7 @@ _semicolon_entry:
 _prefix_semicolon:
                 ; --- ; --- Designate from current line to end of text
                 lda (cib)
-                cmp #$3b                ; ASCII ';'
+                cmp #';'                ; ASCII ';'
                 bne _prefix_number
 
                 jsr ed_have_text
@@ -501,7 +501,7 @@ _check_for_para2:
                 ; point if the first character was a dot (eg '.,3p')
                 lda (2,x)
 
-                cmp #$2c                ; ASCII code for ',' (comma)
+                cmp #','                ; ASCII code for ',' (comma)
                 beq _got_comma
 
                 ; It's not a comma, so it's going to be a command character.
@@ -785,7 +785,7 @@ _next_string_loop:
                 ; dot, we're done with adding text and switch back to command
                 ; mode
                 lda (cib)
-                cmp #$2e                ; ASCII for '.'
+                cmp #'.'                ; ASCII for '.'
                 bne _add_line
 
                 ; So it's a dot, but that the only character in the line?

@@ -4,19 +4,19 @@ messages like "ready". (This silence is preferred by experienced users, but
 sometimes a hangup for beginners.) <<BWK>>
 
 Tali Forth 2 currently ships with a clone of the `ed` line-based editor of Unix
-fame. It is envoked with `ed`, though the formal name is `ed6502`. 
+fame. It is envoked with `ed:`, though the formal name is `ed6502`. 
 
-TIP: `ed` uses about 2 KB of ROM in the default setup. If you know for certain
+TIP: `ed:` uses about 2 KB of ROM in the default setup. If you know for certain
 you are not going to be using it, you can reclaim that space by removing "ed"
 from the TALI_OPTIONAL_WORDS list in your platform file.
 
-For those not familiar with `ed`, there is <<ed-tutorial,a tutorial>> included
+For those not familiar with UNIX `ed`, there is <<ed-tutorial,a tutorial>> included
 in this manual. This section is a brief overview of the currently available
 functions.
 
 ==== Supported Commands
 
-`ed` currently supports only a small number of the commands of the Unix version:
+`ed:` currently supports only a small number of the commands of the Unix version:
 
 [horizontal]
 a:: Add new lines below given line
@@ -68,17 +68,17 @@ Apart from missing about 90 percent of the features:
   Where Unix ed uses the format `w <FILENAME>`, ed6502 takes the address
   to write the text to as `7000w`.
 
-WARNING: `ed` currently only works with decimal numbers.  It saves and
-restores BASE, but all numbers inside ed will be decimal.  This includes
+WARNING: `ed:` currently only works with decimal numbers.  It saves and
+restores BASE, but all numbers inside ed: will be decimal.  This includes
 the address used with `w`.
 
 ==== Using `ed` for programming
 
-`Ed` can be used to write programs and then execute them with `evaluate`. For
+`Ed:` can be used to write programs and then execute them with `evaluate`. For
 instance, a session to add a small string could look something like this:
 
 ----
-        ed
+        ed:
         a
         .( Shepard, is that ... You're alive?)
         .
@@ -103,13 +103,13 @@ space apart from simple spaces without problems.
 
 ===== Memory use
 
-`Ed` currently uses memory without releasing it when done. For small, quick
+`Ed:` currently uses memory without releasing it when done. For small, quick
 edits, this probably is not a problem. However, if you known you are going to be
 using more memory, you probably will want to set a marker first.
 
 ----
         marker pre-edit <1>
-        ed              <2>
+        ed:             <2>
         pre-edit        <3>
 ----
 <1> Set marker at current value of `here`
@@ -120,12 +120,12 @@ This issue might be taken care of in a future release.
 
 ===== Address of Saved Text
 
-`Ed` returns the address of the saved text on the stack as `( -- addr u )`.  If
+`Ed:` returns the address of the saved text on the stack as `( -- addr u )`.  If
 nothing is saved, the program would return a zero length as TOS.
 
 ==== Developer Information
 
-The "buffer" of `ed` is a simple single-linked list of nodes, consisting of a pointer
+The "buffer" of `ed:` is a simple single-linked list of nodes, consisting of a pointer
 to the next entry, a pointer to the string address, and the length of that
 string. 
 
