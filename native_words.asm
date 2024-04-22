@@ -1120,9 +1120,18 @@ xt_block_ramdrive_init:
                 ; See SLITERAL for the format information. This way, we
                 ; don't have the words defined below in the Dictionary until
                 ; we really use them.
-                jmp _after_ramdrive_code
 
-_ramdrive_code:
+                jsr sliteral_runtime
+                .word ramdrive_code, ramdrive_code_end - ramdrive_code
+                ; The address and length of the ramdrive code is now on the
+                ; stack. Call EVALUATE to run it.
+                jsr xt_evaluate
+
+z_block_ramdrive_init:
+                rts
+
+
+ramdrive_code:
         .text "base @ swap decimal"
         .text " 1024 *" ; ( Calculate how many bytes are needed for numblocks blocks )
         .text " dup"    ; ( Save a copy for formatting it at the end )
@@ -1135,18 +1144,8 @@ _ramdrive_code:
         .text " ' block-read-ramdrive block-read-vector !" ; ( Replace I/O vectors )
         .text " ' block-write-ramdrive block-write-vector !"
         .text " ramdrive swap blank base !"
+ramdrive_code_end:
 
-_after_ramdrive_code:
-                jsr sliteral_runtime
-
-.word _ramdrive_code, _after_ramdrive_code-_ramdrive_code
-
-                ; The address and length of the ramdrive code is now on the
-                ; stack. Call EVALUATE to run it.
-                jsr xt_evaluate
-
-z_block_ramdrive_init:
-                rts
 .endif
 
 
@@ -11370,7 +11369,7 @@ z_xor:          rts
 ; ## ZERO ( -- 0 ) "Push 0 to Data Stack"
 ; ## "0"  auto  Tali Forth
         ; """The disassembler assumes that this routine does not use Y. Note
-        ; that CASE, FALSE, and FORTH-WORDLIST use the same routine to place 
+        ; that CASE, FALSE, and FORTH-WORDLIST use the same routine to place
         ; a 0 on the data stack."""
 xt_case:
 xt_false:
