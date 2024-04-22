@@ -1,7 +1,7 @@
 \ ------------------------------------------------------------------------
 testing assembler words
 
-marker asm-tests 
+marker asm-tests
 assembler-wordlist >order
 assembler-wordlist set-current
 hex
@@ -21,7 +21,7 @@ hex
    \ See if opcode is correct. We can't use AND for the last step because that
    \ is replaced by the assembler instruction of the same name
    r> c@          ( f opc c )
-   =              ( f f ) 
+   =              ( f f )
 ;
 
 \ Test for little endian behavior with three-byte instructions
@@ -34,7 +34,7 @@ hex
    \ cr dup 3 dump cr   \ Manual check, insert if paranoia attacks
    1+             ( u-want here0+1 ) \ Skip opcode
    @              ( u-want u-have )
-   =              ( f ) 
+   =              ( f )
 ;
 
 \ Test correct operand for two-byte instructions. Note there is little
@@ -46,7 +46,7 @@ hex
    1+             ( u-want here0+1 )
    c@             ( u-want u-got )
    =              ( f )
-; 
+;
 
 \ Make lookups of these numbers faster.  They won't have to fall through
 \ to NUMBER and they will be at beginning of dictionary.
@@ -64,6 +64,10 @@ T{ 12 s" 12 lda.#" correct-operand? -> true }T
 
 \ Testing a three-byte instruction for little endian handling
 T{ 1122 s" 1122 sta" little-endian? -> true }T
+
+\ Testing undocumented nops; all three dec.a should be skipped
+: nops [ 3 lda.# nop 22 c, dec.a 5c c, dec.a dec.a push-a ] ;
+T{ nops -> 3 }T
 
 \ Testing all assembler instructions: Opcode and length
 T{ 069 2 s" 12 adc.#" opcode-test -> true true }T
@@ -248,5 +252,5 @@ T{ 098 1 s" tya" opcode-test -> true true }T
 
 \ Return to original state
 previous
-decimal ( only forth definitions ) 
+decimal ( only forth definitions )
 asm-tests
