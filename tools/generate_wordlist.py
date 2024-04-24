@@ -12,7 +12,7 @@ import sys
 from glob import glob
 
 
-SOURCES = 'native*.asm'
+SOURCES = 'words/*.asm'
 LABELS = 'docs/py65mon-labelmap.txt'
 MARKER = '; ## '
 

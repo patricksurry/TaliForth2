@@ -229,26 +229,26 @@ z_abort:
 z_quit:         ; no RTS required
 
 
-.include "native_core.asm"
-.include "native_tools.asm"
-.include "native_tali.asm"
-.include "native_double.asm"
-.include "native_string.asm"
+.include "core.asm"
+.include "tools.asm"
+.include "tali.asm"
+.include "double.asm"
+.include "string.asm"
 .if "disassembler" in TALI_OPTIONAL_WORDS
-    .include "native_disasm.asm"
+    .include "disasm.asm"
 .endif
 .if "assembler" in TALI_OPTIONAL_WORDS
-    .include "native_assembler.asm"
+    .include "assembler.asm"
 .endif
 .if "ed" in TALI_OPTIONAL_WORDS
-    .include "native_ed.asm"        ; Line-based editor ed6502
+    .include "ed.asm"        ; Line-based editor ed6502
 .endif
 .if "block" in TALI_OPTIONAL_WORDS
-    .include "native_block.asm"
+    .include "block.asm"
     .if "editor" in TALI_OPTIONAL_WORDS
-        .include "native_editor.asm"
+        .include "editor.asm"
     .endif
 .endif
 .if "wordlist" in TALI_OPTIONAL_WORDS
-    .include "native_wordlist.asm"
+    .include "wordlist.asm"
 .endif

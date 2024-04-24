@@ -1084,7 +1084,7 @@ xt_compile_comma:
                 bne _check_nt
 
                 ; No nt in dictionary. Just compile as a JSR.
-                jmp compile_as_jump
+                jmp compile_as_jsr
 
 _check_nt:
                 ; put nt away for safe keeping
@@ -1121,7 +1121,8 @@ _compile_check:
                 and #NN
                 beq _check_size_limit
 
-                jmp compile_as_jump    ; too far for BRA
+_jumpto_compile_as_jsr:
+                jmp compile_as_jsr    ; too far for BRA
 
 _check_size_limit:
                 ; Native compile is a legal option, but we need to see what
@@ -1138,19 +1139,18 @@ _check_size_limit:
                 lda 1,x
                 cmp (up),y
                 bcc _compile_as_code    ; user-defined limit MSB
-                bne _jumpto_compile_as_jump
+                bne _jumpto_compile_as_jsr
 
                 ; Check the wordsize LSB against the user-defined limit.
                 dey
                 lda (up),y              ; user-defined limit LSB
                 cmp 0,x
-                bpl _compile_as_code    ; Allow native compiling for less
-                                        ; than or equal to the limit.
-
-_jumpto_compile_as_jump:
                 ; If the wordsize is greater than the user-defined
                 ; limit, it will be compiled as a subroutine jump.
-                jmp compile_as_jump    ; too far for BRA
+                bmi _jumpto_compile_as_jsr
+
+                ; Allow native compiling for less
+                ; than or equal to the limit.
 
 _compile_as_code:
                 ; We arrive here with the length of the word's code TOS and
@@ -1226,10 +1226,9 @@ _found_entry:
                 clc
                 adc 4,x
                 sta 4,x
-                bcc+
+                bcc +
                 inc 5,x                 ; we just care about the carry
 +
-
                 ; Adjust u: Quit earlier. Since we cut off the top and the
                 ; bottom of the code, we have to double the value
                 asl tmptos
@@ -1335,7 +1334,7 @@ strip_size:
                 ; be the same as for the xts. Zero terminated.
                 .byte 4, 4, 4, 6, 6, 0          ; R>, R@, >R, 2>R, 2R>, EOL
 
-compile_as_jump:
+compile_as_jsr:
                 ; Compile xt as a subroutine call
                 pla             ; LSB
                 ply             ; MSB
