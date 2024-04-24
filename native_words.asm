@@ -1105,6 +1105,62 @@ _done:
 z_block:        rts
 .endif
 
+.if "block" in TALI_OPTIONAL_WORDS
+xt_block_c65_init:
+; ## BLOCK_C65_INIT ( -- f ) "Initialize c65 simulator block storage"
+; ## "block-c65-init"  auto  Tali block
+        ; """Set up block IO to read/write to/from c65 block file.
+        ; Run simulator with a writable block file option
+        ; e.g. `touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin`
+        ; Returns true if c65 block storage is available and false otherwise."""
+                lda #$ff
+                sta io_blk_status
+                lda #$0
+                sta io_blk_action
+                lda io_blk_status      ; $0 if OK, $ff otherwise
+                eor #$ff            ; invert to forth true/false
+                dex
+                dex
+                sta 0,x             ; true ($ff) if OK, false (0) otherwise
+                sta 1,x
+                dex
+                dex
+                lda #<c65_blk_read
+                sta 0,x
+                lda #>c65_blk_read
+                sta 1,x
+                jsr xt_block_read_vector
+                jsr xt_store
+                dex
+                dex
+                lda #<c65_blk_write
+                sta 0,x
+                lda #>c65_blk_write
+                sta 1,x
+                jsr xt_block_write_vector
+                jsr xt_store
+z_block_c65_init:
+                rts
+
+c65_blk_write:  ldy #2
+                bra c65_blk_rw
+c65_blk_read:   ldy #1
+c65_blk_rw:     lda 0,x                 ; ( addr blk# )
+                sta io_blk_number
+                lda 1,x
+                sta io_blk_number+1
+                lda 2,x
+                sta io_blk_buffer
+                lda 3,x
+                sta io_blk_buffer+1
+                sty io_blk_action       ; trigger the r/w
+                inx                     ; clean up stack
+                inx
+                inx
+                inx
+                rts
+.endif
+
 .if "block" in TALI_OPTIONAL_WORDS && "ramdrive" in TALI_OPTIONAL_WORDS
 ; ## BLOCK_RAMDRIVE_INIT ( u -- ) "Create a ramdrive for blocks"
 ; ## "block-ramdrive-init"  auto  Tali block
@@ -1358,7 +1414,7 @@ z_buffstatus:
         ; """https://forth-standard.org/standard/tools/BYE"""
 xt_bye:
                 ;brk
-                jmp platform_bye
+                jmp kernel_bye
 z_bye:          ;rts             ; never reached
 
 
@@ -5844,7 +5900,7 @@ _done:
 z_m_star:       rts
 
 
-; ## MARKER ( "name" -- ) "Create a deletion boundry"
+; ## MARKER ( "name" -- ) "Create a deletion boundary"
 ; ## "marker"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/MARKER
         ; This word replaces FORGET in earlier Forths. Old entries are not

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.20">
+<meta name="generator" content="Asciidoctor 2.0.22">
 <meta name="keywords" content="forth, 6502, assembler, programming, 8-bit, vintage, retro">
 <meta name="author" content="Sam Colwell, Scot W. Stevenson">
 <title>Manual for Tali Forth 2 for the 65c02</title>
@@ -142,7 +142,7 @@ p a>code:hover{color:rgba(0,0,0,.9)}
 #content::before{content:none}
 #header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
 #header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #dddddf}
-#header>h1:only-child,body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
+#header>h1:only-child{border-bottom:1px solid #dddddf;padding-bottom:8px}
 #header .details{border-bottom:1px solid #dddddf;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:flex;flex-flow:row wrap}
 #header .details span:first-child{margin-left:-.125em}
 #header .details span.email a{color:rgba(0,0,0,.85)}
@@ -164,6 +164,7 @@ p a>code:hover{color:rgba(0,0,0,.9)}
 #toctitle{color:#7a2518;font-size:1.2em}
 @media screen and (min-width:768px){#toctitle{font-size:1.375em}
 body.toc2{padding-left:15em;padding-right:0}
+body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
 #toc.toc2{margin-top:0!important;background:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #e7e7e9;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
 #toc.toc2 #toctitle{margin-top:0;margin-bottom:.8rem;font-size:1.2em}
 #toc.toc2>ul{font-size:.9em;margin-bottom:0}
@@ -329,7 +330,7 @@ a.image{text-decoration:none;display:inline-block}
 a.image object{pointer-events:none}
 sup.footnote,sup.footnoteref{font-size:.875em;position:static;vertical-align:super}
 sup.footnote a,sup.footnoteref a{text-decoration:none}
-sup.footnote a:active,sup.footnoteref a:active{text-decoration:underline}
+sup.footnote a:active,sup.footnoteref a:active,#footnotes .footnote a:first-of-type:active{text-decoration:underline}
 #footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
 #footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em;border-width:1px 0 0}
 #footnotes .footnote{padding:0 .375em 0 .225em;line-height:1.3334;font-size:.875em;margin-left:1.2em;margin-bottom:.2em}
@@ -5212,7 +5213,8 @@ demonstrated in this chapter.</p>
 <code>block-ramdrive-init</code> that takes the number of blocks you want to use and
 allocates a RAM drive to simulate a mass-storage device.  It also sets up the
 read and write vectors to routines that will move the data in and out of the
-allocated RAM.</p>
+allocated RAM.  If you&#8217;d prefer persistent block storage in an external file
+you can try the <code>block-c65-init</code> word illustrated below.</p>
 </div>
 <div class="paragraph">
 <p>If you have an actual storage device, such as a flash memory, you will need to
@@ -5235,6 +5237,20 @@ words.</p>
 <p>This command takes a moment as all of the block memory is initialized to the
 value BLANK (a space) on the assumption you will be placing text there.  When
 complete, you will have 4 blocks (numbered 0-3) available to play with.</p>
+</div>
+<div class="paragraph">
+<p>If you want to use persistent storage instead, create a writable file
+and start the simulator as shown.  The <code>block-c65-init</code> word takes no
+arguments and returns true if block storage is available.
+You can read/write up to 65536 1K blocks in your file (64Mb of storage).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>touch somefile.dat
+c65/c65 -b somefile.dat -r taliforth-py65mon.bin
+...
+block-c65-init      ( -- f )</pre>
+</div>
 </div>
 <div class="paragraph">
 <p>When using blocks for text or Forth code, the 1K block is further divided into
@@ -7666,6 +7682,18 @@ ingore the MSB</p>
 </tr>
 <tr>
 <td class="hdlist1">
+<code>block-c65-init</code>
+</td>
+<td class="hdlist2">
+<p><em>Tali block</em> (&#8201;&#8212;&#8201;f ) "Initialize c65 simulator block storage"
+Set up block IO to read/write to/from c65 block file.
+Run simulator with a writable block file option
+e.g. <code>touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin</code>
+Returns true if c65 block storage is available and false otherwise.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
 <code>block-ramdrive-init</code>
 </td>
 <td class="hdlist2">
@@ -8708,7 +8736,7 @@ values are signed. Adapted from FIG Forth for Tali Forth.</p>
 <code>marker</code>
 </td>
 <td class="hdlist2">
-<p><em>ANS core ext</em> ( "name"&#8201;&#8212;&#8201;) "Create a deletion boundry"
+<p><em>ANS core ext</em> ( "name"&#8201;&#8212;&#8201;) "Create a deletion boundary"
 <a href="https://forth-standard.org/standard/core/MARKER" class="bare">https://forth-standard.org/standard/core/MARKER</a>
 This word replaces FORGET in earlier Forths. Old entries are not
 actually deleted, but merely overwritten by restoring CP and DP.
@@ -10060,7 +10088,7 @@ under <a href="https://www.ubuntu.com/">Ubuntu</a> Linux 16.04 LTS.</p>
 <div id="footer">
 <div id="footer-text">
 Version 1.0<br>
-Last updated 2024-03-09 11:07:41 -0500
+Last updated 2024-03-07 15:56:25 -0500
 </div>
 </div>
 </body>

@@ -32,6 +32,7 @@ RTS instruction at the end of each word.
 | BLK | `block` | ANS block | 5 | **auto** |
 | BLKBUFFER | `blkbuffer` | Tali block | 13 | **auto** |
 | BLOCK | `block` | ANS block | 82 | **auto** |
+| BLOCK_C65_INIT | `block-c65-init` | Tali block | 53 | **auto** |
 | BLOCK_RAMDRIVE_INIT | `block-ramdrive-init` | Tali block | 13 | **auto** |
 | BLOCK_READ | `block-read` | Tali block | 14 | **auto** |
 | BLOCK_READ_VECTOR | `block-read-vector` | Tali block | 5 | **auto** |
@@ -287,7 +288,7 @@ RTS instruction at the end of each word.
 | EDITOR_LINE | `line` | Tali Editor | 24 | tested |
 | EDITOR_O | `o` | Tali Editor | 69 | tested |
 
-Found **279** native words in `native_words.asm`.
-Of those, **231** were automatically tested and
+Found **280** native words in `native_words.asm`.
+Of those, **232** were automatically tested and
           **1** are not marked as tested at all.
 

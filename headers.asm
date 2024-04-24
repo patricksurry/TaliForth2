@@ -1324,8 +1324,13 @@ nt_thru:
 
 nt_list:
         .byte 4, UF
-        .word +, xt_list, z_list
+        .word nt_block_c65_init, xt_list, z_list
         .text "list"
+
+nt_block_c65_init:
+        .byte 14, 0
+        .word +, xt_block_c65_init, z_block_c65_init
+        .text "block-c65-init"
 +
 .endif
 

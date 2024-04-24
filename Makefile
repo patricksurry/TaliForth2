@@ -84,6 +84,10 @@ ptests:	taliforth-py65mon.bin $(TEST_SOURCES)
 sim:	taliforth-py65mon.bin
 	py65mon -m 65c02 -r taliforth-py65mon.bin
 
+csim:   taliforth-py65mon.bin
+	make -C c65
+	c65/c65 -r taliforth-py65mon.bin
+
 # Some convenience targets for the documentation.
 docs/manual.html: docs/*.adoc
 	cd docs && asciidoctor -a toc=left manual.adoc
