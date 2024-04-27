@@ -991,15 +991,10 @@ z_base:         rts
 ; ## "begin"  auto  ANS core
         ; """https://forth-standard.org/standard/core/BEGIN
         ;
-        ; This is just an immediate version of here which could just
-        ; as well be coded in Forth as
+        ; This is a dummy header, BEGIN shares the actual code with HERE
+        ; It could as well be coded in Forth as
         ;       : BEGIN HERE ; IMMEDIATE COMPILE-ONLY
-        ; Since this is a compiling word, we don't care that much about
-        ; about speed
         ; """
-xt_begin:
-                jsr xt_here
-z_begin:        rts
 
 
 ; ## BELL ( -- ) "Emit ASCII BELL"
@@ -2242,13 +2237,15 @@ strip_table:
                ; during native compile, zero terminated. The index here
                ; must be the same as for the sizes
                 .word xt_r_from, xt_r_fetch, xt_to_r    ; R>, R@, >R
-                .word xt_two_to_r, xt_two_r_from, 0000  ; 2>R, 2R>, EOL
+                .word xt_two_to_r, xt_two_r_from        ; 2>R, 2R>
+                .word 0                                 ; end
 
 strip_size:
-                ; List of bytes to be stripped from the words that get their
-                ; Return Stack antics removed during native compile. Index must
-                ; be the same as for the xts. Zero terminated.
-                .byte 4, 4, 4, 6, 6, 0          ; R>, R@, >R, 2>R, 2R>, EOL
+                ; List of bytes to be stripped from both the start and end
+                ; of words that get their Return Stack antics removed.
+                ; Index must be the same as for the xts.
+                .byte 4, 4, 4                           ; R>, R@, >R
+                .byte 6, 6                              ; 2>R, 2R>
 
 compile_as_jump:
                 ; Compile xt as a subroutine call
@@ -4774,8 +4771,10 @@ z_greater_than: rts
 ; ## "here"  auto  ANS core
         ; """https://forth-standard.org/standard/core/HERE
         ; This code is also used by the assembler directive ARROW
-        ; ("->") though as immediate"""
+        ; ("->") though as immediate
+        ; and by HERE as an immediate compile word"""
 xt_here:
+xt_begin:
 xt_asm_arrow:
                 dex
                 dex
@@ -4784,8 +4783,10 @@ xt_asm_arrow:
                 lda cp+1
                 sta 1,x
 
+z_here:
+z_begin:
 z_asm_arrow:
-z_here:         rts
+                rts
 
 
 ; ## HEX ( -- ) "Change base radix to hexadecimal"
@@ -7702,7 +7703,7 @@ xt_r_fetch:
                 sty tmp1
                 ply             ; MSB
 
-                ; --- CUT FOR NATIVE COMPILE ---
+                ; --- CUT FOR NATIVE COMPILE (see strip_table: 4) ---
 
                 ; get the actual top of Return Stack
                 dex
@@ -7747,7 +7748,7 @@ xt_r_from:
                 sta tmptos
                 ply             ; MSB
 
-                ; --- CUT FOR NATIVE CODING ---
+                ; --- CUT FOR NATIVE CODING (see strip_table: 4) ---
 
                 dex
                 dex
@@ -10150,7 +10151,7 @@ xt_to_r:
                 sta tmptos
                 ply             ; MSB
 
-                ; --- CUT HERE FOR NATIVE CODING ---
+                ; --- CUT HERE FOR NATIVE CODING (see strip_table: 4) ---
 
                 ; We check for underflow in the second step, so we can
                 ; strip off the stack thrashing for native compiling first
@@ -10383,7 +10384,7 @@ xt_two_r_from:
                 pla                     ; MSB
                 sta tmp1+1
 
-                ; --- CUT HERE FOR NATIVE CODING ---
+                ; --- CUT HERE FOR NATIVE CODING (see strip_table: 6) ---
 
 		; make room on stack
                 dex
@@ -10536,7 +10537,7 @@ xt_two_to_r:
                 pla             ; MSB
                 sta tmp1+1
 
-                ; --- CUT HERE FOR NATIVE CODING ---
+                ; --- CUT HERE FOR NATIVE CODING (see strip_table: 6) ---
 
                 jsr underflow_2
 
@@ -11417,7 +11418,7 @@ z_xor:          rts
 ; ## ZERO ( -- 0 ) "Push 0 to Data Stack"
 ; ## "0"  auto  Tali Forth
         ; """The disassembler assumes that this routine does not use Y. Note
-        ; that CASE, FALSE, and FORTH-WORDLIST use the same routine to place 
+        ; that CASE, FALSE, and FORTH-WORDLIST use the same routine to place
         ; a 0 on the data stack."""
 xt_case:
 xt_false:

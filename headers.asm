@@ -335,7 +335,7 @@ nt_char_plus:
         .text "char+"
 
 nt_chars:
-        .byte 5, AN+UF   ; deleted during compile
+        .byte 5, UF   ; deleted during compile
         .word nt_cells, xt_chars, z_chars
         .text "chars"
 
@@ -860,12 +860,12 @@ nt_quit:
         .text "quit"
 
 nt_begin:
-        .byte 5, AN+CO+IM
+        .byte 5, CO+IM
         .word nt_again, xt_begin, z_begin
         .text "begin"
 
 nt_again:
-        .byte 5, AN+CO+IM+UF
+        .byte 5, CO+IM+UF
         .word nt_state, xt_again, z_again
         .text "again"
 
