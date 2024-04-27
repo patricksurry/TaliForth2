@@ -235,7 +235,6 @@ _dispatch_handler:
 ; Special handlers
 _special_handlers:
     .word literal_runtime,      disasm_literal
-    .word byte_runtime,         disasm_byte_literal
     .word sliteral_runtime,     disasm_sliteral
     .word zero_branch_runtime,  disasm_0branch
     .word zero_test_runtime,    disasm_0test
@@ -474,27 +473,6 @@ disasm_print_literal:
                 jsr xt_swap ; (addr+2 u)
                 jsr xt_one_minus
                 jsr xt_one_minus ; (addr+2 u-2)
-                rts
-
-; Byte literal handler
-disasm_byte_literal:
-                lda #'B'
-                jsr emit_a ; Add leading B
-                lda #str_disasm_lit
-                jsr print_string_no_lf ; "LITERAL "
-
-                ; ( addr u ) address of last byte of JSR and bytes left on the stack.
-                ; We need to print the value just after the address and move along one byte.
-                jsr xt_swap ; switch to (u addr)
-                jsr xt_one_plus
-
-                jsr xt_dup
-                jsr xt_c_fetch  ; Print byte at the address
-                jsr xt_dot
-
-                ; Account for the byte to skip over the constant.
-                jsr xt_swap ; (addr+1 u)
-                jsr xt_one_minus ; (addr+1 u-1)
                 rts
 
 ; JSR handler

@@ -26,7 +26,7 @@ RTS instruction at the end of each word.
 | AT_XY | `at-xy` | ANS facility | 45 | tested |
 | BACKSLASH | `\` | ANS block ext | 42 | **auto** |
 | BASE | `base` | ANS core | 8 | **auto** |
-| BEGIN | `begin` | ANS core | 3 | **auto** |
+| BEGIN | `begin` | ANS core | 10 | **auto** |
 | BELL | `bell` | Tali Forth | 5 | tested |
 | BL | `bl` | ANS core | 8 | **auto** |
 | BLK | `block` | ANS block | 5 | **auto** |
@@ -61,7 +61,7 @@ RTS instruction at the end of each word.
 | COLON_NONAME | `:NONAME` | ANS core | 27 | **auto** |
 | COMMA | `,` | ANS core | 25 | **auto** |
 | COMPARE | `compare` | ANS string | 100 | **auto** |
-| COMPILE_COMMA | `compile,` | ANS core ext | 281 | **auto** |
+| COMPILE_COMMA | `compile,` | ANS core ext | 280 | **auto** |
 | COMPILE_ONLY | `compile-only` | Tali Forth | 11 | tested |
 | CONSTANT | `constant` | ANS core | 61 | **auto** |
 | COUNT | `count` | ANS core | 19 | **auto** |
@@ -250,7 +250,7 @@ RTS instruction at the end of each word.
 | TWO_SWAP | `2swap` | ANS core | 35 | **auto** |
 | TWO_TO_R | `2>r` | ANS core ext | 31 | **auto** |
 | TWO_CONSTANT | `2constant` | ANS double | 36 | **auto** |
-| TWO_LITERAL | `2literal` | ANS double | 12 | **auto** |
+| TWO_LITERAL | `2literal` | ANS double | 6 | **auto** |
 | TWO_VARIABLE | `2variable` | ANS double | 14 | **auto** |
 | TYPE | `type` | ANS core | 42 | **auto** |
 | U_DOT | `u.` | ANS core | 11 | tested |

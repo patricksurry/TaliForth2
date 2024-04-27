@@ -25,9 +25,6 @@ TALI_OPTION_TERSE :?= 0
 ; Default to ctrl-n/p accept history
 TALI_OPTION_HISTORY :?= 1
 
-; Optional XT of a word to run on startup
-TALI_STARTUP :?= 0
-
 ; Label used to calculate UNUSED based on the hardware configuration in platform/
 code0:
 
@@ -40,8 +37,6 @@ forth:
 .include "assembler.asm"        ; SAN assembler
 .include "disassembler.asm"     ; SAN disassembler
 .include "ed.asm"               ; Line-based editor ed6502
-
-.include "token.asm"            ; token threading test
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
@@ -506,36 +501,16 @@ _loop:
                 ; number.
                 lda #%00100000
                 bit status
-                beq _single_number
+                bne _double_number
 
-                ; It's a double cell number.  If we swap the
-                ; upper and lower half, we can use the literal_runtime twice
-                ; to compile it into the dictionary.
-                jsr xt_swap
-
-                jsr _add_lit
-
-                ; Fall into _single_number to process the other half.
-_single_number:
-                jsr _add_lit
-
+                jsr xt_literal
                 ; That was so much fun, let's do it again!
                 bra _loop
 
-_add_lit:       lda 1,x
-                beq _byte_rt
-                ldy #>literal_runtime
-                lda #<literal_runtime
-                bra _cmpl_rt
-_byte_rt:       ldy #>byte_runtime
-                lda #<byte_runtime
-_cmpl_rt:       jsr cmpl_subroutine
-                lda 1,x
-                beq _c_comma
-                ; compile our number and return
-                jmp xt_comma
-_c_comma:       jmp xt_c_comma
-
+_double_number:
+                ; It's a double cell number.
+                jsr xt_two_literal
+                bra _loop
 
 _got_name_token:
                 ; We have a known word's nt TOS. We're going to need its xt
@@ -596,7 +571,7 @@ _compile:
 
                 ; Compile the xt into the Dictionary with COMPILE,
                 jsr xt_compile_comma
-                jmp _loop
+                bra _loop
 
 _line_done:
                 ; drop stuff from PARSE_NAME

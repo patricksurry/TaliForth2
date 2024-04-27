@@ -96,31 +96,7 @@ _load_user_vars_loop:
                 sta 1,x
 
                 jsr xt_evaluate
-.if TALI_STARTUP
-                dex
-                dex
-                lda #<TALI_STARTUP
-                sta 0,x
-                lda #>TALI_STARTUP
-                sta 1,x
-                jsr xt_execute
-.endif
-                bra _skip_turnkey
 
-_turnkey:
-                ; special entry point to execute turnkey xt
-                ; in a prebuilt memory image with existing state
-                ; simply set up the data stack pointer
-                ; then fall back into abort on completion
-                sei
-                ldx #dsp0-2
-                lda turnkey
-                sta 0,x
-                lda turnkey+1
-                sta 1,x
-                jsr xt_execute
-
-_skip_turnkey:
 .if TALI_OPTION_HISTORY
                 ; Initialize all of the history buffers by putting a zero in
                 ; each length byte.
@@ -5536,30 +5512,6 @@ literal_runtime:
 
                 rts
 
-byte_runtime:
-                ; load a single byte following the calling JSR
-                dex             ; make space on the stack
-                dex
-
-                ; The 65c02 stores <RETURN-ADDRESS>-1 on the Return Stack,
-                ; so we are actually popping the address-1 of the literal
-                pla             ; LSB
-                ply             ; MSB
-                ina             ; inc return addr and store in tmp1
-                bne +
-                iny
-+               phy
-                pha
-                sta tmp1
-                sty tmp1+1
-
-                ; Fetch literal byte and push it on Data stack
-                lda (tmp1)      ; LSB
-                sta 0,x
-                stz 1,x         ; MSB is zero
-
-                rts
-
 
 .if "block" in TALI_OPTIONAL_WORDS
 ; ## LOAD ( scr# -- ) "Load the Forth code in a screen/block"
@@ -8712,7 +8664,7 @@ _found_string_end:
 
                 ; What happens next depends on the state (which is bad, but
                 ; that's the way it works at the moment). If we are
-                ; interpretating, we save the string to a transient buffer
+                ; interpreting, we save the string to a transient buffer
                 ; and return that address (used for file calls, see
                 ; https://forth-standard.org/standard/file/Sq . If we're
                 ; compiling, we just need SLITERAL
@@ -8723,7 +8675,7 @@ _found_string_end:
                 ; Jump into the middle of the sliteral word, after the
                 ; string data has been compiled into the dictionary,
                 ; because we've already done that step.
-                jsr sliteral_const_str         ; ( addr u -- )
+                jsr cmpl_sliteral         ; ( addr u -- )
 
 _done:
 z_s_quote:      rts
@@ -9264,7 +9216,8 @@ xt_sliteral:
                 ; Stack is now ( addr2 u ) where addr2 is the new
                 ; location in the dictionary.
 
-sliteral_const_str:
+cmpl_sliteral:
+cmpl_two_literal:
                 ; Compile a subroutine jump to the runtime of SLITERAL that
                 ; pushes the new ( addr u ) pair to the Data Stack.
                 ; When we're done, the code will look like this:
@@ -9301,23 +9254,36 @@ sliteral_const_str:
 z_sliteral:     rts
 
 
+two_literal_runtime:
 sliteral_runtime:
 
         ; """Run time behaviour of SLITERAL: Push ( addr u ) of string to
         ; the Data Stack. We arrive here with the return address as the
-        ; top of Return Stack, which points to the address of the string
+        ; top of Return Stack, which points to the address of the string.
+        ; Also used for double word where we have ( lo hi ).
         ; """
                 dex
                 dex
                 dex
                 dex
 
-                ; Get the address of the string address off the stack and
-                ; increase by one because of the RTS mechanics
+                ; We arrived from code like
+                ;   jsr sliteral_runtime
+                ;   .word addr
+                ;   .word length
+                ; So the return address points one byte before addr.
+                ; Pull that to tmp1 and put tmp1+4 to return past two data words
                 pla
                 sta tmp1        ; LSB of address
-                pla
-                sta tmp1+1      ; MSB of address
+                ply
+                sty tmp1+1      ; MSB of address
+                clc
+                adc #4
+                bcc +
+                iny
++
+                phy
+                pha
 
                 ; Walk through both and save them
                 ldy #1          ; adjust for JSR/RTS mechanics on 65c02
@@ -9335,16 +9301,6 @@ sliteral_runtime:
 
                 lda (tmp1),y
                 sta 1,x         ; MSB of length
-
-                ; restore return address
-                clc
-                lda tmp1
-                adc #4
-                tay             ; LSB
-                lda tmp1+1
-                adc #0          ; we only need carry
-                pha             ; MSB
-                phy
 
                 rts
 
@@ -10599,15 +10555,12 @@ z_two_constant: rts
 ; ## TWO_LITERAL (C: d -- ) ( -- d) "Compile a literal double word"
 ; ## "2literal"  auto  ANS double
         ; """https://forth-standard.org/standard/double/TwoLITERAL"""
-        ; Based on the Forth code
-        ; : 2LITERAL ( D -- ) SWAP POSTPONE LITERAL POSTPONE LITERAL ; IMMEDIATE
+        ; Shares code with xt_sliteral for compiling a double word
         ; """
 xt_two_literal:
                 jsr underflow_2 ; double number
 
-                jsr xt_swap
-                jsr xt_literal
-                jsr xt_literal
+                jsr cmpl_two_literal
 
 z_two_literal:  rts
 
