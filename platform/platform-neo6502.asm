@@ -192,7 +192,7 @@ kernel_putc = WriteCharacter
 
 
 
-platform_bye:
+kernel_bye:
                 brk
 
 

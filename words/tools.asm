@@ -2,10 +2,13 @@
 ; ## "bye"  tested  ANS tools ext
         ; """https://forth-standard.org/standard/tools/BYE"""
 xt_bye:
-                ;brk
-                jmp platform_bye ; TODO: replace this with kernel_bye instead
-                                 ; All platforms will need to be updated.
-z_bye:          ;rts             ; never reached
+                ; Use the kernel_bye routine provided in the platform
+                ; file.  For simulators, this is traditionally just a
+                ; brk instruction, but platforms with another OS can
+                ; arrange to jump back into that OS.  This routine
+                ; does not return.
+                jmp kernel_bye
+z_bye:
 
 
 

@@ -183,7 +183,7 @@ padoffset = $ff            ; offset from CP to PAD (holds number strings)
 
 
 ; routine called when leaving Tali Forth 2: just call the reset vector.
-platform_bye:
+kernel_bye:
         jmp ($fffc)
 
 

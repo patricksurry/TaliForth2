@@ -147,7 +147,7 @@ _done:
 
 ; My SBC runs Tali Forth 2 as the OS, to there is nowhere to go back to.
 ; Just restart TALI.
-platform_bye:   
+kernel_bye:   
         jmp kernel_init
 
 

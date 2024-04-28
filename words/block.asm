@@ -109,6 +109,16 @@ xt_block_c65_init:
         ; Run simulator with a writable block file option
         ; e.g. `touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin`
         ; Returns true if c65 block storage is available and false otherwise."""
+
+.weak
+; These labels allow this to assemble even if c65 is not the target platform.
+; Because they are weak, they will be replaced when c65 is the target platform.
+io_blk_status = 0
+io_blk_action = 0
+io_blk_number = 0
+io_blk_buffer = 0
+.endweak
+
                 lda #$ff
                 sta io_blk_status
                 lda #$0

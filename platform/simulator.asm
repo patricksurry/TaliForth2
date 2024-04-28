@@ -81,6 +81,5 @@ kernel_putc:
                 rts
 
 kernel_bye:
-platform_bye:
         ; """Forth shutdown called from BYE"""
                 brk

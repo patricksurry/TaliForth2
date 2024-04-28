@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.57.2900 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Sun Apr 28 11:04:22 2024
+; Sun Apr 28 11:34:51 2024
 
 ;Offset	;PC	;Hex		;Monitor	;Source
 
@@ -3811,7 +3811,7 @@
 ;******  Processing file: platform/../words/tools.asm
 
 .9866						xt_bye:
-.9866		4c 31 f0	jmp $f031	                jmp platform_bye ; TODO: replace this with kernel_bye instead
+.9866		4c 31 f0	jmp $f031	                jmp kernel_bye
 .9869						z_bye:
 .9869						xt_dot_s:
 .9869		20 8b 86	jsr $868b	                jsr xt_depth    ; ( -- u )
@@ -10982,7 +10982,6 @@
 .f02d		8d 01 f0	sta $f001	                sta io_putc
 .f030		60		rts		                rts
 .f031						kernel_bye:
-.f031						platform_bye:
 .f031		00		brk #		                brk
 
 ;******  Return to file: platform/platform-py65mon.asm

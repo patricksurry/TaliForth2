@@ -213,7 +213,7 @@ nolf:
 
 
 ; platform dependend "bye" behaviour. for now, brk is retained like in platform-py65mon
-platform_bye:
+kernel_bye:
     brk
 
 

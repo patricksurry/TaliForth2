@@ -611,7 +611,6 @@ xt_asm_and_zi	= $a464
 xt_minus_trailing= $a037
 oc96		= $b89f
 z_compare	= $a01d
-platform_bye	= $f031
 xt_asm_lda_ziy	= $a5e4
 oc2C		= $b6b4
 xt_s_to_d	= $924d
