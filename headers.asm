@@ -335,7 +335,7 @@ nt_char_plus:
         .text "char+"
 
 nt_chars:
-        .byte 5, UF   ; deleted during compile
+        .byte 5, UF     ; deleted during compile
         .word nt_cells, xt_chars, z_chars
         .text "chars"
 
@@ -1443,12 +1443,6 @@ nt_ed:                  ; ed6502
         .byte 3, NN
         .word +, xt_ed, z_ed
         .text "ed:"
-+
-.endif
-
-TALI_USER_HEADERS :?= ""
-.if TALI_USER_HEADERS
-.include TALI_USER_HEADERS
 +
 .endif
 

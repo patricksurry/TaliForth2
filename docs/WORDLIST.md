@@ -7,14 +7,14 @@ RTS instruction at the end of each word.
 
 | NAME | FORTH WORD | SOURCE | BYTES | STATUS |
 | :--- | :--------- | :---   | ----: | :----  |
-| COLD | `cold` | Tali Forth | 195 | tested |
+| COLD | `cold` | Tali Forth | 177 | tested |
 | ABORT | `abort` | ANS core | 81 | tested |
 | QUIT | `quit` | ANS core | 79 | tested |
 | ABORT_QUOTE | `abort"` | ANS core | 10 | tested |
 | ABS | `abs` | ANS core | 20 | **auto** |
 | ACCEPT | `accept` | ANS core | 248 | **auto** |
 | ACTION_OF | `action-of` | ANS core ext | 24 | **auto** |
-| AGAIN | `again` | ANS core ext | 13 | tested |
+| AGAIN | `again` | ANS core ext | 6 | tested |
 | ALIGN | `align` | ANS core | 0 | **auto** |
 | ALIGNED | `aligned` | ANS core | 0 | **auto** |
 | ALLOT | `allot` | ANS core | 104 | **auto** |
@@ -59,7 +59,7 @@ RTS instruction at the end of each word.
 | CMOVE_UP | `cmove>` | ANS string | 58 | **auto** |
 | COLON | `:` | ANS core | 66 | **auto** |
 | COLON_NONAME | `:NONAME` | ANS core | 27 | **auto** |
-| COMMA | `,` | ANS core | 25 | **auto** |
+| COMMA | `,` | ANS core | 14 | **auto** |
 | COMPARE | `compare` | ANS string | 100 | **auto** |
 | COMPILE_COMMA | `compile,` | ANS core ext | 280 | **auto** |
 | COMPILE_ONLY | `compile-only` | Tali Forth | 11 | tested |
@@ -80,8 +80,8 @@ RTS instruction at the end of each word.
 | DIGIT_QUESTION | `digit?` | Tali Forth | 52 | **auto** |
 | DISASM | `disasm` | Tali Forth | 6 | tested |
 | DNEGATE | `dnegate` | ANS double | 26 | **auto** |
-| QUESTION_DO | `?do` | ANS core ext | 61 | **auto** |
-| DO | `do` | ANS core | 57 | **auto** |
+| QUESTION_DO | `?do` | ANS core ext | 60 | **auto** |
+| DO | `do` | ANS core | 56 | **auto** |
 | DOES | `does>` | ANS core | 14 | **auto** |
 | DOT | `.` | ANS core | 33 | **auto** |
 | DOT_PAREN | `.(` | ANS core | 14 | **auto** |
@@ -95,11 +95,11 @@ RTS instruction at the end of each word.
 | DUP | `dup` | ANS core | 13 | **auto** |
 | ED | `ed` | Tali Forth | 3 | *fragment* |
 | EDITOR_WORDLIST | `editor-wordlist` | Tali Editor | 8 | tested |
-| ELSE | `else` | ANS core | 85 | **auto** |
+| ELSE | `else` | ANS core | 79 | **auto** |
 | EMIT | `emit` | ANS core | 10 | **auto** |
 | EMPTY_BUFFERS | `empty-buffers` | ANS block ext | 6 | tested |
 | ENDCASE | `endcase` | ANS core ext | 20 | **auto** |
-| ENDOF | `endof` | ANS core ext | 85 | **auto** |
+| ENDOF | `endof` | ANS core ext | 79 | **auto** |
 | ENVIRONMENT_Q | `environment?` | ANS core | 124 | **auto** |
 | EQUAL | `=` | ANS core | 27 | **auto** |
 | BLANK | `blank` | ANS string | 82 | **auto** |
@@ -213,7 +213,7 @@ RTS instruction at the end of each word.
 | SLASH | `/` | ANS core | 28 | **auto** |
 | SLASH_MOD | `/mod` | ANS core | 23 | **auto** |
 | SLASH_STRING | `/string` | ANS string | 31 | **auto** |
-| SLITERAL | `sliteral` | ANS string | 103 | **auto** |
+| SLITERAL | `sliteral` | ANS string | 67 | **auto** |
 | SM_SLASH_REM | `sm/rem` | ANS core | 40 | **auto** |
 | SOURCE | `source` | ANS core | 20 | **auto** |
 | SOURCE_ID | `source-id` | ANS core ext | 10 | tested |

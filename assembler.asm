@@ -941,9 +941,9 @@ asm_common:
         ; coming from the assembler Dictionary and trust our external test
         ; suite.
         ; """
-                ; Compile opcode. Note cmpl_a does not use Y
+                ; Compile opcode. Note cmpl_byte_a does not use Y
                 tay
-                jsr cmpl_a
+                jsr cmpl_byte_a
 
                 ; We get the length of the opcode from the table included in
                 ; the disassembler. We use the opcode value as the offset in
@@ -992,7 +992,7 @@ asm_common:
                 ; before we even test if this is a two- or three-byte
                 ; instruction. Little endian CPU means we store this byte first
                 lda 0,x
-                jsr cmpl_a      ; does not use Y
+                jsr cmpl_byte_a      ; does not use Y
 
                 ; If this is a two-byte instruction, we're done. If we landed
                 ; here, we've already decremented Y by one, so this is
@@ -1002,7 +1002,7 @@ asm_common:
 
                 ; This must be a three-byte instruction, get the MSB.
                 lda 1,x
-                jsr cmpl_a      ; Fall through to _done_drop
+                jsr cmpl_byte_a      ; Fall through to _done_drop
 
 _done_drop:
                 inx
@@ -1025,7 +1025,7 @@ _loop:
                 cmp #$FF
                 beq _done
 
-                jsr cmpl_a      ; does not change Y
+                jsr cmpl_byte_a      ; does not change Y
                 iny
                 bra _loop
 _done:

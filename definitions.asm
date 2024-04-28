@@ -30,8 +30,6 @@
 
 dsp0      = zpage_end-7             ; initial Data Stack Pointer
 
-turnkey   = $fff8                   ; location of xt to run in a pre-compiled image
-                                    ; normally filled with zero before vectors
 cold_zp_table:
         .logical user0              ; make labels refer to relocated address
 
