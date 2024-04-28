@@ -55,15 +55,12 @@ TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests
 TEST_SOURCES=tests/talitest.py $(TEST_SUITE)
 
 C65=c65/c65
+C65_SOURCES=c65/*.c c65/*.h
 
 all: taliforth-py65mon.bin docs/WORDLIST.md
 clean:
 	$(RM) *.bin *.prg
 	make -C c65 clean
-
-# Build the c65 simulator
-$(C65):
-	make -C c65
 
 taliforth-%.bin: platform/platform-%.asm $(COMMON_SOURCES)
 	64tass --nostart \
@@ -91,6 +88,10 @@ docs/WORDLIST.md: taliforth-py65mon.bin
 
 
 # Some convenience targets to make running the tests and simulation easier.
+
+# Build the c65 simulator
+$(C65): $(C65_SOURCES)
+	make -C c65
 
 # Convenience target for regular tests.
 tests:	tests/results.txt
