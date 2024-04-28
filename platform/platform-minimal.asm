@@ -17,10 +17,9 @@
 ; Where to start Tali Forth 2 in ROM (or RAM if loading it)
         * = $c000
 
-; I/O facilities are handled in these separate kernel files because of their
-; hardware dependencies. See docs/memorymap.txt for a discussion of Tali's
+; I/O facilities and memory layout are handled in these separate platform files
+; to isolate hardware dependencies. See docs/memorymap.txt for a discussion of Tali's
 ; memory layout.
-
 
 ; MEMORY MAP OF RAM
 
@@ -159,102 +158,43 @@ TALI_OPTION_HISTORY := 0
 ;TALI_OPTION_TERSE := 0
 TALI_OPTION_TERSE := 1
 
+; =====================================================================
+; FINALLY
+
 ; Make sure the above options are set BEFORE this include.
 
 .include "../taliforth.asm" ; zero page variables, definitions
 
-; =====================================================================
-; FINALLY
-
-; We define a few kernel routines to manage I/O
 ; The minimal config just sneaks under $f000 where the default py65mon IO lives
 ; leaving almost 4K empty (from $f016 thru $fffa) for whatever you need
 
-; Default kernel file for Tali Forth 2
-; Scot W. Stevenson <scot.stevenson@gmail.com>
-; Sam Colwell
-; First version: 19. Jan 2014
-; This version: 04. Dec 2022
-;
-; This section attempts to isolate the hardware-dependent parts of Tali
-; Forth 2 to make it easier for people to port it to their own machines.
-; Ideally, you shouldn't have to touch any other files. There are three
-; routines and one string that must be present for Tali to run:
+; By default Tali is set up for I/O with the py65mon or c65 simulator
+; (see docs/MANUAL.md for details).  You can configure Tali for your
+; own hardware setup by defining your own kernel routines as follows:
 ;
 ;       kernel_init - Initialize the low-level hardware
 ;       kernel_getc - Get single character in A from the keyboard (blocks)
 ;       kernel_putc - Prints the character in A to the screen
-;       s_kernel_id - The zero-terminated string printed at boot
-;
-; This default version Tali ships with is written for the py65mon machine
-; monitor (see docs/MANUAL.md for details).
+;       kernel_bye  - Exit forth, e.g. to a monitor program or just `brk`
+;       s_kernel_id - The zero-terminated string printed at boot;
 
-; All vectors currently end up in the same place - we restart the system
-; hard. If you want to use them on actual hardware, you'll have to redirect
-; them all.
-v_nmi:
-v_reset:
-v_irq:
-kernel_init:
-        ; """Initialize the hardware. This is called with a JMP and not
-        ; a JSR because we don't have anything set up for that yet. With
-        ; py65mon, of course, this is really easy. -- At the end, we JMP
-        ; back to the label forth to start the Forth system.
-        ; """
-                ; Since the default case for Tali is the py65mon emulator, we
-                ; have no use for interrupts. If you are going to include
-                ; them in your system in any way, you're going to have to
-                ; do it from scratch. Sorry.
-                sei             ; Disable interrupts
-
-                ; We've successfully set everything up, so print the kernel
-                ; string
-                ldx #0
--               lda s_kernel_id,x
-                beq _done
-                jsr kernel_putc
-                inx
-                bra -
-_done:
-                jmp forth
-
-kernel_getc:
-        ; """Get a single character from the keyboard. By default, py65mon
-        ; is set to $f004, which we just keep. Note that py65mon's getc routine
-        ; is non-blocking, so it will return '00' even if no key has been
-        ; pressed. We turn this into a blocking version by waiting for a
-        ; non-zero character.
-        ; """
-_loop:
-                lda $f004
-                beq _loop
-                rts
-
-
-kernel_putc:
-        ; """Print a single character to the console. By default, py65mon
-        ; is set to $f001, which we just keep.
-        ; """
-                sta $f001
-                rts
-
-
-platform_bye:
-                brk
+.include "simulator.asm"
 
 ; Leave the following string as the last entry in the kernel routine so it
 ; is easier to see where the kernel ends in hex dumps. This string is
 ; displayed after a successful boot
+
 s_kernel_id:
-        .text "Tali Forth 2", AscLF, 0
+        .text "TF2", AscLF, 0
 
-.cwarn * > $f000, "ROM image overlaps default py65mon IO locations"
+; Define the interrupt vectors.  For the simulator we redirect them all
+; to the kernel_init routine and restart the system hard.  If you want to
+; use them on actual hardware, you'll likely have to redefine them.
 
-; Add the interrupt vectors
 * = $fffa
 
-.word v_nmi
-.word v_reset
-.word v_irq
+v_nmi   .word kernel_init
+v_reset .word kernel_init
+v_irq   .word kernel_init
 
 ; END

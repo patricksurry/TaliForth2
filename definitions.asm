@@ -172,7 +172,8 @@ num_order_offset:       .byte 1         ; #ORDER (Number of wordlists in search 
 search_order_offset:
     .byte 0,0,0,0,0,0,0,0,0             ; SEARCH-ORDER (9 bytes to keep offsets even)
 
-; Buffer variables
+.if "block" in TALI_OPTIONAL_WORDS
+; Block buffer variables
 
 blkbuffer_offset:       .word cp0+256   ; Address of buffer (right after USER vars)
 buffblocknum_offset:    .word 0         ; Block number current in buffer
@@ -182,6 +183,7 @@ buffstatus_offset:      .word 0         ; Buffer status (bit 0 = used, bit 1 = d
 
 blockread_offset:       .word xt_block_word_error   ; Vector to block reading routine
 blockwrite_offset:      .word xt_block_word_error   ; Vector to block writing routine
+.endif
     .endlogical
 cold_user_table_end:
 

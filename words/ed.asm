@@ -3,7 +3,18 @@
 ; First version: 13. Okt 2018
 ; This version: 28. Dec 2018
 
-.if "ed" in TALI_OPTIONAL_WORDS
+
+; ## ED ( -- u ) "Line-based editor"
+; ## "ed:"  fragment  Tali Forth
+        ; """Start the line-based editor ed6502. See separate file
+        ; ed.asm or the manual for details.
+        ; """
+xt_ed:
+                jsr ed6502      ; kept in separate file
+
+z_ed:           rts
+
+
 
 ; Ed is a line-orientated editor for Tali Forth 2 based on the classic Unix
 ; editor of the same name. It is included because a) I like line editors and
@@ -1748,4 +1759,3 @@ ed_cmd_table:
 
 
 ed6502_end:     ; Used to calculate size of editor code
-.endif

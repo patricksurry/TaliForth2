@@ -156,7 +156,7 @@ padoffset = $ff            ; offset from CP to PAD (holds number strings)
 ; that because it would make using it out of the box harder, so we just
 ; advance past the virtual hardware addresses.
 ;.advance $f010
-platform_bye:
+kernel_bye:
         jmp $e800
 
 

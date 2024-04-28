@@ -338,6 +338,12 @@ https://forth-standard.org/standard/string/BLANK
 https://forth-standard.org/standard/block/BLK
 https://forth-standard.org/standard/block/BLOCK
 
+`block-c65-init`:: _Tali block_ ( -- f ) "Initialize c65 simulator block storage"
+Set up block IO to read/write to/from c65 block file.
+Run simulator with a writable block file option
+e.g. `touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin`
+Returns true if c65 block storage is available and false otherwise.
+
 `block-ramdrive-init`:: _Tali block_ ( u -- ) "Create a ramdrive for blocks"
 Create a RAM drive, with the given number of
 blocks, in the dictionary along with setting up the block words to
@@ -753,7 +759,7 @@ https://forth-standard.org/standard/core/MTimes
 Multiply two 16 bit numbers, producing a 32 bit result. All
 values are signed. Adapted from FIG Forth for Tali Forth.
 
-`marker`:: _ANS core ext_ ( "name" -- ) "Create a deletion boundry"
+`marker`:: _ANS core ext_ ( "name" -- ) "Create a deletion boundary"
 https://forth-standard.org/standard/core/MARKER
 This word replaces FORGET in earlier Forths. Old entries are not
 actually deleted, but merely overwritten by restoring CP and DP.
