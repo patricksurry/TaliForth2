@@ -1319,9 +1319,11 @@ nt_load:
 
 nt_thru:
         .byte 4, UF
-        .word nt_list, xt_thru, z_thru
+        .word +, xt_thru, z_thru
         .text "thru"
++
 
+.if "editor" in TALI_OPTIONAL_WORDS
 nt_list:
         .byte 4, UF
         .word nt_block_c65_init, xt_list, z_list
@@ -1332,6 +1334,7 @@ nt_block_c65_init:
         .word +, xt_block_c65_init, z_block_c65_init
         .text "block-c65-init"
 +
+.endif
 .endif
 
 .if "block" in TALI_OPTIONAL_WORDS && "ramdrive" in TALI_OPTIONAL_WORDS

@@ -48,7 +48,7 @@ else
 	PYTHON = python3
 endif
 
-COMMON_SOURCES=taliforth.asm definitions.asm native_words.asm headers.asm strings.asm forth_words.asc user_words.asc disassembler.asm ed.asm assembler.asm
+COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) headers.asm strings.asm forth_words.asc user_words.asc opcodes.asm
 TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
     tests/facility.fs tests/ed.fs tests/asm.fs tests/tali.fs \
     tests/tools.fs tests/block.fs tests/search.fs tests/user.fs tests/cycles.fs
@@ -120,7 +120,7 @@ csim: $(C65) taliforth-py65mon.bin
 docs/manual.html: docs/*.adoc
 	cd docs && asciidoctor -a toc=left manual.adoc
 
-docs/ch_glossary.adoc:	native_words.asm
+docs/ch_glossary.adoc:	$(wildcard words/*.asm)
 	$(PYTHON) tools/generate_glossary.py > docs/ch_glossary.adoc
 
 # The diagrams use ditaa to generate pretty diagrams from text files.
