@@ -109,7 +109,7 @@ RTS instruction at the end of each word.
 | COLON | `:` | ANS core | 66 | **auto** |
 | COLON_NONAME | `:NONAME` | ANS core | 27 | **auto** |
 | COMMA | `,` | ANS core | 14 | **auto** |
-| COMPILE_COMMA | `compile,` | ANS core ext | 277 | **auto** |
+| COMPILE_COMMA | `compile,` | ANS core ext | 220 | **auto** |
 | COMPILE_ONLY | `compile-only` | Tali Forth | 11 | tested |
 | CONSTANT | `constant` | ANS core | 61 | **auto** |
 | COUNT | `count` | ANS core | 19 | **auto** |
@@ -120,8 +120,8 @@ RTS instruction at the end of each word.
 | DEFER_FETCH | `defer@` | ANS core ext | 6 | **auto** |
 | DEFER_STORE | `defer!` | ANS core ext | 6 | **auto** |
 | DEPTH | `depth` | ANS core | 14 | **auto** |
-| QUESTION_DO | `?do` | ANS core ext | 60 | **auto** |
-| DO | `do` | ANS core | 56 | **auto** |
+| QUESTION_DO | `?do` | ANS core ext | 45 | **auto** |
+| DO | `do` | ANS core | 25 | **auto** |
 | DOES | `does>` | ANS core | 14 | **auto** |
 | DOT | `.` | ANS core | 33 | **auto** |
 | DOT_PAREN | `.(` | ANS core | 14 | **auto** |
@@ -201,7 +201,7 @@ RTS instruction at the end of each word.
 | ROT | `rot` | ANS core | 27 | **auto** |
 | RSHIFT | `rshift` | ANS core | 19 | **auto** |
 | S_BACKSLASH_QUOTE | `s\"` | ANS core | 9 | **auto** |
-| S_QUOTE | `s"` | ANS core | 287 | **auto** |
+| S_QUOTE | `s"` | ANS core | 260 | **auto** |
 | S_TO_D | `s>d` | ANS core | 17 | **auto** |
 | SEMICOLON | `;` | ANS core | 94 | **auto** |
 | SIGN | `sign` | ANS core | 20 | **auto** |

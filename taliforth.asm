@@ -103,9 +103,15 @@ cmpl_byte_a:
 _done:
                 rts
 
+cmpl_call_tos:
+    ; compile call to the address at TOS, consuming it
+                lda #OpJSR
+                bra +
+
 cmpl_jump_tos:
     ; compile a jump to the address at TOS, consuming it
                 lda #OpJMP
++
                 jsr cmpl_byte_a
                 jmp xt_comma
 
