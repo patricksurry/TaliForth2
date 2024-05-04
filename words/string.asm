@@ -535,78 +535,36 @@ xt_sliteral:
                 jsr underflow_2
 
                 ; We can't assume that ( addr u ) of the current string is in
-                ; a stable area (eg. already in the dictionary.) Copy the
-                ; string data into the dictionary using move.
+                ; a stable area (eg. already in the dictionary.)
+                ; We'll compile the string data into the dictionary using move
+                ; along with code that stacks the new ( addr' u )
+                ;   jmp _end
+                ; _str:
+                ;   < u data bytes >
+                ; _end: jsr sliteral_runtime
+                ;   < _str u >
 
-                ; Put a jmp over the string data with address to be filled
-                ; in later.
-                jsr cmpl_jump
+                jsr cmpl_jump_later
+                jsr xt_to_r
+                ; ( addr u  R: jmp-target )
+                jsr xt_here
+                jsr xt_swap
+                ; ( addr addr' u )
+                jsr xt_dup
+                jsr xt_allot            ; reserve u bytes for string
+                jsr xt_here
+                ; ( addr addr' u addr'+u )
+                jsr xt_r_from
+                jsr xt_store            ; point jmp past string
+                jsr xt_two_dup
+                jsr xt_two_to_r
+                ; ( addr addr' u  R: addr' u )
+                jsr xt_move             ; copy u bytes from addr -> addr'
+                jsr xt_two_r_from
+                ; Stack is now ( addr' u ) with the new string location
 
-                ; Turn the data stack from ( addr u ) into
-                ; ( here u addr here u ) so move can be called with
-                ; the remaining items on the stack ready for processing.
-                ; Reserve three extra words on the stack.
-                txa
-                sec
-                sbc #6
-                tax
-
-                ; Move addr down from TOS-4 to TOS-2
-                lda 8,x
-                sta 4,x
-                lda 9,x
-                sta 5,x
-
-                ; Copy u from TOS-3 to TOS
-                lda 6,x
-                sta 0,x
-                lda 7,x
-                sta 1,x
-
-                ; Put HERE into TOS-1 and TOS-4
-                lda cp
-                sta 8,x
-                sta 2,x
-                lda cp+1
-                sta 9,x
-                sta 3,x
-
-                ; Copy the string into the dictionary.
-                jsr xt_move
-
-                ; Update cp.
-                clc
-                lda cp
-                adc 0,x
-                sta cp
-                lda cp+1
-                adc 1,x
-                sta cp+1
-
-                ; Update the address of the jump-over jmp instruction.
-                ; First determine location of jmp instructions address.
-                ; It should be 2 bytes before the start of the string.
-
-                ; Compute it into tmp1, which is no longer being used.
-                lda 2,x
-                sec
-                sbc #2
-                sta tmp1
-                lda 3,x
-                sbc #0          ; Propagate borrow
-                sta tmp1+1
-
-                ; Update the address of the jump to HERE.
-                lda cp
-                sta (tmp1)
-                ldy #1
-                lda cp+1
-                sta (tmp1),y
-
-                ; Stack is now ( addr2 u ) where addr2 is the new
-                ; location in the dictionary.
-
-sliteral_const_str:
+cmpl_sliteral:
+cmpl_two_literal:
                 ; Compile a subroutine jump to the runtime of SLITERAL that
                 ; pushes the new ( addr u ) pair to the Data Stack.
                 ; When we're done, the code will look like this:
@@ -622,17 +580,17 @@ sliteral_const_str:
                 ; cells, not just one
                 ldy #>sliteral_runtime
                 lda #<sliteral_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; We want to have the address end up as NOS and the length
                 ; as TOS, so we store the address first
                 ldy 3,x                ; address MSB
                 lda 2,x                ; address LSB
-                jsr cmpl_word
+                jsr cmpl_word_ya
 
                 ldy 1,x                ; length MSB
                 lda 0,x                ; length LSB
-                jsr cmpl_word
+                jsr cmpl_word_ya
 
                 ; clean up and leave
                 inx
@@ -643,23 +601,37 @@ sliteral_const_str:
 z_sliteral:     rts
 
 
+
+two_literal_runtime:
 sliteral_runtime:
 
         ; """Run time behaviour of SLITERAL: Push ( addr u ) of string to
         ; the Data Stack. We arrive here with the return address as the
-        ; top of Return Stack, which points to the address of the string
+        ; top of Return Stack, which points to the address of the string.
+        ; Also used for double word where we have ( lo hi ).
         ; """
                 dex
                 dex
                 dex
                 dex
 
-                ; Get the address of the string address off the stack and
-                ; increase by one because of the RTS mechanics
+                ; We arrived from code like
+                ;   jsr sliteral_runtime
+                ;   .word addr
+                ;   .word length
+                ; So the return address points one byte before addr.
+                ; Pull that to tmp1 and put tmp1+4 to return past two data words
                 pla
                 sta tmp1        ; LSB of address
-                pla
-                sta tmp1+1      ; MSB of address
+                ply
+                sty tmp1+1      ; MSB of address
+                clc
+                adc #4
+                bcc +
+                iny
++
+                phy
+                pha
 
                 ; Walk through both and save them
                 ldy #1          ; adjust for JSR/RTS mechanics on 65c02
@@ -677,15 +649,5 @@ sliteral_runtime:
 
                 lda (tmp1),y
                 sta 1,x         ; MSB of length
-
-                ; restore return address
-                clc
-                lda tmp1
-                adc #4
-                tay             ; LSB
-                lda tmp1+1
-                adc #0          ; we only need carry
-                pha             ; MSB
-                phy
 
                 rts

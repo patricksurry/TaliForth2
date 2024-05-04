@@ -20,7 +20,7 @@ xt_abort_quote:
                 ; compile run-time part
                 ldy #>abort_quote_runtime
                 lda #<abort_quote_runtime
-                jsr cmpl_subroutine     ; may not be JMP as JSR/RTS
+                jsr cmpl_call_ya     ; may not be JMP as JSR/RTS
 
 z_abort_quote:  rts
 
@@ -404,7 +404,7 @@ _compiling:
                 ; Postpone DEFER@ by compiling a JSR to it.
                 ldy #>xt_defer_fetch
                 lda #<xt_defer_fetch
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
                 bra _done
 
 _interpreting:
@@ -422,15 +422,7 @@ xt_again:
                 jsr underflow_1
 
                 ; Compile a JMP back to TOS address.
-                ; We use JMP instead of BRA so range doesn't matter
-                ; and we avoid calculating the offset
-                lda 1,x
-                tay
-                lda 0,x         ; A=LSB, Y=MSB
-                jsr cmpl_jump
-
-                inx
-                inx
+                jsr cmpl_jump_tos
 
 z_again:        rts
 
@@ -485,7 +477,7 @@ xt_allot:
                 sta cp+1
 
                 ; Wait, did we just grant more space than we have? This is
-                ; a check we only do here, not for other situations like cmpl_a
+                ; a check we only do here, not for other situations like cmpl_byte_a
                 ; where smaller amounts are reserved.
                 ldy #<cp_end
                 cpy cp
@@ -707,15 +699,10 @@ z_base:         rts
 ; ## "begin"  auto  ANS core
         ; """https://forth-standard.org/standard/core/BEGIN
         ;
-        ; This is just an immediate version of here which could just
-        ; as well be coded in Forth as
+        ; This is a dummy header, BEGIN shares the actual code with HERE
+        ; It could as well be coded in Forth as
         ;       : BEGIN HERE ; IMMEDIATE COMPILE-ONLY
-        ; Since this is a compiling word, we don't care that much about
-        ; about speed
         ; """
-xt_begin:
-                jsr xt_here
-z_begin:        rts
 
 
 
@@ -780,7 +767,7 @@ xt_c_comma:
                 jsr underflow_1
 
                 lda 0,x
-                jsr cmpl_a
+                jsr cmpl_byte_a
 
                 inx
                 inx
@@ -1031,22 +1018,12 @@ z_colon_noname:        rts
 xt_comma:
                 jsr underflow_1
 
-                lda 0,x
-                sta (cp)
-
-                inc cp
-                bne +
-                inc cp+1
-+
-                lda 1,x
-                sta (cp)
-
-                inc cp
-                bne _done
-                inc cp+1
-_done:
+                ldy #2
+_twice:         lda 0,x
+                jsr cmpl_byte_a
                 inx
-                inx
+                dey
+                bne _twice
 
 z_comma:        rts
 
@@ -1060,7 +1037,7 @@ z_comma:        rts
         ; subroutine threading, we can't use , (COMMA) to compile new words
         ; the traditional way. By default, native compiled is allowed, unless
         ; there is a NN (Never Native) flag associated. If not, we use the
-        ; value NC_LIMIT (from definitions.tasm) to decide if the code
+        ; value NC_LIMIT (from definitions.asm) to decide if the code
         ; is too large to be natively coded: If the size is larger than
         ; NC_LIMIT, we silently use subroutine coding. If the AN (Always
         ; Native) flag is set, the word is always natively compiled.
@@ -1069,114 +1046,34 @@ xt_compile_comma:
                 jsr underflow_1
 
                 ; See if this is an Always Native (AN) word by checking the
-                ; AN flag. We need nt for this. First, save a copy of xt to
-                ; the Return Stack
-                lda 1,x                 ; MSB
-                pha
-                lda 0,x
-                pha                     ; LSB
+                ; AN flag. We need nt for this.
+                jsr xt_dup
+                jsr xt_int_to_name
+                ; ( xt xt -- xt nt )
 
-                jsr xt_int_to_name      ; ( xt -- nt )
-
-                ; See if this xt even has an nt.
+                ; Does this xt even have a valid (non-zero) nt?
                 lda 0,x
                 ora 1,x
-                bne _check_nt
-
-                ; No nt in dictionary. Just compile as a JSR.
-                jmp compile_as_jsr
+                beq _compile_as_jsr      ; No nt so unknown size; must compile as a JSR
 
 _check_nt:
-                ; put nt away for safe keeping
-                lda 0,x
-                sta tmptos
-                lda 1,x
-                sta tmptos+1
-
-                ; status byte is one further down
-                inc 0,x
-                bne +
-                inc 1,x                 ; ( nt -- nt+1 )
-+
-                lda (0,x)
-                sta tmp3                ; keep copy of status byte for NN
-                and #AN                 ; mask all but Always Native (AN) bit
-                beq _compile_check
-
-                ; We're natively compiling no matter what. Get length and
-                ; compile in code. Get the original nt back
-                lda tmptos
-                sta 0,x
-                lda tmptos+1
-                sta 1,x
-
-                jsr xt_wordsize         ; ( nt -- u )
-
-                bra _compile_as_code
-
-_compile_check:
-                ; See if Native Compile is even alowed by checking the NN
-                ; flag
-                lda tmp3
+                jsr xt_dup
+                jsr xt_one_plus         ; status is at nt+1
+                ; ( xt nt nt -- xt nt nt+1 )
+                lda (0,x)               ; get status byte
+                inx                     ; drop pointer
+                inx
+                ; ( xt nt )
+                sta tmp3                ; keep copy of status byte
                 and #NN
-                beq _check_size_limit
+                bne _compile_as_jsr     ; never native
 
-_jumpto_compile_as_jsr:
-                jmp compile_as_jsr    ; too far for BRA
+_maybe_native:
+                ; ( xt nt )
+                jsr xt_wordsize
+                ; ( xt u )
 
-_check_size_limit:
-                ; Native compile is a legal option, but we need to see what
-                ; limit the user set for size (in nc_limit)
-                lda tmptos
-                sta 0,x
-                lda tmptos+1
-                sta 1,x
-
-                jsr xt_wordsize         ; ( nt -- u )
-
-                ; Check the wordsize MSB against the user-defined limit.
-                ldy #nc_limit_offset+1
-                lda 1,x
-                cmp (up),y
-                bcc _compile_as_code    ; user-defined limit MSB
-                bne _jumpto_compile_as_jsr
-
-                ; Check the wordsize LSB against the user-defined limit.
-                dey
-                lda (up),y              ; user-defined limit LSB
-                cmp 0,x
-                ; If the wordsize is greater than the user-defined
-                ; limit, it will be compiled as a subroutine jump.
-                bmi _jumpto_compile_as_jsr
-
-                ; Allow native compiling for less
-                ; than or equal to the limit.
-
-_compile_as_code:
-                ; We arrive here with the length of the word's code TOS and
-                ; xt on top of the Return Stack. MOVE will need ( xt cp u )
-                ; on the data stack
-                dex
-                dex                     ; ( -- u ? )
-                dex
-                dex                     ; ( -- u ? ? )
-
-                lda 4,x
-                sta 0,x                 ; LSB of u
-                lda 5,x
-                sta 1,x                 ; ( -- u ? u )
-
-                pla
-                sta 4,x                 ; LSB of xt
-                pla
-                sta 5,x                 ; ( -- xt ? u )
-
-                lda cp                  ; LSB of cp
-                sta 2,x
-                lda cp+1
-                sta 3,x                 ; ( -- xt cp u )
-
-                ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHINIG ---
+                ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHING ---
 
                 ; Native compiling allows us to strip the stack antics off
                 ; a number of words that use the Return Stack such as >R, R>,
@@ -1185,27 +1082,34 @@ _compile_as_code:
                 ldy #0
 
 _strip_loop:
-                lda strip_table,y      ; LSB of first word
-                cmp 4,x                 ; LSB of xt
+                lda strip_table,y       ; LSB of first word
+                cmp 2,x                 ; LSB of xt
                 bne _next_entry
 
                 ; LSB is the same, test MSB
                 lda strip_table+1,y
-                cmp 5,x
+                cmp 3,x
                 beq _found_entry
 
                 ; MSB is not equal. Pretend though that we've come from LSB
                 ; so we can use the next step for both cases
 _next_entry:
                 ; Not a word that needs stripping, so check next entry in table
-                ; Let's see if we're done with the table (marked by zero entry)
-                lda strip_table,y      ; pointing to LSB
-                ora strip_table+1,y    ; get MSB
-                beq _underflow_strip    ; table done, let's get out of here
 
                 iny
                 iny
-                bra _strip_loop
+                cpy #strip_table_size
+                bne _strip_loop
+                beq _underflow_strip
+
+
+_compile_as_jsr:
+        ; Compile xt as a subroutine call
+        ; Stack is either ( xt nt ) or ( xt u )
+                inx             ; either way drop TOS
+                inx
+                jmp cmpl_call_tos
+
 _found_entry:
                 ; This word is one of the ones that needs to have its size
                 ; adjusted during native compile. We find the values in the
@@ -1220,24 +1124,25 @@ _found_entry:
                 ; enough to make sure the cut on both ends of the code is
                 ; is the same size.
                 lda strip_size,y
-                sta tmptos              ; save a copy
+                pha                     ; save a copy
 
-                ; Adjust xt: Start later
+                ; Start later: xt += sz
                 clc
-                adc 4,x
-                sta 4,x
+                adc 2,x
+                sta 2,x
                 bcc +
-                inc 5,x                 ; we just care about the carry
+                inc 3,x                 ; we just care about the carry
 +
-                ; Adjust u: Quit earlier. Since we cut off the top and the
-                ; bottom of the code, we have to double the value
-                asl tmptos
-
-                sec
-                lda 0,x
-                sbc tmptos
+                ; Quit earlier: u -= 2 * sz
+                pla
+                asl a                   ; Double to cut off both top and bottom.
+                ; use negated subtraction trick:
+                ; LSB - A == - ( A - LSB ) == 255 - ( A - LSB - 1 )
+                ; carry is clear because 2*sz is less than 256
+                sbc 0,x
+                eor #$ff
                 sta 0,x
-                bcs +
+                bcc +                   ; note inverted carry check
                 dec 1,x                 ; we just care about the borrow
 +
                 ; drop through to underflow check stripping
@@ -1249,30 +1154,29 @@ _underflow_strip:
                 ; words that have the UF flag. This shortens the word by
                 ; 3 bytes if there is no underflow.
 
+                ; See if this word even contains underflow checking
+                lda tmp3
+                and #UF
+                beq _check_limit
+
                 ; See if the user wants underflow stripping turned on
                 ldy #uf_strip_offset
                 lda (up),y
                 iny
                 ora (up),y
-                beq cmpl_inline
+                beq _check_limit
 
-                ; See if this word even contains underflow checking
-                lda tmp3
-                and #UF
-                beq cmpl_inline
+                ; Remove the 3 byte underflow check.
 
-                ; If we arrived here, underflow has to go. It's always 3 bytes
-                ; long. Note hat PICK is a special case.
-
-                ; Adjust xt: Start later
+                ; Start later: xt += 3
                 clc
-                lda 4,x
+                lda 2,x
                 adc #3
-                sta 4,x
+                sta 2,x
                 bcc +
-                inc 5,x                  ; we just care about the carry
+                inc 3,x                  ; we just care about the carry
 +
-                ; Adjust u: End earlier
+                ; End earlier: u -= 3
                 sec
                 lda 0,x
                 sbc #3
@@ -1280,70 +1184,65 @@ _underflow_strip:
                 bcs +
                 dec 1,x                  ; we just care about the borrow
 +
-
+_check_limit:
                 ; --- END OF SPECIAL CASES ---
-cmpl_inline:    ; ( src dst u -- )
-                ; Store size of area to be copied for calculation of
-                ; new CP. We have to do this after all of the special cases
-                ; because they might change the size
-                lda 1,x                 ; MSB
-                pha
-                lda 0,x                 ; LSB
-                pha
+                ; ( xt u )
 
-                ; Enough of this, let's move those bytes already! We have
+                lda tmp3
+                and #AN                 ; check Always Native (AN) bit
+                bne cmpl_inline         ; always natively compile
+
+                ; Finally check whether native code size <= user limit
+                ldy #nc_limit_offset+1
+                lda 1,x                 ; MSB of word size
+                cmp (up),y              ; user-defined limit MSB
+                bcc cmpl_inline         ; borrow (C=1) means size < limit
+                bne _compile_as_jsr     ; else non-zero means size > limit
+
+                ; Check the wordsize LSB against the user-defined limit.
+                dey
+                lda (up),y              ; user-defined limit LSB
+                cmp 0,x
+                bmi _compile_as_jsr     ; size is too big
+
+cmpl_inline:
+                ; ( xt u -- )
+                jsr xt_here
+                jsr xt_swap
+                ; ( xt cp u -- )
+                jsr xt_dup
+                jsr xt_allot            ; allocate space for the word
+                ; Enough of this, let's move those bytes already!
                 ; ( xt cp u ) on the stack at this point
                 jsr xt_move
-
-                ; Update CP
-                clc
-                pla                     ; LSB
-                adc cp
-                sta cp
-
-                pla                     ; MSB
-                adc cp+1
-                sta cp+1
-
                 rts
 
-cmpl_inline_y:      ; with ( src -- ) and Y = # bytes, write to CP
-                dex             ; set up stack as ( src dst n -- )
+cmpl_inline_y:
+        ; Alternative entry point to compile Y bytes from addr TOS to CP
+                dex                 ; push Y TOS
                 dex
-                dex
-                dex
-
                 sty 0,x
-                stz 1,x             ; assume < 256 bytes
-                lda cp
-                sta 2,x
-                lda cp+1
-                sta 3,x
+                stz 1,x
+                ; ( src y -- )
                 bra cmpl_inline
 
 strip_table:
                ; List of words we strip the Return Stack antics from
-               ; during native compile, zero terminated. The index here
+               ; during native compile. The index here
                ; must be the same as for the sizes
                 .word xt_r_from, xt_r_fetch, xt_to_r    ; R>, R@, >R
-                .word xt_two_to_r, xt_two_r_from, 0000  ; 2>R, 2R>, EOL
+                .word xt_two_to_r, xt_two_r_from        ; 2>R, 2R>
+strip_table_size = * - strip_table
 
 strip_size:
-                ; List of bytes to be stripped from the words that get their
-                ; Return Stack antics removed during native compile. Index must
-                ; be the same as for the xts. Zero terminated.
-                .byte 4, 4, 4, 6, 6, 0          ; R>, R@, >R, 2>R, 2R>, EOL
+                ; List of bytes to be stripped from both the start and end
+                ; of words that get their Return Stack antics removed.
+                ; Index must be the same as for the xts.
+                .byte 4, 4, 4                           ; R>, R@, >R
+                .byte 6, 6                              ; 2>R, 2R>
 
-compile_as_jsr:
-                ; Compile xt as a subroutine call
-                pla             ; LSB
-                ply             ; MSB
-                jsr cmpl_subroutine
-                inx             ; drop xt
-                inx
 z_compile_comma:
-                rts
-
+                ; never native so no RTS
 
 
 ; ## COMPILE_ONLY ( -- ) "Mark most recent word as COMPILE-ONLY"
@@ -1566,14 +1465,9 @@ _process_name:
                 adc #8
                 sta tmp3                ; total header length
 
-                ; We need three more bytes for for the hardcoded code field
-                ; area (CFA), the "payload" of the word which by default will
-                ; be a subroutine jump to DOVAR
-                clc
-                adc #3
-
                 ; We overwrite the length of the string returned by PARSE-NAME
-                ; and then call ALLOT
+                ; and then call ALLOT.
+                ; We'll compile the CFA later
                 sta 0,x
                 stz 1,x         ; max header size is 255 chars
                 jsr xt_allot    ; ( addr )
@@ -1674,8 +1568,7 @@ _name_loop:
                 cmp #'A'
                 bcc _store_name
 
-                ; An uppercase letter has been located. Make it
-                ; lowercase.
+                ; An uppercase letter has been found so make it lowercase.
                 ora #$20
 
                 ; Fall into _store_name.
@@ -1688,15 +1581,10 @@ _store_name:
 
                 ; After the name string comes the code field, starting at the
                 ; current xt of this word, which is initially a jump to the
-                ; subroutine to DOVAR. We code this jump by hand
-                lda #OpJSR
-                sta (tmp1),y
-                iny
+                ; subroutine to DOVAR.
+                ldy #>dovar
                 lda #<dovar
-                sta (tmp1),y
-                iny
-                lda #>dovar
-                sta (tmp1),y
+                jsr cmpl_call_ya
 
                 ; Update the CURRENT wordlist with the new DP.
                 ; We do this down here because this routine uses Y.
@@ -1824,9 +1712,23 @@ z_depth:        rts
 ; ## "?do"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/qDO"""
 xt_question_do:
-                ; ?DO shares most of its code with DO. We use Y to signal which
-                ldy #1                  ; 1 is ?DO, jump to common code
-                bra do_common           ; skip flag for DO
+                ; ?DO shares most of its code with DO.
+                ; But first compile its runtime.
+                ; Set up stack for cmpl_inline_y ( src --   ; y = # bytes)
+                dex
+                dex
+                lda #<question_do_runtime
+                sta 0,x
+                lda #>question_do_runtime
+                sta 1,x
+                ldy #question_do_runtime_end-question_do_runtime
+                jsr cmpl_inline_y
+
+                ; We'll skip the loop if limit = start
+                ; add a placeholder jump and push the addr of jmp-target
+                jsr cmpl_jump_later
+                bra do_common
+
 
 ; ## DO ( limit start -- )(R: -- limit start)  "Start a loop"
 ; ## "do"  auto  ANS core
@@ -1843,40 +1745,11 @@ xt_question_do:
         ; """
 
 xt_do:
-                ; DO and ?DO share most of their code, Y flags the variant
-                ldy #0                ; 0 is DO, drop through to DO_COMMON
+                jsr xt_zero             ; push 0 TOS
 
 do_common:
-                ; compile the (?DO) portion of ?DO if appropriate
-                beq _compile_do
-
-                ; We came from ?DO, so compile its runtime first.
-                ; Set up stack for cmpl_inline_y ( src --   ; y = # bytes)
-                dex
-                dex
-                lda #<question_do_runtime
-                sta 0,x
-                lda #>question_do_runtime
-                sta 1,x
-                ldy #question_do_runtime_end-question_do_runtime
-                jsr cmpl_inline_y
-
-                ; We will skip the loop if limit = start
-                ; via a placeholder jmp at the end of the prequel
-                ; so save current CP to patch the jmp target in xt_loop
-                lda cp
-                ldy cp+1
-                pha
-                jsr cmpl_word      ; write two arbitrary placeholder bytes
-                pla
-_compile_do:
-                ; stack either the forward jmp address for ?DO
-                ; or a word with MSB=Y=0 for DO so we know to ignore it
-                dex
-                dex
-                sta 0,x
-                tya
-                sta 1,x
+                ; the stack is ( 0 | jmp-target ) depending
+                ; on whether we arrived from DO or ?DO
 
                 ; The word LEAVE can be used to exit LOOP/+LOOP from
                 ; anywhere inside the loop body, zero or more times.
@@ -1904,7 +1777,7 @@ _compile_do:
                 ; do this as a subroutine since it only happens once and is a big chunk of code
                 ldy #>do_runtime
                 lda #<do_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; Now we're ready for the loop body.  We also push HERE
                 ; to the Data Stack so LOOP/+LOOP knows where to repeat back
@@ -1919,19 +1792,20 @@ question_do_runtime:
         ; """This is called (?DO) in some Forths. See the explanation at
         ; do_runtime for the background on this design
         ; """
-                ; see if TOS and NOS are equal. Change this to assembler
-                ; for speed
-                jsr xt_two_dup          ; ( n1 n2 n1 n2 )
-                jsr xt_equal            ; ( -- n1 n2 f )
-
-                jsr zero_test_runtime   ; consume f, setting Z
-                beq question_do_runtime_end+2
+                ; if TOS == NOS we skip the loop and drop the limits
+                lda 0,x
+                cmp 2,x
+                bne question_do_begin
+                lda 1,x
+                cmp 3,x
+                bne question_do_begin
                 inx                     ; drop loop limits
                 inx
                 inx
                 inx
-                .byte OpJMP             ; jmp
 question_do_runtime_end:
+        ; we'll add a placeholder jmp here which skips the loop body
+question_do_begin = * + 3
 
 
 do_runtime:
@@ -2015,14 +1889,14 @@ xt_does:
                 ; compile a subroutine jump to runtime of DOES>
                 ldy #>does_runtime
                 lda #<does_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; compile a subroutine jump to DODOES. In traditional
                 ; terms, this is the Code Field Area (CFA) of the new
                 ; word
                 ldy #>dodoes
                 lda #<dodoes
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
 z_does:         rts
 
@@ -2142,7 +2016,7 @@ xt_dot_quote:
                 ; We then let TYPE do the actual printing
                 ldy #>xt_type
                 lda #<xt_type
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
 z_dot_quote:    rts
 
@@ -2213,17 +2087,13 @@ z_dup:          rts
 ; ## "else"  auto  ANS core
         ; """http://forth-standard.org/standard/core/ELSE
         ;
-        ; The code is shared with ENDOF
+        ; The code is shared with ENDOF and most of THEN
         ; """
 
 xt_else:
 xt_endof:
-                ; Put the address of the branch address on the stack.
-                jsr xt_here
-                jsr xt_one_plus
-
-                ; Add an unconditional branch using a native jmp
-                jsr cmpl_jump
+                ; Add an unconditional branch with target filled in later
+                jsr cmpl_jump_later
 
                 ; stash the branch target for later
                 ; and then calculate the forward branch from orig
@@ -2257,7 +2127,7 @@ xt_then:
                 ; and (b) here - orig - 2 is less than 128 (max native branch).
                 ; In such a case we rewrite the code as
                 ;
-                ;       jsr zero_test_runtime       ; drops TOS setting Z status bit
+                ;       jsr zero_test_runtime       ; drops TOS setting Z status bit
                 ; orig:
                 ;       beq (here - orig - 2)       ; in place of target address
 
@@ -2372,7 +2242,7 @@ xt_endcase:
                 ; being checked.
                 ldy #>xt_drop
                 lda #<xt_drop
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; There are a number of address (of branches that need their
                 ; jump addressed filled in with the address of right here).
@@ -3113,8 +2983,10 @@ z_greater_than: rts
 ; ## "here"  auto  ANS core
         ; """https://forth-standard.org/standard/core/HERE
         ; This code is also used by the assembler directive ARROW
-        ; ("->") though as immediate"""
+        ; ("->") though as immediate
+        ; and by HERE as an immediate compile word"""
 xt_here:
+xt_begin:
 xt_asm_arrow:
                 dex
                 dex
@@ -3123,8 +2995,10 @@ xt_asm_arrow:
                 lda cp+1
                 sta 1,x
 
+z_here:
+z_begin:
 z_asm_arrow:
-z_here:         rts
+                rts
 
 
 
@@ -3205,7 +3079,7 @@ xt_if:
                 ; Compile a 0BRANCH
                 ldy #>zero_branch_runtime
                 lda #<zero_branch_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; Put the origination address on the stack for else/then
                 jsr xt_here
@@ -3214,7 +3088,7 @@ xt_if:
                 ; THEN or ELSE will fix it later.
                 lda #$FF
                 tay
-                jsr cmpl_word
+                jsr cmpl_word_ya
 z_if:           rts
 
 
@@ -3340,7 +3214,7 @@ _compiling:
                 ; Postpone DEFER! by compiling a JSR to it.
                 ldy #>xt_defer_store
                 lda #<xt_defer_store
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 bra _done
 
@@ -3431,7 +3305,7 @@ xt_leave:
 
                 lda loopleave
                 ldy loopleave+1
-                jsr cmpl_jump   ; emit the JMP chaining prior leave address
+                jsr cmpl_jump_ya   ; emit the JMP chaining prior leave address
 
                 ; set head of the list to point to our placeholder
                 sec
@@ -3536,7 +3410,7 @@ xt_literal:
 
                 ldy #>literal_runtime
                 lda #<literal_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; Compile the value that is to be pushed on the Stack during
                 ; runtime
@@ -3580,7 +3454,6 @@ literal_runtime:
                 phy
 
                 rts
-
 
 
 ; ## LOOP ( -- ) "Finish loop construct"
@@ -3643,9 +3516,9 @@ xt_loop_common:
                 ; The address we need to loop back to is TOS
                 ; ( qdo-skip old-loopleave repeat-addr )
 
-                ; Write repeat-addr which completes the trailing JMP
-                ; at the end of both loop runtimes, repeating the loop body
-                jsr xt_comma
+                ; Write the JMP repeat-addr after either loop runtime
+                ; repeating the loop body
+                jsr cmpl_jump_tos
 
                 ; any LEAVE words want to jmp to the unloop we'll write here
                 ; so follow the linked list and update them
@@ -3722,16 +3595,13 @@ loop_runtime:
                 ldy loopctrl
                 ; for the +1 case we can increment MSB and test for #$80
                 ; unlike the +LOOP case where we use V to flag crossing #$80
-_chkv:          lda loopindex+1,y
+                lda loopindex+1,y
                 ina
                 cmp #$80
                 beq _repeat+3       ; done?  skip jmp back
                 sta loopindex+1,y
-
-_repeat:        ; This is why this routine must be natively compiled: We
-                ; compile the opcode for JMP here without an address to
-                ; go to, which is added by LOOP/+LOOP at compile time
-                .byte OpJMP
+_repeat:        ; LOOP/+LOOP will tack on a JMP <repeat-addr> at compile time
+                ; This is why this routine must be natively compiled:
 loop_runtime_end:
 
 
@@ -3764,12 +3634,8 @@ _chkv:          clv
                 ; If V flag is set, we're done looping and continue
                 ; after the +LOOP instruction
                 bvs _repeat+3     ; skip over JMP instruction
-
-_repeat:        ; This is why this routine must be natively compiled: We
-                ; compile the opcode for JMP here without an address to
-                ; go to, which is added by the next next instruction of
-                ; LOOP/+LOOP during compile time
-                .byte OpJMP
+_repeat:        ; LOOP/+LOOP will tack on a JMP <repeat-addr> at compile time
+                ; This is why this routine must be natively compiled:
 plus_loop_runtime_end:
 
 
@@ -3850,18 +3716,16 @@ z_m_star:       rts
         ; to their state when the word was created with marker.  Any words
         ; created after the marker (including the marker) will be forgotten.
         ;
-        ; To do this, we want to end up with something that jumps to a
-        ; run-time component with a link to the original CP and DP values:
+        ; To do this, we want to end up with a run-time component
+        ; that reverts to the original CP, DP  and wordlist state:
         ;
         ;       jsr marker_runtime
         ;       <Original CP MSB>
         ;       <Original CP LSB>
         ;       <Original DP MSB> ( for CURRENT wordlist )
         ;       <Original DP LSB>
-        ;       < USER variables from offset 4 to 39 >
-        ;
-        ;       The user variables include:
-        ;       CURRENT (byte variable)
+        ;       ; USER variables with wordlist state:
+        ;       <CURRENT> (byte variable)
         ;       <All wordlists> (currently 12) (cell array)
         ;       <#ORDER> (byte variable)
         ;       <All search order> (currently 9) (byte array)
@@ -3895,36 +3759,33 @@ xt_marker:
                 sec
                 sbc #2
                 sta cp
-
-                lda cp+1        ; MSB
-                sbc #0          ; we only care about the borrow
-                sta cp+1
-
+                bcs +
+                dec cp+1        ; we only care about the borrow
++
                 ; Add the address of the runtime component
                 ldy #>marker_runtime
                 lda #<marker_runtime
-                jsr cmpl_word
+                jsr cmpl_word_ya
 
                 ; Add original CP as payload
                 ply                     ; MSB
                 pla                     ; LSB
-                jsr cmpl_word
+                jsr cmpl_word_ya
 
                 ; Add original DP as payload
                 ply                     ; MSB
                 pla                     ; LSB
-                jsr cmpl_word
+                jsr cmpl_word_ya
 
                 ; Add the user variables for the wordlists and search order.
                 ; We're compiling them in byte order.
-                ldy #4                  ; Start at CURRENT
-_marker_loop:
+                ldy #marker_start_offset
+-
                 lda (up),y
-                jsr cmpl_a
+                jsr cmpl_byte_a
                 iny
-                tya
-                cmp #40                 ; One past the end of the search order.
-                bne _marker_loop
+                cpy #marker_end_offset
+                bne -
 
 z_marker:       rts
 
@@ -3942,11 +3803,7 @@ marker_runtime:
                 pla
                 sta tmp1+1      ; MSB of address
 
-                inc tmp1
-                bne +
-                inc tmp1+1
-+
-                ldy #0
+                ldy #1          ; start at 1 due to RTS mechanics
 
                 ; CP was stored first
                 lda (tmp1),y
@@ -3963,19 +3820,30 @@ marker_runtime:
                 lda (tmp1),y
                 sta dp+1
 
-                ; Conveniently, the offset into both tmp1 and UP is 4
-                ; to start restoring the wordlists and search order.
-                ldy #4
-
-_marker_restore_loop:
+                ; We've consumed the first four bytes and now comes the user vars.
+                ; It's slightly tricky since we can only index indirectly with y
+                ; so we'd like to copy from (tmp1),y to (up),y
+                ; But currently tmp1 + 5 corresponds to up + marker_start_offset
+                ; So we'll adjust tmp1 so that tmp1' + marker_start_offset == tmp1 + 5
+                ; meanting that tmp1' = tmp1 - (marker_start_offset - 5).  Phew.
+        .cerror marker_start_offset < 5, "MARKER assumes marker_start_offset >= 5"
+                sec
+                lda tmp1
+                sbc #marker_start_offset - 5
+                sta tmp1
+                bcs +
+                dec tmp1+1
++
+                ; Restore previous wordlist state
+                ldy #marker_start_offset
+-
                 ; Copy from the dictionary back on top of the wordlists
                 ; and search order.
-                lda (tmp1), y
-                sta (up), y
+                lda (tmp1),y
+                sta (up),y
                 iny
-                tya
-                cmp #40                 ; One past the end of the search order.
-                bne _marker_restore_loop
+                cpy #marker_end_offset
+                bne -
 
                 jsr dp_to_current       ; Move the CURRENT DP back.
 
@@ -4357,12 +4225,12 @@ xt_of:
                 ; Postpone over (eg. compile a jsr to it)
                 ldy #>xt_over
                 lda #<xt_over
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; Postpone = (EQUAL), that is, compile a jsr to it
                 ldy #>xt_equal
                 lda #<xt_equal
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 jsr xt_if
 
@@ -4370,7 +4238,7 @@ xt_of:
                 ; Postpone DROP (eg. compile a jsr to it)
                 ldy #>xt_drop
                 lda #<xt_drop
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
 z_of:           rts
 
@@ -4965,7 +4833,7 @@ _not_immediate:
                 ; Last, compile COMPILE,
                 ldy #>xt_compile_comma
                 lda #<xt_compile_comma
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 _done:
 z_postpone:     rts
 
@@ -5011,7 +4879,7 @@ xt_r_fetch:
                 sty tmp1
                 ply             ; MSB
 
-                ; --- CUT FOR NATIVE COMPILE ---
+                ; --- CUT FOR NATIVE COMPILE (see strip_table: 4) ---
 
                 ; get the actual top of Return Stack
                 dex
@@ -5057,7 +4925,7 @@ xt_r_from:
                 sta tmptos
                 ply             ; MSB
 
-                ; --- CUT FOR NATIVE CODING ---
+                ; --- CUT FOR NATIVE CODING (see strip_table: 4) ---
 
                 dex
                 dex
@@ -5390,23 +5258,10 @@ xt_s_quote:
                 stz tmp2+1
 
 s_quote_start:
-                ; Make room on the data stack for the address.
-                dex
-                dex
-                ; Make room on the data stack for the count.
-                dex
-                dex
-
-                ; Put a jmp over the string data with arbitrary address
-                ; to be filled in later.
-                jsr cmpl_jump
-
-                ; Save the current value of HERE on the data stack for the
-                ; address of the string.
-                lda cp
-                sta 2,x
-                lda cp+1
-                sta 3,x
+                ; Put a jmp past the string data to be filled in later.
+                jsr cmpl_jump_later
+                jsr xt_here             ; the start of the string
+                ; ( jmp-target addr )
 
 _savechars_loop:
                 ; Start saving the string into the dictionary up to the
@@ -5577,7 +5432,7 @@ _esc_replace:   bpl _save_character     ; simple replacement
                 ; handle specials with hi bit set (NUL and CR/LF)
                 and #$7F                ; clear hi bit
                 beq _save_character     ; NUL we can just output
-                jsr cmpl_a              ; else output first char (CR)
+                jsr cmpl_byte_a              ; else output first char (CR)
                 lda #10                 ; followed by LF
                 bra _save_character
 
@@ -5625,7 +5480,7 @@ _regular_char:
 _save_character:
                 ; If we didn't reach the end of the string, compile this
                 ; character into the dictionary
-                jsr cmpl_a
+                jsr cmpl_byte_a
 
 _next_character:
                 ; Move on to the next character.
@@ -5642,41 +5497,23 @@ _found_string_end:
                 bne +
                 inc toin+1
 +
-                ; Calculate the length of the string, which is the
-                ; difference between cp and the address of the start
-                ; of the string (currently saved on the stack).
-                lda cp
-                sec
-                sbc 2,x
-                sta 0,x         ; LSB
-                lda cp+1
-                sbc 3,x
-                sta 1,x         ; MSB
+                ; We currently have ( jmp-target addr )
+                ; We need to calculate the length of string
+                ; and update the jump target.
 
-                ; Update the address of the jump-over jmp instruction.
-                ; First determine location of jmp instructions address.
-                ; It should be 2 bytes before the start of the string.
-                ; Compute it into tmp1, which is no longer being used.
-                lda 2,x
-                sec
-                sbc #2
-                sta tmp1
-                lda 3,x
-                sbc #0          ; Propagate borrow
-                sta tmp1+1
+                jsr xt_here
+                jsr xt_rot
+                jsr xt_store    ; Update the jmp target
 
-                ; Update the address of the jump to HERE.
-                lda cp
-                sta (tmp1)
-                ldy #1
-                lda cp+1
-                sta (tmp1),y
+                jsr xt_here
+                jsr xt_over
+                jsr xt_minus    ; HERE - addr gives string length
 
                 ; What happens next depends on the state (which is bad, but
                 ; that's the way it works at the moment). If we are
-                ; interpretating, we save the string to a transient buffer
+                ; interpreting, we save the string to a transient buffer
                 ; and return that address (used for file calls, see
-                ; https://forth-standard.org/standard/file/Sq . If we're
+                ; https://forth-standard.org/standard/file/Sq ). If we're
                 ; compiling, we just need SLITERAL
                 lda state
                 ora state+1             ; paranoid
@@ -5685,7 +5522,7 @@ _found_string_end:
                 ; Jump into the middle of the sliteral word, after the
                 ; string data has been compiled into the dictionary,
                 ; because we've already done that step.
-                jsr sliteral_const_str         ; ( addr u -- )
+                jsr cmpl_sliteral         ; ( addr u -- )
 
 _done:
 z_s_quote:      rts
@@ -5736,7 +5573,7 @@ xt_semicolon:
                 ; This is a :NONAME word - just put an RTS on the end and
                 ; the address (held in workword) on the stack.
                 lda #OpRTS
-                jsr cmpl_a
+                jsr cmpl_byte_a
 
                 dex
                 dex
@@ -5760,7 +5597,7 @@ _colonword:
                 ; Allocate one further byte and save the RTS instruction
                 ; there
                 lda #OpRTS
-                jsr cmpl_a
+                jsr cmpl_byte_a
 
                 ; Before we formally add the word to the Dictionary, we
                 ; check to see if it is already present, and if yes, we
@@ -6313,7 +6150,7 @@ xt_to:
 
                 ldy #>xt_store      ; write the runtime for !
                 lda #<xt_store
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 bra _done
 
@@ -6606,7 +6443,7 @@ xt_to_r:
                 sta tmptos
                 ply             ; MSB
 
-                ; --- CUT HERE FOR NATIVE CODING ---
+                ; --- CUT HERE FOR NATIVE CODING (see strip_table: 4) ---
 
                 ; We check for underflow in the second step, so we can
                 ; strip off the stack thrashing for native compiling first
@@ -6831,7 +6668,7 @@ xt_two_r_from:
                 pla                     ; MSB
                 sta tmp1+1
 
-                ; --- CUT HERE FOR NATIVE CODING ---
+                ; --- CUT HERE FOR NATIVE CODING (see strip_table: 6) ---
 
 		; make room on stack
                 dex
@@ -6988,7 +6825,7 @@ xt_two_to_r:
                 pla             ; MSB
                 sta tmp1+1
 
-                ; --- CUT HERE FOR NATIVE CODING ---
+                ; --- CUT HERE FOR NATIVE CODING (see strip_table: 6) ---
 
                 jsr underflow_2
 
@@ -7348,7 +7185,7 @@ xt_until:
                 lda zero_test_runtime,y
                 cmp #OpRTS
                 beq +
-                jsr cmpl_a
+                jsr cmpl_byte_a
 +
                 iny
                 cpy #(zero_test_footer_end - zero_test_runtime)
@@ -7431,7 +7268,7 @@ xt_while:
                 ; Compile a 0branch
                 ldy #>zero_branch_runtime
                 lda #<zero_branch_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; Put the address (here) where the destination
                 ; address needs to go so it can be put there later.
@@ -7440,7 +7277,7 @@ xt_while:
                 ; Fill in the destination address with $FFFF (optimizable)
                 lda #$FF
                 tay
-                jsr cmpl_word
+                jsr cmpl_word_ya
 
                 ; Swap the two addresses on the stack.
                 jsr xt_swap

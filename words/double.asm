@@ -223,17 +223,15 @@ z_two_constant: rts
 ; ## TWO_LITERAL (C: d -- ) ( -- d) "Compile a literal double word"
 ; ## "2literal"  auto  ANS double
         ; """https://forth-standard.org/standard/double/TwoLITERAL"""
-        ; Based on the Forth code
-        ; : 2LITERAL ( D -- ) SWAP POSTPONE LITERAL POSTPONE LITERAL ; IMMEDIATE
+        ; Shares code with xt_sliteral for compiling a double word
         ; """
 xt_two_literal:
                 jsr underflow_2 ; double number
 
-                jsr xt_swap
-                jsr xt_literal
-                jsr xt_literal
+                jsr cmpl_two_literal
 
 z_two_literal:  rts
+
 
 
 ; ## TWO_VARIABLE ( "name" -- ) "Create a variable for a double word"

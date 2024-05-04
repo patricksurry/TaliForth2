@@ -28,7 +28,7 @@
 ; values except the uninitialized temporaries at the end.  This table
 ; is relocated to zero page by COLD.
 
-dsp0      = zpage_end-7    ; initial Data Stack Pointer
+dsp0      = zpage_end-7             ; initial Data Stack Pointer
 
 cold_zp_table:
         .logical user0              ; make labels refer to relocated address
@@ -155,9 +155,9 @@ blk_offset:             .word 0         ; BLK
 scr_offset:             .word 0         ; SCR
 
 ; Wordlists
-
 max_wordlists = 12    ; Maximum number of wordlists supported (4 built-in, 8 user wordlists)
 
+marker_start_offset:                    ; MARKER saves all wordlist state
 current_offset:         .byte 0         ; CURRENT = FORTH-WORDLIST (compilation wordlist)
 num_wordlists_offset:   .byte 4         ; #WORDLISTS (FORTH EDITOR ASSEMBLER ROOT)
 
@@ -171,6 +171,7 @@ wordlists_offset:
 num_order_offset:       .byte 1         ; #ORDER (Number of wordlists in search order)
 search_order_offset:
     .byte 0,0,0,0,0,0,0,0,0             ; SEARCH-ORDER (9 bytes to keep offsets even)
+marker_end_offset:
 
 .if "block" in TALI_OPTIONAL_WORDS
 ; Block buffer variables
