@@ -3530,4 +3530,4 @@ char "       ' word          cycle_test "txt" drop CYCLES:    668 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     48 ok
   ok
-$ff $f010 ! c65: PC=93af A=ff X=74 Y=01 S=f9 FLAGS=<N1 V0 B0 D0 I1 Z0 C0> ticks=147200909
+bye c65: PC=f016 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=147173201

@@ -88,8 +88,7 @@ for test in args.tests:
         test_string = test_string + infile.read()
 
 # Have Tali2 quit at the end of all the tests.
-shutdown = "$ff $f010 !"
-test_string = test_string + "\n" + shutdown + "\n"
+test_string = test_string + "\nbye\n"
 
 process = subprocess.Popen([C65_LOCATION, '-r', TALIFORTH_LOCATION], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 (out, err) = process.communicate(test_string.encode('ascii'))
@@ -104,7 +103,7 @@ print('='*80)
 print('Summary for: ' + ' '.join(args.tests))
 
 # Check to see if we crashed before reading all of the tests.
-if f"{shutdown} c65" not in out.decode('ascii'):
+if f"bye c65:" not in out.decode('ascii'):
     print("Tali Forth 2 crashed before all tests completed\n")
 else:
     print("Tali Forth 2 ran all tests requested")
