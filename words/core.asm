@@ -1465,14 +1465,9 @@ _process_name:
                 adc #8
                 sta tmp3                ; total header length
 
-                ; We need three more bytes for for the hardcoded code field
-                ; area (CFA), the "payload" of the word which by default will
-                ; be a subroutine jump to DOVAR
-                clc
-                adc #3
-
                 ; We overwrite the length of the string returned by PARSE-NAME
-                ; and then call ALLOT
+                ; and then call ALLOT.
+                ; We'll compile the CFA later
                 sta 0,x
                 stz 1,x         ; max header size is 255 chars
                 jsr xt_allot    ; ( addr )
@@ -1573,8 +1568,7 @@ _name_loop:
                 cmp #'A'
                 bcc _store_name
 
-                ; An uppercase letter has been located. Make it
-                ; lowercase.
+                ; An uppercase letter has been found so make it lowercase.
                 ora #$20
 
                 ; Fall into _store_name.
@@ -1587,15 +1581,10 @@ _store_name:
 
                 ; After the name string comes the code field, starting at the
                 ; current xt of this word, which is initially a jump to the
-                ; subroutine to DOVAR. We code this jump by hand
-                lda #OpJSR
-                sta (tmp1),y
-                iny
+                ; subroutine to DOVAR.
+                ldy #>dovar
                 lda #<dovar
-                sta (tmp1),y
-                iny
-                lda #>dovar
-                sta (tmp1),y
+                jsr cmpl_call_ya
 
                 ; Update the CURRENT wordlist with the new DP.
                 ; We do this down here because this routine uses Y.
@@ -3727,18 +3716,16 @@ z_m_star:       rts
         ; to their state when the word was created with marker.  Any words
         ; created after the marker (including the marker) will be forgotten.
         ;
-        ; To do this, we want to end up with something that jumps to a
-        ; run-time component with a link to the original CP and DP values:
+        ; To do this, we want to end up with a run-time component
+        ; that reverts to the original CP, DP  and wordlist state:
         ;
         ;       jsr marker_runtime
         ;       <Original CP MSB>
         ;       <Original CP LSB>
         ;       <Original DP MSB> ( for CURRENT wordlist )
         ;       <Original DP LSB>
-        ;       < USER variables from offset 4 to 39 >
-        ;
-        ;       The user variables include:
-        ;       CURRENT (byte variable)
+        ;       ; USER variables with wordlist state:
+        ;       <CURRENT> (byte variable)
         ;       <All wordlists> (currently 12) (cell array)
         ;       <#ORDER> (byte variable)
         ;       <All search order> (currently 9) (byte array)
@@ -3772,11 +3759,9 @@ xt_marker:
                 sec
                 sbc #2
                 sta cp
-
-                lda cp+1        ; MSB
-                sbc #0          ; we only care about the borrow
-                sta cp+1
-
+                bcs +
+                dec cp+1        ; we only care about the borrow
++
                 ; Add the address of the runtime component
                 ldy #>marker_runtime
                 lda #<marker_runtime
@@ -3794,14 +3779,13 @@ xt_marker:
 
                 ; Add the user variables for the wordlists and search order.
                 ; We're compiling them in byte order.
-                ldy #4                  ; Start at CURRENT
-_marker_loop:
+                ldy #marker_start_offset
+-
                 lda (up),y
                 jsr cmpl_byte_a
                 iny
-                tya
-                cmp #40                 ; One past the end of the search order.
-                bne _marker_loop
+                cpy #marker_end_offset
+                bne -
 
 z_marker:       rts
 
@@ -3819,11 +3803,7 @@ marker_runtime:
                 pla
                 sta tmp1+1      ; MSB of address
 
-                inc tmp1
-                bne +
-                inc tmp1+1
-+
-                ldy #0
+                ldy #1          ; start at 1 due to RTS mechanics
 
                 ; CP was stored first
                 lda (tmp1),y
@@ -3840,19 +3820,30 @@ marker_runtime:
                 lda (tmp1),y
                 sta dp+1
 
-                ; Conveniently, the offset into both tmp1 and UP is 4
-                ; to start restoring the wordlists and search order.
-                ldy #4
-
-_marker_restore_loop:
+                ; We've consumed the first four bytes and now comes the user vars.
+                ; It's slightly tricky since we can only index indirectly with y
+                ; so we'd like to copy from (tmp1),y to (up),y
+                ; But currently tmp1 + 5 corresponds to up + marker_start_offset
+                ; So we'll adjust tmp1 so that tmp1' + marker_start_offset == tmp1 + 5
+                ; meanting that tmp1' = tmp1 - (marker_start_offset - 5).  Phew.
+        .cerror marker_start_offset < 5, "MARKER assumes marker_start_offset >= 5"
+                sec
+                lda tmp1
+                sbc #marker_start_offset - 5
+                sta tmp1
+                bcs +
+                dec tmp1+1
++
+                ; Restore previous wordlist state
+                ldy #marker_start_offset
+-
                 ; Copy from the dictionary back on top of the wordlists
                 ; and search order.
-                lda (tmp1), y
-                sta (up), y
+                lda (tmp1),y
+                sta (up),y
                 iny
-                tya
-                cmp #40                 ; One past the end of the search order.
-                bne _marker_restore_loop
+                cpy #marker_end_offset
+                bne -
 
                 jsr dp_to_current       ; Move the CURRENT DP back.
 

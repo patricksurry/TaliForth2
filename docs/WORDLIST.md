@@ -109,12 +109,12 @@ RTS instruction at the end of each word.
 | COLON | `:` | ANS core | 66 | **auto** |
 | COLON_NONAME | `:NONAME` | ANS core | 27 | **auto** |
 | COMMA | `,` | ANS core | 14 | **auto** |
-| COMPILE_COMMA | `compile,` | ANS core ext | 220 | **auto** |
+| COMPILE_COMMA | `compile,` | ANS core ext | 190 | **auto** |
 | COMPILE_ONLY | `compile-only` | Tali Forth | 11 | tested |
 | CONSTANT | `constant` | ANS core | 61 | **auto** |
 | COUNT | `count` | ANS core | 19 | **auto** |
 | CR | `cr` | ANS core | 5 | **auto** |
-| CREATE | `create` | ANS core | 211 | **auto** |
+| CREATE | `create` | ANS core | 210 | **auto** |
 | DECIMAL | `decimal` | ANS core | 6 | **auto** |
 | DEFER | `defer` | ANS core ext | 50 | **auto** |
 | DEFER_FETCH | `defer@` | ANS core ext | 6 | **auto** |
