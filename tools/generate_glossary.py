@@ -9,14 +9,16 @@
 comments in native_words.asm.
 """
 
+from glob import glob
 import sys
 import re
 from enum import Enum
 
-SOURCE = 'native_words.asm'
+
+SOURCES = 'words/*.asm'
 MARKER = '; ## '
 
-# This runs as a state machine to capture the wordname, short 
+# This runs as a state machine to capture the wordname, short
 # description, and the first comment block for each word.
 class State(Enum):
     IDLE = 0
@@ -31,10 +33,12 @@ second_line_re = re.compile(r"; ## \"(\S+)\"\s+\w+\s+(.*)$")
 
 def main():
 
-    with open(SOURCE) as f:
-        raw_list = f.readlines()
+    raw_list = []
+    for name in glob(SOURCES):
+        with open(name) as f:
+            raw_list += f.readlines()
 
-    # Set up dictionaries to store the data using the word name as 
+    # Set up dictionaries to store the data using the word name as
     # the key.
     short_descr = {}
     source      = {}
@@ -78,7 +82,7 @@ def main():
                 print("Error determining short description on line:")
                 print(line)
         elif current_state == State.COMMENT:
-            # Save the multi-line comments up until the first 
+            # Save the multi-line comments up until the first
             # non-comment line or blank (only ; on line) comment line.
             line = line.strip()
             if line.startswith(';'):

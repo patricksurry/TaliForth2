@@ -1834,9 +1834,7 @@ xt_question_do:
         ;
         ; Compile-time part of DO. Could be realized in Forth as
         ;       : DO POSTPONE (DO) HERE ; IMMEDIATE COMPILE-ONLY
-        ; but we do it in assembler for speed. To work with LEAVE, we compile
-        ; a routine that pushes the end address to the Return Stack at run
-        ; time. This is based on a suggestion by Garth Wilson, see
+        ; but we do it in assembler for speed. See
         ; the Control Flow section of the manual for details.
         ;
         ; This is never native compile. Don't check for a stack underflow
@@ -1886,7 +1884,7 @@ _compile_do:
                 ; will link backward to any prior LEAVE.
                 ; To handle nested loops we stack the current value
                 ; of loopleave here and restore it in xt_loop
-                ; after we write any chained jmps for the current loop
+                ; after we write any chained jumps for the current loop
 
                 ; save current loopleave in case we're nested
                 dex
@@ -3168,7 +3166,7 @@ z_hold:         rts
 
 
 
-; ## I ( -- n )(R: n -- n)  "Copy loop counter to stack"
+; ## I ( -- n )  "Copy loop counter to stack"
 ; ## "i"  auto  ANS core
         ; """https://forth-standard.org/standard/core/I
         ; See definitions.asm and the Control Flow section of the manual.
@@ -3352,7 +3350,7 @@ z_is:           rts
 
 
 
-; ## J ( -- n ) (R: n -- n ) "Copy second loop counter to stack"
+; ## J ( -- n ) "Copy second loop counter to stack"
 ; ## "j"  auto  ANS core
         ; """https://forth-standard.org/standard/core/J
         ; Copy second loop counter from Return Stack to stack. Note we use
@@ -7302,7 +7300,7 @@ z_um_star:      rts
 
 
 
-; ## UNLOOP ( -- )(R: n1 n2 n3 ---) "Drop loop control from Return stack"
+; ## UNLOOP ( -- )(R: n1 n2 n3 ---) "Drop current loop control block"
 ; ## "unloop"  auto  ANS core
         ; """https://forth-standard.org/standard/core/UNLOOP"""
 xt_unloop:

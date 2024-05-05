@@ -83,7 +83,7 @@ taliforth-%.prg: platform/platform-%.asm $(COMMON_SOURCES)
 # Automatically update the wordlist which also gives us the status of the words
 # We need for the binary to be generated first or else we won't be able to find
 # new words in the label listing
-docs/WORDLIST.md: taliforth-py65mon.bin
+docs/WORDLIST.md: tools/generate_wordlist.py taliforth-py65mon.bin
 	$(PYTHON) tools/generate_wordlist.py > docs/WORDLIST.md
 
 
@@ -120,7 +120,7 @@ csim: $(C65) taliforth-py65mon.bin
 docs/manual.html: docs/*.adoc
 	cd docs && asciidoctor -a toc=left manual.adoc
 
-docs/ch_glossary.adoc:	$(wildcard words/*.asm)
+docs/ch_glossary.adoc: tools/generate_glossary.py $(wildcard words/*.asm)
 	$(PYTHON) tools/generate_glossary.py > docs/ch_glossary.adoc
 
 # The diagrams use ditaa to generate pretty diagrams from text files.

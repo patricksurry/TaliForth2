@@ -555,7 +555,7 @@ https://forth-standard.org/standard/tools/DUMP
 `dup`:: _ANS core_ ( u -- u u ) "Duplicate TOS"
 https://forth-standard.org/standard/core/DUP
 
-`ed`:: _Tali Forth_ ( -- u ) "Line-based editor"
+`ed:`:: _Tali Forth_ ( -- u ) "Line-based editor"
 Start the line-based editor ed6502. See separate file
 ed.asm or the manual for details.
 
@@ -682,7 +682,7 @@ Insert a character at the current position of a pictured numeric
 output string on
 https://github.com/philburk/pforth/blob/master/fth/numberio.fth
 
-`i`:: _ANS core_ ( -- n )(R: n -- n)  "Copy loop counter to stack"
+`i`:: _ANS core_ ( -- n )  "Copy loop counter to stack"
 https://forth-standard.org/standard/core/I
 See definitions.asm and the Control Flow section of the manual.
 
@@ -712,7 +712,7 @@ https://forth-standard.org/standard/core/INVERT
 `is`:: _ANS core ext_ ( xt "name" -- ) "Set named word to execute xt"
 http://forth-standard.org/standard/core/IS
 
-`j`:: _ANS core_ ( -- n ) (R: n -- n ) "Copy second loop counter to stack"
+`j`:: _ANS core_ ( -- n ) "Copy second loop counter to stack"
 https://forth-standard.org/standard/core/J
 Copy second loop counter from Return Stack to stack. Note we use
 a fudge factor for loop control; see the Control Flow section of
@@ -720,6 +720,8 @@ the manual for more details.
 
 `key`:: _ANS core_ ( -- char ) "Get one character from the input"
 `l`:: _Tali Editor_ ( -- ) "List the current screen"
+note "l" is used by LIST in the block words
+
 `latestnt`:: _Tali Forth_ ( -- nt ) "Push most recent nt to the stack"
 www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
 The Gforth version of this word is called LATEST
@@ -1074,7 +1076,7 @@ This is the basic division operation all others use. Based on FIG
 Forth code, modified by Garth Wilson, see
 http://6502.org/source/integers/ummodfix/ummodfix.htm
 
-`unloop`:: _ANS core_ ( -- )(R: n1 n2 n3 ---) "Drop loop control from Return stack"
+`unloop`:: _ANS core_ ( -- )(R: n1 n2 n3 ---) "Drop current loop control block"
 https://forth-standard.org/standard/core/UNLOOP
 
 `until`:: _ANS core_ (C: dest -- ) ( -- ) "Loop flow control"

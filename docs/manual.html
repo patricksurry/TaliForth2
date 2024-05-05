@@ -3825,105 +3825,129 @@ compiles its address where the value on the top of the Data Stack told it to&#82
 <h4 id="_loops">Loops</h4>
 <div class="paragraph">
 <p>Loops are more complicated, because we have <code>do</code>, <code>?do</code>, <code>loop</code>, <code>+loop</code>,
-<code>unloop</code>, and <code>leave</code> to take care of. These can call up to three addresses: One
+<code>unloop</code>, and <code>leave</code> to think about. These can involve up to three branches: One
 for the normal looping action (<code>loop</code> and <code>+loop</code>), one to skip over the loop at
 the beginning (<code>?do</code>) and one to skip out of the loop (<code>leave</code>).</p>
 </div>
 <div class="paragraph">
-<p>Based on a suggestion by Garth Wilson, we begin each loop in run-time by saving
-the address after the whole loop construct to the Return Stack. That way,
-<code>leave</code> and <code>?do</code> know where to jump to when called, and we don&#8217;t interfere with
-any <code>if</code>-<code>then</code> structures. On top of that address, we place the limit and start
-values for the loop.</p>
+<p>Like many other forth implementations,
+Tali Forth 2 originally used the return stack to manage loop control,
+including the loop exit address and the loop step and limit values.
+However this required extensive stack juggling which slowed loop performance.
+After <a href="https://github.com/SamCoVT/TaliForth2/issues/53">investigating several alternatives</a>
+we switched to a separate loop control stack.
+Each loop uses a four byte (double word) loop control block (LCB) to store
+the current loop limits.
+All branch addresses including the loop exit are now directly compiled into code
+rather than stored on the stack.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+In order to simplify the loop completion check after each iteration,
+we don&#8217;t store the actual loop index and limit values in the LCB.
+Instead we calculate a fudge factor (sometimes referred to as 'fufa' in the code)
+that makes every loop appear to finish at exactly $8000, and use this to adjust the loop index.
+This lets us use a simple 16 bit overflow test to see if we&#8217;re done.
+One side effect is that the <code>i</code> and <code>j</code> words get a little more complicated.
+For more details see <a href="http://forum.6502.org/viewtopic.php?f=9&amp;t=2026" class="bare">http://forum.6502.org/viewtopic.php?f=9&amp;t=2026</a>
+and the <code>do_runtime</code> implementation.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>The key to staying sane while designing these constructs is to first make
-a list of what we want to happen at compile time and what at run time. Let&#8217;s
-start with a simple <code>do</code>-<code>loop</code>.</p>
-</div>
-<div class="sect4">
-<h5 id="_do_at_compile_time"><code>do</code> at compile-time:</h5>
-<div class="ulist">
-<ul>
-<li>
-<p>Remember current address (in other words, <code>here</code>) on the Return Stack (!) so
-we can later compile the code for the post-loop address to the Return Stack</p>
-</li>
-<li>
-<p>Compile some dummy values to reserve the space for said code</p>
-</li>
-<li>
-<p>Compile the run-time code; we&#8217;ll call that fragment (<code>do</code>)</p>
-</li>
-<li>
-<p>Push the current address (the new <code>here</code>) to the Data Stack so <code>loop</code> knows
-where the loop contents begin</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect4">
-<h5 id="_do_at_run_time"><code>do</code> at run-time:</h5>
-<div class="ulist">
-<ul>
-<li>
-<p>Take limit and start off Data Stack and push them to the Return Stack</p>
-</li>
-</ul>
+<p>Remembering state across nested loops means a stack of LCBs.
+Whereas the return stack grows downward from $1ff, our current loop control stack
+grows upward from $100.
+The zero-page <code>loopctrl</code> byte forms our loop stack pointer,
+limiting us to at most 64 nested loops if the return stack is empty.
+We also cache the least significant byte of the active loop index
+in the zero-page <code>loopidx0</code> which often lets us avoid indexed access to the LCB.</p>
 </div>
 <div class="paragraph">
-<p>Since <code>loop</code> is just a special case of <code>+loop</code> with an index of one, we can get
-away with considering them at the same time.</p>
+<p>The key to staying sane while designing these constructs is to make
+a list of what we should happen at compile time and what at run time.
+Let&#8217;s start with a high-level view of what happens at run time to manage a <code>do</code> loop:</p>
 </div>
-</div>
-<div class="sect4">
-<h5 id="_loop_at_compile_time"><code>loop</code> at compile time:</h5>
 <div class="ulist">
 <ul>
 <li>
-<p>Compile the run-time part <code>(+loop)</code></p>
+<p><code>do</code> adds four to the loop control stack pointer in <code>loopctrl</code> to assign a new LCB.
+It writes the initial loop index and offset to the LCB and
+updates the cached <code>loopidx0</code>.  <code>?do</code> is very similar.</p>
 </li>
 <li>
-<p>Consume the address that is on top of the Data Stack as the jump target for
-normal looping and compile it</p>
+<p>most of the time <code>loop</code> just increments the cached <code>loopidx0</code>.  It only touches
+the LCB when the low byte overflows.</p>
 </li>
 <li>
-<p>Compile <code>unloop</code> for when we&#8217;re done with the loop, getting rid of the
-limit/start and post-loop addresses on the Return Stack</p>
+<p><code>+loop</code> updates <code>loopidx0</code> and (if needed) the high byte in the LCB.
+It only touches the LCB when we have a step size larger than 255 or an overflow
+on the low index byte.</p>
 </li>
 <li>
-<p>Get the address on the top of the Return Stack which points to
-the dummy code compiled by <code>do</code></p>
+<p><code>unloop</code> subtracts four from <code>loopctrl</code> to drop the current LCB.
+It caches the low byte of the now current loop index in <code>loopidx0</code>
+so that any enclosing loop sees the correct value.</p>
 </li>
 <li>
-<p>At that address, compile the code that pushes the address after the list
-construct to the Return Stack at run-time</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect4">
-<h5 id="_loop_at_run_time_which_is_loop"><code>loop</code> at run-time (which is <code>(+loop)</code>)</h5>
-<div class="ulist">
-<ul>
-<li>
-<p>Add loop step to count</p>
+<p>the <code>i</code> and <code>j</code> words use 16-bit math to calculate the actual loop index from the LCB
+offset and fudge factor values.  Although it&#8217;s certainly not portable forth,
+our LCB approach means that <code>i</code> and <code>j</code> can be safely referenced by words called within a loop.
+(This isn&#8217;t the case in Forths that use the return stack for loop control.)</p>
 </li>
 <li>
-<p>Loop again if we haven&#8217;t crossed the limit, otherwise continue after loop</p>
+<p><code>leave</code> simply jumps out of the loop to an address hard-coded at compile time.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>At one glance, we can see that the complicated stuff happens at compile-time.
-This is good, because we only have to do that once for each loop.</p>
+<p>And what about compile time?</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>do</code> emits the runtime code to set up the loop from the limit values.
+The <code>?do</code> variant includes a conditional jump that skips the loop entirely, dropping the limits.
+Since we won&#8217;t know the exit address until we&#8217;re finished compiling
+the loop body, we emit placeholder bytes and save the placeholder&#8217;s address on the stack
+so <code>loop</code> can update it later.
+We also stash the current <code>loopleave</code> variable so that we
+can handle <code>leave</code> in nested loops (see below).</p>
+</li>
+<li>
+<p><code>loop</code> and <code>+loop</code> generate the runtime code that increment the loop offset
+with an efficient check for whether we&#8217;ve crossed the completion limit.
+Now that we&#8217;ve finished compiling the loop contents we can
+also patch up the exit addresses needed for <code>?do</code> and <code>leave</code>.</p>
+</li>
+<li>
+<p><code>unloop</code>, <code>i</code>, and <code>j</code> don&#8217;t have any compile-time behavior.</p>
+</li>
+<li>
+<p><code>leave</code> also needs to jump to the end of the loop but we don&#8217;t yet
+know where that is.
+Because <code>leave</code> can appear multiple times in a loop,
+we need some trickery to keep a list of all <code>leave</code> placeholders to update.
+The address of the first <code>leave</code> placholder is stored in a variable called <code>loopleave</code>.
+Then the next <code>leave</code> placeholder address is stored <strong>as</strong> the placeholde value of the previous <code>leave</code>!
+This can be repeated indefinitely and forms a linked list.
+Once we&#8217;ve finished compiling <code>loop</code> can walk the list and write the exit address into each placeholder.
+(To safely handle nested loops we also need to push and pop <code>loopleave</code> whenever we start or finish
+compiling a new loop.)</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>In Tali Forth, these routines are coded in assembler. With this setup, <code>unloop</code>
-becomes simple (six <code>pla</code> instructions&#8201;&#8212;&#8201;four for the limit/count of <code>do</code>, two
-for the address pushed to the stack just before it) and <code>leave</code> even simpler
-(four <code>pla</code> instructions for the address).</p>
-</div>
+<p>It&#8217;s clear that all the complicated stuff happens at compile-time.
+This is good, because we only have to do that once for each loop.
+In Tali Forth all of loop control is coded in assembler.
+You can see all of the gory details of the loop word implementations in <code>words/core.asm</code>.</p>
 </div>
 </div>
 </div>
@@ -4295,7 +4319,9 @@ in their right mind would want to program in this godforsaken language! <a href=
 <h3 id="_required_tools">Required Tools</h3>
 <div class="paragraph">
 <p>To run Tali Forth 2 in a simulator, you will need <code>python3</code> and <code>py65</code> installed to be
-able to run <code>py65mon</code>.</p>
+able to run <code>py65mon</code>.
+Tali Forth 2 also ships with the bare-bones <code>c65</code> simulator.
+This is much faster than <code>py65mon</code> but lacks the debugging and monitor capabilities.</p>
 </div>
 <div class="paragraph">
 <p>To assemble Tali Forth 2, you will need <code>64tass</code> (version 1.56.2625 or later) and <code>make</code>.</p>
@@ -4470,6 +4496,12 @@ this requires a branch to an internal label <code>_done</code> right before <cod
 <li>
 <p>Because of the way native compiling works, the trick of combining
 <code>jsr</code>-<code>rts</code> pairs to a single <code>jmp</code> instruction (usually) doesn&#8217;t work.</p>
+</li>
+<li>
+<p>In broad terms Tali Forth 2 should be easy to understand and use.
+When adding new code you should prefer simplicity over complexity,
+particularly for compile-time words.
+Speed is a virtue for core run-time words and reducing code size is always a virtue.</p>
 </li>
 </ul>
 </div>
@@ -5242,7 +5274,7 @@ complete, you will have 4 blocks (numbered 0-3) available to play with.</p>
 <p>If you want to use persistent storage instead, create a writable file
 and start the simulator as shown.  The <code>block-c65-init</code> word takes no
 arguments and returns true if block storage is available.
-You can read/write up to 65536 1K blocks in your file (64Mb of storage).</p>
+You can read/write up to 65536 1K blocks in your file providing 64Mb of storage.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -8215,7 +8247,7 @@ DOES&gt;'s internal workings. This uses tmp1 and tmp2.</p>
 </tr>
 <tr>
 <td class="hdlist1">
-<code>ed</code>
+<code>ed:</code>
 </td>
 <td class="hdlist2">
 <p><em>Tali Forth</em> (&#8201;&#8212;&#8201;u ) "Line-based editor"
@@ -8529,7 +8561,7 @@ output string on
 <code>i</code>
 </td>
 <td class="hdlist2">
-<p><em>ANS core</em> (&#8201;&#8212;&#8201;n )(R: n&#8201;&#8212;&#8201;n)  "Copy loop counter to stack"
+<p><em>ANS core</em> (&#8201;&#8212;&#8201;n )  "Copy loop counter to stack"
 <a href="https://forth-standard.org/standard/core/I" class="bare">https://forth-standard.org/standard/core/I</a>
 See definitions.asm and the Control Flow section of the manual.</p>
 </td>
@@ -8608,7 +8640,7 @@ INT&gt;NAME to match NAME&gt;INT</p>
 <code>j</code>
 </td>
 <td class="hdlist2">
-<p><em>ANS core</em> (&#8201;&#8212;&#8201;n ) (R: n&#8201;&#8212;&#8201;n ) "Copy second loop counter to stack"
+<p><em>ANS core</em> (&#8201;&#8212;&#8201;n ) "Copy second loop counter to stack"
 <a href="https://forth-standard.org/standard/core/J" class="bare">https://forth-standard.org/standard/core/J</a>
 Copy second loop counter from Return Stack to stack. Note we use
 a fudge factor for loop control; see the Control Flow section of
@@ -8628,7 +8660,8 @@ the manual for more details.</p>
 <code>l</code>
 </td>
 <td class="hdlist2">
-<p><em>Tali Editor</em> (&#8201;&#8212;&#8201;) "List the current screen"</p>
+<p><em>Tali Editor</em> (&#8201;&#8212;&#8201;) "List the current screen"
+note "l" is used by LIST in the block words</p>
 </td>
 </tr>
 <tr>
@@ -9478,7 +9511,7 @@ Forth code, modified by Garth Wilson, see
 <code>unloop</code>
 </td>
 <td class="hdlist2">
-<p><em>ANS core</em> (&#8201;&#8212;&#8201;)(R: n1 n2 n3 ---) "Drop loop control from Return stack"
+<p><em>ANS core</em> (&#8201;&#8212;&#8201;)(R: n1 n2 n3 ---) "Drop current loop control block"
 <a href="https://forth-standard.org/standard/core/UNLOOP" class="bare">https://forth-standard.org/standard/core/UNLOOP</a></p>
 </td>
 </tr>
