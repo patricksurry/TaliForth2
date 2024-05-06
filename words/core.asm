@@ -1820,7 +1820,7 @@ z_depth:        rts
 
 
 
-; ## QUESTION_DO ( limit start -- )(R: -- limit start) "Conditional loop start"
+; ## QUESTION_DO ( limit start -- ) "Conditional loop start"
 ; ## "?do"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/qDO"""
 xt_question_do:
@@ -1828,7 +1828,7 @@ xt_question_do:
                 ldy #1                  ; 1 is ?DO, jump to common code
                 bra do_common           ; skip flag for DO
 
-; ## DO ( limit start -- )(R: -- limit start)  "Start a loop"
+; ## DO ( limit start -- )  "Start a loop"
 ; ## "do"  auto  ANS core
         ; """https://forth-standard.org/standard/core/DO
         ;
@@ -1958,7 +1958,8 @@ do_runtime:
 
                 ; data stack has ( limit index -- )
                 ;
-                ; We're going to calculate adjusted loop bounds:
+                ; We're going to calculate adjusted loop bounds
+                ; and store the values in the current LCB:
                 ;
                 ;   loopfufa = $8000 - limit
                 ;   loopindex = loopfufa + index
@@ -1979,8 +1980,6 @@ do_runtime:
                 sbc 3,x             ; MSB of limit
                 sta loopfufa+1,y
 
-                ; ( $8000-limit index --  R: $8000-limit )
-
                 ; Second step: index is FUFA plus original index
                 clc
                 lda 0,x             ; LSB of original index
@@ -1994,8 +1993,6 @@ do_runtime:
                 inx
                 inx
                 inx
-
-                ; ( R: $8000-limit  $8000-limit+index )
 
                 rts
 
@@ -7300,7 +7297,7 @@ z_um_star:      rts
 
 
 
-; ## UNLOOP ( -- )(R: n1 n2 n3 ---) "Drop current loop control block"
+; ## UNLOOP ( -- ) "Drop current loop control block"
 ; ## "unloop"  auto  ANS core
         ; """https://forth-standard.org/standard/core/UNLOOP"""
 xt_unloop:
