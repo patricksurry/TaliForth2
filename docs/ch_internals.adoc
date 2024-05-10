@@ -55,10 +55,10 @@ image::pics/stack_diagram.png[]
 
 Note that the 65c02 system stack -- used as the Return Stack (RS) by Tali --
 pushes the MSB on first and then the LSB (preserving little endian), so the
-basic structure is the same for both stacks. 
+basic structure is the same for both stacks.
 
 Because of this stack design, the second entry ("next on stack", NOS) starts at
-`02,X` and the third entry ("third on stack", 3OS) at `04,X`. 
+`02,X` and the third entry ("third on stack", 3OS) at `04,X`.
 
 ==== Underflow Detection
 
@@ -76,12 +76,12 @@ However, it increases the stability of the program. There is an option for
 stripping it out when compiling user-defined words (see below).
 
 Tali Forth does not check for overflow, which in normal operation is too rare
-to justify the computing expense. 
+to justify the computing expense.
 
 
 ==== Double Cell Values
 
-The double cell is stored on top of the single cell. 
+The double cell is stored on top of the single cell.
 
 image::pics/double_cell.png[]
 
@@ -97,37 +97,37 @@ to allow various tricks in the code.
 
 ==== Elements of the Header
 
-Each header is at least eight bytes long: 
+Each header is at least eight bytes long:
 
 image::pics/header_diagram.png[]
 
 Each word has a `name token` (nt, `nt_word` in the code) that points to the
 first byte of the header. This is the length of the word's name string, which
-is limited to 255 characters. 
+is limited to 255 characters.
 
 The second byte in the header (index 1) is the status byte. It is created by
-the flags defined in the file `definitions.asm`: 
+the flags defined in the file `definitions.asm`:
 
 [horizontal]
-CO:: 
+CO::
   *Compile Only.* This word may only be used inside definitions of new words.
-IM:: 
+IM::
   *Immediate.* This Word is executed immediately during definitions of new words.
-NN:: 
+NN::
   *Never Native.* This Word is never inlined. Usually means that the return address
   from a subroutine jump is required for processing.  Any words containing flow control
   should have this flag set and it is set by default for new words.
-AN:: 
+AN::
   *Always Native.* This word must always be inlined.
-UF:: 
+UF::
   *Undeflow Detection.* This word checks for Data Stack underflow before it is
-  executed. 
+  executed.
 HC::
-  *Has CFA.* Consider first three bytes of the word's code the Code Field 
+  *Has CFA.* Consider first three bytes of the word's code the Code Field
   Area (CFA) of the word. Used by words defined with `create` so `>body` returns
   the correct value.
 
-Note there are currently two bits unused. 
+Note there are currently two bits unused.
 
 The status byte is followed by the **pointer to the next header** in the linked
 list, which makes it the name token of the next word. A 0000 in this position
@@ -136,17 +136,17 @@ the native code words.
 
 This is followed by the current word's **execution token** (xt, `xt_word`) that
 points to the start of the actual code. Some words that have the same
-functionality point to the same code block. 
+functionality point to the same code block.
 
 NOTE: Because Tali uses a subroutine threaded model (STC), the classic Forth
 distinction between the Code Field Area (CFA) and the Parameter Field Area
-(PFA, also Data Field Area) is meaningless -- it's all "payload". 
+(PFA, also Data Field Area) is meaningless -- it's all "payload".
 
 The next pointer is for the **end of the code** (`z_word`) to enable native
-compilation of the word (if allowed and requested). 
+compilation of the word (if allowed and requested).
 
 The **name string** starts at the eighth byte. The string is _not_
-zero-terminated.  Tali Forth lowercases names as they are copied into the 
+zero-terminated.  Tali Forth lowercases names as they are copied into the
 dictionary and also lowercases during lookup, so `quarian` is the same word as
 `QUARIAN`.  If the name in the dictionary is directly modified, it is important
 to ensure that only lowercase letters are used, or else Tali will not be able
@@ -159,7 +159,7 @@ Tali Forth distinguishes between three different word sources: The **native
 words** that are hard-coded in the file `native_words.asm`, the **Forth words**
 from `forth_words.asm` which are defined as high-level words and then generated
 at run-time when Tali Forth starts up, and **user words** in the file
-`user_words.asm`. 
+`user_words.asm`.
 
 Tali has an unusually high number of native words in an attempt to make the
 Forth as fast as possible on the 65c02 and compensate for the disadvantages of
@@ -167,14 +167,14 @@ the subroutine threading model (STC). The first word on that list -- the one
 that is checked first -- is always `drop`, the last one -- the one checked for
 last -- is always `bye`. The words which are (or are assumed to be) used more
 than others come first. Since humans are slow, words that are used more
-interactively like `words` always come later. 
+interactively like `words` always come later.
 
 The list of Forth words ends with the intro strings. This functions as a
 primitive form of a self-test: If you see the welcome message, compilation of
 the Forth words worked.
 
 
-=== Input 
+=== Input
 
 Tali Forth follows the ANS Forth input model with `refill` instead of older
 forms. There are four possible input sources:
@@ -225,7 +225,7 @@ The initial commands after reboot flow into each other: `cold` to `abort` to
 four input sources (see above) is active:
 
 [horizontal]
-Keyboard entry:: 
+Keyboard entry::
 	This is the default. Get line of input via `accept` and return `true`
 	even if the input string was empty.
 `evaluate` string:: Return a `false` flag
@@ -247,7 +247,7 @@ buffer.
 The word `evaluate`is used to execute commands that are in a string. A simple example:
 
 ----
-s" 1 2 + ." evaluate 
+s" 1 2 + ." evaluate
 ----
 
 Tali Forth uses `evaluate` to load high-level Forth words from the file
@@ -262,7 +262,7 @@ startup.
 The tandem of words `create` and `does>` is the most complex, but also most
 powerful part of Forth. Understanding how it works in Tali Forth is important
 if you want to be able to modify the code. In this text, we walk through the
-generation process for a subroutine threaded code (STC) such as Tali Forth. 
+generation process for a subroutine threaded code (STC) such as Tali Forth.
 
 NOTE: For a more general explanation, see Brad Rodriguez' series of articles at
 http://www.bradrodriguez.com/papers/moving3.htm There is a discussion of this
@@ -272,7 +272,7 @@ We start with the following standard example, a high-level Forth version of the
 word `constant`.
 
 ----
-: constant  ( "name" -- )  create , does> @ ; 
+: constant  ( "name" -- )  create , does> @ ;
 ----
 
 We examine this in three phases or "sequences", following Rodriguez (based on
@@ -327,11 +327,11 @@ This pushes the `rts` of the calling routine -- call it "main" -- to the
 65c02's stack (the Return Stack, as Forth calls it), which now looks like this:
 
 ----
-        (1) rts                 ; to main routine 
+        (1) rts                 ; to main routine
 ----
 
 Without going into detail, the first two subroutine jumps of `constant` give us
-this word: 
+this word:
 
 ----
         (Header "LIFE")
@@ -340,16 +340,16 @@ this word:
 ----
 
 Next, we `jsr` to `(does>)`. The address that this pushes on the Return Stack
-is the instruction of `constant` we had labeled `a`. 
+is the instruction of `constant` we had labeled `a`.
 
 ----
-        (2) rts to CONSTANT ("a") 
-        (1) rts to main routine 
+        (2) rts to CONSTANT ("a")
+        (1) rts to main routine
 ----
 
 Now the tricks start. `(does>)` takes this address off the stack and uses it to
 replace the `dovar jsr` target in the CFA of our freshly created `life` word.
-We now have this: 
+We now have this:
 
 ----
         (Header "LIFE")
@@ -360,7 +360,7 @@ We now have this:
 Note we added a label `c`. Now, when `(does>)` reaches its own `rts`, it finds
 the `rts` to the main routine on its stack. This is a Good Thing(TM), because it
 aborts the execution of the rest of `constant`, and we don't want to do
-`dodoes` or `fetch` now. We're back at the main routine. 
+`dodoes` or `fetch` now. We're back at the main routine.
 
 
 ==== Sequence 3: Executing `life`
@@ -448,7 +448,7 @@ can be annoying, because it requires a sequence like:
         inc z
         bne +
         inc z+1
-*       
+*
         (...)
 ----
 
@@ -478,7 +478,7 @@ it's address in the second step. Until then, a dummy value is compiled after
 NOTE: This section and the next one are based on a discussion at
 http://forum.6502.org/viewtopic.php?f=9\&t=3176 see there for more details.
 Another take on this subject that handles things a bit differently is at
-http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx 
+http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx
 
 In Forth, this can be realized by
 
@@ -508,71 +508,96 @@ except that this value now comes from `else`, not `if`.
 ==== Loops
 
 Loops are more complicated, because we have `do`, `?do`, `loop`, `+loop`,
-`unloop`, and `leave` to take care of. These can call up to three addresses: One
+`unloop`, and `leave` to think about. These can involve up to three branches: One
 for the normal looping action (`loop` and `+loop`), one to skip over the loop at
 the beginning (`?do`) and one to skip out of the loop (`leave`).
 
-Based on a suggestion by Garth Wilson, we begin each loop in run-time by saving
-the address after the whole loop construct to the Return Stack. That way,
-`leave` and `?do` know where to jump to when called, and we don't interfere with
-any `if`-`then` structures. On top of that address, we place the limit and start
-values for the loop.
+Like many other forth implementations,
+Tali Forth 2 originally used the return stack to manage loop control,
+including the loop exit address and the loop step and limit values.
+However this required extensive stack juggling which slowed loop performance.
+After https://github.com/SamCoVT/TaliForth2/issues/53[investigating several alternatives]
+we switched to a separate loop control stack.
+Each loop uses a four byte (double word) loop control block (LCB) to store
+the current loop limits.
+All branch addresses including the loop exit are now directly compiled into code
+rather than stored on the stack.
 
-The key to staying sane while designing these constructs is to first make
-a list of what we want to happen at compile time and what at run time. Let's
-start with a simple `do`-`loop`.
+NOTE: In order to simplify the loop completion check after each iteration,
+we don't store the actual loop index and limit values in the LCB.
+Instead we calculate a fudge factor (sometimes referred to as 'fufa' in the code)
+that makes every loop appear to finish at exactly $8000, and use this to adjust the loop index.
+This lets us use a simple 16 bit overflow test to see if we're done.
+One side effect is that the `i` and `j` words get a little more complicated.
+For more details see http://forum.6502.org/viewtopic.php?f=9&t=2026
+and the `do_runtime` implementation.
 
-===== `do` at compile-time:
+Remembering state across nested loops means a stack of LCBs.
+Whereas the return stack grows downward from $1ff, our current loop control stack
+grows upward from $100.
+The zero-page `loopctrl` byte forms our loop stack pointer,
+limiting us to at most 64 nested loops if the return stack is empty.
+We also cache the least significant byte of the active loop index
+in the zero-page `loopidx0` which often lets us avoid indexed access to the LCB.
 
-* Remember current address (in other words, `here`) on the Return Stack (!) so
-  we can later compile the code for the post-loop address to the Return Stack
+The key to staying sane while designing these constructs is to make
+a list of what we should happen at compile time and what at run time.
+Let's start with a high-level view of what happens at run time to manage a `do` loop:
 
-* Compile some dummy values to reserve the space for said code
+- `do` adds four to the loop control stack pointer in `loopctrl` to assign a new LCB.
+  It writes the initial loop index and offset to the LCB and
+  updates the cached `loopidx0`.  `?do` is very similar.
 
-* Compile the run-time code; we'll call that fragment (`do`)
+- most of the time `loop` just increments the cached `loopidx0`.  It only touches
+  the LCB when the low byte overflows.
 
-* Push the current address (the new `here`) to the Data Stack so `loop` knows
-  where the loop contents begin
+- `+loop` updates `loopidx0` and (if needed) the high byte in the LCB.
+  It only touches the LCB when we have a step size larger than 255 or an overflow
+  on the low index byte.
 
-===== `do` at run-time:
+- `unloop` subtracts four from `loopctrl` to drop the current LCB.
+  It caches the low byte of the now current loop index in `loopidx0`
+  so that any enclosing loop sees the correct value.
 
-* Take limit and start off Data Stack and push them to the Return Stack
+- the `i` and `j` words use 16-bit math to calculate the actual loop index from the LCB
+  offset and fudge factor values.  Although it's certainly not portable forth,
+  our LCB approach means that `i` and `j` can be safely referenced by words called within a loop.
+  (This isn't the case in Forths that use the return stack for loop control.)
 
-Since `loop` is just a special case of `+loop` with an index of one, we can get
-away with considering them at the same time.
+- `leave` simply jumps out of the loop to an address hard-coded at compile time.
 
+And what about compile time?
 
-===== `loop` at compile time:
+- `do` emits the runtime code to set up the loop from the limit values.
+  The `?do` variant includes a conditional jump that skips the loop entirely, dropping the limits.
+  Since we won't know the exit address until we're finished compiling
+  the loop body, we emit placeholder bytes and save the placeholder's address on the stack
+  so `loop` can update it later.
+  We also stash the current `loopleave` variable so that we
+  can handle `leave` in nested loops (see below).
 
-* Compile the run-time part `(+loop)`
+- `loop` and `+loop` generate the runtime code that increment the loop offset
+  with an efficient check for whether we've crossed the completion limit.
+  Now that we've finished compiling the loop contents we can
+  also patch up the exit addresses needed for `?do` and `leave`.
 
-* Consume the address that is on top of the Data Stack as the jump target for
-  normal looping and compile it
+- `unloop`, `i`, and `j` don't have any compile-time behavior.
 
-* Compile `unloop` for when we're done with the loop, getting rid of the
-  limit/start and post-loop addresses on the Return Stack
+- `leave` also needs to jump to the end of the loop but we don't yet
+  know where that is.
+  Because `leave` can appear multiple times in a loop,
+  we need some trickery to keep a list of all `leave` placeholders to update.
+  The address of the first `leave` placholder is stored in a variable called `loopleave`.
+  Then the next `leave` placeholder address is stored *as* the placeholde value of the previous `leave`!
+  This can be repeated indefinitely and forms a linked list.
+  Once we've finished compiling `loop` can walk the list and write the exit address into each placeholder.
+  (To safely handle nested loops we also need to push and pop `loopleave` whenever we start or finish
+  compiling a new loop.)
 
-* Get the address on the top of the Return Stack which points to
-  the dummy code compiled by `do`
-
-* At that address, compile the code that pushes the address after the list
-  construct to the Return Stack at run-time
-
-
-===== `loop` at run-time (which is `(+loop)`)
-
-* Add loop step to count
-
-* Loop again if we haven't crossed the limit, otherwise continue after loop
-
-
-At one glance, we can see that the complicated stuff happens at compile-time.
+It's clear that all the complicated stuff happens at compile-time.
 This is good, because we only have to do that once for each loop.
-
-In Tali Forth, these routines are coded in assembler. With this setup, `unloop`
-becomes simple (six `pla` instructions -- four for the limit/count of `do`, two
-for the address pushed to the stack just before it) and `leave` even simpler
-(four `pla` instructions for the address).
+In Tali Forth all of loop control is coded in assembler.
+You can see all of the gory details of the loop word implementations in `words/core.asm`.
 
 === Native Compiling
 
@@ -603,7 +628,7 @@ the actual code. Take for instance `drop`, which in its naive form is simply
 
 for two bytes and four cycles. If we jump to this word as is assumed with pure
 subroutine threaded Forth, we add four bytes and 12 cycles -- double the space
-and three times the time required by the actual working code. 
+and three times the time required by the actual working code.
 
 (In practice, it's even worse, because `drop` checks for underflow. The actual
 assembler code is
@@ -631,9 +656,9 @@ when compiled with an `nc-limit` of 0 and check the actual code with `see`
 
 ----
 see aaa
-nt: 800  xt: 80B 
-flags (CO AN IM NN UF HC): 0 0 0 1 0 1 
-size (decimal): 6 
+nt: 800  xt: 80B
+flags (CO AN IM NN UF HC): 0 0 0 1 0 1
+size (decimal): 6
 
 080B  20 A2 A7 20 2E 8D   .. ..
 
@@ -650,13 +675,13 @@ and define a new word with the same instructions with
 : bbb 0 drop ;
 ----
 
-we get different code: 
+we get different code:
 
 ----
-see bbb 
-nt: 812  xt: 81D 
-flags (CO AN IM NN UF HC): 0 0 0 1 0 1 
-size (decimal): 11 
+see bbb
+nt: 812  xt: 81D
+flags (CO AN IM NN UF HC): 0 0 0 1 0 1
+size (decimal): 11
 
 081D  CA CA 74 00 74 01 20 29  D8 E8 E8  ..t.t. ) ...
 
@@ -701,7 +726,7 @@ words are flagged Never-Native by default because a word needs to meet some
 special criteria to be safe to native compile.  In particular, the word cannot
 have any control structures (if, loop, begin, again, etc) and, if written in
 assembly, cannot have any JMP instructions in it (except for error handling,
-such as underflow detection).  
+such as underflow detection).
 
 If you are certain your new word meets these criteria, then you can enable
 native compilation of this word into other words by invoking the word

@@ -7,6 +7,8 @@ in their right mind would want to program in this godforsaken language! <<DH>>
 
 To run Tali Forth 2 in a simulator, you will need `python3` and `py65` installed to be
 able to run `py65mon`.
+Tali Forth 2 also ships with the bare-bones `c65` simulator.
+This is much faster than `py65mon` but lacks the debugging and monitor capabilities.
 
 To assemble Tali Forth 2, you will need `64tass` (version 1.56.2625 or later) and `make`.
 
@@ -137,13 +139,17 @@ installed). This also updates the file listings in the `docs` folder.
 * The Y register, however, is free to be changed by subroutines. This also means
   it should not be expected to survive subroutines unchanged.
 
-* Natively coded words generally should have exactly one point of entry -- the 
+* Natively coded words generally should have exactly one point of entry -- the
   `xt_word` link -- and exactly one point of exit at `z_word`. In may cases,
   this requires a branch to an internal label `_done` right before `z_word`.
 
 * Because of the way native compiling works, the trick of combining
   `jsr`-`rts` pairs to a single `jmp` instruction (usually) doesn't work.
 
+* In broad terms Tali Forth 2 should be easy to understand and use.
+  When adding new code you should prefer simplicity over complexity,
+  particularly for compile-time words.
+  Speed is a virtue for core run-time words and reducing code size is always a virtue.
 
 ==== Coding Style
 
@@ -166,7 +172,7 @@ way gofmt does for Go (golang), the following format is suggested.
 * Assembler mnemonics are lower case. I get enough uppercase insanity writing German,
   thank you very much.
 
-* Hex numbers are, however, upper case, such as `$FFFE`. 
+* Hex numbers are, however, upper case, such as `$FFFE`.
 
 * Numbers in mnemonics are a stripped-down as possible to reduce
   visual clutter: use `lda 0,x` instead of `lda $00,x`.
@@ -198,18 +204,18 @@ numbers and symbols) of the word.
 
 As an example, let's turn the following definition into assembly:
 
----- 
-: getstate state @ ; 
----- 
-Translates into: 
----- 
-; ## GETSTATE ( -- n ) "Get the current state" 
-; ## "getstate" coded Custom 
-xt_getstate: 
+----
+: getstate state @ ;
+----
+Translates into:
+----
+; ## GETSTATE ( -- n ) "Get the current state"
+; ## "getstate" coded Custom
+xt_getstate:
                 jsr xt_state
                 jsr xt_fetch ; @ is pronounced "fetch" in Forth.
-z_getstate: 
-                rts 
+z_getstate:
+                rts
 ----
 
 The above code would be added to native_words.asm, probably right after
@@ -276,21 +282,21 @@ translated into assembly as a JSR.
 
 When we go to add our word to native_words.asm, we discover that the name
 xt_star is already in use (for the multiplication word `*`), so this will show how
-to deal with that complication as well.  
+to deal with that complication as well.
 
----- 
-; ## STAR_WORD ( -- ) "Print a * on the screen" 
-; ## "star" coded Custom 
-xt_star_word: 
-                ; Put a * character on the stack.  
-                dex             ; Make room on the data stack.  
-                dex 
+----
+; ## STAR_WORD ( -- ) "Print a * on the screen"
+; ## "star" coded Custom
+xt_star_word:
+                ; Put a * character on the stack.
+                dex             ; Make room on the data stack.
+                dex
                 lda #42         ; * is ASCII character 42.
                 sta 0,x         ; Store in low byte of stack cell.
                 stz 1,x         ; high byte is zeroed for characters.
                 jsr xt_emit     ; Print the character to the screen.
-z_star_word: 
-                rts 
+z_star_word:
+                rts
 ----
 
 We chose the labels xt_star_word and z_star_word for this word, but it will be
@@ -362,7 +368,7 @@ _compiling:
 _interpreting:
                 jsr xt_tick
                 jsr xt_defer_store
-_done:          
+_done:
 z_is:           rts
 ----
 
@@ -433,16 +439,16 @@ xt_two_constant:
                 jsr xt_swap
                 jsr xt_comma
                 jsr xt_comma
-                
+
                 jsr does_runtime    ; does> turns into these two routines.
                 jsr dodoes
-                
+
                 jsr xt_dup
                 jsr xt_fetch
                 jsr xt_swap
                 jsr xt_cell_plus
                 jsr xt_fetch
-                
+
 z_two_constant: rts
 ----
 
@@ -480,7 +486,7 @@ Before we dicuss adding a word, let's go over the form a dictionary header.  The
 fields we will be filling in are described right at the top of headers.asm for
 reference. We'll look at an easy to locate word, `drop`, which is used to
 remove the top item on the stack. It's right near the top of the list.  We'll also
-show the word `dup`, which is the next word is the dictionary. 
+show the word `dup`, which is the next word is the dictionary.
 The headers for these two words currently look like:
 
 ----
@@ -516,7 +522,7 @@ compiled (even when in compiling mode).
 NN:: Never Native Compile (must always be called by JSR when compiled).  Add
 this when your word contains a JMP instruction, or if it plays with the return
 address it is called from.
-AN:: Always Native Compile (will be native compiled when compiled).  
+AN:: Always Native Compile (will be native compiled when compiled).
 The opcodes for this word will be copied (native compiling)
 into a new word when this word is used in the definition.  For short simple words that
 are just a sequence of JSRs, you can safely set this bit.  This bit should not
@@ -622,7 +628,7 @@ value" version, which could increment the DSP twice before storing a value. We
 try to keep these in the same sequence (a "dialect" or "code mannerism" if you
 will) so we have the option of adding code analysis tools later.
 
-* `drop` cell of top of the Data Stack 
+* `drop` cell of top of the Data Stack
 
 ----
                 inx
@@ -632,7 +638,7 @@ will) so we have the option of adding code analysis tools later.
 * `push` a value to the Data Stack. Remember the Data Stack Pointer (DSP, the
   X register of the 65c02) points to the LSB of the TOS value.
 
----- 
+----
                 dex
                 dex
                 lda <LSB>      ; or pla, jsr key_a, etc.

@@ -1820,7 +1820,7 @@ z_depth:        rts
 
 
 
-; ## QUESTION_DO ( limit start -- )(R: -- limit start) "Conditional loop start"
+; ## QUESTION_DO ( limit start -- ) "Conditional loop start"
 ; ## "?do"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/qDO"""
 xt_question_do:
@@ -1828,15 +1828,13 @@ xt_question_do:
                 ldy #1                  ; 1 is ?DO, jump to common code
                 bra do_common           ; skip flag for DO
 
-; ## DO ( limit start -- )(R: -- limit start)  "Start a loop"
+; ## DO ( limit start -- )  "Start a loop"
 ; ## "do"  auto  ANS core
         ; """https://forth-standard.org/standard/core/DO
         ;
         ; Compile-time part of DO. Could be realized in Forth as
         ;       : DO POSTPONE (DO) HERE ; IMMEDIATE COMPILE-ONLY
-        ; but we do it in assembler for speed. To work with LEAVE, we compile
-        ; a routine that pushes the end address to the Return Stack at run
-        ; time. This is based on a suggestion by Garth Wilson, see
+        ; but we do it in assembler for speed. See
         ; the Control Flow section of the manual for details.
         ;
         ; This is never native compile. Don't check for a stack underflow
@@ -1886,7 +1884,7 @@ _compile_do:
                 ; will link backward to any prior LEAVE.
                 ; To handle nested loops we stack the current value
                 ; of loopleave here and restore it in xt_loop
-                ; after we write any chained jmps for the current loop
+                ; after we write any chained jumps for the current loop
 
                 ; save current loopleave in case we're nested
                 dex
@@ -1960,7 +1958,8 @@ do_runtime:
 
                 ; data stack has ( limit index -- )
                 ;
-                ; We're going to calculate adjusted loop bounds:
+                ; We're going to calculate adjusted loop bounds
+                ; and store the values in the current LCB:
                 ;
                 ;   loopfufa = $8000 - limit
                 ;   loopindex = loopfufa + index
@@ -1981,8 +1980,6 @@ do_runtime:
                 sbc 3,x             ; MSB of limit
                 sta loopfufa+1,y
 
-                ; ( $8000-limit index --  R: $8000-limit )
-
                 ; Second step: index is FUFA plus original index
                 clc
                 lda 0,x             ; LSB of original index
@@ -1996,8 +1993,6 @@ do_runtime:
                 inx
                 inx
                 inx
-
-                ; ( R: $8000-limit  $8000-limit+index )
 
                 rts
 
@@ -3168,7 +3163,7 @@ z_hold:         rts
 
 
 
-; ## I ( -- n )(R: n -- n)  "Copy loop counter to stack"
+; ## I ( -- n )  "Copy loop counter to stack"
 ; ## "i"  auto  ANS core
         ; """https://forth-standard.org/standard/core/I
         ; See definitions.asm and the Control Flow section of the manual.
@@ -3352,7 +3347,7 @@ z_is:           rts
 
 
 
-; ## J ( -- n ) (R: n -- n ) "Copy second loop counter to stack"
+; ## J ( -- n ) "Copy second loop counter to stack"
 ; ## "j"  auto  ANS core
         ; """https://forth-standard.org/standard/core/J
         ; Copy second loop counter from Return Stack to stack. Note we use
@@ -7352,7 +7347,7 @@ z_um_star:      rts
 
 
 
-; ## UNLOOP ( -- )(R: n1 n2 n3 ---) "Drop loop control from Return stack"
+; ## UNLOOP ( -- ) "Drop current loop control block"
 ; ## "unloop"  auto  ANS core
         ; """https://forth-standard.org/standard/core/UNLOOP"""
 xt_unloop:
