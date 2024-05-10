@@ -3219,7 +3219,7 @@ z_if:           rts
 
 
 zero_test_runtime:
-        ; Drop TOS of stack setting Z flag, for optimizing short brances (see xt_then)
+        ; Drop TOS of stack setting Z flag, for optimizing short branches (see xt_then)
                 inx
                 inx
                 lda $FE,x           ; wraparound so inx doesn't wreck Z status
@@ -3534,6 +3534,10 @@ z_less_than:    rts
 xt_literal:
                 jsr underflow_1
 
+                lda # z_template_push_tos - template_push_tos
+                jsr check_nc_limit
+                bcc _inline
+
                 ldy #>literal_runtime
                 lda #<literal_runtime
                 jsr cmpl_subroutine
@@ -3541,8 +3545,55 @@ xt_literal:
                 ; Compile the value that is to be pushed on the Stack during
                 ; runtime
                 jsr xt_comma
+                bra z_literal
+
+_inline:        ; we'll need two or three values to fill in our template
+                ; so first we set up the stack in reverse order.
+                ; the first (last) item is a STY or STZ for the MSB
+                lda #$94        ; sty zp,x
+                ldy 1,x
+                bne +
+                lda #$74        ; stz zp,x
++
+                pha
+
+                ; next (second) we need the LSB of the literal
+                lda 0,x
+                pha
+                ; last (first) we need the MSB, but only if it's non-zero
+                ; we'll also arrange to leave Y=2 for no MSB and Y=0 otherwise
+                ; so that we can skip the initial ldy #msb when MSB is zero
+                tya             ; Y has the MSB
+                beq +
+                pha
+                lda #2
++
+                eor #2          ; invert A=0/2 to Y=2/0
+                tay
+
+_copy:          lda template_push_tos,y
+                cmp #$ff
+                bne +
+                pla
++               jsr cmpl_a
+                iny
+                cpy #z_template_push_tos - template_push_tos
+                bne _copy
+
+                inx             ; drop the literal
+                inx
 
 z_literal:      rts
+
+template_push_tos:
+                ldy #$ff        ; we'll omit this if MSB is zero
+                lda #$ff
+                dex
+                dex
+                sta 0,x
+                .byte $ff, 1    ; this will become either sty 1,x or stz 1,x
+z_template_push_tos:
+
 
 literal_runtime:
 
@@ -3580,7 +3631,6 @@ literal_runtime:
                 phy
 
                 rts
-
 
 
 ; ## LOOP ( -- ) "Finish loop construct"
@@ -5685,7 +5735,7 @@ _found_string_end:
                 ; Jump into the middle of the sliteral word, after the
                 ; string data has been compiled into the dictionary,
                 ; because we've already done that step.
-                jsr sliteral_const_str         ; ( addr u -- )
+                jsr cmpl_sliteral         ; ( addr u -- )
 
 _done:
 z_s_quote:      rts
