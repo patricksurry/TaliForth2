@@ -151,8 +151,7 @@ https://forth-standard.org/standard/core/TwoDUP
 
 `2literal`:: _ANS double_ (C: d -- ) ( -- d) "Compile a literal double word"
 https://forth-standard.org/standard/double/TwoLITERAL
-Based on the Forth code
-: 2LITERAL ( D -- ) SWAP POSTPONE LITERAL POSTPONE LITERAL ; IMMEDIATE
+Shares code with xt_sliteral for compiling a double word
 
 `2over`:: _ANS core_ ( d1 d2 -- d1 d2 d1 ) "Copy double word NOS to TOS"
 https://forth-standard.org/standard/core/TwoOVER
@@ -227,7 +226,7 @@ word.
 `?`:: _ANS tools_ ( addr -- ) "Print content of a variable"
 https://forth-standard.org/standard/tools/q
 
-`?do`:: _ANS core ext_ ( limit start -- )(R: -- limit start) "Conditional loop start"
+`?do`:: _ANS core ext_ ( limit start -- ) "Conditional loop start"
 https://forth-standard.org/standard/core/qDO
 
 `?dup`:: _ANS core_ ( n -- 0 | n n ) "Duplicate TOS non-zero"
@@ -536,7 +535,7 @@ the file disassembler.asm for more details.
 `dnegate`:: _ANS double_ ( d -- d ) "Negate double cell number"
 https://forth-standard.org/standard/double/DNEGATE
 
-`do`:: _ANS core_ ( limit start -- )(R: -- limit start)  "Start a loop"
+`do`:: _ANS core_ ( limit start -- )  "Start a loop"
 https://forth-standard.org/standard/core/DO
 
 `does>`:: _ANS core_ ( -- ) "Add payload when defining new words"
@@ -1076,7 +1075,7 @@ This is the basic division operation all others use. Based on FIG
 Forth code, modified by Garth Wilson, see
 http://6502.org/source/integers/ummodfix/ummodfix.htm
 
-`unloop`:: _ANS core_ ( -- )(R: n1 n2 n3 ---) "Drop current loop control block"
+`unloop`:: _ANS core_ ( -- ) "Drop current loop control block"
 https://forth-standard.org/standard/core/UNLOOP
 
 `until`:: _ANS core_ (C: dest -- ) ( -- ) "Loop flow control"

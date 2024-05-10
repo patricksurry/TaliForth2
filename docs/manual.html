@@ -7225,8 +7225,7 @@ the next two bytes. This is equvalent to  <code>DUP CELL+ @ SWAP @</code></p>
 <td class="hdlist2">
 <p><em>ANS double</em> (C: d&#8201;&#8212;&#8201;) (&#8201;&#8212;&#8201;d) "Compile a literal double word"
 <a href="https://forth-standard.org/standard/double/TwoLITERAL" class="bare">https://forth-standard.org/standard/double/TwoLITERAL</a>
-Based on the Forth code
-: 2LITERAL ( D&#8201;&#8212;&#8201;) SWAP POSTPONE LITERAL POSTPONE LITERAL ; IMMEDIATE</p>
+Shares code with xt_sliteral for compiling a double word</p>
 </td>
 </tr>
 <tr>
@@ -7422,7 +7421,7 @@ word.</p>
 <code>?do</code>
 </td>
 <td class="hdlist2">
-<p><em>ANS core ext</em> ( limit start&#8201;&#8212;&#8201;)(R:&#8201;&#8212;&#8201;limit start) "Conditional loop start"
+<p><em>ANS core ext</em> ( limit start&#8201;&#8212;&#8201;) "Conditional loop start"
 <a href="https://forth-standard.org/standard/core/qDO" class="bare">https://forth-standard.org/standard/core/qDO</a></p>
 </td>
 </tr>
@@ -8201,7 +8200,7 @@ the file disassembler.asm for more details.</p>
 <code>do</code>
 </td>
 <td class="hdlist2">
-<p><em>ANS core</em> ( limit start&#8201;&#8212;&#8201;)(R:&#8201;&#8212;&#8201;limit start)  "Start a loop"
+<p><em>ANS core</em> ( limit start&#8201;&#8212;&#8201;)  "Start a loop"
 <a href="https://forth-standard.org/standard/core/DO" class="bare">https://forth-standard.org/standard/core/DO</a></p>
 </td>
 </tr>
@@ -9511,7 +9510,7 @@ Forth code, modified by Garth Wilson, see
 <code>unloop</code>
 </td>
 <td class="hdlist2">
-<p><em>ANS core</em> (&#8201;&#8212;&#8201;)(R: n1 n2 n3 ---) "Drop current loop control block"
+<p><em>ANS core</em> (&#8201;&#8212;&#8201;) "Drop current loop control block"
 <a href="https://forth-standard.org/standard/core/UNLOOP" class="bare">https://forth-standard.org/standard/core/UNLOOP</a></p>
 </td>
 </tr>
@@ -10121,7 +10120,7 @@ under <a href="https://www.ubuntu.com/">Ubuntu</a> Linux 16.04 LTS.</p>
 <div id="footer">
 <div id="footer-text">
 Version 1.0<br>
-Last updated 2024-03-07 15:56:25 -0500
+Last updated 2024-04-28 11:02:20 -0400
 </div>
 </div>
 </body>
