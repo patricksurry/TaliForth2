@@ -96,8 +96,8 @@ $(C65): $(C65_SOURCES)
 # Convenience target for regular tests.
 tests:	tests/results.txt
 
+# Run all of the tests.
 ctests: $(C65) taliforth-py65mon.bin $(TEST_SOURCES)
-	# Run all of the tests.
 	cd tests && $(PYTHON) ./talitest_c65.py
 
 tests/results.txt:	taliforth-py65mon.bin $(TEST_SOURCES)
