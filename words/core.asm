@@ -3753,6 +3753,7 @@ _done:
 z_m_star:       rts
 
 
+
 ; ## MARKER ( "name" -- ) "Create a deletion boundary"
 ; ## "marker"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/MARKER
@@ -3762,16 +3763,18 @@ z_m_star:       rts
         ; to their state when the word was created with marker.  Any words
         ; created after the marker (including the marker) will be forgotten.
         ;
-        ; To do this, we want to end up with a run-time component
-        ; that reverts to the original CP, DP  and wordlist state:
+        ; To do this, we want to end up with something that jumps to a
+        ; run-time component with a link to the original CP and DP values:
         ;
         ;       jsr marker_runtime
         ;       <Original CP MSB>
         ;       <Original CP LSB>
         ;       <Original DP MSB> ( for CURRENT wordlist )
         ;       <Original DP LSB>
-        ;       ; USER variables with wordlist state:
-        ;       <CURRENT> (byte variable)
+        ;       < USER variables from offset 4 to 39 >
+        ;
+        ;       The user variables include:
+        ;       CURRENT (byte variable)
         ;       <All wordlists> (currently 12) (cell array)
         ;       <#ORDER> (byte variable)
         ;       <All search order> (currently 9) (byte array)
@@ -3805,9 +3808,11 @@ xt_marker:
                 sec
                 sbc #2
                 sta cp
-                bcs +
-                dec cp+1        ; we only care about the borrow
-+
+
+                lda cp+1        ; MSB
+                sbc #0          ; we only care about the borrow
+                sta cp+1
+
                 ; Add the address of the runtime component
                 ldy #>marker_runtime
                 lda #<marker_runtime
@@ -3825,13 +3830,14 @@ xt_marker:
 
                 ; Add the user variables for the wordlists and search order.
                 ; We're compiling them in byte order.
-                ldy #marker_start_offset
--
+                ldy #4                  ; Start at CURRENT
+_marker_loop:
                 lda (up),y
                 jsr cmpl_byte_a
                 iny
-                cpy #marker_end_offset
-                bne -
+                tya
+                cmp #40                 ; One past the end of the search order.
+                bne _marker_loop
 
 z_marker:       rts
 
@@ -3849,7 +3855,11 @@ marker_runtime:
                 pla
                 sta tmp1+1      ; MSB of address
 
-                ldy #1          ; start at 1 due to RTS mechanics
+                inc tmp1
+                bne +
+                inc tmp1+1
++
+                ldy #0
 
                 ; CP was stored first
                 lda (tmp1),y
@@ -3866,30 +3876,19 @@ marker_runtime:
                 lda (tmp1),y
                 sta dp+1
 
-                ; We've consumed the first four bytes and now comes the user vars.
-                ; It's slightly tricky since we can only index indirectly with y
-                ; so we'd like to copy from (tmp1),y to (up),y
-                ; But currently tmp1 + 5 corresponds to up + marker_start_offset
-                ; So we'll adjust tmp1 so that tmp1' + marker_start_offset == tmp1 + 5
-                ; meanting that tmp1' = tmp1 - (marker_start_offset - 5).  Phew.
-        .cerror marker_start_offset < 5, "MARKER assumes marker_start_offset >= 5"
-                sec
-                lda tmp1
-                sbc #marker_start_offset - 5
-                sta tmp1
-                bcs +
-                dec tmp1+1
-+
-                ; Restore previous wordlist state
-                ldy #marker_start_offset
--
+                ; Conveniently, the offset into both tmp1 and UP is 4
+                ; to start restoring the wordlists and search order.
+                ldy #4
+
+_marker_restore_loop:
                 ; Copy from the dictionary back on top of the wordlists
                 ; and search order.
-                lda (tmp1),y
-                sta (up),y
+                lda (tmp1), y
+                sta (up), y
                 iny
-                cpy #marker_end_offset
-                bne -
+                tya
+                cmp #40                 ; One past the end of the search order.
+                bne _marker_restore_loop
 
                 jsr dp_to_current       ; Move the CURRENT DP back.
 
