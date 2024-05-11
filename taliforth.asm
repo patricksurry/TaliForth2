@@ -68,17 +68,17 @@ user_words_end:
 ;
 ;               ldy #>addr      ; MSB   ; "Young"
 ;               lda #<addr      ; LSB   ; "Americans"
-;               jsr cmpl_call_ya
+;               jsr cmpl_subroutine
 ;
 ; We have have various utility routines here for compiling a word in Y/A
 ; and a single byte in A.
 
-cmpl_call_ya:
+cmpl_subroutine:
                 ; This is the entry point to compile JSR <ADDR=Y/A>
                 pha             ; save LSB of address
                 lda #OpJSR      ; load opcode for JSR
                 bra +
-cmpl_jump_ya:
+cmpl_jump:
                 ; This is the entry point to compile JMP <ADDR=Y/A>
                 pha             ; save LSB of address
                 lda #OpJMP      ; load opcode for JMP, fall thru
@@ -86,13 +86,13 @@ cmpl_jump_ya:
                 ; At this point, A contains the opcode to be compiled,
                 ; the LSB of the address is on the 65c02 stack, and the MSB of
                 ; the address is in Y
-                jsr cmpl_byte_a      ; compile opcode
-                pla             ; retrieve address LSB; fall thru to cmpl_word_ya
-cmpl_word_ya:
+                jsr cmpl_a      ; compile opcode
+                pla             ; retrieve address LSB; fall thru to cmpl_word
+cmpl_word:
                 ; This is the entry point to compile a word in Y/A (little-endian)
-                jsr cmpl_byte_a      ; compile LSB of address
+                jsr cmpl_a      ; compile LSB of address
                 tya             ; fall thru for MSB
-cmpl_byte_a:
+cmpl_a:
                 ; This is the entry point to compile a single byte which
                 ; is passed in A. The built-in assembler assumes that this
                 ; routine does not modify Y.
@@ -112,16 +112,16 @@ cmpl_jump_tos:
     ; compile a jump to the address at TOS, consuming it
                 lda #OpJMP
 +
-                jsr cmpl_byte_a
+                jsr cmpl_a
                 jmp xt_comma
 
 cmpl_jump_later:
     ; compile a jump to be filled in later. Populates the dummy address
     ; MSB with Y, LSB indeterminate, leaving address of the JMP target TOS
                 lda #OpJMP
-                jsr cmpl_byte_a
+                jsr cmpl_a
                 jsr xt_here
-                bra cmpl_word_ya
+                bra cmpl_word
 
 
 check_nc_limit:

@@ -20,7 +20,7 @@ xt_abort_quote:
                 ; compile run-time part
                 ldy #>abort_quote_runtime
                 lda #<abort_quote_runtime
-                jsr cmpl_call_ya     ; may not be JMP as JSR/RTS
+                jsr cmpl_subroutine     ; may not be JMP as JSR/RTS
 
 z_abort_quote:  rts
 
@@ -404,7 +404,7 @@ _compiling:
                 ; Postpone DEFER@ by compiling a JSR to it.
                 ldy #>xt_defer_fetch
                 lda #<xt_defer_fetch
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
                 bra _done
 
 _interpreting:
@@ -477,7 +477,7 @@ xt_allot:
                 sta cp+1
 
                 ; Wait, did we just grant more space than we have? This is
-                ; a check we only do here, not for other situations like cmpl_byte_a
+                ; a check we only do here, not for other situations like cmpl_a
                 ; where smaller amounts are reserved.
                 ldy #<cp_end
                 cpy cp
@@ -767,7 +767,7 @@ xt_c_comma:
                 jsr underflow_1
 
                 lda 0,x
-                jsr cmpl_byte_a
+                jsr cmpl_a
 
                 inx
                 inx
@@ -1020,7 +1020,7 @@ xt_comma:
 
                 ldy #2
 _twice:         lda 0,x
-                jsr cmpl_byte_a
+                jsr cmpl_a
                 inx
                 dey
                 bne _twice
@@ -1584,7 +1584,7 @@ _store_name:
                 ; subroutine to DOVAR.
                 ldy #>dovar
                 lda #<dovar
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 ; Update the CURRENT wordlist with the new DP.
                 ; We do this down here because this routine uses Y.
@@ -1775,7 +1775,7 @@ do_common:
                 ; do this as a subroutine since it only happens once and is a big chunk of code
                 ldy #>do_runtime
                 lda #<do_runtime
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 ; Now we're ready for the loop body.  We also push HERE
                 ; to the Data Stack so LOOP/+LOOP knows where to repeat back
@@ -1884,14 +1884,14 @@ xt_does:
                 ; compile a subroutine jump to runtime of DOES>
                 ldy #>does_runtime
                 lda #<does_runtime
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 ; compile a subroutine jump to DODOES. In traditional
                 ; terms, this is the Code Field Area (CFA) of the new
                 ; word
                 ldy #>dodoes
                 lda #<dodoes
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
 z_does:         rts
 
@@ -2011,7 +2011,7 @@ xt_dot_quote:
                 ; We then let TYPE do the actual printing
                 ldy #>xt_type
                 lda #<xt_type
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
 z_dot_quote:    rts
 
@@ -2237,7 +2237,7 @@ xt_endcase:
                 ; being checked.
                 ldy #>xt_drop
                 lda #<xt_drop
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 ; There are a number of address (of branches that need their
                 ; jump addressed filled in with the address of right here).
@@ -3074,7 +3074,7 @@ xt_if:
                 ; Compile a 0BRANCH
                 ldy #>zero_branch_runtime
                 lda #<zero_branch_runtime
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 ; Put the origination address on the stack for else/then
                 jsr xt_here
@@ -3083,7 +3083,7 @@ xt_if:
                 ; THEN or ELSE will fix it later.
                 lda #$FF
                 tay
-                jsr cmpl_word_ya
+                jsr cmpl_word
 z_if:           rts
 
 
@@ -3209,7 +3209,7 @@ _compiling:
                 ; Postpone DEFER! by compiling a JSR to it.
                 ldy #>xt_defer_store
                 lda #<xt_defer_store
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 bra _done
 
@@ -3300,7 +3300,7 @@ xt_leave:
 
                 lda loopleave
                 ldy loopleave+1
-                jsr cmpl_jump_ya   ; emit the JMP chaining prior leave address
+                jsr cmpl_jump   ; emit the JMP chaining prior leave address
 
                 ; set head of the list to point to our placeholder
                 sec
@@ -3409,7 +3409,7 @@ xt_literal:
 
                 ldy #>literal_runtime
                 lda #<literal_runtime
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 ; Compile the value that is to be pushed on the Stack during
                 ; runtime
@@ -3444,7 +3444,7 @@ _copy:          lda template_push_tos,y
                 cmp #$ff
                 bne +
                 pla
-+               jsr cmpl_byte_a
++               jsr cmpl_a
                 iny
                 cpy #z_template_push_tos - template_push_tos
                 bne _copy
@@ -3816,24 +3816,24 @@ xt_marker:
                 ; Add the address of the runtime component
                 ldy #>marker_runtime
                 lda #<marker_runtime
-                jsr cmpl_word_ya
+                jsr cmpl_word
 
                 ; Add original CP as payload
                 ply                     ; MSB
                 pla                     ; LSB
-                jsr cmpl_word_ya
+                jsr cmpl_word
 
                 ; Add original DP as payload
                 ply                     ; MSB
                 pla                     ; LSB
-                jsr cmpl_word_ya
+                jsr cmpl_word
 
                 ; Add the user variables for the wordlists and search order.
                 ; We're compiling them in byte order.
                 ldy #4                  ; Start at CURRENT
 _marker_loop:
                 lda (up),y
-                jsr cmpl_byte_a
+                jsr cmpl_a
                 iny
                 tya
                 cmp #40                 ; One past the end of the search order.
@@ -4270,12 +4270,12 @@ xt_of:
                 ; Postpone over (eg. compile a jsr to it)
                 ldy #>xt_over
                 lda #<xt_over
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 ; Postpone = (EQUAL), that is, compile a jsr to it
                 ldy #>xt_equal
                 lda #<xt_equal
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 jsr xt_if
 
@@ -4283,7 +4283,7 @@ xt_of:
                 ; Postpone DROP (eg. compile a jsr to it)
                 ldy #>xt_drop
                 lda #<xt_drop
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
 z_of:           rts
 
@@ -4878,7 +4878,7 @@ _not_immediate:
                 ; Last, compile COMPILE,
                 ldy #>xt_compile_comma
                 lda #<xt_compile_comma
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 _done:
 z_postpone:     rts
 
@@ -5477,7 +5477,7 @@ _esc_replace:   bpl _save_character     ; simple replacement
                 ; handle specials with hi bit set (NUL and CR/LF)
                 and #$7F                ; clear hi bit
                 beq _save_character     ; NUL we can just output
-                jsr cmpl_byte_a              ; else output first char (CR)
+                jsr cmpl_a              ; else output first char (CR)
                 lda #10                 ; followed by LF
                 bra _save_character
 
@@ -5525,7 +5525,7 @@ _regular_char:
 _save_character:
                 ; If we didn't reach the end of the string, compile this
                 ; character into the dictionary
-                jsr cmpl_byte_a
+                jsr cmpl_a
 
 _next_character:
                 ; Move on to the next character.
@@ -5618,7 +5618,7 @@ xt_semicolon:
                 ; This is a :NONAME word - just put an RTS on the end and
                 ; the address (held in workword) on the stack.
                 lda #OpRTS
-                jsr cmpl_byte_a
+                jsr cmpl_a
 
                 dex
                 dex
@@ -5642,7 +5642,7 @@ _colonword:
                 ; Allocate one further byte and save the RTS instruction
                 ; there
                 lda #OpRTS
-                jsr cmpl_byte_a
+                jsr cmpl_a
 
                 ; Before we formally add the word to the Dictionary, we
                 ; check to see if it is already present, and if yes, we
@@ -6195,7 +6195,7 @@ xt_to:
 
                 ldy #>xt_store      ; write the runtime for !
                 lda #<xt_store
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 bra _done
 
@@ -7230,7 +7230,7 @@ xt_until:
                 lda zero_test_runtime,y
                 cmp #OpRTS
                 beq +
-                jsr cmpl_byte_a
+                jsr cmpl_a
 +
                 iny
                 cpy #(zero_test_footer_end - zero_test_runtime)
@@ -7313,7 +7313,7 @@ xt_while:
                 ; Compile a 0branch
                 ldy #>zero_branch_runtime
                 lda #<zero_branch_runtime
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 ; Put the address (here) where the destination
                 ; address needs to go so it can be put there later.
@@ -7322,7 +7322,7 @@ xt_while:
                 ; Fill in the destination address with $FFFF (optimizable)
                 lda #$FF
                 tay
-                jsr cmpl_word_ya
+                jsr cmpl_word
 
                 ; Swap the two addresses on the stack.
                 jsr xt_swap

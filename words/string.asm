@@ -580,17 +580,17 @@ cmpl_two_literal:
                 ; cells, not just one
                 ldy #>sliteral_runtime
                 lda #<sliteral_runtime
-                jsr cmpl_call_ya
+                jsr cmpl_subroutine
 
                 ; We want to have the address end up as NOS and the length
                 ; as TOS, so we store the address first
                 ldy 3,x                ; address MSB
                 lda 2,x                ; address LSB
-                jsr cmpl_word_ya
+                jsr cmpl_word
 
                 ldy 1,x                ; length MSB
                 lda 0,x                ; length LSB
-                jsr cmpl_word_ya
+                jsr cmpl_word
 
                 ; clean up and leave
                 inx
