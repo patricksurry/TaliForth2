@@ -118,6 +118,14 @@ char w       ' digit?        cycle_test 2drop
              ' do?word1      cycle_test           
 : do?word2 100 0 ?do i drop loop ;
              ' do?word2      cycle_test           
+nc-limit @
+255 nc-limit !
+: fib1 0 1 rot 0 ?do over + swap loop drop ;
+0 nc-limit !
+: fib2 0 1 rot 0 ?do over + swap loop drop ;
+nc-limit !
+100          ' fib1          cycle_test drop      
+100          ' fib2          cycle_test drop      
 : doword 100 0 do loop ;
              ' doword        cycle_test           
 : dowordi 100 0 do i drop loop ;

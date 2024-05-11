@@ -1123,8 +1123,10 @@ _check_limit:
                 bne cmpl_inline         ; always natively compile
 
 cmpl_by_limit:
+                ; Compile either inline or as subroutine depending on
+                ; whether native code size <= user limit
+                ; Returns C=1 if native, C=0 if subroutine
                 ; ( xt u )
-                ; Finally check whether native code size <= user limit
                 ldy #nc_limit_offset+1
                 lda 1,x                 ; MSB of word size
                 cmp (up),y              ; user-defined limit MSB
@@ -1138,7 +1140,7 @@ cmpl_by_limit:
                 bcs cmpl_inline         ; not bigger, so good to go
 
 cmpl_as_call:
-        ; Compile xt as a subroutine call
+        ; Compile xt as a subroutine call, return with C=0
         ; Stack is either ( xt nt ) or ( xt u )
                 inx             ; either way drop TOS
                 inx
@@ -1146,17 +1148,13 @@ cmpl_call_tos:
                 ; ( xt -- )
                 lda #OpJSR
                 jsr cmpl_a
-                jmp xt_comma
+                jsr xt_comma
+                clc
+                rts
 
-cmpl_inline_y:
-        ; Alternative entry point to compile Y bytes from addr TOS to CP
-                dex                 ; push Y TOS
-                dex
-                sty 0,x
-                stz 1,x
-                ; ( src y -- )
 
 cmpl_inline:
+        ; compile inline, returning C=1
                 ; ( xt u -- )
                 jsr xt_here
                 jsr xt_swap
@@ -1165,7 +1163,9 @@ cmpl_inline:
                 jsr xt_allot            ; allocate space for the word
                 ; Enough of this, let's move those bytes already!
                 ; ( xt cp u ) on the stack at this point
-                jmp xt_move
+                jsr xt_move
+                sec
+                rts
 
 
 check_strip_table:
@@ -1723,18 +1723,28 @@ z_depth:        rts
 xt_question_do:
                 ; ?DO shares most of its code with DO.
                 ; But first compile its runtime.
-                ; Set up stack for cmpl_inline_y ( src --   ; y = # bytes)
+                dex
+                dex
                 dex
                 dex
                 lda #<question_do_runtime
-                sta 0,x
+                sta 2,x
                 lda #>question_do_runtime
-                sta 1,x
-                ldy #question_do_runtime_end-question_do_runtime
-                jsr cmpl_inline_y
+                sta 3,x
+                lda #question_do_runtime_size
+                sta 0,x
+                stz 1,x
+                jsr cmpl_by_limit
+                bcs _native
 
-                ; We'll skip the loop if limit = start
-                ; add a placeholder jump and push the addr of jmp-target
+                ; for subroutine compile, write placeholder for jmp-target and save its address
+                jsr xt_here
+                jsr xt_zero
+                jsr xt_comma
+                bra do_common
+
+_native:
+                ; for native compile, add the placeholder jump, saving its address
                 jsr cmpl_jump_later
                 bra do_common
 
@@ -1802,17 +1812,22 @@ question_do_runtime:
                 ; if TOS == NOS we skip the loop and drop the limits
                 lda 0,x
                 cmp 2,x
-                bne question_do_begin
+                bne _begin
                 lda 1,x
                 cmp 3,x
-                bne question_do_begin
-                inx                     ; drop loop limits
+                bne _begin
+                inx                     ; drop loop limits and skip
                 inx
                 inx
                 inx
-question_do_runtime_end:
-        ; we'll add a placeholder jmp here which skips the loop body
-question_do_begin = * + 3
+question_do_runtime_size = * - question_do_runtime
+                ; for native compilation we stop here and ?DO will tack on a JMP <skip-addr>
+                ; for subroutine compile we set up A for zbranch_runtime
+                lda #0
+                .byte $2c               ; BIT llhh to hide the lda #1
+_begin:         lda #1
+                jmp zbranch_runtime
+
 
 
 do_runtime:
@@ -1825,8 +1840,7 @@ do_runtime:
         ; it is reached; see http://forum.6502.org/viewtopic.php?f=9&t=2026
         ; for further discussion of this. The source given there for
         ; this idea is Laxen & Perry F83. -- This routine is called (DO)
-        ; in some Forths. Usually, we would define this as a separate word
-        ; and compile it with COMPILE, and the Always Native (AN) flag.
+        ; in some Forths.
         ; """
                 ldy loopctrl
                 bmi +                   ; is this the first LCB?
@@ -3005,18 +3019,18 @@ z_if:           rts
 
 
 cmpl_ztest:
-        dex
-        dex
-        dex
-        dex
-        lda #<ztest_runtime
-        sta 2,x
-        lda #>ztest_runtime
-        sta 3,x
-        lda #ztest_runtime_size
-        sta 0,x
-        stz 1,x
-        jmp cmpl_by_limit               ; conditionally compile as JSR or native
+                dex
+                dex
+                dex
+                dex
+                lda #<ztest_runtime
+                sta 2,x
+                lda #>ztest_runtime
+                sta 3,x
+                lda #ztest_runtime_size
+                sta 0,x
+                stz 1,x
+                jmp cmpl_by_limit               ; conditionally compile as JSR or native
 
 
 ztest_runtime:
@@ -3029,66 +3043,41 @@ ztest_runtime_size = * - ztest_runtime
                 rts
 
 
-cmpl_zbranch_later:
-        ; compile a forward zbranch where we don't have the target address yet,
-        ; returning a pointer to the placeholder address so we can update later
-                jsr xt_here             ; placeholder will be at HERE + 4
-                clc
-                lda #4
-                adc 0,x
-                sta 0,x
-                bcc +
-                inc 1,x
-+
-                jsr xt_zero             ; just use 0 as the placeholder
-
-                ldy #1
-                bra cmpl_zbranch_common
 
 cmpl_zbranch_tos:
         ; compile a zbranch to the address TOS, which branches on A=0
         ; we have an efficient inline form, but could also use jsr + two-byte payload
         ; with the latter reserved for future use...
 
-        ; long story short, the native form is either:
-        ;
-        ;       tay             ; test A=0
-        ;       beq target      ; relative branch if nearby target
-        ;
-        ; or, if the target is far away:
-        ;
-        ;       tay
-        ;       bne +3
-        ;       jmp target      ; regular jump
-
-                ldy #0
-
-cmpl_zbranch_common:
-                lda #$a8        ; TAY opcode
-                jsr cmpl_a
-
-                tya             ; did we come from cmpl_zbranch_later ?
-                bne _long
-
                 ; check if we can use a short relative branch or need a long jmp
                 ; namely if addr - (here + 2) fits in a signed char
                 jsr xt_dup
                 jsr xt_here
-                jsr xt_two
-                jsr xt_plus
+                clc
+                lda #2
+                adc 0,x
+                sta 0,x
+                bcc +
+                inc 1,x
++
                 jsr xt_minus
-                inx             ; pre-drop and wraparound to preserve flags
+                ; ( target offset )
+                ; check if offset fits in unsigned char
+                ; pre-drop offset and access with wraparound to preserve flags
+                inx
                 inx
                 lda $ff,x
-                tay             ; Y=MSB
+                tay             ; Y=MSB of offset
                 lda $fe,x       ; A=LSB, setting N flag
                 bmi _minus
                 cpy #0          ; if LSB is positive we need MSB = 0
                 bra +
 _minus:         cpy #$ff        ; if LSB is negative we need MSB = ff
-+               bne _long
++               bne cmpl_zbranch_long
 
-                ; short relative branch will work!
+                ; short relative branch will work!  emit code like:
+                ;
+                ;       beq target      ; relative branch if nearby target
 
                 lda #OpBEQ
                 jsr cmpl_a
@@ -3096,21 +3085,36 @@ _minus:         cpy #$ff        ; if LSB is negative we need MSB = ff
                 jsr cmpl_a
                 inx             ; drop the original address
                 inx
-                bra _done
+                rts
 
-_long:          ; need a long jmp skipped with a BNE
+cmpl_zbranch_later:
+        ; alternate entry to compile a forward zbranch when we don't have the target yet.
+        ; returns a pointer to the placeholder address so we can update it later
+                jsr xt_here             ; placeholder will be at HERE + 3
+                clc
+                lda #3
+                adc 0,x
+                sta 0,x
+                bcc +
+                inc 1,x
++
+                jsr xt_zero             ; just use 0 as the placeholder
+
+cmpl_zbranch_long:
+                ; too far (or unknown) so emit code like:
+                ;
+                ;       bne +3
+                ;       jmp target
+
                 lda #OpBNE
                 jsr cmpl_a
                 lda #3
                 jsr cmpl_a
-                jsr cmpl_jump_tos
-_done:
-                rts
+                jmp cmpl_jump_tos
 
 
-.if 0           ; reserved for future use
 zbranch_runtime:
-        ; if A=0, branch to the address following the call here
+        ; if A=0, branch to the address following the jsr call here
         ; otherwise skip that address and continue
                 ply
                 sty tmp1
@@ -3145,7 +3149,6 @@ _branch:
 _jmp:
                 ; However we got here, tmp1 has the address to jump to.
                 jmp (tmp1)
-.endif
 
 
 
@@ -3461,7 +3464,6 @@ z_template_push_tos:
 
 
 literal_runtime:
-
                 ; During runtime, we push the value following this word back
                 ; on the Data Stack. The subroutine jump that brought us
                 ; here put the address to return to on the Return Stack -
@@ -3509,17 +3511,18 @@ literal_runtime:
         ;       IMMEDIATE ; COMPILE-ONLY
         ; """
 xt_loop:
-                ; Copy the runtime specific to loop,
-                ; ie. Y bytes from loop_runtime
+                ; Compile LOOP-specific runtime
+                dex
+                dex
                 dex
                 dex
                 lda #<loop_runtime
-                sta 0,x
+                sta 2,x
                 lda #>loop_runtime
-                sta 1,x
-
-                ldy #loop_runtime_end-loop_runtime
-                jsr cmpl_inline_y
+                sta 3,x
+                lda #loop_runtime_size
+                sta 0,x
+                stz 1,x
 
                 ; Now compile the runtime shared with +LOOP
                 bra xt_loop_common
@@ -3540,27 +3543,37 @@ xt_loop:
         ; """
 
 xt_plus_loop:
-                ; Compile the run-time part.
-                ; ie. Y bytes from plus_loop_runtime
+                ; Compile +LOOP-specific runtime
+                dex
+                dex
                 dex
                 dex
                 lda #<plus_loop_runtime
-                sta 0,x
+                sta 2,x
                 lda #>plus_loop_runtime
-                sta 1,x
-
-                ldy #plus_loop_runtime_end-plus_loop_runtime
-                jsr cmpl_inline_y
+                sta 3,x
+                lda #plus_loop_runtime_size
+                sta 0,x
+                stz 1,x
 
                 ; fall through to shared runtime
 
 xt_loop_common:
+                jsr cmpl_by_limit
+
                 ; The address we need to loop back to is TOS
                 ; ( qdo-skip old-loopleave repeat-addr )
 
-                ; Write the JMP repeat-addr after either loop runtime
-                ; repeating the loop body
+                bcs _native
+
+                ; if non-native, just write repeat-addr as payload after the call
+                jsr xt_comma
+                bra +
+
+_native:
+                ; if native, write the JMP repeat-addr after either loop runtime
                 jsr cmpl_jump_tos
++
 
                 ; any LEAVE words want to jmp to the unloop we'll write here
                 ; so follow the linked list and update them
@@ -3629,8 +3642,8 @@ loop_runtime:
                 ; so we need to increment loopindex and
                 ; and look for overflow as explained in do_runtime
 
-                inc loopidx0        ; increment the LSB of loopindex
-                bne _repeat         ; avoid expensive test most of the time
+                inc loopidx0            ; increment the LSB of loopindex
+                bne _repeat             ; avoid expensive test most of the time
 
                 ; we might be done so need to inc and check the MSB
 
@@ -3640,11 +3653,16 @@ loop_runtime:
                 lda loopindex+1,y
                 ina
                 cmp #$80
-                beq _repeat+3       ; done?  skip jmp back
+                beq _done
                 sta loopindex+1,y
-_repeat:        ; LOOP/+LOOP will tack on a JMP <repeat-addr> at compile time
-                ; This is why this routine must be natively compiled:
-loop_runtime_end:
+loop_runtime_size = * - loop_runtime
+_repeat:
+                ; for native compilation we stop here and LOOP/+LOOP will tack on a JMP <repeat-addr>
+                ; for subroutine compile we set up A for zbranch_runtime
+                lda #0
+                .byte $2c               ; BIT llhh to hide the lda #1
+_done:          lda #1
+                jmp zbranch_runtime
 
 
 plus_loop_runtime:
@@ -3658,27 +3676,32 @@ plus_loop_runtime:
         ; """
 
                 clc
-                lda 0,x             ; LSB of step
+                lda 0,x                 ; LSB of step
                 adc loopidx0
                 sta loopidx0
 
-                inx                 ; dump step from TOS before MSB test
-                inx                 ; since we might skip it
-                lda $FF,x           ; MSB of step since 1,x == -1,x+2
-                bne _chkv           ; if it's non-zero we have to check
-                bcc _repeat         ; but if 0 and no carry, we're good
+                inx                     ; dump step from TOS before MSB test
+                inx                     ; since we might skip it
+                lda $FF,x               ; MSB of step since 1,x == -1,x+2
+                bne _chkv               ; if it's non-zero we have to check
+                bcc _repeat             ; but if 0 and no carry, we're good
 
 _chkv:          clv
-                ldy loopctrl        ; get LCB offset
-                adc loopindex+1,y   ; MSB of index
-                sta loopindex+1,y   ; put MSB of index back on stack
+                ldy loopctrl            ; get LCB offset
+                adc loopindex+1,y       ; MSB of index
+                sta loopindex+1,y       ; put MSB of index back on stack
 
                 ; If V flag is set, we're done looping and continue
                 ; after the +LOOP instruction
-                bvs _repeat+3     ; skip over JMP instruction
-_repeat:        ; LOOP/+LOOP will tack on a JMP <repeat-addr> at compile time
-                ; This is why this routine must be natively compiled:
-plus_loop_runtime_end:
+                bvs _done               ; skip over JMP instruction
+plus_loop_runtime_size = * - plus_loop_runtime
+_repeat:
+                ; for native compilation we stop here and LOOP/+LOOP will tack on a JMP <repeat-addr>
+                ; for subroutine compile we set up A and continue with ztest_runtime
+                lda #0
+                .byte $2c               ; BIT llhh to hide the lda #1
+_done:          lda #1
+                jmp zbranch_runtime
 
 
 
