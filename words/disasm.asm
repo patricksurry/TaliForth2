@@ -253,8 +253,7 @@ _dispatch_handler:
 _special_handlers:
     .word literal_runtime,      disasm_literal
     .word sliteral_runtime,     disasm_sliteral
-    .word zero_branch_runtime,  disasm_0branch
-    .word zero_test_runtime,    disasm_0test
+    .word ztest_runtime,        disasm_0test
     .word do_runtime,           disasm_do
 _end_handlers:
 
@@ -447,19 +446,6 @@ disasm_sliteral:
                 stz 1,x
                 jsr xt_minus            ; ( addr+4 u-4 )
                 rts
-
-
-; 0BRANCH handler
-disasm_0branch:
-                lda #'0'
-                jsr emit_a ; Print 0 before BRANCH so it becomes 0BRANCH
-                ; All other processing is identical, so fall into BRANCH handler
-; BRANCH handler
-disasm_branch:
-                lda #str_disasm_bra
-                jsr print_string_no_lf ; "BRANCH "
-                ; The address after the 0BRANCH is handled the same as a literal.
-                bra disasm_print_literal
 
 disasm_0test:
                 lda #str_disasm_0test

@@ -146,8 +146,23 @@ nt_c_store:
 
 nt_plus_store:
         .byte 2, UF
-        .word nt_execute, xt_plus_store, z_plus_store
+        .word nt_zero, xt_plus_store, z_plus_store
         .text "+!"
+
+nt_zero:
+        .byte 1, 0
+        .word nt_one, xt_zero, z_zero
+        .text "0"
+
+nt_one:
+        .byte 1, 0
+        .word nt_two, xt_one, z_one
+        .text "1"
+
+nt_two:
+        .byte 1, 0
+        .word nt_execute, xt_two, z_two
+        .text "2"
 
 nt_execute:
         .byte 7, UF
@@ -221,23 +236,8 @@ nt_true:
 
 nt_space:
         .byte 5, 0
-        .word nt_zero, xt_space, z_space
+        .word nt_two_dup, xt_space, z_space
         .text "space"
-
-nt_zero:
-        .byte 1, 0
-        .word nt_one, xt_zero, z_zero
-        .text "0"
-
-nt_one:
-        .byte 1, 0
-        .word nt_two, xt_one, z_one
-        .text "1"
-
-nt_two:
-        .byte 1, 0
-        .word nt_two_dup, xt_two, z_two
-        .text "2"
 
 nt_two_dup:
         .byte 4, UF

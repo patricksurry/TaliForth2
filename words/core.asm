@@ -1054,7 +1054,7 @@ xt_compile_comma:
                 ; Does this xt even have a valid (non-zero) nt?
                 lda 0,x
                 ora 1,x
-                beq _compile_as_jsr      ; No nt so unknown size; must compile as a JSR
+                beq cmpl_as_call        ; No nt so unknown size; must compile as a JSR
 
 _check_nt:
                 jsr xt_dup
@@ -1066,7 +1066,7 @@ _check_nt:
                 ; ( xt nt )
                 sta tmp3                ; keep copy of status byte
                 and #NN
-                bne _compile_as_jsr     ; never native
+                bne cmpl_as_call        ; never native
 
 _maybe_native:
                 ; ( xt nt )
@@ -1075,77 +1075,7 @@ _maybe_native:
 
                 ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHING ---
 
-                ; Native compiling allows us to strip the stack antics off
-                ; a number of words that use the Return Stack such as >R, R>,
-                ; 2>R and 2R> (but not 2R@ in this version). We compare the
-                ; xt with the contents of the table
-                ldy #0
-
-_strip_loop:
-                lda strip_table,y       ; LSB of first word
-                cmp 2,x                 ; LSB of xt
-                bne _next_entry
-
-                ; LSB is the same, test MSB
-                lda strip_table+1,y
-                cmp 3,x
-                beq _found_entry
-
-                ; MSB is not equal. Pretend though that we've come from LSB
-                ; so we can use the next step for both cases
-_next_entry:
-                ; Not a word that needs stripping, so check next entry in table
-
-                iny
-                iny
-                cpy #strip_table_size
-                bne _strip_loop
-                beq _underflow_strip
-
-
-_compile_as_jsr:
-        ; Compile xt as a subroutine call
-        ; Stack is either ( xt nt ) or ( xt u )
-                inx             ; either way drop TOS
-                inx
-                jmp cmpl_call_tos
-
-_found_entry:
-                ; This word is one of the ones that needs to have its size
-                ; adjusted during native compile. We find the values in the
-                ; next table with the same index, which is Y. However, Y is
-                ; pointing to the MSB, so we need to go back to the LSB and
-                ; halve the index before we can use it.
-                tya
-                lsr
-                tay
-
-                ; Get the adjustment out of the size table. We were clever
-                ; enough to make sure the cut on both ends of the code is
-                ; is the same size.
-                lda strip_size,y
-                pha                     ; save a copy
-
-                ; Start later: xt += sz
-                clc
-                adc 2,x
-                sta 2,x
-                bcc +
-                inc 3,x                 ; we just care about the carry
-+
-                ; Quit earlier: u -= 2 * sz
-                pla
-                asl a                   ; Double to cut off both top and bottom.
-                ; use negated subtraction trick:
-                ; LSB - A == - ( A - LSB ) == 255 - ( A - LSB - 1 )
-                ; carry is clear because 2*sz is less than 256
-                sbc 0,x
-                eor #$ff
-                sta 0,x
-                bcc +                   ; note inverted carry check
-                dec 1,x                 ; we just care about the borrow
-+
-                ; drop through to underflow check stripping
+                jsr check_strip_table
 
 _underflow_strip:
                 ; --- SPECIAL CASE 2: REMOVE UNDERFLOW CHECKING ---
@@ -1192,18 +1122,39 @@ _check_limit:
                 and #AN                 ; check Always Native (AN) bit
                 bne cmpl_inline         ; always natively compile
 
+cmpl_by_limit:
+                ; ( xt u )
                 ; Finally check whether native code size <= user limit
                 ldy #nc_limit_offset+1
                 lda 1,x                 ; MSB of word size
                 cmp (up),y              ; user-defined limit MSB
                 bcc cmpl_inline         ; borrow (C=1) means size < limit
-                bne _compile_as_jsr     ; else non-zero means size > limit
+                bne cmpl_as_call        ; else non-zero means size > limit
 
                 ; Check the wordsize LSB against the user-defined limit.
                 dey
                 lda (up),y              ; user-defined limit LSB
                 cmp 0,x
-                bmi _compile_as_jsr     ; size is too big
+                bcs cmpl_inline         ; not bigger, so good to go
+
+cmpl_as_call:
+        ; Compile xt as a subroutine call
+        ; Stack is either ( xt nt ) or ( xt u )
+                inx             ; either way drop TOS
+                inx
+cmpl_call_tos:
+                ; ( xt -- )
+                lda #OpJSR
+                jsr cmpl_a
+                jmp xt_comma
+
+cmpl_inline_y:
+        ; Alternative entry point to compile Y bytes from addr TOS to CP
+                dex                 ; push Y TOS
+                dex
+                sty 0,x
+                stz 1,x
+                ; ( src y -- )
 
 cmpl_inline:
                 ; ( xt u -- )
@@ -1214,27 +1165,85 @@ cmpl_inline:
                 jsr xt_allot            ; allocate space for the word
                 ; Enough of this, let's move those bytes already!
                 ; ( xt cp u ) on the stack at this point
-                jsr xt_move
+                jmp xt_move
+
+
+check_strip_table:
+                ; Native compiling allows us to strip the stack antics off
+                ; a number of words that use the Return Stack such as >R, R>,
+                ; 2>R and 2R> (but not 2R@ in this version). We compare the
+                ; xt with the contents of the table
+                ldy #0
+
+_strip_loop:
+                lda _strip_table,y       ; LSB of first word
+                cmp 2,x                 ; LSB of xt
+                bne _next_entry
+
+                ; LSB is the same, test MSB
+                lda _strip_table+1,y
+                cmp 3,x
+                beq _found_entry
+
+                ; MSB is not equal. Pretend though that we've come from LSB
+                ; so we can use the next step for both cases
+_next_entry:
+                ; Not a word that needs stripping, so check next entry in table
+
+                iny
+                iny
+                cpy #_strip_table_size
+                bne _strip_loop
+
                 rts
 
-cmpl_inline_y:
-        ; Alternative entry point to compile Y bytes from addr TOS to CP
-                dex                 ; push Y TOS
-                dex
-                sty 0,x
-                stz 1,x
-                ; ( src y -- )
-                bra cmpl_inline
 
-strip_table:
+_found_entry:
+                ; This word is one of the ones that needs to have its size
+                ; adjusted during native compile. We find the values in the
+                ; next table with the same index, which is Y. However, Y is
+                ; pointing to the MSB, so we need to go back to the LSB and
+                ; halve the index before we can use it.
+                tya
+                lsr
+                tay
+
+                ; Get the adjustment out of the size table. We were clever
+                ; enough to make sure the cut on both ends of the code is
+                ; is the same size.
+                lda _strip_size,y
+                pha                     ; save a copy
+
+                ; Start later: xt += sz
+                clc
+                adc 2,x
+                sta 2,x
+                bcc +
+                inc 3,x                 ; we just care about the carry
++
+                ; Quit earlier: u -= 2 * sz
+                pla
+                asl a                   ; Double to cut off both top and bottom.
+                ; use negated subtraction trick:
+                ; LSB - A == - ( A - LSB ) == 255 - ( A - LSB - 1 )
+                ; carry is clear because 2*sz is less than 256
+                sbc 0,x
+                eor #$ff
+                sta 0,x
+                bcc +                   ; note inverted carry check
+                dec 1,x                 ; we just care about the borrow
++
+                rts
+
+_strip_table:
                ; List of words we strip the Return Stack antics from
                ; during native compile. The index here
                ; must be the same as for the sizes
                 .word xt_r_from, xt_r_fetch, xt_to_r    ; R>, R@, >R
                 .word xt_two_to_r, xt_two_r_from        ; 2>R, 2R>
-strip_table_size = * - strip_table
+_strip_table_size = * - _strip_table
 
-strip_size:
+_strip_size:
                 ; List of bytes to be stripped from both the start and end
                 ; of words that get their Return Stack antics removed.
                 ; Index must be the same as for the xts.
@@ -2101,103 +2110,22 @@ xt_then:
 
                 ; This is a compile-time word that writes the target address
                 ; of an earlier forward branch.  For example xt_if writes
-                ; BRANCH0 <placeholder> which wants to skip forward to here
+                ; zbranch <placeholder> which wants to skip forward to here
                 ; if the condition is false.  The orig argument on the stack
                 ; is the address of the placeholder which needs to point here.
                 ;
                 ; Note this is also used by several other words that write
                 ; a forward branch, like xt_else and xt_while.
-                ;
-                ; Our compiled output so far looks like this:
-                ;
-                ;       jsr zero_branch_runtime   ; or an unconditional jmp
-                ; orig:
-                ;       lsb msb  ; placeholder address = $FFFF if optimizable
-                ; ...
-                ; here:
-                ;
-                ; Normally we'd just write `here` into the placeholder address bytes.
-                ; But in some cases we can optimize using a native BEQ instead.
-                ; This requires (a) the original address is the target of 0BRANCH
-                ; and (b) here - orig - 2 is less than 128 (max native branch).
-                ; In such a case we rewrite the code as
-                ;
-                ;       jsr zero_test_runtime       ; drops TOS setting Z status bit
-                ; orig:
-                ;       beq (here - orig - 2)       ; in place of target address
 
-                ; We want to branch from orig to here, so stack it
-                jsr xt_here
-
-                ; First check if orig is the target of 0BRANCH,
-                ; indicated by a placeholder of $FFFF instead of the usual 0
-
-                lda (2,x)           ; get LSB at orig
-                ina                 ; was LSB $FF?  (only check for $XXFF)
-                bne _no_opt
-
-                ; We have a candidate, but is it close enough?
-
-                jsr xt_two_dup
-                jsr xt_swap
-                jsr xt_minus        ; ( C: orig here offset )
-                lda 1,x
-                bne _too_far        ; MSB must be zero
-                lda 0,x
-                dea                 ; we want here - orig - 2
-                dea                 ; don't care about carry
-                bmi _too_far        ; up to 127 is ok
-
-                ; phew, we can actually optimize as native BEQ
-
-                sta 0,x             ; stash offset - 2
-
-                sec                 ; put orig - 2 in tmp1
-                lda 4,x
-                sbc #2
-                sta tmp1
-                lda 5,x
-                sbc #0
-                sta tmp1+1
-
-                ; replace 0branch runtime with 0test that just sets Z
-                ldy #0
--
-                lda beq_opt+1,y               ; skip the jsr
-                sta (tmp1),y
-                iny
-                cpy #(beq_opt_end-beq_opt-2)  ; three bytes, skip jsr and offset
-                bne -
-                lda 0,x             ; write the offset
-                sta (tmp1),y
-
-                inx                 ; clear the stack
-                inx
-                inx
-                inx
-                inx
-                inx
-                rts                 ; all done
-
-_too_far:
-                inx                 ; discard the offset we calculated
-                inx
-_no_opt:
                 ; Just stuff HERE in for the branch address back
                 ; at the IF or ELSE (origination address is on stack).
+                jsr xt_here
                 jsr xt_swap
                 jsr xt_store
 
 z_else:
 z_endof:
 z_then:         rts
-
-
-beq_opt:
-                jsr zero_test_runtime       ; replaces jsr zero_branch_runtime
-                beq beq_opt_end             ; the beq overwrites the placeholder
-                                            ; address with a calculated offset
-beq_opt_end:
 
 
 
@@ -3071,85 +2999,153 @@ z_i:            rts
         ; """http://forth-standard.org/standard/core/IF"""
 
 xt_if:
-                ; Compile a 0BRANCH
-                ldy #>zero_branch_runtime
-                lda #<zero_branch_runtime
-                jsr cmpl_subroutine
-
-                ; Put the origination address on the stack for else/then
-                jsr xt_here
-
-                ; Use $FFFF for the branch address to flag as optimizable
-                ; THEN or ELSE will fix it later.
-                lda #$FF
-                tay
-                jsr cmpl_word
+                jsr cmpl_ztest
+                jsr cmpl_zbranch_later
 z_if:           rts
 
 
-zero_test_runtime:
+cmpl_ztest:
+        dex
+        dex
+        dex
+        dex
+        lda #<ztest_runtime
+        sta 2,x
+        lda #>ztest_runtime
+        sta 3,x
+        lda #ztest_runtime_size
+        sta 0,x
+        stz 1,x
+        jmp cmpl_by_limit               ; conditionally compile as JSR or native
+
+
+ztest_runtime:
         ; Drop TOS of stack setting Z flag, for optimizing short branches (see xt_then)
                 inx
                 inx
                 lda $FE,x           ; wraparound so inx doesn't wreck Z status
                 ora $FF,x
+ztest_runtime_size = * - ztest_runtime
                 rts
 
-    ; footer for inline zero_test_runtime used in xt_until (excluding the rts)
-                bne zero_test_footer_end+2  ; branch fwd if non-zero
-                .byte OpJMP                 ; else JMP back
-zero_test_footer_end:
 
-
-zero_branch_runtime:
-        ; """In some Forths, this is called (0BRANCH). Tali Forth originally
-        ; included 0BRANCH as a high-level word that inserted this code at
-        ; runtime.
-        ; """
-
-                ; We use the return value on the 65c02 stack to determine
-                ; where we want to return to.  It points one byte before
-                ; the branch target address.
-                pla
-                sta tmp1
-                pla
-                sta tmp1+1
-
-                ; See if the flag is zero, which is the whole purpose of
-                ; this all
-                lda 0,x
-                ora 1,x
-                beq _zero
-
-                ; Flag is TRUE, so we skip over the next two bytes. This is
-                ; the part between IF and THEN
-                lda tmp1        ; LSB
+cmpl_zbranch_later:
+        ; compile a forward zbranch where we don't have the target address yet,
+        ; returning a pointer to the placeholder address so we can update later
+                jsr xt_here             ; placeholder will be at HERE + 4
                 clc
-                adc #3          ; add one to RTS address plus two address bytes
-                sta tmp1
-                bcc _jump
-                inc tmp1+1      ; MSB
-                bra _jump
+                lda #4
+                adc 0,x
+                sta 0,x
+                bcc +
+                inc 1,x
++
+                jsr xt_zero             ; just use 0 as the placeholder
 
-_zero:
+                ldy #1
+                bra cmpl_zbranch_common
+
+cmpl_zbranch_tos:
+        ; compile a zbranch to the address TOS, which branches on A=0
+        ; we have an efficient inline form, but could also use jsr + two-byte payload
+        ; with the latter reserved for future use...
+
+        ; long story short, the native form is either:
+        ;
+        ;       tay             ; test A=0
+        ;       beq target      ; relative branch if nearby target
+        ;
+        ; or, if the target is far away:
+        ;
+        ;       tay
+        ;       bne +3
+        ;       jmp target      ; regular jump
+
+                ldy #0
+
+cmpl_zbranch_common:
+                lda #$a8        ; TAY opcode
+                jsr cmpl_a
+
+                tya             ; did we come from cmpl_zbranch_later ?
+                bne _long
+
+                ; check if we can use a short relative branch or need a long jmp
+                ; namely if addr - (here + 2) fits in a signed char
+                jsr xt_dup
+                jsr xt_here
+                jsr xt_two
+                jsr xt_plus
+                jsr xt_minus
+                inx             ; pre-drop and wraparound to preserve flags
+                inx
+                lda $ff,x
+                tay             ; Y=MSB
+                lda $fe,x       ; A=LSB, setting N flag
+                bmi _minus
+                cpy #0          ; if LSB is positive we need MSB = 0
+                bra +
+_minus:         cpy #$ff        ; if LSB is negative we need MSB = ff
++               bne _long
+
+                ; short relative branch will work!
+
+                lda #OpBEQ
+                jsr cmpl_a
+                lda $fe,x
+                jsr cmpl_a
+                inx             ; drop the original address
+                inx
+                bra _done
+
+_long:          ; need a long jmp skipped with a BNE
+                lda #OpBNE
+                jsr cmpl_a
+                lda #3
+                jsr cmpl_a
+                jsr cmpl_jump_tos
+_done:
+                rts
+
+
+.if 0           ; reserved for future use
+zbranch_runtime:
+        ; if A=0, branch to the address following the call here
+        ; otherwise skip that address and continue
+                ply
+                sty tmp1
+                ply
+                sty tmp1+1
+
+                tay             ; test if A = 0 which tells us whether to branch
+                beq _branch
+
+                ; no branch, just skip the address bytes and erturn
+                clc
+                lda tmp1        ; LSB
+                adc #3          ; skip two bytes plus the extra for jsr/rts behavior
+                sta tmp1
+                bcc _jmp
+
+                inc tmp1+1
+                bra _jmp
+
+_branch:
                 ; Flag is FALSE (0) so we take the jump to the address given in
                 ; the next two bytes. However, the address points to the last
                 ; byte of the JSR instruction, not to the next byte afterwards
                 ldy #1
                 lda (tmp1),y
-                pha
+                pha                     ; stash the LSB until we've read the MSB too
                 iny
                 lda (tmp1),y
-                sta tmp1+1
+                sta tmp1+1              ; update tmp1 with our branch target
                 pla
                 sta tmp1
-
-_jump:
+_jmp:
                 ; However we got here, tmp1 has the address to jump to.
-                ; clean up the stack and jump
-                inx
-                inx
                 jmp (tmp1)
+.endif
 
 
 
@@ -5155,10 +5151,10 @@ z_refill:       rts
         ; """http://forth-standard.org/standard/core/REPEAT"""
 
 xt_repeat:
-                ; Run again first
+                ; Code the jump back to begin
                 jsr xt_again
 
-                ; Stuff HERE in for the branch address
+                ; Stuff HERE in for the branch address left by WHILE
                 ; to get out of the loop
                 jmp xt_then
 z_repeat:
@@ -7212,32 +7208,8 @@ z_unloop:       rts
         ; """http://forth-standard.org/standard/core/UNTIL"""
 xt_until:
                 ; The address to loop back to is on the stack.
-                ; We could do a 0BRANCH but we can optimize with native
-                ; branching.  We'll generate code like this:
-                ;
-                ; dest:
-                ;       ...
-                ; here:
-                ;       (inline zero_test_runtime)
-                ;       bne +3
-                ;       jmp dest
-                ;
-                ; we could be clever and use beq back if short enough
-                ; to avoid the jmp but it doesn't seem worth the two cycle/3 byte saving
-
-                ldy #0
--
-                lda zero_test_runtime,y
-                cmp #OpRTS
-                beq +
-                jsr cmpl_a
-+
-                iny
-                cpy #(zero_test_footer_end - zero_test_runtime)
-                bne -
-
-                ; add dest as the jmp target
-                jsr xt_comma
+                jsr cmpl_ztest
+                jsr cmpl_zbranch_tos
 
 z_until:        rts
 
@@ -7310,22 +7282,11 @@ z_variable:     rts
 ; ## "while"  auto  ANS core
         ; """http://forth-standard.org/standard/core/WHILE"""
 xt_while:
-                ; Compile a 0branch
-                ldy #>zero_branch_runtime
-                lda #<zero_branch_runtime
-                jsr cmpl_subroutine
-
-                ; Put the address (here) where the destination
-                ; address needs to go so it can be put there later.
-                jsr xt_here
-
-                ; Fill in the destination address with $FFFF (optimizable)
-                lda #$FF
-                tay
-                jsr cmpl_word
-
-                ; Swap the two addresses on the stack.
+                jsr cmpl_ztest                  ; test TOS
+                jsr cmpl_zbranch_later          ; branch to location we'll determine later
+                ; tuck the address of the branch placeholder under the repeat address left by begin
                 jsr xt_swap
+                ; ( branch-target repeat-target )
 
 z_while:        rts
 

@@ -205,6 +205,8 @@ AscCN   = $0E  ; CTRL-n (used to recall next input history)
 
 OpJSR   = $20
 OpJMP   = $4C
+OpBNE   = $D0
+OpBEQ   = $F0
 OpRTS   = $60
 OpBRA   = $80
 
