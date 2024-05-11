@@ -124,6 +124,23 @@ cmpl_jump_later:
                 bra cmpl_word_ya
 
 
+check_nc_limit:
+        ; compare A > 0 to nc-limit, setting C=0 if A <= nc-limit (should native compile)
+                pha
+                ldy #nc_limit_offset+1
+                clc
+                lda (up),y              ; if MSB non zero we're done, leave with C=0
+                bne _done
+
+                pla
+                dea                     ; simplify test to A-1 < nc-limit
+                dey
+                cmp (up),y              ; A-1 < LSB leaves C=0, else C=1
+                ina                     ; restore A
+_done:
+                rts
+
+
 ; =====================================================================
 ; CODE FIELD ROUTINES
 
@@ -416,7 +433,6 @@ compare_16bit:
                 ; LSBs are not equal, compare MSB
                 lda 1,x                 ; MSB of TOS
                 sbc 3,x                 ; MSB of NOS
-                ora #1                  ; Make zero flag 0 because not equal
                 bvs _overflow
                 bra _not_equal
 _equal:
@@ -428,7 +444,7 @@ _overflow:
                 ; Handle overflow because we use signed numbers
                 eor #$80                ; complement negative flag
 _not_equal:
-                ora #1                  ; if overflow, we can't be equal
+                ora #1                  ; set Z=0 since we're not equal
 _done:
                 rts
 

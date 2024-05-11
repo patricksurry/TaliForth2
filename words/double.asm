@@ -228,6 +228,16 @@ z_two_constant: rts
 xt_two_literal:
                 jsr underflow_2 ; double number
 
+                lda # z_template_push_tos - template_push_tos
+                asl
+                jsr check_nc_limit
+                bcs _no_inline
+
+                jsr xt_swap
+                jsr xt_literal
+                jmp xt_literal
+
+_no_inline:
                 jsr cmpl_two_literal
 
 z_two_literal:  rts

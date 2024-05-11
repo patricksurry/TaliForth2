@@ -1708,7 +1708,7 @@ z_depth:        rts
 
 
 
-; ## QUESTION_DO ( limit start -- )(R: -- limit start) "Conditional loop start"
+; ## QUESTION_DO ( limit start -- ) "Conditional loop start"
 ; ## "?do"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/qDO"""
 xt_question_do:
@@ -1730,15 +1730,13 @@ xt_question_do:
                 bra do_common
 
 
-; ## DO ( limit start -- )(R: -- limit start)  "Start a loop"
+; ## DO ( limit start -- )  "Start a loop"
 ; ## "do"  auto  ANS core
         ; """https://forth-standard.org/standard/core/DO
         ;
         ; Compile-time part of DO. Could be realized in Forth as
         ;       : DO POSTPONE (DO) HERE ; IMMEDIATE COMPILE-ONLY
-        ; but we do it in assembler for speed. To work with LEAVE, we compile
-        ; a routine that pushes the end address to the Return Stack at run
-        ; time. This is based on a suggestion by Garth Wilson, see
+        ; but we do it in assembler for speed. See
         ; the Control Flow section of the manual for details.
         ;
         ; This is never native compile. Don't check for a stack underflow
@@ -1759,7 +1757,7 @@ do_common:
                 ; will link backward to any prior LEAVE.
                 ; To handle nested loops we stack the current value
                 ; of loopleave here and restore it in xt_loop
-                ; after we write any chained jmps for the current loop
+                ; after we write any chained jumps for the current loop
 
                 ; save current loopleave in case we're nested
                 dex
@@ -1834,7 +1832,8 @@ do_runtime:
 
                 ; data stack has ( limit index -- )
                 ;
-                ; We're going to calculate adjusted loop bounds:
+                ; We're going to calculate adjusted loop bounds
+                ; and store the values in the current LCB:
                 ;
                 ;   loopfufa = $8000 - limit
                 ;   loopindex = loopfufa + index
@@ -1855,8 +1854,6 @@ do_runtime:
                 sbc 3,x             ; MSB of limit
                 sta loopfufa+1,y
 
-                ; ( $8000-limit index --  R: $8000-limit )
-
                 ; Second step: index is FUFA plus original index
                 clc
                 lda 0,x             ; LSB of original index
@@ -1870,8 +1867,6 @@ do_runtime:
                 inx
                 inx
                 inx
-
-                ; ( R: $8000-limit  $8000-limit+index )
 
                 rts
 
@@ -3042,7 +3037,7 @@ z_hold:         rts
 
 
 
-; ## I ( -- n )(R: n -- n)  "Copy loop counter to stack"
+; ## I ( -- n )  "Copy loop counter to stack"
 ; ## "i"  auto  ANS core
         ; """https://forth-standard.org/standard/core/I
         ; See definitions.asm and the Control Flow section of the manual.
@@ -3093,7 +3088,7 @@ z_if:           rts
 
 
 zero_test_runtime:
-        ; Drop TOS of stack setting Z flag, for optimizing short brances (see xt_then)
+        ; Drop TOS of stack setting Z flag, for optimizing short branches (see xt_then)
                 inx
                 inx
                 lda $FE,x           ; wraparound so inx doesn't wreck Z status
@@ -3226,7 +3221,7 @@ z_is:           rts
 
 
 
-; ## J ( -- n ) (R: n -- n ) "Copy second loop counter to stack"
+; ## J ( -- n ) "Copy second loop counter to stack"
 ; ## "j"  auto  ANS core
         ; """https://forth-standard.org/standard/core/J
         ; Copy second loop counter from Return Stack to stack. Note we use
@@ -3408,6 +3403,10 @@ z_less_than:    rts
 xt_literal:
                 jsr underflow_1
 
+                lda # z_template_push_tos - template_push_tos
+                jsr check_nc_limit
+                bcc _inline
+
                 ldy #>literal_runtime
                 lda #<literal_runtime
                 jsr cmpl_call_ya
@@ -3415,8 +3414,55 @@ xt_literal:
                 ; Compile the value that is to be pushed on the Stack during
                 ; runtime
                 jsr xt_comma
+                bra z_literal
+
+_inline:        ; we'll need two or three values to fill in our template
+                ; so first we set up the stack in reverse order.
+                ; the first (last) item is a STY or STZ for the MSB
+                lda #$94        ; sty zp,x
+                ldy 1,x
+                bne +
+                lda #$74        ; stz zp,x
++
+                pha
+
+                ; next (second) we need the LSB of the literal
+                lda 0,x
+                pha
+                ; last (first) we need the MSB, but only if it's non-zero
+                ; we'll also arrange to leave Y=2 for no MSB and Y=0 otherwise
+                ; so that we can skip the initial ldy #msb when MSB is zero
+                tya             ; Y has the MSB
+                beq +
+                pha
+                lda #2
++
+                eor #2          ; invert A=0/2 to Y=2/0
+                tay
+
+_copy:          lda template_push_tos,y
+                cmp #$ff
+                bne +
+                pla
++               jsr cmpl_byte_a
+                iny
+                cpy #z_template_push_tos - template_push_tos
+                bne _copy
+
+                inx             ; drop the literal
+                inx
 
 z_literal:      rts
+
+template_push_tos:
+                ldy #$ff        ; we'll omit this if MSB is zero
+                lda #$ff
+                dex
+                dex
+                sta 0,x
+                .byte $ff, 1    ; this will become either sty 1,x or stz 1,x
+z_template_push_tos:
+
 
 literal_runtime:
 
@@ -7139,7 +7185,7 @@ z_um_star:      rts
 
 
 
-; ## UNLOOP ( -- )(R: n1 n2 n3 ---) "Drop loop control from Return stack"
+; ## UNLOOP ( -- ) "Drop current loop control block"
 ; ## "unloop"  auto  ANS core
         ; """https://forth-standard.org/standard/core/UNLOOP"""
 xt_unloop:
