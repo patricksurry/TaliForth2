@@ -4000,12 +4000,12 @@ marker_runtime:
                 lda (tmp1),y
                 sta dp+1
 
-                ; We've consumed the first four bytes and now comes the user vars.
+                ; We've consumed the first four bytes and now come the user vars.
                 ; It's slightly tricky since we can only index indirectly with y
                 ; so we'd like to copy from (tmp1),y to (up),y
                 ; But currently tmp1 + 5 corresponds to up + marker_start_offset
                 ; So we'll adjust tmp1 so that tmp1' + marker_start_offset == tmp1 + 5
-                ; meanting that tmp1' = tmp1 - (marker_start_offset - 5).  Phew.
+                ; meaning that tmp1' = tmp1 - (marker_start_offset - 5).  Phew.
         .cerror marker_start_offset < 5, "MARKER assumes marker_start_offset >= 5"
                 sec
                 lda tmp1
