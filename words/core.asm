@@ -3533,6 +3533,16 @@ xt_literal:
                 jsr check_nc_limit
                 bcc _inline
 
+                lda 1,x
+                bne _word
+
+                ldy #>byte_runtime
+                lda #<byte_runtime
+                jsr cmpl_subroutine
+                jsr xt_c_comma
+                bra z_literal
+
+_word:
                 ldy #>literal_runtime
                 lda #<literal_runtime
                 jsr cmpl_subroutine
