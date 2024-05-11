@@ -777,8 +777,8 @@ xt_number:
 
                 ; Look at the first character.
                 lda (2,x)
-_check_dec:
-                cmp #'#'
+
+                cmp #'#'                ; decimal?
                 bne _check_hex
                 ; Switch temporarily to decimal
                 lda #10

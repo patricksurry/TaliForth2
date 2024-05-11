@@ -51,7 +51,7 @@ toin:       .word 0                 ; pointer to CIB (>IN in Forth)
 
 output:     .word kernel_putc       ; vector for EMIT
 input:      .word kernel_getc       ; vector for KEY
-havekey:    .word 0                 ; vector for KEY?
+havekey:    .word 0                 ; vector for KEY?  (unused see https://github.com/SamCoVT/TaliForth2/issues/62)
 
 base:       .word 10                ; number radix, default decimal
 state:      .word 0                 ; STATE: -1 compile, 0 interpret

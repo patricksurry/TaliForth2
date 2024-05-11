@@ -331,7 +331,7 @@ nt_bracket_char:
 
 nt_char_plus:
         .byte 5, 0
-        .word nt_chars, xt_one_plus, z_one_plus ; same as 1+
+        .word nt_chars, xt_char_plus, z_char_plus ; same as 1+
         .text "char+"
 
 nt_chars:
@@ -341,7 +341,7 @@ nt_chars:
 
 nt_cells:
         .byte 5, 0
-        .word nt_cell_plus, xt_two_star, z_two_star  ; same as 2*
+        .word nt_cell_plus, xt_cells, z_cells  ; same as 2*
         .text "cells"
 
 nt_cell_plus:
@@ -579,9 +579,9 @@ nt_constant:
         .word nt_value, xt_constant, z_constant
         .text "constant"
 
-nt_value:               ; same code as CONSTANT
+nt_value:
         .byte 5, UF
-        .word nt_to, xt_constant, z_constant
+        .word nt_to, xt_value, z_value          ; same code as CONSTANT
         .text "value"
 
 nt_to:
@@ -1084,9 +1084,9 @@ nt_wordsize:
         .word nt_aligned, xt_wordsize, z_wordsize
         .text "wordsize"
 
-nt_aligned:             ; same code as ALIGN
+nt_aligned:
         .byte 7, 0
-        .word nt_align, xt_align, z_align
+        .word nt_align, xt_aligned, z_aligned   ; same code as ALIGN
         .text "aligned"
 
 nt_align:

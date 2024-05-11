@@ -253,7 +253,6 @@ z_block_read_vector:
 xt_block_word_error:
                 lda #err_blockwords
                 jmp error       ; no RTS needed
-z_block_word_error:
 
 
 
@@ -331,7 +330,6 @@ _buffer_available:
                 ldy #buffstatus_offset
                 sta (up),y
 
-_done:
                 ; Return the buffer address.
                 ldy #blkbuffer_offset
                 lda (up),y

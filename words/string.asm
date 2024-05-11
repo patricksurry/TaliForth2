@@ -110,7 +110,7 @@ _nopartial:
                 dec tmp2+1
                 dec 1,x
                 bne _outerloop
-_done:
+
                 ; clear up the stack and leave
                 txa
                 clc
@@ -157,22 +157,19 @@ _compare_loop:
                 ora 1,x
                 beq _greater    ; Str2 empty first
 
-_check_letter:
                 ; Both strings have at least one letter left.
                 ; Check the letters against each other.
                 lda (tmp1)
                 cmp (tmp2)
                 bcc _less
                 bne _greater
-_next_letter:
-                ; Move both tmp pointers and decrement the counts
-                ; on the stack.
-                ; Increment tmp1
+
+                ; On to the next letter.  Advance both tmp pointers
+                ; and decrement the counts on the stack.
                 inc tmp1
                 bne +
                 inc tmp1+1
 +
-                ; Increment tmp2
                 inc tmp2
                 bne +
                 inc tmp2+1
@@ -602,7 +599,6 @@ z_sliteral:     rts
 
 
 
-two_literal_runtime:
 sliteral_runtime:
 
         ; """Run time behaviour of SLITERAL: Push ( addr u ) of string to

@@ -120,18 +120,20 @@ cmpl_jump_later:
 
 
 check_nc_limit:
-        ; compare A > 0 to nc-limit, setting C=0 if A <= nc-limit (should native compile)
+        ; compare A > 0 to nc-limit, setting C=0 if A <= nc-limit (native compile ok)
                 pha
+                sec
                 ldy #nc_limit_offset+1
+                lda (up),y              ; if MSB non zero we're good, leave with C=0
+                beq +
                 clc
-                lda (up),y              ; if MSB non zero we're done, leave with C=0
-                bne _done
-
++
                 pla
+                bcc _done
                 dea                     ; simplify test to A-1 < nc-limit
                 dey
                 cmp (up),y              ; A-1 < LSB leaves C=0, else C=1
-                ina                     ; restore A
+                ina                     ; restore A, preserves carry
 _done:
                 rts
 

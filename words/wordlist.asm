@@ -185,7 +185,6 @@ xt_order:
                 lda 0,x                 ; assumes no more than 255 wordlists
                 beq _drop_done
 
-_have_wordlists:
                 ; We arrive here with the LSB of TOS in A, the number of WIDs
                 ; on the stack
                 tay

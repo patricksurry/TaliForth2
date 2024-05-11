@@ -56,7 +56,6 @@ xt_dot_s:
                 cpx #dsp0
                 beq _done
 
-_have_stack:
                 ; We have at least one element on the stack. The depth of the
                 ; stack is on the stack, we can use it as a counter. We go
                 ; from bottom to top

@@ -40,6 +40,7 @@ z_disasm:       rts
 
 
 disassembler:
+                stz scratch+5   ; flag indicating whether we're arriving at sliteral (vs 2literal)
                 jsr xt_cr       ; ( addr u )
 _byte_loop:
                 ; Print address at start of the line. Note we use whatever
@@ -219,44 +220,13 @@ _print_mnemonic:
                 stz 1,x
                 jsr xt_spaces
 
-                ldy #(_end_handlers - _special_handlers - 4)
-_check_handler: lda _special_handlers,y
-                cmp scratch+1
-                bne _next_handler
-                lda _special_handlers+1,y
-                cmp scratch+2
-                beq _run_handler
-_next_handler:  dey
-                dey
-                dey
-                dey
-                bpl _check_handler
+                jsr disasm_special
+                bcs _printing_done
 
-_not_special:
                 ; Try the generic JSR handler, which will use the target of the
                 ; JSR as an XT and print the name if it exists.
                 jsr disasm_jsr
-                jmp _printing_done
-
-_run_handler:
-                lda _special_handlers+2,y
-                sta scratch+3
-                lda _special_handlers+3,y
-                sta scratch+4
-                jsr _dispatch_handler
-                jmp _printing_done
-
-_dispatch_handler:
-                jmp (scratch+3)
-
-; Special handlers
-_special_handlers:
-    .word literal_runtime,      disasm_literal
-    .word sliteral_runtime,     disasm_sliteral
-    .word ztest_runtime,        disasm_0test
-    .word do_runtime,           disasm_do
-_end_handlers:
-
+                bcs _printing_done
 
 _not_jsr:
                 ; See if the instruction is a jump (instruction still in A)
@@ -277,7 +247,7 @@ _not_jsr:
                 ; Get the first byte at the jmp target address.
                 lda (scratch+3)
 
-                cmp #OpJSR ; check for JSR
+                cmp #OpJSR          ; check for JSR
                 bne _printing_done
                 ; Next byte
                 inc scratch+3
@@ -300,8 +270,9 @@ _not_jsr:
                 bne _printing_done
 
                 ; It's a string literal jump.
+                dec scratch+5                   ; flag for next go round
                 jsr disasm_sliteral_jump
-                jmp _printing_done
+                bra _printing_done
 
 _not_jmp:
                 ; is it a native branch instruction with one byte relative addressing?
@@ -369,6 +340,7 @@ _done:
                 ; Clean up and leave
                 jmp xt_two_drop         ; JSR/RTS
 
+
 ; Handlers for various special disassembled instructions:
 ; String literal handler (both for inline strings and sliteral)
 disasm_sliteral_jump:
@@ -396,7 +368,7 @@ disasm_sliteral_jump:
                 jsr xt_swap
                 jsr xt_minus
                 jsr xt_one_minus
-                ; (n jump_distance)
+                ; ( n jump_distance )
                 ; Subtract the jump distance from the bytes left.
                 jsr xt_minus
                 ; ( new_n )
@@ -411,72 +383,6 @@ disasm_sliteral_jump:
                 jsr xt_swap ; ( new_addr new_n )
                 rts
 
-; String literal handler
-disasm_sliteral:
-                lda #'S'
-                jsr emit_a ; Print S before LITERAL so it becomes SLITERAL
-                lda #str_disasm_lit     ; "LITERAL "
-                jsr print_string_no_lf
-
-                ; ( addr u ) address of last byte of JSR address and bytes left on the stack.
-                ; We need to print the two values just after addr and move along two bytes
-                ; for each value.
-                jsr xt_swap             ; switch to (u addr)
-                jsr xt_one_plus
-
-                jsr xt_dup
-                jsr xt_fetch
-                jsr xt_u_dot            ; Print the address of the string
-                ; Move along two bytes (already moved address one) to skip over the constant.
-                jsr xt_two
-                jsr xt_plus
-
-                jsr xt_dup
-                jsr xt_question         ; Print the length of the string
-                ; Move along to the very last byte of the data.
-                jsr xt_one_plus
-
-                ; ( u addr+4 )
-                ; Fix up the number of bytes left.
-                jsr xt_swap            ; ( addr+4 u )
-                dex
-                dex
-                lda #4
-                sta 0,x
-                stz 1,x
-                jsr xt_minus            ; ( addr+4 u-4 )
-                rts
-
-disasm_0test:
-                lda #str_disasm_0test
-                jsr print_string_no_lf
-                jmp emit_a
-
-; DO handler
-disasm_do:
-                lda #'D'
-                jsr emit_a
-                lda #'O'
-                jmp emit_a
-
-; Literal handler
-disasm_literal:
-                lda #str_disasm_lit
-                jsr print_string_no_lf ; "LITERAL "
-disasm_print_literal:
-                ; ( addr u ) address of last byte of JSR and bytes left on the stack.
-                ; We need to print the value just after the address and move along two bytes.
-                jsr xt_swap ; switch to (u addr)
-                jsr xt_one_plus
-
-                jsr xt_dup
-                jsr xt_question ; Print the value at the address
-                ; Move along two bytes (already moved address one) to skip over the constant.
-                jsr xt_one_plus
-                jsr xt_swap ; (addr+2 u)
-                jsr xt_one_minus
-                jsr xt_one_minus ; (addr+2 u-2)
-                rts
 
 ; JSR handler
 disasm_jsr:
@@ -496,51 +402,137 @@ disasm_jsr:
                 ; int>name returns zero if we just don't know.
                 lda 0,x
                 ora 1,x
-                beq _disasm_no_nt
+                beq _no_nt
                 ; We now have a name token ( nt ) on the stack.
                 ; Change it into the name and print it.
                 jsr xt_name_to_string
                 jsr xt_type
+                sec
                 rts
 
-_disasm_no_nt:
-                jsr xt_drop ; the 0 indicating no name token
-                ; See if the address is between underflow_1 and underflow_4,
-                ; inclusive.
-                dex
-                dex
-                lda scratch+1
-                sta 0,x
-                lda scratch+2
-                sta 1,x
-                ; ( jsr_address )
-                ; Compare to lower underflow address
-                dex
-                dex
-                lda #<underflow_1
-                sta 0,x
-                lda #>underflow_1
-                sta 1,x
-                jsr compare_16bit
-                beq _disasm_jsr_uflow_check_upper
-                bcs _disasm_jsr_unknown
-_disasm_jsr_uflow_check_upper:
-                ; Compare to upper underflow addresses
-                lda #<underflow_4
-                sta 0,x
-                lda #>underflow_4
-                sta 1,x
-                jsr compare_16bit
-                beq _disasm_jsr_soc
-                bcc _disasm_jsr_unknown
-_disasm_jsr_soc:
-                ; It's an underflow check.
-                lda #str_disasm_sdc
-                jsr print_string_no_lf  ; "STACK DEPTH CHECK"
-_disasm_jsr_unknown:
+_no_nt:
                 jsr xt_two_drop
+                clc
                 rts
 
+
+disasm_special:
+                ldy #(_end_handlers - _special_handlers - 4)
+_check:         lda _special_handlers,y
+                cmp scratch+1
+                bne _next
+                lda _special_handlers+1,y
+                cmp scratch+2
+                beq _found_handler
+_next:          dey
+                dey
+                dey
+                dey
+                bpl _check
+
+                clc
+                rts
+
+_found_handler:
+                lda scratch+5               ; are we expecting sliteral?
+                beq +
+                stz scratch+5               ; yes, skip 2literal and match again
+                bra _next
++
+                lda _special_handlers+3,y   ; payload + prefix
+                pha                         ; stash a copy for payload later
+                lsr
+                lsr
+                beq _no_prefix
+                clc
+                adc #32
+                jsr emit_a
+_no_prefix:
+                lda _special_handlers+2,y   ; string index
+                jsr print_string_no_lf
+                pla
+                and #3                      ; payload is 0, 1 or 2 words
+                beq _done
+                cmp #3                      ; but 3 means a double-word
+                bne _show_payload
+                jmp _print_2literal
+
+_show_payload:
+                pha
+                jsr _print_literal
+                pla
+                dea
+                bne _show_payload
+
+_done:          sec
+                rts
+
+_print_literal:
+                ; ( addr u ) address of last byte of JSR and bytes left on the stack.
+                ; We need to print the value just after the address and move along two bytes.
+                jsr xt_swap ; switch to (u addr)
+                jsr xt_one_plus
+
+                jsr xt_dup
+                jsr xt_question ; Print the value at the address
+                ; Advance one more byte to skip over the constant
+                jsr xt_one_plus
+                jsr xt_swap ; (addr+2 u)
+                jsr xt_one_minus
+                jmp xt_one_minus ; (addr+2 u-2)
+
+_print_2literal:
+                jsr xt_swap
+                jsr xt_one_plus
+                jsr xt_dup
+                jsr xt_two_fetch
+                jsr xt_swap             ; 2! / 2@ put MSW first; but 2literal writes LSW first
+                jsr xt_d_dot
+                clc
+                lda 0,x
+                adc #3
+                sta 0,x
+                bcc +
+                inc 1,x
++
+                jsr xt_swap ; ( addr+4 u )
+                sec
+                lda 0,x
+                sbc #4
+                sta 0,x
+                bcs +
+                dec 1,x
++
+                rts
+
+; Table of special handlers with address, strings index, payload in words + prefix
+_special_handlers:
+    .word underflow_1
+        .byte str_disasm_sdc, 0 + ('1'-32)*4
+    .word underflow_2
+        .byte str_disasm_sdc, 0 + ('2'-32)*4
+    .word underflow_3
+        .byte str_disasm_sdc, 0 + ('3'-32)*4
+    .word underflow_4
+        .byte str_disasm_sdc, 0 + ('4'-32)*4
+
+    .word literal_runtime
+        .byte str_disasm_lit, 1
+    .word sliteral_runtime
+        .byte str_disasm_lit, 2 + ('S'-32)*4
+    .word sliteral_runtime                      ; 2literal and sliteral use the same runtime
+        .byte str_disasm_lit, 3 + ('2'-32)*4    ; list is searched in reverse, put 2literal first
+    .word zero_branch_runtime
+        .byte str_disasm_0bra, 1
+    .word loop_runtime
+        .byte str_disasm_loop, 1
+    .word plus_loop_runtime
+        .byte str_disasm_loop, 1 + ('+'-32)*4
+    .word do_runtime
+        .byte str_disasm_do, 0
+    .word question_do_runtime
+        .byte str_disasm_do, 1 + ('?'-32)*4
+_end_handlers:
 
 ; used to calculate size of assembled disassembler code
 disassembler_end:

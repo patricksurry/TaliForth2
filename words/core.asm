@@ -396,7 +396,6 @@ xt_action_of:
                 ora state+1
                 beq _interpreting
 
-_compiling:
                 ; Run ['] to compile the xt of the next word
                 ; as a literal.
                 jsr xt_bracket_tick
@@ -1003,7 +1002,6 @@ xt_colon_noname:
                 sta workword
                 lda cp+1
                 sta workword+1
-_done:
 z_colon_noname:        rts
 
 
@@ -1056,7 +1054,7 @@ xt_compile_comma:
                 ora 1,x
                 beq cmpl_as_call        ; No nt so unknown size; must compile as a JSR
 
-_check_nt:
+                ; Otherwise investigate the nt
                 jsr xt_dup
                 jsr xt_one_plus         ; status is at nt+1
                 ; ( xt nt nt -- xt nt nt+1 )
@@ -1068,8 +1066,7 @@ _check_nt:
                 and #NN
                 bne cmpl_as_call        ; never native
 
-_maybe_native:
-                ; ( xt nt )
+                ; ( xt nt )             ; maybe native, let's check
                 jsr xt_wordsize
                 ; ( xt u )
 
@@ -1077,7 +1074,6 @@ _maybe_native:
 
                 jsr check_strip_table
 
-_underflow_strip:
                 ; --- SPECIAL CASE 2: REMOVE UNDERFLOW CHECKING ---
 
                 ; The user can choose to remove the unterflow testing in those
@@ -1125,12 +1121,12 @@ _check_limit:
 cmpl_by_limit:
                 ; Compile either inline or as subroutine depending on
                 ; whether native code size <= user limit
-                ; Returns C=1 if native, C=0 if subroutine
+                ; Returns C=0 if native, C=1 if subroutine
                 ; ( xt u )
                 ldy #nc_limit_offset+1
                 lda 1,x                 ; MSB of word size
                 cmp (up),y              ; user-defined limit MSB
-                bcc cmpl_inline         ; borrow (C=1) means size < limit
+                bcc cmpl_inline         ; borrow (C=0) means size < limit
                 bne cmpl_as_call        ; else non-zero means size > limit
 
                 ; Check the wordsize LSB against the user-defined limit.
@@ -1144,14 +1140,12 @@ cmpl_as_call:
         ; Stack is either ( xt nt ) or ( xt u )
                 inx             ; either way drop TOS
                 inx
-cmpl_call_tos:
                 ; ( xt -- )
                 lda #OpJSR
                 jsr cmpl_a
                 jsr xt_comma
-                clc
+                sec
                 rts
-
 
 cmpl_inline:
         ; compile inline, returning C=1
@@ -1164,7 +1158,7 @@ cmpl_inline:
                 ; Enough of this, let's move those bytes already!
                 ; ( xt cp u ) on the stack at this point
                 jsr xt_move
-                sec
+                clc
                 rts
 
 
@@ -1735,7 +1729,7 @@ xt_question_do:
                 sta 0,x
                 stz 1,x
                 jsr cmpl_by_limit
-                bcs _native
+                bcc _native
 
                 ; for subroutine compile, write placeholder for jmp-target and save its address
                 jsr xt_here
@@ -3013,44 +3007,61 @@ z_i:            rts
         ; """http://forth-standard.org/standard/core/IF"""
 
 xt_if:
-                jsr cmpl_ztest
-                jsr cmpl_zbranch_later
+                jsr cmpl_0branch_later
 z_if:           rts
 
 
-cmpl_ztest:
-                dex
-                dex
-                dex
-                dex
-                lda #<ztest_runtime
-                sta 2,x
-                lda #>ztest_runtime
-                sta 3,x
-                lda #ztest_runtime_size
+
+cmpl_0branch_later:
+        ; compile a 0BRANCH where we don't know the target yet
+        ; leaves pointer to the target on TOS
+                jsr xt_zero             ; dummy placeholder, which forces long jmp in native version
+                jsr cmpl_0branch_tos    ; generate native or subroutine branch code
+                jsr xt_here             ; either way the target address is two bytes before here
+                sec
+                lda 0,x
+                sbc #2
                 sta 0,x
-                stz 1,x
-                jmp cmpl_by_limit               ; conditionally compile as JSR or native
-
-
-ztest_runtime:
-        ; Drop TOS of stack setting Z flag, for optimizing short branches (see xt_then)
-                inx
-                inx
-                lda $FE,x           ; wraparound so inx doesn't wreck Z status
-                ora $FF,x
-ztest_runtime_size = * - ztest_runtime
+                bcs +
+                dec 1,x
++
                 rts
 
 
+cmpl_0branch_tos:
+                ; compare A > 0 to nc-limit, setting C=0 if A <= nc-limit (should native compile)
 
-cmpl_zbranch_tos:
-        ; compile a zbranch to the address TOS, which branches on A=0
-        ; we have an efficient inline form, but could also use jsr + two-byte payload
-        ; with the latter reserved for future use...
+                lda #ztest_runtime_size+5       ; typical size of inline form
+                jsr check_nc_limit              ; returns C=0 if we should native compile
+                bcc _inline
 
-                ; check if we can use a short relative branch or need a long jmp
-                ; namely if addr - (here + 2) fits in a signed char
+                ; non-native, just generate a call with two-byte address payload
+
+                ldy #>zero_branch_runtime
+                lda #<zero_branch_runtime
+                jsr cmpl_subroutine             ; call the 0branch runtime
+
+                jmp xt_comma                    ; add the payload and return
+
+_inline:
+                ; inline the test code
+                ldy #0
+-
+                lda ztest_runtime,y
+                jsr cmpl_a
+                iny
+                cpy #ztest_runtime_size
+                bne -
+
+                ; now we'll compile the branch to test the zero flag
+                ; first check if we can use a short relative branch or need a long jmp
+                ; the short form 'beq target' will work if addr - (here + 2) fits in a signed byte
+
+                lda 0,x
+                ora 1,x
+                beq _long               ; always use the long form if target is 0
+
+                ; ( addr )
                 jsr xt_dup
                 jsr xt_here
                 clc
@@ -3061,46 +3072,31 @@ cmpl_zbranch_tos:
                 inc 1,x
 +
                 jsr xt_minus
-                ; ( target offset )
-                ; check if offset fits in unsigned char
-                ; pre-drop offset and access with wraparound to preserve flags
-                inx
+                ; ( addr offset )
+                ; offset is a signed byte if LSB bit 7 is 0 and MSB is 0 or bit 7 is 1 and MSB is #ff
+                inx             ; pre-drop offset and use wraparound indexing to preserve flags
                 inx
                 lda $ff,x
                 tay             ; Y=MSB of offset
-                lda $fe,x       ; A=LSB, setting N flag
+                lda $fe,x       ; A=LSB, setting N flag to bit 7
                 bmi _minus
                 cpy #0          ; if LSB is positive we need MSB = 0
                 bra +
 _minus:         cpy #$ff        ; if LSB is negative we need MSB = ff
-+               bne cmpl_zbranch_long
++               bne _long
 
-                ; short relative branch will work!  emit code like:
+                ; short relative branch will work!  all we need is code like:
                 ;
                 ;       beq target      ; relative branch if nearby target
-
+                ;
                 lda #OpBEQ
                 jsr cmpl_a
                 lda $fe,x
-                jsr cmpl_a
-                inx             ; drop the original address
+                inx             ; drop the original address we used to calc offset
                 inx
-                rts
+                jmp cmpl_a
 
-cmpl_zbranch_later:
-        ; alternate entry to compile a forward zbranch when we don't have the target yet.
-        ; returns a pointer to the placeholder address so we can update it later
-                jsr xt_here             ; placeholder will be at HERE + 3
-                clc
-                lda #3
-                adc 0,x
-                sta 0,x
-                bcc +
-                inc 1,x
-+
-                jsr xt_zero             ; just use 0 as the placeholder
-
-cmpl_zbranch_long:
+_long:
                 ; too far (or unknown) so emit code like:
                 ;
                 ;       bne +3
@@ -3113,9 +3109,21 @@ cmpl_zbranch_long:
                 jmp cmpl_jump_tos
 
 
+zero_branch_runtime:
+ztest_runtime:
+        ; Drop TOS of stack setting Z flag, for optimizing short branches (see xt_then)
+                inx
+                inx
+                lda $FE,x           ; wraparound so inx doesn't wreck Z status
+                ora $FF,x
+        ; The inline form ends here and is follwed by a native beq or bne / jmp
+ztest_runtime_size = * - ztest_runtime
+
 zbranch_runtime:
-        ; if A=0, branch to the address following the jsr call here
-        ; otherwise skip that address and continue
+        ; The subroutine continues here, and is also used as an alternate entry point
+        ; by various conditional looping constructs
+        ; If A=0 we branch to the address following the jsr that landed here
+        ; otherwise skip past that address and continue
                 ply
                 sty tmp1
                 ply
@@ -3201,7 +3209,6 @@ xt_is:
                 ora state+1
                 beq _interpreting
 
-_compiling:
                 ; Run ['] to compile the xt of the next word as a literal.
                 jsr xt_bracket_tick
 
@@ -3564,7 +3571,7 @@ xt_loop_common:
                 ; The address we need to loop back to is TOS
                 ; ( qdo-skip old-loopleave repeat-addr )
 
-                bcs _native
+                bcc _native
 
                 ; if non-native, just write repeat-addr as payload after the call
                 jsr xt_comma
@@ -3697,7 +3704,7 @@ _chkv:          clv
 plus_loop_runtime_size = * - plus_loop_runtime
 _repeat:
                 ; for native compilation we stop here and LOOP/+LOOP will tack on a JMP <repeat-addr>
-                ; for subroutine compile we set up A and continue with ztest_runtime
+                ; for subroutine compile we set up A and continue with zbranch_runtime
                 lda #0
                 .byte $2c               ; BIT llhh to hide the lda #1
 _done:          lda #1
@@ -5273,7 +5280,6 @@ xt_s_backslash_quote:
                 ; Now that the flag is set, jump into s_quote to process
                 ; the string.
                 jsr s_quote_start
-_done:
 z_s_backslash_quote:
                 rts
 
@@ -5504,7 +5510,6 @@ _check_esc_quote:
                 cmp #'"'
                 beq _save_character
 
-_check_esc_x:
                 cmp #'x'
                 bne _check_esc_backslash
 
@@ -6287,7 +6292,6 @@ xt_to_body:
 _no_cfa:
                 inx             ; get rid of the nt
                 inx
-_done:
 z_to_body:      rts
 
 
@@ -7231,8 +7235,7 @@ z_unloop:       rts
         ; """http://forth-standard.org/standard/core/UNTIL"""
 xt_until:
                 ; The address to loop back to is on the stack.
-                jsr cmpl_ztest
-                jsr cmpl_zbranch_tos
+                jsr cmpl_0branch_tos
 
 z_until:        rts
 
@@ -7305,8 +7308,7 @@ z_variable:     rts
 ; ## "while"  auto  ANS core
         ; """http://forth-standard.org/standard/core/WHILE"""
 xt_while:
-                jsr cmpl_ztest                  ; test TOS
-                jsr cmpl_zbranch_later          ; branch to location we'll determine later
+                jsr cmpl_0branch_later          ; branch to location we'll determine later
                 ; tuck the address of the branch placeholder under the repeat address left by begin
                 jsr xt_swap
                 ; ( branch-target repeat-target )
@@ -7444,8 +7446,7 @@ xt_zero_equal:
                 beq _zero       ; if 0, A is inverse of the TRUE (-1) we want
                 lda #$FF        ; else set A inverse of the FALSE (0) we want
 _zero:
-                eor #$FF        ; now just invert
-_store:
+                eor #$FF        ; now just invert:
                 sta 0,x
                 sta 1,x
 

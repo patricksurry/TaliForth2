@@ -15,13 +15,13 @@
 ; even when some are missing because they were removed in the
 ; platform file.
 ix := 0
-str_ok             = ix
+str_ok             = ix         ; unused?
 ix += 1
-str_compile        = ix
+str_compile        = ix         ; unused?
 ix += 1
 str_redefined      = ix
 ix += 1
-str_abc_upper      = ix
+str_abc_upper      = ix         ; unused?
 ix += 1
 .if "wordlist" in TALI_OPTIONAL_WORDS
 str_wid_forth      = ix
@@ -42,13 +42,15 @@ ix += 1
 str_see_size       = ix
 ix += 1
 .if "disassembler" in TALI_OPTIONAL_WORDS
-str_disasm_lit     = ix
-ix += 1
 str_disasm_sdc     = ix
 ix += 1
-str_disasm_bra     = ix
+str_disasm_lit     = ix
 ix += 1
-str_disasm_0test   = ix
+str_disasm_0bra    = ix
+ix += 1
+str_disasm_loop    = ix
+ix += 1
+str_disasm_do      = ix
 ix += 1
 .endif
 
@@ -61,7 +63,7 @@ string_table:
 .endif
         .word s_see_flags, s_see_nt, s_see_xt, s_see_size             ; 8-11
 .if "disassembler" in TALI_OPTIONAL_WORDS
-        .word s_disasm_lit, s_disasm_sdc, s_disasm_bra, s_disasm_0test ; 12-15
+        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do ; 12-16
 .endif
 
 s_ok:         .text " ok", 0         ; note space at beginning
@@ -83,10 +85,11 @@ s_see_xt:     .text "xt: ", 0
 s_see_size:   .text "size (decimal): ", 0
 
 .if "disassembler" in TALI_OPTIONAL_WORDS
+s_disasm_sdc: .text " STACK DEPTH CHECK", 0
 s_disasm_lit: .text "LITERAL ", 0
-s_disasm_sdc: .text "STACK DEPTH CHECK", 0
-s_disasm_bra: .text "BRANCH ",0
-s_disasm_0test: .text "0TEST",0
+s_disasm_0bra: .text "0BRANCH ",0
+s_disasm_loop: .text "LOOP ",0
+s_disasm_do: .text "DO ",0
 .endif
 
 ; ## ERROR STRINGS
