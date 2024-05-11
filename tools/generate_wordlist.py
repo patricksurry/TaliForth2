@@ -9,8 +9,10 @@ comments in native_words.asm. It is called by the Makefile on the top level
 """
 
 import sys
+from glob import glob
 
-SOURCE = 'native_words.asm'
+
+SOURCES = 'words/*.asm'
 LABELS = 'docs/py65mon-labelmap.txt'
 MARKER = '; ## '
 
@@ -34,7 +36,7 @@ def get_sizes(label_dict):
 
     for line in raw_list:
         ws = line.split('=')
-        
+
         if not ws[0].startswith('xt_') and not ws[0].startswith('z_'):
             continue
 
@@ -144,7 +146,7 @@ def print_line(fl, sl):
         status = '**'+status+'**'
     elif status == HAVE_TEST:
         pass
-    else: 
+    else:
         status = '*'+status+'*'
 
     print(TEMPLATE.format(name, word, source, size, status))
@@ -152,8 +154,10 @@ def print_line(fl, sl):
 
 def main():
 
-    with open(SOURCE) as f:
-        raw_list = f.readlines()
+    raw_list = []
+    for name in glob(SOURCES):
+        with open(name) as f:
+            raw_list += f.readlines()
 
     data_list = []
 

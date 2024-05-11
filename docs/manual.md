@@ -65,12 +65,9 @@ But why program in 8-bit assembler at all? The 65c02 is fun to work with
 because of its clean instruction set architecture (ISA)<span class="indexterm" primary="instruction set architecture (ISA)"></span> This is not the place to explain the joys of assembler.
 The official handbook for the 65c02 is *Programming the 65816* [\[EnL\]](#EnL).
 
-<div class="tip">
-
-Garth Wilson<span class="indexterm" primary="Wilson, Garth"></span> answers this question in greater
-detail as part of his 6502 primer at <http://wilsonminesco.com/6502primer/> .
-
-</div>
+> [!TIP]
+> Garth Wilson<span class="indexterm" primary="Wilson, Garth"></span> answers this question in greater
+> detail as part of his 6502 primer at <http://wilsonminesco.com/6502primer/> .
 
 ### Forth
 
@@ -86,12 +83,9 @@ invented by Charles "Chuck" H. Moore<span class="indexterm" primary="Moore, Char
 work with radio astronomy, way before there were modern operating systems or
 programming languages.
 
-<div class="tip">
-
-A brief history of Forth can be found at
-<https://www.forth.com/resources/forth-programming-language>
-
-</div>
+> [!TIP]
+> A brief history of Forth can be found at
+> <https://www.forth.com/resources/forth-programming-language>
 
 As a language for people who actually need to get things done, it lets you run
 with scissors, play with fire, and cut corners until you’ve turned a square
@@ -120,15 +114,12 @@ dated) *Starting Forth* by Leo Brodie.<span class="indexterm" primary="Brodie, L
 Gforth,<span class="indexterm" primary="Gforth"></span> one of the more powerful free Forths, comes with its own
 [tutorial](http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Tutorial.html).
 
-<div class="tip">
-
-Once you have understood the basics of the language, do yourself a favor
-and read *Thinking Forth* by Brodie<span class="indexterm" primary="Brodie, Leo"></span>[\[LB2\]](#LB2) which deals with
-the philosophy of the language. Even if you never code a line of Forth in your
-life, exposure to Forth will change the way you think about programming, much
-like Lisp<span class="indexterm" primary="Lisp"></span>.
-
-</div>
+> [!TIP]
+> Once you have understood the basics of the language, do yourself a favor
+> and read *Thinking Forth* by Brodie<span class="indexterm" primary="Brodie, Leo"></span>[\[LB2\]](#LB2) which deals with
+> the philosophy of the language. Even if you never code a line of Forth in your
+> life, exposure to Forth will change the way you think about programming, much
+> like Lisp<span class="indexterm" primary="Lisp"></span>.
 
 ### Writing Your Own Forth
 
@@ -167,13 +158,10 @@ commented and this document tries to explain the internals in more detail.
 When creating a new Forth, there are a bunch of design decisions to be
 made.
 
-<div class="note">
-
-Probably the best introduction to these questions is found in "Design
-Decisions in the Forth Kernel" at
-<http://www.bradrodriguez.com/papers/moving1.htm> by Brad Rodriguez.
-
-</div>
+> [!NOTE]
+> Probably the best introduction to these questions is found in "Design
+> Decisions in the Forth Kernel" at
+> <http://www.bradrodriguez.com/papers/moving1.htm> by Brad Rodriguez.
 
 Spoiler alert: Tali Forth is a subroutine-threaded (STC) variant with a 16-bit
 cell size and a dictionary that keeps headers and code separate. If you don’t
@@ -449,12 +437,9 @@ box:
     root-wordlist assembler-wordlist editor-wordlist forth-wordlist only also
     previous >order order forth see ed: cold bye
 
-<div class="note">
-
-This list might be outdated. To get the current list, run `words` from
-inside Tali Forth.
-
-</div>
+> [!NOTE]
+> This list might be outdated. To get the current list, run `words` from
+> inside Tali Forth.
 
 Though the list might look unsorted, it actually reflects the priority in the
 dictionary<span class="indexterm" primary="dictionary"></span>, that is, which words are found first. For instance,
@@ -463,12 +448,9 @@ with `drop` and end with `bye`. `bye` is the last word that Tali will find in
 the dictionary. [^2] The words before `drop` are those that are defined in high-level
 Forth. For more information on individual the words, use the `see` command.
 
-<div class="tip">
-
-To find out if a given word is available, you can use the sequence
-`s" myword" find-name 0<>` which will return a `true` or `false` flag.
-
-</div>
+> [!TIP]
+> To find out if a given word is available, you can use the sequence
+> `s" myword" find-name 0<>` which will return a `true` or `false` flag.
 
 Note that the built-in words are lower case. While Tali is not case sensitive — `KASUMI` is the same word as `Kasumi` <span class="indexterm" primary="Kasumi"></span> — newly defined words will be
 lowercased as they are created and entered into the dictionary. There is a
@@ -743,11 +725,8 @@ Some things to look out for when using Tali Forth.
 
 Tali has a 16-bit cell size.
 
-<div class="note">
-
-Use `1 cells 8 * .` to get the cell size in bits with any Forth.
-
-</div>
+> [!NOTE]
+> Use `1 cells 8 * .` to get the cell size in bits with any Forth.
 
 This can trip up calculations when compared to the *de facto* standard Gforth
 with 64 bits. Take this example:
@@ -928,13 +907,10 @@ with blocks.
 Tali Forth 2 currently ships with a clone of the `ed` line-based editor of Unix
 fame. It is envoked with `ed:`, though the formal name is `ed6502`.
 
-<div class="tip">
-
-`ed:` uses about 2 KB of ROM in the default setup. If you know for certain
-you are not going to be using it, you can reclaim that space by removing "ed"
-from the TALI_OPTIONAL_WORDS list in your platform file.
-
-</div>
+> [!TIP]
+> `ed:` uses about 2 KB of ROM in the default setup. If you know for certain
+> you are not going to be using it, you can reclaim that space by removing "ed"
+> from the TALI_OPTIONAL_WORDS list in your platform file.
 
 For those not familiar with UNIX `ed`, there is [a tutorial](#ed-tutorial) included
 in this manual. This section is a brief overview of the currently available
@@ -997,13 +973,10 @@ Apart from missing about 90 percent of the features:
   Where Unix ed uses the format `w <FILENAME>`, ed6502 takes the address
   to write the text to as `7000w`.
 
-<div class="warning">
-
-`ed:` currently only works with decimal numbers. It saves and
-restores BASE, but all numbers inside ed: will be decimal. This includes
-the address used with `w`.
-
-</div>
+> [!WARNING]
+> `ed:` currently only works with decimal numbers. It saves and
+> restores BASE, but all numbers inside ed: will be decimal. This includes
+> the address used with `w`.
 
 #### Using `ed` for programming
 
@@ -1075,13 +1048,10 @@ and is only saved to the given location when the `w` command is given.
 Tali Forth is shipped with a built-in assembler that uses the Simpler Assembler
 Format (SAN). See the Appendix for an introduction to SAN.
 
-<div class="note">
-
-The code was originally part of a stand-alone 65c02 assembler in Forth
-named tasm65c02. See <https://github.com/scotws/tasm65c02> for details. Tasm65c02
-is in the public domain.
-
-</div>
+> [!NOTE]
+> The code was originally part of a stand-alone 65c02 assembler in Forth
+> named tasm65c02. See <https://github.com/scotws/tasm65c02> for details. Tasm65c02
+> is in the public domain.
 
 #### Adding assembler code at the command line
 
@@ -1124,11 +1094,8 @@ The last line in our code, `previous`, removes the assembler wordlist again.
 In the example above, it is important to use `rts` and not `brk` as the last
 instruction to return to the command line.
 
-<div class="warning">
-
-Seriously. Never use `brk` inside Tali Forth assembler code!
-
-</div>
+> [!WARNING]
+> Seriously. Never use `brk` inside Tali Forth assembler code!
 
 Note you can freely mix Forth high-level words and assembler instructions. For
 example, this will work:
@@ -1169,13 +1136,10 @@ problem, we can use the `[` and `]` words:
             [ push-a ]  compiled
             u. ;  ok
 
-<div class="note">
-
-We do not need to add an explicit `rts` instruction when compiling new
-words with assembler because the `;` does it automatically. This is because Tali
-Forth uses Subroutine Threaded Code (STC).
-
-</div>
+> [!NOTE]
+> We do not need to add an explicit `rts` instruction when compiling new
+> words with assembler because the `;` does it automatically. This is because Tali
+> Forth uses Subroutine Threaded Code (STC).
 
 Running `print-a-one` prints the number `1`. We can use a slightly simpler variant:
 
@@ -1653,13 +1617,10 @@ The X register<span class="indexterm" primary="X register"></span> is used as th
 points to the least significant byte of the current top element of the stack
 ("Top of the Stack", TOS).
 
-<div class="note">
-
-In the first versions of Tali Forth 1, the DSP pointed to the next *free*
-element of the stack. The new system makes detecting underflow easier and
-follows the convention in Liara Forth.<span class="indexterm" primary="Liara"></span>
-
-</div>
+> [!NOTE]
+> In the first versions of Tali Forth 1, the DSP pointed to the next *free*
+> element of the stack. The new system makes detecting underflow easier and
+> follows the convention in Liara Forth.<span class="indexterm" primary="Liara"></span>
 
 Initially, the DSP points to \$78, not \$7F as might be expected. This provides a
 few bytes as a "floodplain" for underflow.<span class="indexterm" primary="underflow"></span> The initial value of
@@ -1761,13 +1722,10 @@ This is followed by the current word’s **execution token** (xt, `xt_word`) tha
 points to the start of the actual code. Some words that have the same
 functionality point to the same code block.
 
-<div class="note">
-
-Because Tali uses a subroutine threaded model (STC), the classic Forth
-distinction between the Code Field Area (CFA) and the Parameter Field Area
-(PFA, also Data Field Area) is meaningless — it’s all "payload".
-
-</div>
+> [!NOTE]
+> Because Tali uses a subroutine threaded model (STC), the classic Forth
+> distinction between the Code Field Area (CFA) and the Parameter Field Area
+> (PFA, also Data Field Area) is meaningless — it’s all "payload".
 
 The next pointer is for the **end of the code** (`z_word`) to enable native
 compilation of the word (if allowed and requested).
@@ -1885,13 +1843,10 @@ powerful part of Forth. Understanding how it works in Tali Forth is important
 if you want to be able to modify the code. In this text, we walk through the
 generation process for a subroutine threaded code (STC) such as Tali Forth.
 
-<div class="note">
-
-For a more general explanation, see Brad Rodriguez' series of articles at
-<http://www.bradrodriguez.com/papers/moving3.htm> There is a discussion of this
-walkthrough at <http://forum.6502.org/viewtopic.php?f=9&t=3153>
-
-</div>
+> [!NOTE]
+> For a more general explanation, see Brad Rodriguez' series of articles at
+> <http://www.bradrodriguez.com/papers/moving3.htm> There is a discussion of this
+> walkthrough at <http://forum.6502.org/viewtopic.php?f=9&t=3153>
 
 We start with the following standard example, a high-level Forth version of the
 word `constant`.
@@ -1916,13 +1871,10 @@ ignoring any compilation to native 65c02 assembler, the above compiles to:
 To make things easier to explain later, we’ve added the labels `a` and
 `b` in the listing.
 
-<div class="note">
-
-This example uses the traditional word `(does>)`, which in Tali Forth 2
-is actually an internal routine that does not appear as a separate word. This
-version is easier to explain.
-
-</div>
+> [!NOTE]
+> This example uses the traditional word `(does>)`, which in Tali Forth 2
+> is actually an internal routine that does not appear as a separate word. This
+> version is easier to explain.
 
 `does>` is an immediate word that adds not one, but two subroutine jumps, one
 to `(does>)` and one to `dodoes`, which is a pre-defined system routine like
@@ -2074,14 +2026,11 @@ of `if`. This is put on the Data Stack, so that `then` knows where to compile
 it’s address in the second step. Until then, a dummy value is compiled after
 `0branch` to reserve the space we need.
 
-<div class="note">
-
-This section and the next one are based on a discussion at
-[http://forum.6502.org/viewtopic.php?f=9\\t=3176](http://forum.6502.org/viewtopic.php?f=9\&t=3176) see there for more details.
-Another take on this subject that handles things a bit differently is at
-<http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx>
-
-</div>
+> [!NOTE]
+> This section and the next one are based on a discussion at
+> [http://forum.6502.org/viewtopic.php?f=9\\t=3176](http://forum.6502.org/viewtopic.php?f=9\&t=3176) see there for more details.
+> Another take on this subject that handles things a bit differently is at
+> <http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx>
 
 In Forth, this can be realized by
 
@@ -2104,68 +2053,97 @@ compiles its address where the value on the top of the Data Stack told it to �
 #### Loops
 
 Loops are more complicated, because we have `do`, `?do`, `loop`, `+loop`,
-`unloop`, and `leave` to take care of. These can call up to three addresses: One
+`unloop`, and `leave` to think about. These can involve up to three branches: One
 for the normal looping action (`loop` and `+loop`), one to skip over the loop at
 the beginning (`?do`) and one to skip out of the loop (`leave`).
 
-Based on a suggestion by Garth Wilson, we begin each loop in run-time by saving
-the address after the whole loop construct to the Return Stack. That way,
-`leave` and `?do` know where to jump to when called, and we don’t interfere with
-any `if`-`then` structures. On top of that address, we place the limit and start
-values for the loop.
+Like many other forth implementations,
+Tali Forth 2 originally used the return stack to manage loop control,
+including the loop exit address and the loop step and limit values.
+However this required extensive stack juggling which slowed loop performance.
+After [investigating several alternatives](https://github.com/SamCoVT/TaliForth2/issues/53)
+we switched to a separate loop control stack.
+Each loop uses a four byte (double word) loop control block (LCB) to store
+the current loop limits.
+All branch addresses including the loop exit are now directly compiled into code
+rather than stored on the stack.
 
-The key to staying sane while designing these constructs is to first make
-a list of what we want to happen at compile time and what at run time. Let’s
-start with a simple `do`-`loop`.
+> [!NOTE]
+> In order to simplify the loop completion check after each iteration,
+> we don’t store the actual loop index and limit values in the LCB.
+> Instead we calculate a fudge factor (sometimes referred to as 'fufa' in the code)
+> that makes every loop appear to finish at exactly \$8000, and use this to adjust the loop index.
+> This lets us use a simple 16 bit overflow test to see if we’re done.
+> One side effect is that the `i` and `j` words get a little more complicated.
+> For more details see <http://forum.6502.org/viewtopic.php?f=9&t=2026>
+> and the `do_runtime` implementation.
 
-##### `do` at compile-time:
+Remembering state across nested loops means a stack of LCBs.
+Whereas the return stack grows downward from \$1ff, our current loop control stack
+grows upward from \$100.
+The zero-page `loopctrl` byte forms our loop stack pointer,
+limiting us to at most 64 nested loops if the return stack is empty.
+We also cache the least significant byte of the active loop index
+in the zero-page `loopidx0` which often lets us avoid indexed access to the LCB.
 
-- Remember current address (in other words, `here`) on the Return Stack (!) so
-  we can later compile the code for the post-loop address to the Return Stack
+The key to staying sane while designing these constructs is to make
+a list of what we should happen at compile time and what at run time.
+Let’s start with a high-level view of what happens at run time to manage a `do` loop:
 
-- Compile some dummy values to reserve the space for said code
+- `do` adds four to the loop control stack pointer in `loopctrl` to assign a new LCB.
+  It writes the initial loop index and offset to the LCB and
+  updates the cached `loopidx0`. `?do` is very similar.
 
-- Compile the run-time code; we’ll call that fragment (`do`)
+- most of the time `loop` just increments the cached `loopidx0`. It only touches
+  the LCB when the low byte overflows.
 
-- Push the current address (the new `here`) to the Data Stack so `loop` knows
-  where the loop contents begin
+- `+loop` updates `loopidx0` and (if needed) the high byte in the LCB.
+  It only touches the LCB when we have a step size larger than 255 or an overflow
+  on the low index byte.
 
-##### `do` at run-time:
+- `unloop` subtracts four from `loopctrl` to drop the current LCB.
+  It caches the low byte of the now current loop index in `loopidx0`
+  so that any enclosing loop sees the correct value.
 
-- Take limit and start off Data Stack and push them to the Return Stack
+- the `i` and `j` words use 16-bit math to calculate the actual loop index from the LCB
+  offset and fudge factor values. Although it’s certainly not portable forth,
+  our LCB approach means that `i` and `j` can be safely referenced by words called within a loop.
+  (This isn’t the case in Forths that use the return stack for loop control.)
 
-Since `loop` is just a special case of `+loop` with an index of one, we can get
-away with considering them at the same time.
+- `leave` simply jumps out of the loop to an address hard-coded at compile time.
 
-##### `loop` at compile time:
+And what about compile time?
 
-- Compile the run-time part `(+loop)`
+- `do` emits the runtime code to set up the loop from the limit values.
+  The `?do` variant includes a conditional jump that skips the loop entirely, dropping the limits.
+  Since we won’t know the exit address until we’re finished compiling
+  the loop body, we emit placeholder bytes and save the placeholder’s address on the stack
+  so `loop` can update it later.
+  We also stash the current `loopleave` variable so that we
+  can handle `leave` in nested loops (see below).
 
-- Consume the address that is on top of the Data Stack as the jump target for
-  normal looping and compile it
+- `loop` and `+loop` generate the runtime code that increment the loop offset
+  with an efficient check for whether we’ve crossed the completion limit.
+  Now that we’ve finished compiling the loop contents we can
+  also patch up the exit addresses needed for `?do` and `leave`.
 
-- Compile `unloop` for when we’re done with the loop, getting rid of the
-  limit/start and post-loop addresses on the Return Stack
+- `unloop`, `i`, and `j` don’t have any compile-time behavior.
 
-- Get the address on the top of the Return Stack which points to
-  the dummy code compiled by `do`
+- `leave` also needs to jump to the end of the loop but we don’t yet
+  know where that is.
+  Because `leave` can appear multiple times in a loop,
+  we need some trickery to keep a list of all `leave` placeholders to update.
+  The address of the first `leave` placholder is stored in a variable called `loopleave`.
+  Then the next `leave` placeholder address is stored **as** the placeholde value of the previous `leave`!
+  This can be repeated indefinitely and forms a linked list.
+  Once we’ve finished compiling `loop` can walk the list and write the exit address into each placeholder.
+  (To safely handle nested loops we also need to push and pop `loopleave` whenever we start or finish
+  compiling a new loop.)
 
-- At that address, compile the code that pushes the address after the list
-  construct to the Return Stack at run-time
-
-##### `loop` at run-time (which is `(+loop)`)
-
-- Add loop step to count
-
-- Loop again if we haven’t crossed the limit, otherwise continue after loop
-
-At one glance, we can see that the complicated stuff happens at compile-time.
+It’s clear that all the complicated stuff happens at compile-time.
 This is good, because we only have to do that once for each loop.
-
-In Tali Forth, these routines are coded in assembler. With this setup, `unloop`
-becomes simple (six `pla` instructions — four for the limit/count of `do`, two
-for the address pushed to the stack just before it) and `leave` even simpler
-(four `pla` instructions for the address).
+In Tali Forth all of loop control is coded in assembler.
+You can see all of the gory details of the loop word implementations in `words/core.asm`.
 
 ### Native Compiling
 
@@ -2384,24 +2362,18 @@ completed (with a semicolon). An example of doing this might be:
 Please note that adding the always-native flag to a word overrides the
 never-native flag.
 
-<div class="warning">
+> [!WARNING]
+> Do not apply `allow-native` or `always-native` to a word that
+> has any kind of control structures in it, such as `if`, `case` or any
+> kind of loop. If these words ever get native compiled, the JMP
+> instructions used in the control structures are copied verbatim,
+> causing them to jump back into the original words.
 
-Do not apply `allow-native` or `always-native` to a word that
-has any kind of control structures in it, such as `if`, `case` or any
-kind of loop. If these words ever get native compiled, the JMP
-instructions used in the control structures are copied verbatim,
-causing them to jump back into the original words.
-
-</div>
-
-<div class="warning">
-
-When adding your own words in assembly, if a word has a `jmp`
-instruction in it, it should have the NN (Never Native) flag set in
-the headers.asm file and should never have the AN (Always Native) flag
-set.
-
-</div>
+> [!WARNING]
+> When adding your own words in assembly, if a word has a `jmp`
+> instruction in it, it should have the NN (Never Native) flag set in
+> the headers.asm file and should never have the AN (Always Native) flag
+> set.
 
 ### `cmove`, `cmove>` and `move`
 
@@ -2443,6 +2415,8 @@ In practice, `move` is usually what you want to use.
 
 To run Tali Forth 2 in a simulator, you will need `python3` and `py65` installed to be
 able to run `py65mon`.
+Tali Forth 2 also ships with the bare-bones `c65` simulator.
+This is much faster than `py65mon` but lacks the debugging and monitor capabilities.
 
 To assemble Tali Forth 2, you will need `64tass` (version 1.56.2625 or later) and `make`.
 
@@ -2569,6 +2543,11 @@ installed). This also updates the file listings in the `docs` folder.
 
 - Because of the way native compiling works, the trick of combining
   `jsr`-`rts` pairs to a single `jmp` instruction (usually) doesn’t work.
+
+- In broad terms Tali Forth 2 should be easy to understand and use.
+  When adding new code you should prefer simplicity over complexity,
+  particularly for compile-time words.
+  Speed is a virtue for core run-time words and reducing code size is always a virtue.
 
 #### Coding Style
 
@@ -3116,7 +3095,8 @@ In order to facilitate playing with blocks, Tali comes with a special word
 `block-ramdrive-init` that takes the number of blocks you want to use and
 allocates a RAM drive to simulate a mass-storage device. It also sets up the
 read and write vectors to routines that will move the data in and out of the
-allocated RAM.
+allocated RAM. If you’d prefer persistent block storage in an external file
+you can try the `block-c65-init` word illustrated below.
 
 If you have an actual storage device, such as a flash memory, you will need to
 write routines for transferring 1K from storage to RAM and from RAM to storage.
@@ -3133,6 +3113,16 @@ words.
 This command takes a moment as all of the block memory is initialized to the
 value BLANK (a space) on the assumption you will be placing text there. When
 complete, you will have 4 blocks (numbered 0-3) available to play with.
+
+If you want to use persistent storage instead, create a writable file
+and start the simulator as shown. The `block-c65-init` word takes no
+arguments and returns true if block storage is available.
+You can read/write up to 65536 1K blocks in your file providing 64Mb of storage.
+
+    touch somefile.dat
+    c65/c65 -b somefile.dat -r taliforth-py65mon.bin
+    ...
+    block-c65-init      ( -- f )
 
 When using blocks for text or Forth code, the 1K block is further divided into
 16 lines of 64 characters each. Newlines are typically not used in blocks at
@@ -3616,13 +3606,10 @@ reputation for being completely unhelpful. Any error is just signaled with a
 question mark (`?`). There isn’t even a prompt unless it is explicitly turned
 on.
 
-<div class="note">
-
-Newer versions of Unix `ed` allow an option to display an explanation of the
-last error, but Tali doesn’t have space for that. Error messages are for wimps.
-And who really needs a prompt anyway?
-
-</div>
+> [!NOTE]
+> Newer versions of Unix `ed` allow an option to display an explanation of the
+> last error, but Tali doesn’t have space for that. Error messages are for wimps.
+> And who really needs a prompt anyway?
 
 Commands in `ed:` are single-letter commands like `a` or `p`. They can be
 prefixed with a combination of letters and special characters to designate the
@@ -3696,11 +3683,8 @@ Just entering the command directly without a line number will print the
 *current line*, which `ed` adjusts depending on what you are doing. After `a` it
 is the last line.
 
-<div class="tip">
-
-To find out which is the current line, type the `=` (equal sign) command.
-
-</div>
+> [!TIP]
+> To find out which is the current line, type the `=` (equal sign) command.
 
 This session could continue as such:
 
@@ -3723,12 +3707,9 @@ call `%n` (or `,n`) again if we are unsure:
 Note that lines three and four have moved up — they are now lines two and
 three.
 
-<div class="tip">
-
-To avoid confusion, when you have to delete a large number of lines, start
-at the bottom and move upwards towards the beginning of the text.
-
-</div>
+> [!TIP]
+> To avoid confusion, when you have to delete a large number of lines, start
+> at the bottom and move upwards towards the beginning of the text.
 
 We can also use comma-separated numbers to indicate a range of lines (say,
 `1,2d`). As you probably will have guessed, or the `,` (or `%`) prefix can be
@@ -3767,12 +3748,9 @@ a preference for `a` or `i`. This is easy because `ed` accepts `0a` as a way to
 add new lines *before* the first line. In most other circumstances, line `0` is
 illegal. There is also the `$` prefix for the last line.
 
-<div class="tip">
-
-The combination `$=` will print the number of the last line. Just `=` will
-print the current line.
-
-</div>
+> [!TIP]
+> The combination `$=` will print the number of the last line. Just `=` will
+> print the current line.
 
 ### Saving Your Text
 
@@ -3788,11 +3766,8 @@ a location in memory.
 - `ed` returns the number of characters written, including the end-of-line
   characters. Yes, this is actually feedback of sorts. But don’t get cocky!
 
-<div class="warning">
-
-`ed:` currently only works with decimal numbers.
-
-</div>
+> [!WARNING]
+> `ed:` currently only works with decimal numbers.
 
 The `w` command was originally created for files. Tali doesn’t have files, just
 addresses. This means that you can write anything anywhere, at the risk of
@@ -4241,8 +4216,7 @@ order if you run it too many times.
                          <https://forth-standard.org/standard/core/TwoDUP>                                       |
 | `2literal`            | *ANS double* (C: d — ) ( — d) "Compile a literal double word"                          
                          <https://forth-standard.org/standard/double/TwoLITERAL>                                 
-                         Based on the Forth code                                                                 
-                         : 2LITERAL ( D — ) SWAP POSTPONE LITERAL POSTPONE LITERAL ; IMMEDIATE                   |
+                         Shares code with xt_sliteral for compiling a double word                                |
 | `2over`               | *ANS core* ( d1 d2 — d1 d2 d1 ) "Copy double word NOS to TOS"                          
                          <https://forth-standard.org/standard/core/TwoOVER>                                      |
 | `2r>`                 | *ANS core ext* ( — n1 n2 ) (R: n1 n2 — ) "Pull two cells from Return Stack"            
@@ -4298,7 +4272,7 @@ order if you run it too many times.
                          word.                                                                                   |
 | `?`                   | *ANS tools* ( addr — ) "Print content of a variable"                                   
                          <https://forth-standard.org/standard/tools/q>                                           |
-| `?do`                 | *ANS core ext* ( limit start — )(R: — limit start) "Conditional loop start"            
+| `?do`                 | *ANS core ext* ( limit start — ) "Conditional loop start"                              
                          <https://forth-standard.org/standard/core/qDO>                                          |
 | `?dup`                | *ANS core* ( n — 0 \| n n ) "Duplicate TOS non-zero"                                   
                          <https://forth-standard.org/standard/core/qDUP>                                         |
@@ -4383,6 +4357,11 @@ order if you run it too many times.
 | `block`               | *ANS block* ( u — a-addr ) "Fetch a block into a buffer"                               
                          <https://forth-standard.org/standard/block/BLK>                                         
                          <https://forth-standard.org/standard/block/BLOCK>                                       |
+| `block-c65-init`      | *Tali block* ( — f ) "Initialize c65 simulator block storage"                          
+                         Set up block IO to read/write to/from c65 block file.                                   
+                         Run simulator with a writable block file option                                         
+                         e.g. `touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin`                 
+                         Returns true if c65 block storage is available and false otherwise.                     |
 | `block-ramdrive-init` | *Tali block* ( u — ) "Create a ramdrive for blocks"                                    
                          Create a RAM drive, with the given number of                                            
                          blocks, in the dictionary along with setting up the block words to                      
@@ -4533,7 +4512,7 @@ order if you run it too many times.
                          the file disassembler.asm for more details.                                             |
 | `dnegate`             | *ANS double* ( d — d ) "Negate double cell number"                                     
                          <https://forth-standard.org/standard/double/DNEGATE>                                    |
-| `do`                  | *ANS core* ( limit start — )(R: — limit start) "Start a loop"                          
+| `do`                  | *ANS core* ( limit start — ) "Start a loop"                                            
                          <https://forth-standard.org/standard/core/DO>                                           |
 | `does>`               | *ANS core* ( — ) "Add payload when defining new words"                                 
                          <https://forth-standard.org/standard/core/DOES>                                         
@@ -4547,7 +4526,7 @@ order if you run it too many times.
                          <https://forth-standard.org/standard/tools/DUMP>                                        |
 | `dup`                 | *ANS core* ( u — u u ) "Duplicate TOS"                                                 
                          <https://forth-standard.org/standard/core/DUP>                                          |
-| `ed`                  | *Tali Forth* ( — u ) "Line-based editor"                                               
+| `ed:`                 | *Tali Forth* ( — u ) "Line-based editor"                                               
                          Start the line-based editor ed6502. See separate file                                   
                          ed.asm or the manual for details.                                                       |
 | `editor-wordlist`     | *Tali Editor* ( — u ) "WID for the Editor wordlist"                                    
@@ -4648,7 +4627,7 @@ order if you run it too many times.
                          Insert a character at the current position of a pictured numeric                        
                          output string on                                                                        
                          <https://github.com/philburk/pforth/blob/master/fth/numberio.fth>                       |
-| `i`                   | *ANS core* ( — n )(R: n — n) "Copy loop counter to stack"                              
+| `i`                   | *ANS core* ( — n ) "Copy loop counter to stack"                                        
                          <https://forth-standard.org/standard/core/I>                                            
                          See definitions.asm and the Control Flow section of the manual.                         |
 | `if`                  | *ANS core* (C: — orig) (flag — ) "Conditional flow control"                            
@@ -4671,13 +4650,14 @@ order if you run it too many times.
                          <https://forth-standard.org/standard/core/INVERT>                                       |
 | `is`                  | *ANS core ext* ( xt "name" — ) "Set named word to execute xt"                          
                          <http://forth-standard.org/standard/core/IS>                                            |
-| `j`                   | *ANS core* ( — n ) (R: n — n ) "Copy second loop counter to stack"                     
+| `j`                   | *ANS core* ( — n ) "Copy second loop counter to stack"                                 
                          <https://forth-standard.org/standard/core/J>                                            
                          Copy second loop counter from Return Stack to stack. Note we use                        
                          a fudge factor for loop control; see the Control Flow section of                        
                          the manual for more details.                                                            |
 | `key`                 | *ANS core* ( — char ) "Get one character from the input"                               |
-| `l`                   | *Tali Editor* ( — ) "List the current screen"                                          |
+| `l`                   | *Tali Editor* ( — ) "List the current screen"                                          
+                         note "l" is used by LIST in the block words                                             |
 | `latestnt`            | *Tali Forth* ( — nt ) "Push most recent nt to the stack"                               
                          www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html                        
                          The Gforth version of this word is called LATEST                                        |
@@ -4708,7 +4688,7 @@ order if you run it too many times.
                          <https://forth-standard.org/standard/core/MTimes>                                       
                          Multiply two 16 bit numbers, producing a 32 bit result. All                             
                          values are signed. Adapted from FIG Forth for Tali Forth.                               |
-| `marker`              | *ANS core ext* ( "name" — ) "Create a deletion boundry"                                
+| `marker`              | *ANS core ext* ( "name" — ) "Create a deletion boundary"                               
                          <https://forth-standard.org/standard/core/MARKER>                                       
                          This word replaces FORGET in earlier Forths. Old entries are not                        
                          actually deleted, but merely overwritten by restoring CP and DP.                        
@@ -4960,7 +4940,7 @@ order if you run it too many times.
                          This is the basic division operation all others use. Based on FIG                       
                          Forth code, modified by Garth Wilson, see                                               
                          <http://6502.org/source/integers/ummodfix/ummodfix.htm>                                 |
-| `unloop`              | *ANS core* ( — )(R: n1 n2 n3 ---) "Drop loop control from Return stack"                
+| `unloop`              | *ANS core* ( — ) "Drop current loop control block"                                     
                          <https://forth-standard.org/standard/core/UNLOOP>                                       |
 | `until`               | *ANS core* (C: dest — ) ( — ) "Loop flow control"                                      
                          <http://forth-standard.org/standard/core/UNTIL>                                         |
@@ -5111,22 +5091,16 @@ for more information.
 
 ### Old Tests
 
-<div class="note">
-
-During early development, testing was done by hand with a list of words that has
-since been placed in the `old` <span class="indexterm" primary="old"></span> folder. These tests might be still useful if you
-are in the very early stages of developing your own Forth.
-
-</div>
+> [!NOTE]
+> During early development, testing was done by hand with a list of words that has
+> since been placed in the `old` <span class="indexterm" primary="old"></span> folder. These tests might be still useful if you
+> are in the very early stages of developing your own Forth.
 
 ## The Simpler Assembler Notation (SAN) format
 
-<div class="note">
-
-This is a condensed version of the main SAN Guide at
-<https://github.com/scotws/SAN> , see there for more detail.)
-
-</div>
+> [!NOTE]
+> This is a condensed version of the main SAN Guide at
+> <https://github.com/scotws/SAN> , see there for more detail.)
 
 ### Background
 

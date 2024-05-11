@@ -151,8 +151,7 @@ https://forth-standard.org/standard/core/TwoDUP
 
 `2literal`:: _ANS double_ (C: d -- ) ( -- d) "Compile a literal double word"
 https://forth-standard.org/standard/double/TwoLITERAL
-Based on the Forth code
-: 2LITERAL ( D -- ) SWAP POSTPONE LITERAL POSTPONE LITERAL ; IMMEDIATE
+Shares code with xt_sliteral for compiling a double word
 
 `2over`:: _ANS core_ ( d1 d2 -- d1 d2 d1 ) "Copy double word NOS to TOS"
 https://forth-standard.org/standard/core/TwoOVER
@@ -227,7 +226,7 @@ word.
 `?`:: _ANS tools_ ( addr -- ) "Print content of a variable"
 https://forth-standard.org/standard/tools/q
 
-`?do`:: _ANS core ext_ ( limit start -- )(R: -- limit start) "Conditional loop start"
+`?do`:: _ANS core ext_ ( limit start -- ) "Conditional loop start"
 https://forth-standard.org/standard/core/qDO
 
 `?dup`:: _ANS core_ ( n -- 0 | n n ) "Duplicate TOS non-zero"
@@ -337,6 +336,12 @@ https://forth-standard.org/standard/string/BLANK
 `block`:: _ANS block_ ( u -- a-addr ) "Fetch a block into a buffer"
 https://forth-standard.org/standard/block/BLK
 https://forth-standard.org/standard/block/BLOCK
+
+`block-c65-init`:: _Tali block_ ( -- f ) "Initialize c65 simulator block storage"
+Set up block IO to read/write to/from c65 block file.
+Run simulator with a writable block file option
+e.g. `touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin`
+Returns true if c65 block storage is available and false otherwise.
 
 `block-ramdrive-init`:: _Tali block_ ( u -- ) "Create a ramdrive for blocks"
 Create a RAM drive, with the given number of
@@ -530,7 +535,7 @@ the file disassembler.asm for more details.
 `dnegate`:: _ANS double_ ( d -- d ) "Negate double cell number"
 https://forth-standard.org/standard/double/DNEGATE
 
-`do`:: _ANS core_ ( limit start -- )(R: -- limit start)  "Start a loop"
+`do`:: _ANS core_ ( limit start -- )  "Start a loop"
 https://forth-standard.org/standard/core/DO
 
 `does>`:: _ANS core_ ( -- ) "Add payload when defining new words"
@@ -549,7 +554,7 @@ https://forth-standard.org/standard/tools/DUMP
 `dup`:: _ANS core_ ( u -- u u ) "Duplicate TOS"
 https://forth-standard.org/standard/core/DUP
 
-`ed`:: _Tali Forth_ ( -- u ) "Line-based editor"
+`ed:`:: _Tali Forth_ ( -- u ) "Line-based editor"
 Start the line-based editor ed6502. See separate file
 ed.asm or the manual for details.
 
@@ -676,7 +681,7 @@ Insert a character at the current position of a pictured numeric
 output string on
 https://github.com/philburk/pforth/blob/master/fth/numberio.fth
 
-`i`:: _ANS core_ ( -- n )(R: n -- n)  "Copy loop counter to stack"
+`i`:: _ANS core_ ( -- n )  "Copy loop counter to stack"
 https://forth-standard.org/standard/core/I
 See definitions.asm and the Control Flow section of the manual.
 
@@ -706,7 +711,7 @@ https://forth-standard.org/standard/core/INVERT
 `is`:: _ANS core ext_ ( xt "name" -- ) "Set named word to execute xt"
 http://forth-standard.org/standard/core/IS
 
-`j`:: _ANS core_ ( -- n ) (R: n -- n ) "Copy second loop counter to stack"
+`j`:: _ANS core_ ( -- n ) "Copy second loop counter to stack"
 https://forth-standard.org/standard/core/J
 Copy second loop counter from Return Stack to stack. Note we use
 a fudge factor for loop control; see the Control Flow section of
@@ -714,6 +719,8 @@ the manual for more details.
 
 `key`:: _ANS core_ ( -- char ) "Get one character from the input"
 `l`:: _Tali Editor_ ( -- ) "List the current screen"
+note "l" is used by LIST in the block words
+
 `latestnt`:: _Tali Forth_ ( -- nt ) "Push most recent nt to the stack"
 www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
 The Gforth version of this word is called LATEST
@@ -753,7 +760,7 @@ https://forth-standard.org/standard/core/MTimes
 Multiply two 16 bit numbers, producing a 32 bit result. All
 values are signed. Adapted from FIG Forth for Tali Forth.
 
-`marker`:: _ANS core ext_ ( "name" -- ) "Create a deletion boundry"
+`marker`:: _ANS core ext_ ( "name" -- ) "Create a deletion boundary"
 https://forth-standard.org/standard/core/MARKER
 This word replaces FORGET in earlier Forths. Old entries are not
 actually deleted, but merely overwritten by restoring CP and DP.
@@ -1068,7 +1075,7 @@ This is the basic division operation all others use. Based on FIG
 Forth code, modified by Garth Wilson, see
 http://6502.org/source/integers/ummodfix/ummodfix.htm
 
-`unloop`:: _ANS core_ ( -- )(R: n1 n2 n3 ---) "Drop loop control from Return stack"
+`unloop`:: _ANS core_ ( -- ) "Drop current loop control block"
 https://forth-standard.org/standard/core/UNLOOP
 
 `until`:: _ANS core_ (C: dest -- ) ( -- ) "Loop flow control"

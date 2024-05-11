@@ -22,7 +22,8 @@ In order to facilitate playing with blocks, Tali comes with a special word
 `block-ramdrive-init` that takes the number of blocks you want to use and
 allocates a RAM drive to simulate a mass-storage device.  It also sets up the
 read and write vectors to routines that will move the data in and out of the
-allocated RAM.
+allocated RAM.  If you'd prefer persistent block storage in an external file
+you can try the `block-c65-init` word illustrated below.
 
 If you have an actual storage device, such as a flash memory, you will need to
 write routines for transferring 1K from storage to RAM and from RAM to storage.
@@ -42,6 +43,18 @@ This command takes a moment as all of the block memory is initialized to the
 value BLANK (a space) on the assumption you will be placing text there.  When
 complete, you will have 4 blocks (numbered 0-3) available to play with.
 
+If you want to use persistent storage instead, create a writable file
+and start the simulator as shown.  The `block-c65-init` word takes no
+arguments and returns true if block storage is available.
+You can read/write up to 65536 1K blocks in your file providing 64Mb of storage.
+
+----
+touch somefile.dat
+c65/c65 -b somefile.dat -r taliforth-py65mon.bin
+...
+block-c65-init      ( -- f )
+----
+
 When using blocks for text or Forth code, the 1K block is further divided into
 16 lines of 64 characters each.  Newlines are typically not used in blocks at
 all, and the unused space is filled with spaces to get to the next line.  Blocks
@@ -54,23 +67,23 @@ and displays the contents of that block.  Typing the command `0 list` will list
 the contents of block 0.
 
 ----
-0 list 
+0 list
 Screen #   0
- 0                                                                 
- 1                                                                 
- 2                                                                 
- 3                                                                 
- 4                                                                 
- 5                                                                 
- 6                                                                 
- 7                                                                 
- 8                                                                 
- 9                                                                 
-10                                                                 
-11                                                                 
-12                                                                 
-13                                                                 
-14                                                                 
+ 0
+ 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
 15
  ok
 ----
@@ -123,24 +136,24 @@ line 2.
 Now if we list screen 0, we should see our message:
 
 ----
-0 list 
+0 list
 Screen #   0
- 0                                                                 
- 1                                                                 
- 2 Load screen 2 to get a smiley!                                  
- 3                                                                 
- 4                                                                 
- 5                                                                 
- 6                                                                 
- 7                                                                 
- 8                                                                 
- 9                                                                 
-10                                                                 
-11                                                                 
-12                                                                 
-13                                                                 
-14                                                                 
-15                                                                 
+ 0
+ 1
+ 2 Load screen 2 to get a smiley!
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
   ok
 ----
 
@@ -149,22 +162,22 @@ for the text.  Pressing ENTER without typing any text will leave that line
 blank.
 
 ----
-2 enter-screen 
- 0 * ( Make a smiley word and then run it!    SCC 2018-12 ) 
- 1 * : smiley ." :)" ; 
- 2 *  
- 3 *  
- 4 *  
- 5 * smiley 
- 6 *  
- 7 *  
- 8 *  
- 9 *  
-10 *  
-11 *  
-12 *  
-13 *  
-14 *  
+2 enter-screen
+ 0 * ( Make a smiley word and then run it!    SCC 2018-12 )
+ 1 * : smiley ." :)" ;
+ 2 *
+ 3 *
+ 4 *
+ 5 * smiley
+ 6 *
+ 7 *
+ 8 *
+ 9 *
+10 *
+11 *
+12 *
+13 *
+14 *
 15 *   ok
 ----
 
@@ -363,54 +376,54 @@ inform the user if the routines for accessing the binary data are also stored
 
 In this example, we will create some words to make non-volatile arrays stored on
 a flash device.  While this example can be run with the block ramdrive, using 7
-blocks, it won't be non-volatile in that case.  
+blocks, it won't be non-volatile in that case.
 
 To get started, we will add a note to block 0 indicating the blocks we are going
 to use.  The following shows an example Forth session adding this note.
 
 ----
-0 list 
+0 list
 Screen #   0
- 0 ( Welcome to this EEPROM! )                                     
- 1                                                                 
- 2 ( There are 128 blocks on this EEPROM )                         
- 3                                                                 
- 4                                                                 
- 5                                                                 
- 6                                                                 
- 7                                                                 
- 8                                                                 
- 9                                                                 
-10                                                                 
-11                                                                 
-12                                                                 
-13                                                                 
-14                                                                 
-15                                                                 
+ 0 ( Welcome to this EEPROM! )
+ 1
+ 2 ( There are 128 blocks on this EEPROM )
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
  ok
 editor-wordlist >order  ok
-4 o 
- 4 * ( Blocks 3-6 contain binary data )  ok   
-5 o 
+4 o
+ 4 * ( Blocks 3-6 contain binary data )  ok
+5 o
  5 * ( Blocks 1-2 contain the routines to access this data )  ok
-l 
+l
 Screen #   0
- 0 ( Welcome to this EEPROM! )                                     
- 1                                                                 
- 2 ( There are 128 blocks on this EEPROM )                         
- 3                                                                 
- 4 ( Blocks 3-6 contain binary data )                              
- 5 ( Blocks 1-2 contain the routines to access this data )         
- 6                                                                 
- 7                                                                 
- 8                                                                 
- 9                                                                 
-10                                                                 
-11                                                                 
-12                                                                 
-13                                                                 
-14                                                                 
-15                                                                 
+ 0 ( Welcome to this EEPROM! )
+ 1
+ 2 ( There are 128 blocks on this EEPROM )
+ 3
+ 4 ( Blocks 3-6 contain binary data )
+ 5 ( Blocks 1-2 contain the routines to access this data )
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
  ok
 ----
 
@@ -426,39 +439,39 @@ block storage device so that the data can be recovered on a different system if
 needed.
 
 ----
-1 enter-screen 
- 0 * ( Block Binary Data Words  1/2                 SCC 2018-12 ) 
- 1 * ( Make a defining word to create block arrays. ) 
- 2 * : block-array: ( base_block# "name" -- ) ( index -- addr ) 
- 3 *   create ,     ( save the base block# ) 
- 4 *   does> @ swap ( base_block# index ) 
- 5 *     cells      ( Turn index into byte index ) 
- 6 *     1024 /MOD  ( base_block# offset_into_block block# ) 
- 7 *     rot +      ( offset_into_block real_block# ) 
- 8 *     block      ( offset_into_block buffer_address ) 
- 9 *     + ; 
-10 * ( Create the array starting at block 3           ) 
-11 * ( With 4 blocks, max index is 2047 - not checked ) 
-12 * 3 block-array: myarray 
-13 * ( Some helper words for accessing elements ) 
-14 * : myarray@ ( index -- n ) myarray @ ; 
+1 enter-screen
+ 0 * ( Block Binary Data Words  1/2                 SCC 2018-12 )
+ 1 * ( Make a defining word to create block arrays. )
+ 2 * : block-array: ( base_block# "name" -- ) ( index -- addr )
+ 3 *   create ,     ( save the base block# )
+ 4 *   does> @ swap ( base_block# index )
+ 5 *     cells      ( Turn index into byte index )
+ 6 *     1024 /MOD  ( base_block# offset_into_block block# )
+ 7 *     rot +      ( offset_into_block real_block# )
+ 8 *     block      ( offset_into_block buffer_address )
+ 9 *     + ;
+10 * ( Create the array starting at block 3           )
+11 * ( With 4 blocks, max index is 2047 - not checked )
+12 * 3 block-array: myarray
+13 * ( Some helper words for accessing elements )
+14 * : myarray@ ( index -- n ) myarray @ ;
 15 * : myarray! ( n index -- ) myarray ! update ;  ok
-2 enter-screen 
- 0 * ( Block Binary Data Words cont. 2/2            SCC 2018-12 ) 
- 1 * ( Note: For both words below, end-index is one past the ) 
- 2 * ( last index you want to use.                           ) 
- 3 *  
- 4 * ( A helper word to initialize values in block arrays to 0 ) 
- 5 * : array-zero ( end_index start_index -- ) 
- 6 *     ?do 0 i myarray! loop ; 
- 7 *  
- 8 * ( A helper word to view a block array ) 
- 9 * : array-view ( end_index start_index -- ) 
-10 *     ( Print 10 values per line with 6 digit columns. ) 
-11 *     ?do i 10 mod 0= if cr then i myarray @ 6 .r loop ; 
-12 *  
-13 *  
-14 *  
+2 enter-screen
+ 0 * ( Block Binary Data Words cont. 2/2            SCC 2018-12 )
+ 1 * ( Note: For both words below, end-index is one past the )
+ 2 * ( last index you want to use.                           )
+ 3 *
+ 4 * ( A helper word to initialize values in block arrays to 0 )
+ 5 * : array-zero ( end_index start_index -- )
+ 6 *     ?do 0 i myarray! loop ;
+ 7 *
+ 8 * ( A helper word to view a block array )
+ 9 * : array-view ( end_index start_index -- )
+10 *     ( Print 10 values per line with 6 digit columns. )
+11 *     ?do i 10 mod 0= if cr then i myarray @ 6 .r loop ;
+12 *
+13 *
+14 *
 15 *   ok
 1 2 thru  ok
 ----
@@ -485,7 +498,7 @@ elements in the array, and then place some data into the array.
 
 ----
 2048 0 array-zero  ok
-50 0 array-view 
+50 0 array-view
      0     0     0     0     0     0     0     0     0     0
      0     0     0     0     0     0     0     0     0     0
      0     0     0     0     0     0     0     0     0     0
@@ -494,7 +507,7 @@ elements in the array, and then place some data into the array.
 12345 4 myarray!  ok
 6789 10 myarray!  ok
 4 myarray@ . 12345  ok
-50 0 array-view 
+50 0 array-view
      0     0     0     0 12345     0     0     0     0     0
   6789     0     0     0     0     0     0     0     0     0
      0     0     0     0     0     0     0     0     0     0
@@ -514,7 +527,7 @@ accessed by first loading the helper words in blocks 1-2.
 
 ----
 1 2 thru  ok
-50 0 array-view 
+50 0 array-view
      0     0     0     0 12345     0     0     0     0     0
   6789     0     0     0     0     0     0     0     0     0
      0     0     0     0     0     0     0     0     0     0

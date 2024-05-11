@@ -190,6 +190,13 @@ here s" a"   ' move          cycle_test
 5            ' negate        cycle_test drop      
 : dword ;    ' never-native  cycle_test           
 5 5          ' nip           cycle_test drop      
+\ various nops with x/y bytes/cyles with skipped dea (3A) bytes
+\ EA: 1/2, 22: 2/2, 03: 1/1, FC: 3/4, 5C: 3/8 with skipped dea bytes
+\ expected is 2+2+1+4+8 + jsr/rts = 17 + 6 + 6 = 29
+hex
+: nops [ EA c,  22 c, 3A c,  03 c,  FC c, 3A c, 3A c,  5C c, 3A c, 3A c, ] ;
+decimal
+             ' nops          cycle_test           
 5 5          ' <>            cycle_test drop      
 5 5 5        ' -rot          cycle_test 2drop drop
 s" 5"        ' number        cycle_test drop      

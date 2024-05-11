@@ -34,12 +34,12 @@ code0:
 ; Entry point for Tali Forth after kernel hardware setup
 forth:
 
-.include "native_words.asm"     ; Native Forth words. Starts with COLD
+.include "words/all.asm"           ; Native Forth words. Starts with COLD
 .include "definitions.asm"      ; Top-level definitions, memory map
                                 ; included here to put relocatable tables after native words
-.include "assembler.asm"        ; SAN assembler
-.include "disassembler.asm"     ; SAN disassembler
-.include "ed.asm"               ; Line-based editor ed6502
+.if "disassembler" in TALI_OPTIONAL_WORDS || "assembler" in TALI_OPTIONAL_WORDS
+    .include "opcodes.asm"
+.endif
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
@@ -103,6 +103,33 @@ cmpl_a:
                 inc cp+1
 _done:
                 rts
+
+
+cmpl_jump_later:
+    ; compile a jump to be filled in later. Populates the dummy address
+    ; MSB with Y, LSB indeterminate, leaving address of the JMP target TOS
+                lda #OpJMP
+                jsr cmpl_a
+                jsr xt_here
+                bra cmpl_word
+
+
+check_nc_limit:
+        ; compare A > 0 to nc-limit, setting C=0 if A <= nc-limit (should native compile)
+                pha
+                ldy #nc_limit_offset+1
+                clc
+                lda (up),y              ; if MSB non zero we're done, leave with C=0
+                bne _done
+
+                pla
+                dea                     ; simplify test to A-1 < nc-limit
+                dey
+                cmp (up),y              ; A-1 < LSB leaves C=0, else C=1
+                ina                     ; restore A
+_done:
+                rts
+
 
 ; =====================================================================
 ; CODE FIELD ROUTINES
@@ -396,7 +423,6 @@ compare_16bit:
                 ; LSBs are not equal, compare MSB
                 lda 1,x                 ; MSB of TOS
                 sbc 3,x                 ; MSB of NOS
-                ora #1                  ; Make zero flag 0 because not equal
                 bvs _overflow
                 bra _not_equal
 _equal:
@@ -408,7 +434,7 @@ _overflow:
                 ; Handle overflow because we use signed numbers
                 eor #$80                ; complement negative flag
 _not_equal:
-                ora #1                  ; if overflow, we can't be equal
+                ora #1                  ; set Z=0 since we're not equal
 _done:
                 rts
 
@@ -504,36 +530,17 @@ _loop:
                 ; number.
                 lda #%00100000
                 bit status
-                beq _single_number
+                bne _double_number
 
-                ; It's a double cell number.  If we swap the
-                ; upper and lower half, we can use the literal_runtime twice
-                ; to compile it into the dictionary.
-                jsr xt_swap
-
-                jsr _add_lit
-
-                ; Fall into _single_number to process the other half.
-_single_number:
-                jsr _add_lit
+                jsr xt_literal
 
                 ; That was so much fun, let's do it again!
                 bra _loop
 
-_add_lit:       lda 1,x
-                beq _byte_rt
-                ldy #>literal_runtime
-                lda #<literal_runtime
-                bra _cmpl_rt
-_byte_rt:       ldy #>byte_runtime
-                lda #<byte_runtime
-_cmpl_rt:       jsr cmpl_subroutine
-                lda 1,x
-                beq _c_comma
-                ; compile our number and return
-                jmp xt_comma
-_c_comma:       jmp xt_c_comma
-
+_double_number:
+                ; It's a double cell number.
+                jsr xt_two_literal
+                bra _loop
 
 _got_name_token:
                 ; We have a known word's nt TOS. We're going to need its xt
@@ -594,7 +601,7 @@ _compile:
 
                 ; Compile the xt into the Dictionary with COMPILE,
                 jsr xt_compile_comma
-                jmp _loop
+                bra _loop
 
 _line_done:
                 ; drop stuff from PARSE_NAME
