@@ -3040,7 +3040,7 @@ z_less_than:    rts
 xt_literal:
                 jsr underflow_1
 
-                lda # z_template_push_tos - template_push_tos
+                lda #template_push_tos_size
                 jsr check_nc_limit
                 bcc _inline
 
@@ -3053,37 +3053,33 @@ xt_literal:
                 jsr xt_comma
                 bra z_literal
 
-_inline:        ; we'll need two or three values to fill in our template
-                ; so first we set up the stack in reverse order.
-                ; the first (last) item is a STY or STZ for the MSB
-                lda #$94        ; sty zp,x
-                ldy 1,x
+_inline:
+                ; we'll need the MSB (if non-zero) and LSB to fill in the template
+                ; which we set up on the stack in reverse order
+                ; first we need the STZ/STY opcode for the end of the template
+                ldy #$94        ; STY opcode
+                lda 1,x         ; MSB
                 bne +
-                lda #$74        ; stz zp,x
-+
+                ldy #$74        ; STZ opcode
++               phy
+
+                lda 0,x         ; LSB
                 pha
 
-                ; next (second) we need the LSB of the literal
-                lda 0,x
+                ; if MSB is non-zero, stack it, otherwise skip first two bytes of template
+                ldy #2
+                lda 1,x         ; MSB
+                beq _copy
+                ldy #0
                 pha
-                ; last (first) we need the MSB, but only if it's non-zero
-                ; we'll also arrange to leave Y=2 for no MSB and Y=0 otherwise
-                ; so that we can skip the initial ldy #msb when MSB is zero
-                tya             ; Y has the MSB
-                beq +
-                pha
-                lda #2
-+
-                eor #2          ; invert A=0/2 to Y=2/0
-                tay
 
 _copy:          lda template_push_tos,y
-                cmp #$ff
+                cmp #$ff        ; is it a placeholder?
                 bne +
                 pla
 +               jsr cmpl_a
                 iny
-                cpy #z_template_push_tos - template_push_tos
+                cpy #template_push_tos_size
                 bne _copy
 
                 inx             ; drop the literal
@@ -3098,7 +3094,7 @@ template_push_tos:
                 dex
                 sta 0,x
                 .byte $ff, 1    ; this will become either sty 1,x or stz 1,x
-z_template_push_tos:
+template_push_tos_size = * - template_push_tos
 
 
 literal_runtime:
