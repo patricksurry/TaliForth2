@@ -63,9 +63,10 @@ xt_compile_comma:
 
                 ; See if this is an Always Native (AN) word by checking the
                 ; AN flag. We need nt for this.
-                jsr xt_dup
+                jsr xt_dup              ; keep an unadjusted copy of xt
+                jsr xt_dup              ; plus one to convert to nt
                 jsr xt_int_to_name
-                ; ( xt xt -- xt nt )
+                ; ( xt xt nt )
 
                 ; Does this xt even have a valid (non-zero) nt?
                 lda 0,x
@@ -75,18 +76,18 @@ xt_compile_comma:
                 ; Otherwise investigate the nt
                 jsr xt_dup
                 jsr xt_one_plus         ; status is at nt+1
-                ; ( xt nt nt -- xt nt nt+1 )
+                ; ( xt xt nt nt+1 )
                 lda (0,x)               ; get status byte
                 inx                     ; drop pointer
                 inx
-                ; ( xt nt )
+                ; ( xt xt nt )
                 sta tmp3                ; keep copy of status byte
                 and #NN
                 bne cmpl_as_call        ; never native
 
-                ; ( xt nt )             ; maybe native, let's check
+                ; ( xt xt nt )             ; maybe native, let's check
                 jsr xt_wordsize
-                ; ( xt u )
+                ; ( xt xt u )
 
                 ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHING ---
 
@@ -130,7 +131,7 @@ xt_compile_comma:
 +
 _check_limit:
                 ; --- END OF SPECIAL CASES ---
-                ; ( xt u )
+                ; ( xt xt' u )
 
                 lda tmp3
                 and #AN                 ; check Always Native (AN) bit
@@ -140,7 +141,7 @@ cmpl_by_limit:
                 ; Compile either inline or as subroutine depending on
                 ; whether native code size <= user limit
                 ; Returns C=0 if native, C=1 if subroutine
-                ; ( xt u )
+                ; ( xt xt' u )
                 ldy #nc_limit_offset+1
                 lda 1,x                 ; MSB of word size
                 cmp (up),y              ; user-defined limit MSB
@@ -155,9 +156,8 @@ cmpl_by_limit:
 
 cmpl_as_call:
         ; Compile xt as a subroutine call, return with C=0
-        ; Stack is either ( xt nt ) or ( xt u )
-                inx             ; either way drop TOS
-                inx
+        ; Stack is either ( xt xt nt ) or ( xt xt' u )
+                jsr xt_two_drop         ; either way 2drop leaves original xt
                 ; ( xt -- )
                 lda #OpJSR
                 jsr cmpl_a
@@ -167,15 +167,16 @@ cmpl_as_call:
 
 cmpl_inline:
         ; compile inline, returning C=1
-                ; ( xt u -- )
+                ; ( xt xt' u -- )
                 jsr xt_here
                 jsr xt_swap
-                ; ( xt cp u -- )
+                ; ( xt xt' cp u -- )
                 jsr xt_dup
                 jsr xt_allot            ; allocate space for the word
                 ; Enough of this, let's move those bytes already!
-                ; ( xt cp u ) on the stack at this point
+                ; ( xt xt' cp u ) on the stack at this point
                 jsr xt_move
+                jsr xt_drop             ; drop original xt
                 clc
                 rts
 

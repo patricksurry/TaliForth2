@@ -1498,12 +1498,13 @@ xt_question_do:
                 ; But first compile its runtime.
                 dex
                 dex
-                dex
-                dex
                 lda #<question_do_runtime
-                sta 2,x
+                sta 0,x
                 lda #>question_do_runtime
-                sta 3,x
+                sta 1,x
+                jsr xt_dup              ; xt and xt' are the same
+                dex
+                dex
                 lda #question_do_runtime_size
                 sta 0,x
                 stz 1,x
@@ -3193,6 +3194,9 @@ xt_plus_loop:
                 ; fall through to shared runtime
 
 xt_loop_common:
+                jsr xt_over
+                jsr xt_swap             ; xt and xt' are the same
+                ; ( xt xt u )
                 jsr cmpl_by_limit
 
                 ; The address we need to loop back to is TOS
