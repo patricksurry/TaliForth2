@@ -230,6 +230,7 @@ z_quit:         ; no RTS required
 
 
 .include "core.asm"
+.include "compile.asm"
 .include "tools.asm"
 .include "tali.asm"
 .include "double.asm"
