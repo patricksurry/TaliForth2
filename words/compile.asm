@@ -1,3 +1,50 @@
+; Core Forth compilation routines
+; Tali Forth 2 for the 65c02
+; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
+; Patrick Surry
+; First version: 1. Jan 2014
+; This version: 11. May 2024
+
+; The user-visible word COMPILE, is defined here along with various
+; supporting cmpl_xxx routines.  These generate 65c02 assembler
+; instructions from Forth code.  This is a good place to start
+; reading if you want to understand how that process works.
+;
+; We can compile words inline or as JSR calls based on the nc-limit
+; variable:  COMPILE, has internal entry points cmpl_by_limit,
+; cmpl_inline and cmpl_as_call.  Inline compilation copies the
+; source code for a word between xt_<word> and <z_word>,
+; optionally removing the initial stack depth check.
+; For some words we can also discard leading and trailing stack
+; manipulation: see check_strip_table.
+;
+; A great way to understand what's going on is to write simple
+; Forth words and use SEE to disassemble them.  Try different
+; values for nc-limit threshold and the strip-underflow flag.
+; For example:
+;
+;       32 nc-limit !
+;       true strip-underflow !
+;       : fib 0 1 rot 0 ?do over + swap loop drop ;
+;       see fib
+;
+; Forth uses only two branching constructs, an unconditional jump
+; and a conditional 0branch.  TaliForth doesn't expose 0BRANCH as
+; a user word but see cmpl_jump, cmpl_jump_later, cmpl_jump_tos,
+; cmpl_0branch_tos and cmpl_0branch_tos.  The xxx_later variants
+; let us compile forward references where we need to come back
+; and fill in the branch address after we've reached the target.
+;
+; The conditional zero_branch_runtime is also here.  It has some
+; subtlety to support both inline and subroutine forms.
+; It's factored into two parts, ztest_runtime and zbranch_runtime.
+; Several looping conditional (LOOP, +LOOP, ?DO) implement custom
+; tests followed by zbranch_runtime when compiled as subroutines.
+; The inline forms are typically much simpler since they can use
+; 65c02 jmp and bxx branch opcodes directly.
+
+
 ; ## COMPILE_COMMA ( xt -- ) "Compile xt"
 ; ## "compile,"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/COMPILEComma
@@ -222,10 +269,10 @@ z_compile_comma:
 ; =====================================================================
 ; COMPILE WORDS, JUMPS and SUBROUTINE JUMPS INTO CODE
 
-; These three routines compile instructions such as "jsr xt_words" into a word
+; These routines compile instructions such as "jsr xt_words" into a word
 ; at compile time so they are available at run time. Words that use this
 ; routine may not be natively compiled. We use "cmpl" as not to confuse these
-; routines with the COMPILE, word. Always call this with a subroutine jump.
+; routines with the COMPILE, word.  Always call this with a subroutine jump.
 ; This means combining JSR/RTS to JMP in those cases is not going to work. To
 ; use, load the LSB of the address in A and the MSB in Y. You can remember
 ; which comes first by thinking of the song "Young Americans" ("YA") by David
@@ -274,6 +321,7 @@ cmpl_jump_tos:
                 lda #OpJMP
                 jsr cmpl_a
                 jmp xt_comma
+
 
 cmpl_jump_later:
     ; compile a jump to be filled in later. Populates the dummy address
@@ -400,7 +448,27 @@ _long:
                 jmp cmpl_jump_tos
 
 
+; =====================================================================
+; 0BRANCH runtime
+;
+; TaliForth doesn't expose 0BRANCH directly as a word, but implements
+; all conditional branching with this runtime.  It's broken into
+; two parts: ztest_runtime checks if TOS is zero,
+; and zbranch_runtime then conditionally branches to a target address.
+; This allows the looping constructs LOOP, +LOOP and ?DO to implement
+; their own custom tests and reuse the zbranch_runtime for branching.
+;
+; Native compilation is very straightforward: we inline a few bytes
+; from ztest_runtime and tack on a BEQ <target> or BNE +3/JMP <target>
+; to implement the branch.  Non-native compilation generates
+; JSR zero_branch_runtime / .word <target> so the runtime can
+; use its own return address to read <target> and either return to
+; that address or simply continue beyond the <target> word.
+; This is obviously much slower but sometimes space is more
+; important than speed.
+
 zero_branch_runtime:
+
 ztest_runtime:
         ; Drop TOS of stack setting Z flag, for optimizing short branches (see xt_then)
                 inx
