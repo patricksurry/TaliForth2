@@ -62,7 +62,6 @@ _load_zp_loop:
 
                 ; Initialize the user variables.
                 ldy #cold_user_table_end-cold_user_table-1
-                lda #0
 
 _load_user_vars_loop:
                 ; Like the zero page variables, these are initialized
