@@ -15,7 +15,7 @@ oc_index_table:
 
         ; Opcodes 20-2F
         .word oc20, oc21, oc__, oc__, oc24, oc25, oc26, oc27
-        .word oc28, oc29, oc2A, oc__, OC2C, oc2D, oc2E, oc2F
+        .word oc28, oc29, oc2A, oc__, oc2C, oc2D, oc2E, oc2F
 
         ; Opcodes 30-3F
         .word oc30, oc31, oc32, oc__, oc34, oc35, oc36, oc37
