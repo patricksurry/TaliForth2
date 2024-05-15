@@ -313,7 +313,7 @@ _is_rel:
                 stz 1,x
                 jsr xt_u_dot_r      ; print the destination with 5 leading spaces
 
-                lda #AscSp          ; print space and branch direction indicator
+                lda #AscSP          ; print space and branch direction indicator
                 jsr emit_a
                 pla
                 jsr emit_a
