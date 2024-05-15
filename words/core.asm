@@ -116,7 +116,7 @@ _not_zero:
                 and #$F7
 
                 ; Increment the buffer number (overflow from 7 to 0 OK)
-               ina
+                ina
 
                 ; Set bit 3 for detecting if CTRL-n has been pressed the first
                 ; time. This bit will be cleared on the first CTRL-n or CTRL-p
