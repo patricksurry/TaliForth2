@@ -264,12 +264,32 @@ interested, a later chapter will provide far more detail.
 ### Downloading
 
 Tali Forth 2 lives on GitHub<span class="indexterm" primary="GitHub"></span> at
-<https://github.com/SamCoVT/TaliForth2>. This is where you will always find the
-current version. You can either clone the code with git<span class="indexterm" primary="git"></span> or simply
-download it. To just test Tali Forth, all you need is the binary file
+<https://github.com/SamCoVT/TaliForth2>. This is where you will always
+find the current version. You can either clone the code with
+git<span class="indexterm" primary="git"></span> or simply download it. To just test Tali Forth using the
+py65mon simulator, all you need is the binary file
 `taliforth-py65mon.bin`.
 
 ### Running
+
+Tali currently supports two simulators, py65mon and c65. Py65mon will need to
+be downloaded separately (see below) and c65 comes with Tali in the c65
+folder. If you have `gcc` and `make` installed, you can just type (in the
+main Tali folder):
+
+``` bash
+make csim
+```
+
+This will compile the c65 simulator (if it hasn’t been compiled yet) and run
+Tali Forth 2 in the simulator.
+
+To exit, you can type `bye` or use CTRL-C to break out of the simulator.
+
+Note: If running on Windows in a git bash shell, you will need to use winpty,
+eg. `winpty make csim`. This is only needed for the git bash shell. Running
+Tali in c65 from the Windows command prompt or Windows Subsystem for Linux (WSL)
+works fine.
 
 #### Downloading the py65mon Simulator
 
@@ -306,7 +326,17 @@ py65mon -m 65c02 -r taliforth-py65mon.bin
 
 Note that the option `-m 65c02` is required, because Tali Forth makes extensive
 use of the additional commands of the CMOS version and will not run on a stock
-6502 MPU.
+6502 MPU. If you have `make` installed
+
+If you downloaded the full Tali Forth 2 source code and have `make`
+installed, you can also just type:
+
+``` bash
+make sim
+```
+
+to run Tali Forth 2 in the py65mon simulator (it will run the above
+command for you).
 
 ### Installing on Your Own Hardware
 
@@ -354,6 +384,10 @@ want to have your project added to the list.
 - **SamCo’s SBC** (<https://github.com/SamCoVT/SBC>) by Sam Colwell. A
   single-board computer running at 4MHz. Platform file:
   `platform-sbc.asm` (29. Oct 2018)
+
+- **Neo6502** by Olimex LTD. A commercial offering that pairs a real
+  65C02 processor with an RP2040 to give HDMI output and USB keyboard
+  support. Platform file: `platform-neo6502.asm` (28. Apr 2024)
 
 There are various benchmarks of Tali Forth 2 running different hardware at *The
 Ultimate Forth Benchmark* (<https://theultimatebenchmark.org/#sec-7>).
@@ -4449,7 +4483,7 @@ order if you run it too many times.
                          subroutine threading, we can’t use , (COMMA) to compile new words                       
                          the traditional way. By default, native compiled is allowed, unless                     
                          there is a NN (Never Native) flag associated. If not, we use the                        
-                         value NC_LIMIT (from definitions.tasm) to decide if the code                            
+                         value NC_LIMIT (from definitions.asm) to decide if the code                             
                          is too large to be natively coded: If the size is larger than                           
                          NC_LIMIT, we silently use subroutine coding. If the AN (Always                          
                          Native) flag is set, the word is always natively compiled.                              |
@@ -4614,7 +4648,8 @@ order if you run it too many times.
 | `here`                | *ANS core* ( — addr ) "Put Compiler Pointer on Data Stack"                             
                          <https://forth-standard.org/standard/core/HERE>                                         
                          This code is also used by the assembler directive ARROW                                 
-                         ("→") though as immediate                                                               |
+                         ("→") though as immediate                                                               
+                         and by HERE as an immediate compile word                                                |
 | `hex`                 | *ANS core ext* ( — ) "Change base radix to hexadecimal"                                
                          <https://forth-standard.org/standard/core/HEX>                                          |
 | `hexstore`            | *Tali* ( addr1 u1 addr2 — u2 ) "Store a list of numbers"                               

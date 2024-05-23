@@ -202,6 +202,13 @@ typedef unsigned int uint32;
         else clearoverflow();\
 }
 
+#ifdef FAKE6502_INCLUDE
+
+extern ushort pc;
+extern uint8 sp, a, x, y, status;
+extern uint32 step6502();
+
+#else
 
 #ifdef FAKE6502_NOT_STATIC
 /*6502 CPU registers*/
@@ -232,8 +239,6 @@ static uint8 opcode, oldstatus, waiting6502 = 0;
 /*externally supplied functions*/
 extern uint8 read6502(ushort address);
 extern void write6502(ushort address, uint8 value);
-
-#ifndef FAKE6502_INCLUDE
 
 /*a few general functions used by various other functions*/
 static void push_6502_16(ushort pushval) {
@@ -388,9 +393,11 @@ static ushort getvalue() {
         else return((ushort)read6502(ea));
 }
 
+#if 0  /* unused */
 static ushort getvalue16() {
     return((ushort)read6502(ea) | ((ushort)read6502(ea+1) << 8));
 }
+#endif
 
 static void putvalue(ushort saveval) {
     if (addrtable[opcode] == acc) a = (uint8)(saveval & 0x00FF);
@@ -1052,6 +1059,24 @@ static void (*optable[256])() = {
 /* E */      cpx,  sbc,  nop,  nop,  cpx,  sbc,  inc, smb6,  inx,  sbc,  nop,  nop,  cpx,  sbc,  inc, bbs6, /* E */
 /* F */      beq,  sbc,  sbc,  nop,  nop,  sbc,  inc, smb7,  sed,  sbc,  plx,  nop,  nop,  sbc,  inc, bbs7  /* F */
 };
+
+static char *opnames =
+    "brk ora nop nop tsb ora asl rmb0php ora asl nop tsb ora asl bbr0"
+    "bpl ora ora nop trb ora asl rmb1clc ora inc nop trb ora asl bbr1"
+    "jsr and nop nop bit and rol rmb2plp and rol nop bit and rol bbr2"
+    "bmi and and nop bit and rol rmb3sec and dec nop bit and rol bbr3"
+    "rti eor nop nop nop eor lsr rmb4pha eor lsr nop jmp eor lsr bbr4"
+    "bvc eor eor nop nop eor lsr rmb5cli eor phy nop nop eor lsr bbr5"
+    "rts adc nop nop stz adc ror rmb6pla adc ror nop jmp adc ror bbr6"
+    "bvs adc adc nop stz adc ror rmb7sei adc ply nop jmp adc ror bbr7"
+    "bra sta nop nop sty sta stx smb0dey bit txa nop sty sta stx bbs0"
+    "bcc sta sta nop sty sta stx smb1tya sta txs nop stz sta stz bbs1"
+    "ldy lda ldx nop ldy lda ldx smb2tay lda tax nop ldy lda ldx bbs2"
+    "bcs lda lda nop ldy lda ldx smb3clv lda tsx nop ldy lda ldx bbs3"
+    "cpy cmp nop nop cpy cmp dec smb4iny cmp dex wai cpy cmp dec bbs4"
+    "bne cmp cmp nop nop cmp dec smb5cld cmp phx stp nop cmp dec bbs5"
+    "cpx sbc nop nop cpx sbc inc smb6inx sbc nop nop cpx sbc inc bbs6"
+    "beq sbc sbc nop nop sbc inc smb7sed sbc plx nop nop sbc inc bbs7";
 
 static const uint32 ticktable[256] = {
 /*        |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |  A  |  B  |  C  |  D  |  E  |  F  |     */

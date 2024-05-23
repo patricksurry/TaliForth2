@@ -146,8 +146,23 @@ nt_c_store:
 
 nt_plus_store:
         .byte 2, UF
-        .word nt_execute, xt_plus_store, z_plus_store
+        .word nt_zero, xt_plus_store, z_plus_store
         .text "+!"
+
+nt_zero:
+        .byte 1, 0
+        .word nt_one, xt_zero, z_zero
+        .text "0"
+
+nt_one:
+        .byte 1, 0
+        .word nt_two, xt_one, z_one
+        .text "1"
+
+nt_two:
+        .byte 1, 0
+        .word nt_execute, xt_two, z_two
+        .text "2"
 
 nt_execute:
         .byte 7, UF
@@ -221,23 +236,8 @@ nt_true:
 
 nt_space:
         .byte 5, 0
-        .word nt_zero, xt_space, z_space
+        .word nt_two_dup, xt_space, z_space
         .text "space"
-
-nt_zero:
-        .byte 1, 0
-        .word nt_one, xt_zero, z_zero
-        .text "0"
-
-nt_one:
-        .byte 1, 0
-        .word nt_two, xt_one, z_one
-        .text "1"
-
-nt_two:
-        .byte 1, 0
-        .word nt_two_dup, xt_two, z_two
-        .text "2"
 
 nt_two_dup:
         .byte 4, UF
@@ -331,17 +331,17 @@ nt_bracket_char:
 
 nt_char_plus:
         .byte 5, 0
-        .word nt_chars, xt_one_plus, z_one_plus ; same as 1+
+        .word nt_chars, xt_char_plus, z_char_plus ; same as 1+
         .text "char+"
 
 nt_chars:
-        .byte 5, AN+UF   ; deleted during compile
+        .byte 5, UF     ; deleted during compile
         .word nt_cells, xt_chars, z_chars
         .text "chars"
 
 nt_cells:
         .byte 5, 0
-        .word nt_cell_plus, xt_two_star, z_two_star  ; same as 2*
+        .word nt_cell_plus, xt_cells, z_cells  ; same as 2*
         .text "cells"
 
 nt_cell_plus:
@@ -579,9 +579,9 @@ nt_constant:
         .word nt_value, xt_constant, z_constant
         .text "constant"
 
-nt_value:               ; same code as CONSTANT
+nt_value:
         .byte 5, UF
-        .word nt_to, xt_constant, z_constant
+        .word nt_to, xt_value, z_value          ; same code as CONSTANT
         .text "value"
 
 nt_to:
@@ -860,12 +860,12 @@ nt_quit:
         .text "quit"
 
 nt_begin:
-        .byte 5, AN+CO+IM
+        .byte 5, CO+IM
         .word nt_again, xt_begin, z_begin
         .text "begin"
 
 nt_again:
-        .byte 5, AN+CO+IM+UF
+        .byte 5, CO+IM+UF
         .word nt_state, xt_again, z_again
         .text "again"
 
@@ -1084,9 +1084,9 @@ nt_wordsize:
         .word nt_aligned, xt_wordsize, z_wordsize
         .text "wordsize"
 
-nt_aligned:             ; same code as ALIGN
+nt_aligned:
         .byte 7, 0
-        .word nt_align, xt_align, z_align
+        .word nt_align, xt_aligned, z_aligned   ; same code as ALIGN
         .text "aligned"
 
 nt_align:

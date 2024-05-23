@@ -6,20 +6,20 @@ oc_index_table:
         ; the assembler as well.
 
         ; Opcodes 00-0F
-        .word oc00, oc01, oc__, oc__, oc04, oc05, oc06, oc__
+        .word oc00, oc01, oc__, oc__, oc04, oc05, oc06, oc07
         .word oc08, oc09, oc0A, oc__, oc0C, oc0D, oc0E, oc0F
 
         ; Opcodes 10-1F
         .word oc10, oc11, oc12, oc__, oc14, oc15, oc16, oc17
-        .word oc18, oc19, oc1A, oc__, oc1C, oc1D, oc__, oc1F
+        .word oc18, oc19, oc1A, oc__, oc1C, oc1D, oc1E, oc1F
 
         ; Opcodes 20-2F
         .word oc20, oc21, oc__, oc__, oc24, oc25, oc26, oc27
-        .word oc28, oc29, oc2A, oc__, OC2C, oc2D, oc2E, oc2F
+        .word oc28, oc29, oc2A, oc__, oc2C, oc2D, oc2E, oc2F
 
         ; Opcodes 30-3F
         .word oc30, oc31, oc32, oc__, oc34, oc35, oc36, oc37
-        .word oc38, oc39, oc3A, oc__, oc3C, oc3D, oc3E, oc0F
+        .word oc38, oc39, oc3A, oc__, oc3C, oc3D, oc3E, oc3F
 
         ; Opcodes 40-4F
         .word oc40, oc41, oc__, oc__, oc__, oc45, oc46, oc47
@@ -27,7 +27,7 @@ oc_index_table:
 
         ; Opcodes 50-5F
         .word oc50, oc51, oc52, oc__, oc__, oc55, oc56, oc57
-        .word oc58, oc59, oc5A, oc__, oc__, oc__, oc5E, oc5F
+        .word oc58, oc59, oc5A, oc__, oc__, oc5D, oc5E, oc5F
 
         ; Opcodes 60-6F
         .word oc60, oc61, oc__, oc__, oc64, oc65, oc66, oc67
@@ -38,7 +38,7 @@ oc_index_table:
         .word oc78, oc79, oc7A, oc__, oc7C, oc7D, oc7E, oc7F
 
         ; Opcodes 80-8F
-        .word oc80, oc81, oc__, oc__, oc84, oc85, oc86, oc__
+        .word oc80, oc81, oc__, oc__, oc84, oc85, oc86, oc87
         .word oc88, oc89, oc8A, oc__, oc8C, oc8D, oc8E, oc8F
 
         ; Opcodes 90-9F
@@ -71,7 +71,6 @@ oc_index_table:
 
 
 ; =========================================================
-oc_table:
         ; Opcode data table for the disassember, which is also used by the
         ; assembler. Each entry starts with a "lengths byte":
 
@@ -95,7 +94,7 @@ oc_table:
     oc04:   .text 2*64+5, "tsb.z"
 	oc05:	.text 2*64+5, "ora.z"
 	oc06:	.text 2*64+5, "asl.z"
-;      (oc07)
+	oc07:	.text 2*64+6, "rmb0.z"
 	oc08:	.text 1*64+3, "php"
 	oc09:	.text 2*64+5, "ora.#"
 	oc0A:	.text 1*64+5, "asl.a"
@@ -119,8 +118,8 @@ oc_table:
 ;      (oc1B:)
 	oc1C:	.text 3*64+3, "trb"
 	oc1D:	.text 3*64+5, "ora.x"
-;      (oc1E:)
-	oc1F:	.text 3*64+5, "asl.x"
+	oc1E:	.text 3*64+5, "asl.x"
+	oc1F:	.text 3*64+4, "bbr1"
 
 	oc20:	.text 3*64+3, "jsr"
 	oc21:	.text 2*64+7, "and.zxi"
@@ -231,7 +230,7 @@ oc_table:
 	oc84:	.text 2*64+5, "sty.z"
 	oc85:	.text 2*64+5, "sta.z"
 	oc86:	.text 2*64+5, "stx.z"
-;      (oc87:)
+	oc87:	.text 2*64+6, "smb0.z"
 	oc88:	.text 1*64+3, "dey"
 	oc89:	.text 2*64+5, "bit.#"
 	oc8A:	.text 1*64+3, "txa"

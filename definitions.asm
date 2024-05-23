@@ -53,7 +53,7 @@ toin:       .word 0                 ; pointer to CIB (>IN in Forth)
 
 output:     .word kernel_putc       ; vector for EMIT
 input:      .word kernel_getc       ; vector for KEY
-havekey:    .word 0                 ; vector for KEY?
+havekey:    .word 0                 ; vector for KEY?  (unused see https://github.com/SamCoVT/TaliForth2/issues/62)
 
 base:       .word 10                ; number radix, default decimal
 state:      .word 0                 ; STATE: -1 compile, 0 interpret
@@ -157,9 +157,9 @@ blk_offset:             .word 0         ; BLK
 scr_offset:             .word 0         ; SCR
 
 ; Wordlists
-
 max_wordlists = 12    ; Maximum number of wordlists supported (4 built-in, 8 user wordlists)
 
+marker_start_offset:                    ; MARKER saves wordlist state from here to market_end_offset
 current_offset:         .byte 0         ; CURRENT = FORTH-WORDLIST (compilation wordlist)
 num_wordlists_offset:   .byte 4         ; #WORDLISTS (FORTH EDITOR ASSEMBLER ROOT)
 
@@ -173,6 +173,7 @@ wordlists_offset:
 num_order_offset:       .byte 1         ; #ORDER (Number of wordlists in search order)
 search_order_offset:
     .byte 0,0,0,0,0,0,0,0,0             ; SEARCH-ORDER (9 bytes to keep offsets even)
+marker_end_offset:
 
 .if "block" in TALI_OPTIONAL_WORDS
 ; Block buffer variables
@@ -207,6 +208,8 @@ AscCN   = $0E  ; CTRL-n (used to recall next input history)
 
 OpJSR   = $20
 OpJMP   = $4C
+OpBNE   = $D0
+OpBEQ   = $F0
 OpRTS   = $60
 OpBRA   = $80
 
