@@ -15,9 +15,10 @@ RTS instruction at the end of each word.
 | SEARCH | `search` | ANS string | 158 | **auto** |
 | SLASH_STRING | `/string` | ANS string | 31 | **auto** |
 | SLITERAL | `sliteral` | ANS string | 67 | **auto** |
-| COLD | `cold` | Tali Forth | 177 | tested |
+| COLD | `cold` | Tali Forth | 175 | tested |
 | ABORT | `abort` | ANS core | 81 | tested |
 | QUIT | `quit` | ANS core | 79 | tested |
+| COMPILE_COMMA | `compile,` | ANS core ext | 200 | **auto** |
 | D_MINUS | `d-` | ANS double | 32 | **auto** |
 | D_PLUS | `d+` | ANS double | 32 | **auto** |
 | D_TO_S | `d>s` | ANS double | 5 | **auto** |
@@ -62,7 +63,7 @@ RTS instruction at the end of each word.
 | ABS | `abs` | ANS core | 20 | **auto** |
 | ACCEPT | `accept` | ANS core | 248 | **auto** |
 | ACTION_OF | `action-of` | ANS core ext | 24 | **auto** |
-| AGAIN | `again` | ANS core ext | 13 | tested |
+| AGAIN | `again` | ANS core ext | 6 | tested |
 | ALIGN | `align` | ANS core | 0 | **auto** |
 | ALIGNED | `aligned` | ANS core | 0 | **auto** |
 | ALLOT | `allot` | ANS core | 104 | **auto** |
@@ -70,7 +71,7 @@ RTS instruction at the end of each word.
 | AT_XY | `at-xy` | ANS facility | 45 | tested |
 | BACKSLASH | `\` | ANS block ext | 42 | **auto** |
 | BASE | `base` | ANS core | 8 | **auto** |
-| BEGIN | `begin` | ANS core | 3 | **auto** |
+| BEGIN | `begin` | ANS core | 10 | **auto** |
 | BL | `bl` | ANS core | 8 | **auto** |
 | BRACKET_CHAR | `[char]` | ANS core | 6 | **auto** |
 | BRACKET_TICK | `[']` | ANS core | 6 | **auto** |
@@ -86,20 +87,19 @@ RTS instruction at the end of each word.
 | CHARS | `chars` | ANS core | 3 | **auto** |
 | COLON | `:` | ANS core | 66 | **auto** |
 | COLON_NONAME | `:NONAME` | ANS core | 27 | **auto** |
-| COMMA | `,` | ANS core | 25 | **auto** |
-| COMPILE_COMMA | `compile,` | ANS core ext | 278 | **auto** |
+| COMMA | `,` | ANS core | 14 | **auto** |
 | COMPILE_ONLY | `compile-only` | Tali Forth | 11 | tested |
 | CONSTANT | `constant` | ANS core | 61 | **auto** |
 | COUNT | `count` | ANS core | 19 | **auto** |
 | CR | `cr` | ANS core | 5 | **auto** |
-| CREATE | `create` | ANS core | 211 | **auto** |
+| CREATE | `create` | ANS core | 201 | **auto** |
 | DECIMAL | `decimal` | ANS core | 6 | **auto** |
 | DEFER | `defer` | ANS core ext | 50 | **auto** |
 | DEFER_FETCH | `defer@` | ANS core ext | 6 | **auto** |
 | DEFER_STORE | `defer!` | ANS core ext | 6 | **auto** |
 | DEPTH | `depth` | ANS core | 14 | **auto** |
-| QUESTION_DO | `?do` | ANS core ext | 61 | **auto** |
-| DO | `do` | ANS core | 57 | **auto** |
+| QUESTION_DO | `?do` | ANS core ext | 67 | **auto** |
+| DO | `do` | ANS core | 25 | **auto** |
 | DOES | `does>` | ANS core | 14 | **auto** |
 | DOT | `.` | ANS core | 33 | **auto** |
 | DOT_PAREN | `.(` | ANS core | 14 | **auto** |
@@ -107,10 +107,10 @@ RTS instruction at the end of each word.
 | DOT_R | `.r` | ANS core ext | 45 | tested |
 | DROP | `drop` | ANS core | 5 | **auto** |
 | DUP | `dup` | ANS core | 13 | **auto** |
-| ELSE | `else` | ANS core | 85 | **auto** |
+| ELSE | `else` | ANS core | 15 | **auto** |
 | EMIT | `emit` | ANS core | 10 | **auto** |
 | ENDCASE | `endcase` | ANS core ext | 20 | **auto** |
-| ENDOF | `endof` | ANS core ext | 85 | **auto** |
+| ENDOF | `endof` | ANS core ext | 15 | **auto** |
 | ENVIRONMENT_Q | `environment?` | ANS core | 124 | **auto** |
 | EQUAL | `=` | ANS core | 27 | **auto** |
 | BLANK | `blank` | ANS string | 82 | **auto** |
@@ -128,7 +128,7 @@ RTS instruction at the end of each word.
 | HEX | `hex` | ANS core ext | 6 | **auto** |
 | HOLD | `hold` | ANS core | 17 | **auto** |
 | I | `i` | ANS core | 20 | **auto** |
-| IF | `if` | ANS core | 16 | **auto** |
+| IF | `if` | ANS core | 3 | **auto** |
 | IMMEDIATE | `immediate` | ANS core | 11 | **auto** |
 | INVERT | `invert` | ANS core | 15 | **auto** |
 | IS | `is` | ANS core ext | 24 | **auto** |
@@ -139,11 +139,11 @@ RTS instruction at the end of each word.
 | LESS_NUMBER_SIGN | `<#` | ANS core | 13 | **auto** |
 | LESS_THAN | `<` | ANS core | 20 | **auto** |
 | LITERAL | `literal` | ANS core | 61 | **auto** |
-| LOOP | `loop` | ANS core | 98 | **auto** |
-| PLUS_LOOP | `+loop` | ANS core | 81 | **auto** |
+| LOOP | `loop` | ANS core | 120 | **auto** |
+| PLUS_LOOP | `+loop` | ANS core | 100 | **auto** |
 | LSHIFT | `lshift` | ANS core | 19 | **auto** |
 | M_STAR | `m*` | ANS core | 26 | **auto** |
-| MARKER | `marker` | ANS core ext | 61 | **auto** |
+| MARKER | `marker` | ANS core ext | 58 | **auto** |
 | MAX | `max` | ANS core | 27 | **auto** |
 | MIN | `min` | ANS core | 27 | **auto** |
 | MINUS | `-` | ANS core | 18 | **auto** |
@@ -179,7 +179,7 @@ RTS instruction at the end of each word.
 | ROT | `rot` | ANS core | 27 | **auto** |
 | RSHIFT | `rshift` | ANS core | 19 | **auto** |
 | S_BACKSLASH_QUOTE | `s\"` | ANS core | 9 | **auto** |
-| S_QUOTE | `s"` | ANS core | 287 | **auto** |
+| S_QUOTE | `s"` | ANS core | 260 | **auto** |
 | S_TO_D | `s>d` | ANS core | 17 | **auto** |
 | SEMICOLON | `;` | ANS core | 94 | **auto** |
 | SIGN | `sign` | ANS core | 20 | **auto** |
@@ -196,7 +196,7 @@ RTS instruction at the end of each word.
 | STATE | `state` | ANS core | 10 | **auto** |
 | STORE | `!` | ANS core | 21 | **auto** |
 | SWAP | `swap` | ANS core | 19 | **auto** |
-| THEN | `then` | ANS core | 73 | **auto** |
+| THEN | `then` | ANS core | 9 | **auto** |
 | TICK | `'` | ANS core | 31 | **auto** |
 | TO | `to` | ANS core ext | 59 | **auto** |
 | TO_BODY | `>body` | ANS core | 34 | **auto** |
@@ -224,11 +224,11 @@ RTS instruction at the end of each word.
 | UM_SLASH_MOD | `um/mod` | ANS core | 65 | **auto** |
 | UM_STAR | `um*` | ANS core | 69 | **auto** |
 | UNLOOP | `unloop` | ANS core | 15 | **auto** |
-| UNTIL | `until` | ANS core | 20 | **auto** |
+| UNTIL | `until` | ANS core | 3 | **auto** |
 | UNUSED | `unused` | ANS core ext | 15 | **auto** |
 | VALUE | `value` | ANS core | 61 | **auto** |
 | VARIABLE | `variable` | ANS core | 24 | **auto** |
-| WHILE | `while` | ANS core | 19 | **auto** |
+| WHILE | `while` | ANS core | 6 | **auto** |
 | WITHIN | `within` | ANS core ext | 21 | **auto** |
 | WORD | `word` | ANS core | 67 | **auto** |
 | XOR | `xor` | ANS core | 17 | **auto** |

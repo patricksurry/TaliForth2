@@ -138,4 +138,4 @@ docspdf:	docs
 	cd docs && asciidoctor-pdf -v manual.adoc
 
 # A convenience target for preparing for a git commit.
-gitready: docs all tests
+gitready: docs all ctests

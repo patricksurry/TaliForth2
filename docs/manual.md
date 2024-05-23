@@ -4449,7 +4449,7 @@ order if you run it too many times.
                          subroutine threading, we can’t use , (COMMA) to compile new words                       
                          the traditional way. By default, native compiled is allowed, unless                     
                          there is a NN (Never Native) flag associated. If not, we use the                        
-                         value NC_LIMIT (from definitions.tasm) to decide if the code                            
+                         value NC_LIMIT (from definitions.asm) to decide if the code                             
                          is too large to be natively coded: If the size is larger than                           
                          NC_LIMIT, we silently use subroutine coding. If the AN (Always                          
                          Native) flag is set, the word is always natively compiled.                              |
@@ -4614,7 +4614,8 @@ order if you run it too many times.
 | `here`                | *ANS core* ( — addr ) "Put Compiler Pointer on Data Stack"                             
                          <https://forth-standard.org/standard/core/HERE>                                         
                          This code is also used by the assembler directive ARROW                                 
-                         ("→") though as immediate                                                               |
+                         ("→") though as immediate                                                               
+                         and by HERE as an immediate compile word                                                |
 | `hex`                 | *ANS core ext* ( — ) "Change base radix to hexadecimal"                                
                          <https://forth-standard.org/standard/core/HEX>                                          |
 | `hexstore`            | *Tali* ( addr1 u1 addr2 — u2 ) "Store a list of numbers"                               
