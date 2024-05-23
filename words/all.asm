@@ -62,7 +62,6 @@ _load_zp_loop:
 
                 ; Initialize the user variables.
                 ldy #cold_user_table_end-cold_user_table-1
-                lda #0
 
 _load_user_vars_loop:
                 ; Like the zero page variables, these are initialized
@@ -230,6 +229,7 @@ z_quit:         ; no RTS required
 
 
 .include "core.asm"
+.include "compile.asm"
 .include "tools.asm"
 .include "tali.asm"
 .include "double.asm"

@@ -217,7 +217,6 @@ _command_mode:
                 ; is feature complete, because of the evils of premature
                 ; optimization.
 
-_prefix_dot:
                 ; --- . --- Designate current line for further operations
                 lda (cib)
                 cmp #'.'                ; ASCII '.'
@@ -713,7 +712,6 @@ ed_next_command:
                 inx
                 inx                     ; ( addr-t u-t ) Fall through
 
-_next_command_empty:
                 ; The beginning of the input loop takes care of resetting the
                 ; parameter flag
                 jmp ed_input_loop
@@ -783,7 +781,7 @@ ed_entry_cmd_i:
                 ; be one before the current line, or given line, or so that we
                 ; accept 0. We are ( addr-t u-t num )
 
-ed_cmd_a_have_para:
+; ed_cmd_a_have_para:
                 jsr ed_num_to_addr        ;  ( addr-t u-t addr1 )
                 jsr xt_cr
 

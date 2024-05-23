@@ -55,80 +55,6 @@ user_words_end:
 
 
 ; =====================================================================
-; COMPILE WORDS, JUMPS and SUBROUTINE JUMPS INTO CODE
-
-; These three routines compile instructions such as "jsr xt_words" into a word
-; at compile time so they are available at run time. Words that use this
-; routine may not be natively compiled. We use "cmpl" as not to confuse these
-; routines with the COMPILE, word. Always call this with a subroutine jump.
-; This means combining JSR/RTS to JMP in those cases is not going to work. To
-; use, load the LSB of the address in A and the MSB in Y. You can remember
-; which comes first by thinking of the song "Young Americans" ("YA") by David
-; Bowie.
-
-;               ldy #>addr      ; MSB   ; "Young"
-;               lda #<addr      ; LSB   ; "Americans"
-;               jsr cmpl_subroutine
-
-; Also, we keep a routine here to compile a single byte passed through A.
-cmpl_subroutine:
-                ; This is the entry point to compile JSR <ADDR>
-                pha             ; save LSB of address
-                lda #OpJSR      ; load opcode for JSR
-                bra +
-cmpl_jump:
-                ; This is the entry point to compile JMP <ADDR>
-                pha             ; save LSB of address
-                lda #OpJMP      ; load opcode for JMP, fall thru
-+
-                ; At this point, A contains the opcode to be compiled,
-                ; the LSB of the address is on the 65c02 stack, and the MSB of
-                ; the address is in Y
-                jsr cmpl_a      ; compile opcode
-                pla             ; retrieve address LSB; fall thru to cmpl_word
-cmpl_word:
-                ; This is the entry point to compile a word (little-endian)
-                jsr cmpl_a      ; compile LSB of address
-                tya             ; fall thru for MSB
-cmpl_a:
-                ; This is the entry point to compile a single byte which
-                ; is passed in A. The built-in assembler assumes that this
-                ; routine does not modify Y.
-                sta (cp)
-                inc cp
-                bne _done
-                inc cp+1
-_done:
-                rts
-
-
-cmpl_jump_later:
-    ; compile a jump to be filled in later. Populates the dummy address
-    ; MSB with Y, LSB indeterminate, leaving address of the JMP target TOS
-                lda #OpJMP
-                jsr cmpl_a
-                jsr xt_here
-                bra cmpl_word
-
-
-check_nc_limit:
-        ; compare A > 0 to nc-limit, setting C=0 if A <= nc-limit (should native compile)
-                pha
-                ldy #nc_limit_offset+1
-                clc
-                lda (up),y              ; if MSB non zero we're done, leave with C=0
-                bne _done
-
-                pla
-                dea                     ; simplify test to A-1 < nc-limit
-                dey
-                cmp (up),y              ; A-1 < LSB leaves C=0, else C=1
-                ina                     ; restore A
-_done:
-                rts
-
-
-; =====================================================================
 ; CODE FIELD ROUTINES
 
 doconst:
@@ -530,7 +456,6 @@ _loop:
                 bne _double_number
 
                 jsr xt_literal
-
                 ; That was so much fun, let's do it again!
                 bra _loop
 

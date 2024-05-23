@@ -51,7 +51,7 @@ toin:       .word 0                 ; pointer to CIB (>IN in Forth)
 
 output:     .word kernel_putc       ; vector for EMIT
 input:      .word kernel_getc       ; vector for KEY
-havekey:    .word 0                 ; vector for KEY?
+havekey:    .word 0                 ; vector for KEY?  (unused see https://github.com/SamCoVT/TaliForth2/issues/62)
 
 base:       .word 10                ; number radix, default decimal
 state:      .word 0                 ; STATE: -1 compile, 0 interpret
@@ -206,6 +206,8 @@ AscCN   = $0E  ; CTRL-n (used to recall next input history)
 
 OpJSR   = $20
 OpJMP   = $4C
+OpBNE   = $D0
+OpBEQ   = $F0
 OpRTS   = $60
 OpBRA   = $80
 

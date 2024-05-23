@@ -8,9 +8,7 @@ xt_editor_screen_helper:
                 jsr xt_dup
                 jsr xt_scr
                 jsr xt_store
-                jsr xt_buffer
-z_editor_screen_helper:
-                rts
+                jmp xt_buffer
 
 
 ; ## EDITOR_ENTER_SCREEN ( scr# -- ) "Enter all lines for given screen"
