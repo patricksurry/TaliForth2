@@ -969,14 +969,39 @@ interested, a later chapter will provide far more detail.</p>
 <h3 id="_downloading">Downloading</h3>
 <div class="paragraph">
 <p>Tali Forth 2 lives on GitHub at
-<a href="https://github.com/SamCoVT/TaliForth2" class="bare">https://github.com/SamCoVT/TaliForth2</a>. This is where you will always find the
-current version. You can either clone the code with git or simply
-download it. To just test Tali Forth, all you need is the binary file
+<a href="https://github.com/SamCoVT/TaliForth2" class="bare">https://github.com/SamCoVT/TaliForth2</a>. This is where you will always
+find the current version. You can either clone the code with
+git or simply download it. To just test Tali Forth using the
+py65mon simulator, all you need is the binary file
 <code>taliforth-py65mon.bin</code>.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_running">Running</h3>
+<div class="paragraph">
+<p>Tali currently supports two simulators, py65mon and c65.  Py65mon will need to
+be downloaded separately (see below) and c65 comes with Tali in the c65
+folder.  If you have <code>gcc</code> and <code>make</code> installed, you can just type (in the
+main Tali folder):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">make csim</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This will compile the c65 simulator (if it hasn&#8217;t been compiled yet) and run
+Tali Forth 2 in the simulator.</p>
+</div>
+<div class="paragraph">
+<p>To exit, you can type <code>bye</code> or use CTRL-C to break out of the simulator.</p>
+</div>
+<div class="paragraph">
+<p>Note: If running on Windows in a git bash shell, you will need to use winpty,
+eg. <code>winpty make csim</code>.  This is only needed for the git bash shell.  Running
+Tali in c65 from the Windows command prompt or Windows Subsystem for Linux (WSL)
+works fine.</p>
+</div>
 <div class="sect3">
 <h4 id="_downloading_the_py65mon_simulator">Downloading the py65mon Simulator</h4>
 <div class="paragraph">
@@ -1021,7 +1046,20 @@ a Windows command prompt.</p>
 <div class="paragraph">
 <p>Note that the option <code>-m 65c02</code> is required, because Tali Forth makes extensive
 use of the additional commands of the CMOS version and will not run on a stock
-6502 MPU.</p>
+6502 MPU.  If you have <code>make</code> installed</p>
+</div>
+<div class="paragraph">
+<p>If you downloaded the full Tali Forth 2 source code and have <code>make</code>
+installed, you can also just type:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">make sim</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to run Tali Forth 2 in the py65mon simulator (it will run the above
+command for you).</p>
 </div>
 </div>
 </div>
@@ -1084,6 +1122,11 @@ Lauke. A multi-board 8 MHz 65c02 system. Platform file:
 <p><strong>SamCo&#8217;s SBC</strong> (<a href="https://github.com/SamCoVT/SBC" class="bare">https://github.com/SamCoVT/SBC</a>) by Sam Colwell.  A
 single-board computer running at 4MHz.  Platform file:
 <code>platform-sbc.asm</code> (29. Oct 2018)</p>
+</li>
+<li>
+<p><strong>Neo6502</strong> by Olimex LTD.  A commercial offering that pairs a real
+65C02 processor with an RP2040 to give HDMI output and USB keyboard
+support.  Platform file: <code>platform-neo6502.asm</code> (28. Apr 2024)</p>
 </li>
 </ul>
 </div>
