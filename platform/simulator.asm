@@ -16,9 +16,10 @@ io_start = $f000
 ; Define the c65 / py65mon magic IO addresses relative to $f000
                 .byte ?
 io_putc:        .byte ?     ; $f001     write byte to stdout
-                .word ?
-io_getc:        .byte ?     ; $f004     read byte from stdin
-io_peekc:       .byte ?     ; $f005     non-blocking input
+                .byte ?
+io_lastkey:     .byte ?
+io_getc:        .byte ?     ; $f004     read byte from stdin (c65 is blocking, py65mon is non-blocking)
+io_peekc:       .byte ?     ; $f005     non-blocking input (c65 only)
                             ;           bit7=0 if no input
                             ;           bit7=1 with 7bit chr if input
 io_clk_start:   .byte ?     ; $f006     *read* to start cycle counter
@@ -61,24 +62,36 @@ _done:
                 jmp forth
 
 kernel_getc:
-        ; """Get a single character from the keyboard. By default, py65mon
-        ; is set to $f004, which we just keep. Note that py65mon's getc routine
+        ; """Get a single character from the keyboard.
+        ; Note that py65mon's getc routine
         ; is non-blocking, so it will return '00' even if no key has been
         ; pressed. We turn this into a blocking version by waiting for a
         ; non-zero character.
+        ;
+        ; Note we must preserve X, Y but that's automatic here
         ; """
+                lda io_lastkey
+                stz io_lastkey
+                bne _done
 _loop:
                 lda io_getc
                 beq _loop
+_done:
                 rts
 
+kernel_kbhit:
+                lda io_getc
+                sta io_lastkey
+                rts
 
 kernel_putc:
-        ; """Print a single character to the console. By default, py65mon
-        ; is set to $f001, which we just keep.
+        ; """Print a single character to the console.
+        ;
+        ;  Note we must preserve X, Y but that's automatic here
         ; """
                 sta io_putc
                 rts
+
 
 kernel_bye:
         ; """Forth shutdown called from BYE"""
