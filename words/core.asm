@@ -2921,11 +2921,15 @@ xt_keyq:
         ; Check if a key is available from the vectored havekey.
         ; Use KEY to fetch it.
         ; """
+                ldy #0
                 jsr keyq_a
+                beq +           ; A=0 => Y=0
+                dey             ; A<>0 => Y=#$ff
++
                 dex
                 dex
-                sta 0,x
-                stz 1,x
+                sty 0,x         ; store either $0000 or $ffff
+                sty 1,x
 
 z_keyq:         rts
 
