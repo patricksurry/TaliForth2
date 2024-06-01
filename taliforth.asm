@@ -715,4 +715,6 @@ print_u:
                 jsr xt_number_sign_greater      ; #>
                 jmp xt_type                     ; JSR/RTS because never compiled
 
+code_end:
+
 ; END

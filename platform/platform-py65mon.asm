@@ -1,6 +1,6 @@
 .include "simulator.asm"
 
-; py65mon doesn't have kbhit so we'll roll our own using io_kbhit as a one character buffer
+; py65mon doesn't have kbhit so we roll our own, using io_kbhit as a one character buffer
 io_bufc = io_kbhit
 
 kernel_getc:
@@ -41,6 +41,7 @@ _done:
 
 s_kernel_id:
         .text "Tali Forth 2 default kernel for py65mon (04. Dec 2022)", AscLF, 0
+
 
 ; Define the interrupt vectors.  For the simulator we redirect them all
 ; to the kernel_init routine and restart the system hard.  If you want to
