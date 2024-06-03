@@ -189,7 +189,7 @@ to provide the following kernel routines:
   it in the accumulator.  It should block until a character is ready,
   and should preserve the X and Y registers.
 - `kernel_putc` Send the character in A to the output device (e.g. screen).
-  It should preserve the X and Y registers. [TODO: does it need to preserve A as well?]
+  It should preserve the X and Y registers, but need not preserve A.
 - `kernel_kbhit` Return a non-zero value in the accumulator if an input character
   is ready (i.e. kernel_getc won't block).  It should preserve the X and Y registers.
 - `kernel_bye` Exit forth, e.g. to a monitor program or just `brk` to reset.
@@ -203,8 +203,8 @@ but doesn't actually return the character.  It's only required if you use the KE
 If your hardware requires you to read the character while checking whether one is
 ready, you should buffer it and make sure that `kernel_getc` checks the buffer.
 (See `platform-py65mon.asm` as one example.)
-If your hardware doesn't support kbhit at all, you can use this dummy
-implementation that makes KEY? behave like the blocking KEY:
+If your hardware doesn't support kbhit, or you don't care about KEY?, taliforth.asm
+will provide a default implementation that makes KEY? block like KEY:
 ```
 kernel_kbhit:
                 lda #1

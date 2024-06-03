@@ -1,3 +1,38 @@
+; Default configuration for c65 (see c65/README.md)
+
+        ; 65C02 processor (Tali will not compile on older 6502)
+        .cpu "65c02"
+        ; No special text encoding (eg. ASCII)
+        .enc "none"
+
+ram_end = $7fff
+
+        ; Set the origin for Tali Forth 2 in ROM (or RAM if loading it)
+        ; This will be labeled `forth` aka `xt_cold`
+        * = $8000
+
+; Explicitly list the optional features we want, or omit to get all features by default
+
+TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
+
+; define what the CR word should emit to kernel_putc at the end of each line
+
+TALI_OPTION_CR_EOL := [ "lf" ]
+;TALI_OPTION_CR_EOL := [ "cr" ]
+;TALI_OPTION_CR_EOL := [ "cr", "lf" ]
+
+; TALI_OPTION_HISTORY enables editable input history buffers via ctrl-n/ctrl-p
+; These buffers are disabled when set to 0 (saving about ~0.2K Tali ROM, 1K RAM)
+
+TALI_OPTION_HISTORY := 1
+;TALI_OPTION_HISTORY := 0
+
+; TALI_OPTION_TERSE strips or shortens various strings to reduce the memory
+; footprint when set to 1 (~0.5K)
+
+TALI_OPTION_TERSE := 0
+;TALI_OPTION_TERSE := 1
+
 .include "simulator.asm"
 
 kernel_getc:

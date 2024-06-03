@@ -35,11 +35,11 @@ hist_buff = ram_end-$03ff  ; begin of history buffers
 ; the page boundry when accessing the RAM System Variables table, which would
 ; cost an extra cycle.
 
-user0     = zpage            ; TaliForth2 system variables
 rsp0      = $ff              ; initial Return Stack Pointer (65c02 stack)
 bsize     = $ff              ; size of input/output buffers
 
 .weak
+user0     = zpage            ; TaliForth2 system variables
 buffer0   = stack0+$100      ; input buffer ($0200-$02ff)
 cp0       = buffer0+bsize+1  ; Dictionary starts after last buffer
                              ; The RAM System Variables and BLOCK buffer are
