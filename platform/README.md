@@ -203,13 +203,9 @@ but doesn't actually return the character.  It's only required if you use the KE
 If your hardware requires you to read the character while checking whether one is
 ready, you should buffer it and make sure that `kernel_getc` checks the buffer.
 (See `platform-py65mon.asm` as one example.)
-If your hardware doesn't support kbhit, or you don't care about KEY?, taliforth.asm
-will provide a default implementation that makes KEY? block like KEY:
-```
-kernel_kbhit:
-                lda #1
-                rts
-```
+If your hardware doesn't support kbhit, or you don't care about KEY?,
+taliforth.asm will provide a default implementation which always returns true,
+so that any subequent call to KEY would block until a key is actually ready.
 
 ### Reset and interrupt vectors
 
