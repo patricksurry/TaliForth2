@@ -3825,14 +3825,10 @@ xt_number_sign:
                 jsr xt_zero             ; 0
                 jsr xt_r_fetch          ; r@
                 jsr xt_um_slash_mod     ; um/mod
-                jsr xt_rot              ; rot
-                jsr xt_rot              ; rot
+                jsr xt_not_rote         ; rot rot
                 jsr xt_r_from           ; r>
                 jsr xt_um_slash_mod     ; um/mod
-                jsr xt_rot              ; rot
-                ; end of UD/MOD ( rem ud )
-
-                jsr xt_rot              ; ( ud rem )
+                jsr xt_not_rote         ; rot ( rem ud ) rot ( ud rem )
 
                 ; Convert the number that is left over to an ASCII character. We
                 ; use a string lookup for speed. Use either abc_str_lower for

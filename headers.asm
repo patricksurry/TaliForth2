@@ -206,8 +206,13 @@ nt_d_dot:
 
 nt_d_dot_r:
         .byte 3, UF
-        .word nt_ud_dot, xt_d_dot_r, z_d_dot_r
+        .word nt_m_star_slash, xt_d_dot_r, z_d_dot_r
         .text "d.r"
+
+nt_m_star_slash:
+        .byte 3, UF
+        .word nt_ud_dot, xt_m_star_slash, z_m_star_slash
+        .text "m*/"
 
 nt_ud_dot:
         .byte 3, UF
