@@ -556,8 +556,13 @@ nt_depth:
 
 nt_key:
         .byte 3, 0
-        .word nt_allot, xt_key, z_key
+        .word nt_keyq, xt_key, z_key
         .text "key"
+
+nt_keyq:
+        .byte 4, 0
+        .word nt_allot, xt_keyq, z_keyq
+        .text "key?"
 
 nt_allot:
         .byte 5, UF
@@ -1056,8 +1061,13 @@ nt_output:
 
 nt_input:
         .byte 5, 0
-        .word nt_cr, xt_input, z_input
+        .word nt_havekey, xt_input, z_input
         .text "input"
+
+nt_havekey:
+        .byte 7, 0
+        .word nt_cr, xt_havekey, z_havekey
+        .text "havekey"
 
 nt_cr:
         .byte 2, 0
