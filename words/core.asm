@@ -2914,6 +2914,27 @@ key_a:
                 jmp (input)             ; JSR/RTS
 
 
+; ## KEY? ( -- char ) "Return true if a character is available"
+; ## "key?"  tested  ANS core
+xt_keyq:
+        ; """https://forth-standard.org/standard/core/KEYq
+        ; Check if a key is available from the vectored havekey.
+        ; Use KEY to fetch it.
+        ; """
+                ldy #0
+                jsr keyq_a
+                beq +           ; A=0 => Y=0
+                dey             ; A<>0 => Y=#$ff
++
+                dex
+                dex
+                sty 0,x         ; store either $0000 or $ffff
+                sty 1,x
+
+z_keyq:         rts
+
+keyq_a:         jmp (havekey)
+
 
 ; ## LEAVE ( -- ) "Leave DO/LOOP construct"
 ; ## "leave"  auto  ANS core
@@ -3858,14 +3879,10 @@ xt_number_sign:
                 jsr xt_zero             ; 0
                 jsr xt_r_fetch          ; r@
                 jsr xt_um_slash_mod     ; um/mod
-                jsr xt_rot              ; rot
-                jsr xt_rot              ; rot
+                jsr xt_not_rote         ; rot rot
                 jsr xt_r_from           ; r>
                 jsr xt_um_slash_mod     ; um/mod
-                jsr xt_rot              ; rot
-                ; end of UD/MOD ( rem ud )
-
-                jsr xt_rot              ; ( ud rem )
+                jsr xt_not_rote         ; rot ( rem ud ) rot ( ud rem )
 
                 ; Convert the number that is left over to an ASCII character. We
                 ; use a string lookup for speed. Use either abc_str_lower for
@@ -5603,64 +5620,23 @@ z_space:        rts
 xt_spaces:
                 jsr underflow_1
 
-                ; ANS says this word takes a signed value but prints no spaces
-                ; for negative values.
-                jsr xt_zero
-                jsr xt_max
-
-                ; catch any zero in TOS fast
-                lda 0,x
-                ora 1,x
-                beq _done
-
-                ; Usually we're only going to print far less than 256 spaces,
-                ; so we create a quick loop for that. Short loop could be realized
-                ; as a separate subroutine, but unless we're really pressed for
-                ; memory at some point, this is faster
-                ldy 1,x
-                bne _lots_of_spaces
+                lda 1,x         ; ANS says this word takes a signed value
+                bmi _done       ; but prints no spaces for negative values.
 
                 ldy 0,x
-_quick_loop:
-                ; we reach here knowing that there must be a number that is not
-                ; zero in the TOS
+                beq _msb
+_loop:                          ; loop to zero out LSB
                 lda #AscSP
-                jsr emit_a
+                jsr emit_a      ; user routine preserves X and Y
                 dey
-                beq _done
-                bra _quick_loop
+                bne _loop       ; Y is zero on exit so looping again emits 256 more spaces
+_msb:
+                dec 1,x         ; when decrementing MSB goes negative, it was zero so we're done
+                bpl _loop       ; otherwise emit another 256 spaces
 
-_lots_of_spaces:
-                ; We go through the first loop once to get rid of the lower
-                ; counter byte. This could be zero
-                ldy 0,x
-
-_first_slow_loop:
-                beq _slow_outer_loop
-                lda #AscSP
-                jsr emit_a
-                dey
-                bra _first_slow_loop
-
-_slow_outer_loop:
-                ; we arrive here knowing that the MSB of TOS cannot be a zero
-                ldy #00
-
-_slow_inner_loop:
-                lda #AscSP
-                jsr emit_a
-                dey
-                bne _slow_inner_loop
-
-                dec 1,x
-                bne _slow_outer_loop
-
-_done:
-                inx             ; drop
+_done:          inx
                 inx
-
 z_spaces:       rts
-
 
 
 ; ## STAR ( n n -- n ) "16*16 --> 16 "
