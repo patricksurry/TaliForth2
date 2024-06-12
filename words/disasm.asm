@@ -411,7 +411,9 @@ disasm_jsr:
                 rts
 
 _no_nt:
-                jsr xt_two_drop
+                ; Drop the 0
+                inx
+                inx
                 clc
                 rts
 
