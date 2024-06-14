@@ -14,12 +14,16 @@ true strip-underflow !
 : cycles ( xt -- ud )
     t_start @ drop execute t_stop @ drop
     t_cycles 2@ t_overhead 2@ d-
+;
+
+: show-cycles ( xt -- )
+    cycles
     2dup total-cycles 2@ d+ total-cycles 2!
     ud. ." cycles." cr
 ;
 
-0. t_overhead 2! ' align cycles t_overhead 2!
 0. total-cycles 2!
+0. t_overhead 2! ' align cycles t_overhead 2!
 
 \ benchmarks from https://theultimatebenchmark.org/#sec-13
 : ddbench 1 32767 0 do dup drop loop drop ;
@@ -48,14 +52,13 @@ variable result
     400 0 do i fib2 drop loop
  ;
 
-: bottom ;
-: 1st bottom bottom ;  : 2nd 1st 1st ;      : 3rd 2nd 2nd ;
-: 4th 3rd 3rd ;        : 5th 4th 4th ;      : 6th 5th 5th ;
-: 7th 6th 6th ;        : 8th 7th 7th ;      : 9th 8th 8th ;
-: 10th 9th 9th ;       : 11th 10th 10th ;   : 12th 11th 11th ;
-: 13th 12th 12th ;     : 14th 13th 13th ;   : 15th 14th 14th ;
-: 16th 15th 15th ;     : 17th 16th 16th ;   : 18th 17th 17th ;
-: 19th 18th 18th ;     : 20th 19th 19th ;
+: bottom ;              : 1st bottom bottom ;   : 2nd 1st 1st ;
+: 3rd 2nd 2nd ;         : 4th 3rd 3rd ;         : 5th 4th 4th ;
+: 6th 5th 5th ;         : 7th 6th 6th ;         : 8th 7th 7th ;
+: 9th 8th 8th ;         : 10th 9th 9th ;        : 11th 10th 10th ;
+: 12th 11th 11th ;      : 13th 12th 12th ;      : 14th 13th 13th ;
+: 15th 14th 14th ;      : 16th 15th 15th ;      : 17th 16th 16th ;
+: 18th 17th 17th ;      : 19th 18th 18th ;      : 20th 19th 19th ;
 
  8192 constant sieve-size
  variable sieve-flags
@@ -145,14 +148,14 @@ variable result
 ;
 : coll-bench 384 cmax drop ;
 
-cr .( ddbench: )    ' ddbench cycles
-cr .( intcalcs: )   ' intcalcs cycles
-cr .( fib2-bench: ) ' fib2-bench cycles
-cr .( nesting: )    ' 20th cycles
-cr .( sieve-bench: ) ' sieve-bench cycles
-cr .( gcd1-bench: ) ' gcd1-bench cycles
-cr .( pal-bench: )  ' pal-bench cycles
-cr .( coll-bench: ) ' coll-bench cycles
+cr .( ddbench: )    ' ddbench show-cycles
+cr .( intcalcs: )   ' intcalcs show-cycles
+cr .( fib2-bench: ) ' fib2-bench show-cycles
+cr .( nesting: )    ' 20th show-cycles
+cr .( sieve-bench: ) ' sieve-bench show-cycles
+cr .( gcd1-bench: ) ' gcd1-bench show-cycles
+cr .( pal-bench: )  ' pal-bench show-cycles
+cr .( coll-bench: ) ' coll-bench show-cycles
 cr .( Complete: ) total-cycles 2@ ud. .( cycles )
 cr
 bye
