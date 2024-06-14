@@ -9,6 +9,8 @@ $f008 constant t_cycles
 2variable t_overhead
 2variable total-cycles
 
+true strip-underflow !
+
 : cycles ( xt -- ud )
     t_start @ drop execute t_stop @ drop
     t_cycles 2@ t_overhead 2@ d-
@@ -130,7 +132,7 @@ variable result
   repeat
   drop
 ;
- : cmax 		( k -- max )
+: cmax 		( k -- max )
   0 swap	( max k )
   begin dup 0 > while
     dup ccnt 	( max k cnt )
