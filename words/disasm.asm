@@ -402,7 +402,41 @@ disasm_jsr:
                 ; int>name returns zero if we just don't know.
                 lda 0,x
                 ora 1,x
+                bne _found_nt
+
+                ; So we didn't find the JSR target in the dictionary.
+                ; Check again at address-3 in case this is a JSR that
+                ; skipped underflow checking during compiling by adding
+                ; 3 to the JSR address.
+                lda scratch+1
+                sec
+                sbc #3         ; Subtract 3 this time.
+                sta 0,x
+                lda scratch+2
+                sbc #0         ; Subtract the carry if needed.
+                sta 1,x
+                ; ( xt )
+                jsr xt_int_to_name    ; Try looking again
+                ; int>name returns zero if we just don't know.
+                lda 0,x
+                ora 1,x
                 beq _no_nt
+
+                ; We got an nt this time.  Double check that it has underflow
+                ; checking (that could be skipped).
+                ; Put the address of the status byte on the stack.
+                jsr xt_dup
+                jsr xt_one_plus
+                ; Grab the status into A
+                lda (0,x)
+                ; Get rid of the extra stack usage before doing the check
+                inx
+                inx
+                ;Check the UF flag
+                and #UF
+                beq _no_nt      ; The word doesn't have underflow checking
+
+_found_nt:
                 ; We now have a name token ( nt ) on the stack.
                 ; Change it into the name and print it.
                 jsr xt_name_to_string
@@ -411,7 +445,9 @@ disasm_jsr:
                 rts
 
 _no_nt:
-                jsr xt_two_drop
+                ; Drop the TOS as there is no usable nt
+                inx
+                inx
                 clc
                 rts
 
