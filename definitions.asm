@@ -261,9 +261,9 @@ CO = 1  ; Compile Only
 AN = 2  ; Always Native Compile
 IM = 4  ; Immediate Word
 NN = 8  ; Never Native Compile
-UF = 16 ; Includes Underflow Check (RESERVED)
-HC = 32 ; Word has Code Field Area (CFA)
+HC = 16 ; Word has Code Field Area (CFA)
 
+N_FLAGS = 5
 
 ; VARIOUS
 MAX_LINE_LENGTH  = 79      ; assumes 80 character lines

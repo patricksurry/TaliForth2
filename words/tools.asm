@@ -288,7 +288,7 @@ xt_see:
                 lda 0,x
 
                 ; This is crude, but for the moment it is good enough
-                ldy #6                  ; Not all bits are used
+                ldy #N_FLAGS            ; Not all bits are used
 _flag_loop:
                 pha
                 and #%00000001

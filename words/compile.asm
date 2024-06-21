@@ -99,19 +99,39 @@ xt_compile_comma:
                 ; words that have the UF flag. This shortens the word by
                 ; 3 bytes if there is no underflow.
 
-                ; See if this word even contains underflow checking
-                lda tmp3
-                and #UF
-                beq _check_limit
-
-                ; See if the user wants underflow stripping turned on
+                ; Does the user want to strip underflow check?
                 ldy #uf_strip_offset
                 lda (up),y
                 iny
                 ora (up),y
                 beq _check_limit
 
-                ; Remove the 3 byte underflow check.
+                ; OK, so does the word start with an underflow check?
+                lda (2,x)               ; get byte @ xt
+                cmp #OpJSR
+                bne _check_limit        ; not a JSR
+
+                ; check the address is between underflow_1 ... underflow_4
+                jsr xt_over
+                jsr xt_one_plus         ; jsr address is at xt+1
+                sec
+                lda (0, x)              ; LSB of jsr address
+                sbc #<underflow_1
+                tay                     ; stash LSB of result
+                inc 0,x                 ; MSB of jsr address is at xt+2
+                bne +
+                inc 1,x
++
+                inx                     ; pre-drop the result to simplify branching
+                inx
+                lda ($fe, x)
+                sbc #>underflow_1
+                bne _check_limit        ; msb must be zero
+
+                cpy #(underflow_4-underflow_1+1)
+                bcs _check_limit        ; lsb isn't small enough
+
+                ; Ready to remove the 3 byte underflow check.
 
                 ; Start later: xt += 3
                 clc

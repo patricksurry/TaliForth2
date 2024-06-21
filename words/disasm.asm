@@ -422,20 +422,6 @@ disasm_jsr:
                 ora 1,x
                 beq _no_nt
 
-                ; We got an nt this time.  Double check that it has underflow
-                ; checking (that could be skipped).
-                ; Put the address of the status byte on the stack.
-                jsr xt_dup
-                jsr xt_one_plus
-                ; Grab the status into A
-                lda (0,x)
-                ; Get rid of the extra stack usage before doing the check
-                inx
-                inx
-                ;Check the UF flag
-                and #UF
-                beq _no_nt      ; The word doesn't have underflow checking
-
 _found_nt:
                 ; We now have a name token ( nt ) on the stack.
                 ; Change it into the name and print it.
