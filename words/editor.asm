@@ -246,7 +246,7 @@ xt_editor_o:
                 ; Fill the rest with spaces.
                 ; Stack is currently ( line_address numchars_from_accept )
                 jsr xt_dup
-                jsr xt_not_rote ; -rot
+                jsr xt_not_rot  ; -rot
                 jsr xt_plus
                 dex
                 dex

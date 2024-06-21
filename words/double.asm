@@ -214,7 +214,7 @@ xt_m_star_slash:
                 jsr xt_to_r
                 jsr xt_over
                 jsr xt_xor
-                jsr xt_not_rote         ; rot rot
+                jsr xt_not_rot          ; rot rot
                 jsr xt_dabs
 
                 ; SWAP R@ UM* ROT R> UM* ROT 0 D+ R@ UM/MOD ROT ROT R> UM/MOD
@@ -229,7 +229,7 @@ xt_m_star_slash:
                 jsr xt_d_plus
                 jsr xt_r_fetch
                 jsr xt_um_slash_mod
-                jsr xt_not_rote         ; rot rot
+                jsr xt_not_rot          ; rot rot
                 jsr xt_r_from
                 jsr xt_um_slash_mod
 
