@@ -4606,7 +4606,7 @@ xt_r_fetch:
 +
                 sty tmp1+1              ; MSB
 
-                ; --- START FOR NATIVE CODING (via ST flag) ---
+                ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
                 ; get the actual top of Return Stack
                 dex
@@ -4621,7 +4621,7 @@ xt_r_fetch:
                 pha
                 phy
 
-                ; --- CUT FOR NATIVE CODING ---
+                ; --- CUT FOR NATIVE COMPILE ---
 
 z_r_fetch:      jmp (tmp1)
 
@@ -4651,7 +4651,7 @@ xt_r_from:
 +
                 sty tmp1+1              ; MSB
 
-                ; --- START FOR NATIVE CODING (via ST flag) ---
+                ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
                 dex
                 dex
@@ -4663,7 +4663,7 @@ xt_r_from:
                 pla             ; MSB
                 sta 1,x
 
-                ; --- CUT FOR NATIVE CODING ---
+                ; --- CUT FOR NATIVE COMPILE ---
 
 z_r_from:       jmp (tmp1)
 
@@ -6127,7 +6127,7 @@ w_to_r:
 +
                 sty tmp1+1              ; MSB
 
-                ; --- START FOR NATIVE CODING (via ST flag) ---
+                ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
                 ; We check for underflow in the second step, so we can
                 ; strip off the stack thrashing for native compiling first
@@ -6143,7 +6143,7 @@ w_to_r:
                 inx
                 inx
 
-                ; --- CUT FOR NATIVE CODING ---
+                ; --- CUT FOR NATIVE COMPILE ---
 
 z_to_r:         jmp (tmp1)
 
@@ -6309,7 +6309,7 @@ xt_two_r_fetch:
 +
                 sty tmp1+1              ; MSB
 
-                ; --- START FOR NATIVE CODING (via ST flag) ---
+                ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
                 ; copy four bytes from return stack to the data stack
 
@@ -6330,7 +6330,7 @@ xt_two_r_fetch:
                 lda $104,y
                 sta 3,x
 
-                ; --- CUT FOR NATIVE CODING ---
+                ; --- CUT FOR NATIVE COMPILE ---
 
 z_two_r_fetch:  jmp (tmp1)
 
@@ -6359,7 +6359,7 @@ xt_two_r_from:
 +
                 sty tmp1+1              ; MSB
 
-                ; --- START FOR NATIVE CODING (via ST flag) ---
+                ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
                 ; In theory, we should test for underflow on the Return
                 ; Stack. However, given the traffic there with an STC
@@ -6381,7 +6381,7 @@ xt_two_r_from:
                 pla                     ; MSB
                 sta 3,x
 
-                ; --- CUT FOR NATIVE CODING ---
+                ; --- CUT FOR NATIVE COMPILE ---
 
 z_two_r_from:   jmp (tmp1)
 
@@ -6517,7 +6517,7 @@ w_two_to_r:
 +
                 sty tmp1+1              ; MSB
 
-                ; --- START FOR NATIVE CODING (via ST flag) ---
+                ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
                 jsr underflow_2
 
@@ -6538,7 +6538,7 @@ w_two_to_r:
                 inx
                 inx
 
-                ; --- CUT FOR NATIVE CODING ---
+                ; --- CUT FOR NATIVE COMPILE ---
 
 z_two_to_r:     jmp (tmp1)
 
