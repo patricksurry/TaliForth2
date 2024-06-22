@@ -157,8 +157,11 @@ cmpl_by_limit:
 cmpl_as_call:
         ; Compile xt as a subroutine call, return with C=0
         ; Stack is either ( xt xt nt ) or ( xt xt' u )
-                jsr xt_two_drop         ; either way 2drop leaves original xt
-                ; ( xt -- )
+        ; Use the xt or xt' (in the middle) as the jsr address
+        ; so that strip-underflow is respected.
+                jsr xt_drop
+                jsr xt_nip
+                ; ( jsr_address -- )
                 lda #OpJSR
                 jsr cmpl_a
                 jsr xt_comma
