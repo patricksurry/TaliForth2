@@ -5426,6 +5426,8 @@ z_sign:         rts
         ; """
 
 xt_slash:
+                jsr underflow_2
+
                 ; With all the multiplication going on, it would be hard to
                 ; make sure that one of our temporary variables is not
                 ; overwritten. We make sure that doesn't happen by taking the
@@ -5435,6 +5437,8 @@ xt_slash:
                 bra slashmod_common
 
 xt_slash_mod:
+                jsr underflow_2
+
                 ; Note that /MOD accesses this code
                 lda #$FF
                 pha             ; falls through to _common

@@ -4,7 +4,7 @@
   They aren't part of the standard test suite since they take a few seconds to complete.
   To benchmark a build, run commands like this:
 
-  export TALIBIN=taliforth-py65mon-20231101.bin
+  export TALIBIN=taliforth-c65.bin
   for limit in 0 20; for uf in 0 1; do
     export TALIVARS="$limit nc-limit \! $uf strip-underflow \! \n"
     echo "\n$TALIVARS"
@@ -13,16 +13,23 @@
 
 Build     Test       0 NC 0 SUF   0 NC 1 SUF  20 NC 0 SUF  20 NC 1 SUF
 20231101  ddbench      4751473      4751473      3965029      2916469
-20231101  intcalcs    28762819     28762819     25882671     24090559
+<head>    ddbench      5081308      4032748      2197724      1149164
+20231101  intcalcs    28762819     28762819     25882671     22898462
+<head>    intcalcs    28722803     26290691     25522602     20633701
 20231101  fib2        33746816     33746816     28490708     21501780
+<head>    fib2        35220166     28224838     20633701     13638373
 20231101  nesting     25165800     25165800     25165800     25165800
+<head>    nesting     25165800     25165800     25165800     25165800
 20231101  sieve       13602239     13602239     11737511      9491287
+<head>    sieve       13263183     11016943      9509933      7263694
 20231101  gcd1        40939545     40939545     37438209     32771073
+<head>    gcd1        37793577     30474953     25723073     16415754
 20231101  pal         56252577     56252577     55211451     54105673
+<head>    pal         53720770     52265938     51802220     50249689
 20231101  coll        37286938     37286938     35333950     33462094
+<head>    coll        35818746     33731882     31269217     29182737
 20231101  Total      240508207    240508207    223225329    203504735
-
-
+<head>    Total      234786353    211203793    191824270    165963673
 
 )
 
