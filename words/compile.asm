@@ -159,8 +159,8 @@ cmpl_as_call:
         ; Stack is either ( xt xt nt ) or ( xt xt' u )
         ; Use the xt or xt' (in the middle) as the jsr address
         ; so that strip-underflow is respected.
-                lda tmp3                ;TODO hack check if we had stack juggling
-                bmi +
+                lda tmp3                ; we can't optimize if there was stack juggling
+                bmi +                   ; check_strip_table sets bit 7 when that's the case
                 jsr xt_drop
                 jsr xt_nip
                 bra _cmpl
@@ -254,7 +254,7 @@ _found_entry:
                 bcc +                   ; note inverted carry check
                 dec 1,x                 ; we just care about the borrow
 +
-                lda #$80                ;TODO hack to flag this word had stack stripped
+                lda #$80                ; set unused bit 7 to show we stripped stack prologue
                 tsb tmp3
                 rts
 
