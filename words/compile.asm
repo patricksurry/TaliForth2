@@ -85,7 +85,7 @@ xt_compile_comma:
                 and #NN
                 bne cmpl_as_call        ; never native
 
-                ; ( xt xt nt )             ; maybe native, let's check
+                ; ( xt xt nt )          ; maybe native, let's check
                 jsr xt_wordsize
                 ; ( xt xt u )
 
@@ -179,10 +179,17 @@ cmpl_by_limit:
 cmpl_as_call:
         ; Compile xt as a subroutine call, return with C=0
         ; Stack is either ( xt xt nt ) or ( xt xt' u )
-        ; Use the xt or xt' (in the middle) as the jsr address
-        ; so that strip-underflow is respected.
-                jsr xt_drop
+        ; If the word has stack juggling, we need to use original xt
+        ; otherwise use the middle value to respect strip-underflow.
+                lda tmp3
+                and #ST
+                bne +
+                jsr xt_drop     ; no stack juggling, use middle (xt or xt')
                 jsr xt_nip
+                bra _cmpl
++
+                jsr xt_two_drop ; stack juggling, must use first (xt)
+_cmpl:
                 ; ( jsr_address -- )
                 lda #OpJSR
                 jsr cmpl_a
