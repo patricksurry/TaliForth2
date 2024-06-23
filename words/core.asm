@@ -3882,30 +3882,63 @@ z_not_equals:   rts
 xt_number_sign:
                 jsr underflow_2         ; double number
 w_number_sign:
-                jsr w_base
-                jsr w_fetch            ; ( ud1 base )
-
-                ; The following code is the ancient Forth word UD/MOD, which in
+                ; The following is based on the ancient Forth word UD/MOD, which in
                 ; various Forths (including Gforth) lives on under the hood,
                 ; even though it's not an ANS standard word, it doesn't appear
                 ; in the docs, it's only used here, and there are no tests for
                 ; it. This is why we got rid of it. We'll be converting this
                 ; mess to something more sane in the long run.
-                jsr w_to_r             ; >r
-                jsr w_zero             ; 0
-                jsr w_r_fetch          ; r@
-                jsr w_um_slash_mod     ; um/mod
-                jsr w_not_rote         ; rot rot
-                jsr w_r_from           ; r>
-                jsr w_um_slash_mod     ; um/mod
-                jsr w_not_rote         ; rot ( rem ud ) rot ( ud rem )
 
-                ; Convert the number that is left over to an ASCII character. We
-                ; use a string lookup for speed. Use either abc_str_lower for
-                ; lower case or abc_str_upper for upper case (prefered)
+                ; Imagine we have the double word ud = 2^16 u + v which we want to
+                ; write as qd m + r for some base m.  Let u = qu m + ru, with qu, ru
+                ; caculated in forth via `u 0 m um/mod`, meaning that
+                ; ud = 2^16 qu m + (2^16 ru + v).  Now write the "remainder" term
+                ; 2^16 ru + v as qv m + rv, again calculating qv, rv
+                ; in forth via `v ru m um/mod`.  (We know the quotient won't overflow
+                ; a single word because the high word ru < m.)  This leaves
+                ; ud = 2^16 qu m + qv m + rv = (2^16 qu + qv) m + rv
+                ; so that qd is the double word (qv, qu) and r is rv.
+
+                ; If, as is often the case, the most signficant word u is zero
+                ; then qu = ru = 0 and we can skip the first pass and
+                ; simply calculate v 0 m um/mod immediately.
+
+                dex                     ; inline w_zero
+                dex
+                stz 0,x
+                stz 1,x
+
+                ; use msb of base as a flag to loop twice
+                ; (we assume below base <= 36 so this is safe)
+                inc base+1
+
+                lda 2,x                 ; if msw is 0 we can skip the first pass
+                ora 3,x
+                beq _skip               ; enter with ( v 0 0 -rot -- 0 v 0 )
+
+_loop:
+                ; ( v u 0 ) on first pass, then ( qu v ru ) on second pass
+                dex                     ; inline `base @`
+                dex
+                lda base                ; base <= 36
+                sta 0,x
+                stz 1,x
+                jsr w_um_slash_mod      ; ( v u 0 base -- v ru qu )
+_skip:          jsr w_not_rot           ; ( qu v ru )
+                lsr base+1              ; 1 => 0 + C=1 => 0 + C=0
+                bcs _loop               ; run two passes
+
+                ; the second pass calculates:
+                ; base @ ( qu v ru base )
+                ; um/mod ( qu rv qv )
+                ; -rot   ( qv qu rv ) aka ( ud rem )
+
+                ; Convert the number that is left over to an ASCII character.
+                ; We use a string lookup for speed (assumes base <= 36).
+
                 lda 0,x
                 tay
-                lda s_abc_upper,y
+                lda s_abc_upper,y       ; upper case 0-9A-Z
                 sta 0,x
                 stz 1,x                 ; paranoid; now ( ud char )
 
