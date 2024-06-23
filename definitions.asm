@@ -100,7 +100,7 @@ havekey:    .word kernel_kbhit      ; vector for KEY?
 base:       .word 10                ; number radix, default decimal
 state:      .word 0                 ; STATE: -1 compile, 0 interpret
 
-status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
+status:     .word 0                 ; internal status used by CREATE : :NONAME ; ACCEPT NUMBER
         ; Bit 7 = Redefined word message postpone
         ;         When set before calling CREATE, it will
         ;         not print the "redefined xxxx" message if
