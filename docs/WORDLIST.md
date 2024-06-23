@@ -24,8 +24,9 @@ RTS instruction at the end of each word.
 | D_TO_S | `d>s` | ANS double | 5 | **auto** |
 | DABS | `dabs` | ANS double | 30 | **auto** |
 | DNEGATE | `dnegate` | ANS double | 26 | **auto** |
-| D_DOT | `d.` | ANS double | 30 | tested |
-| D_DOT_R | `d.r` | ANS double | 42 | tested |
+| D_DOT | `d.` | ANS double | 30 | **auto** |
+| D_DOT_R | `d.r` | ANS double | 42 | **auto** |
+| M_STAR_SLASH | `m*/` | ANS double | 102 | **auto** |
 | TWO_CONSTANT | `2constant` | ANS double | 36 | **auto** |
 | TWO_LITERAL | `2literal` | ANS double | 23 | **auto** |
 | TWO_VARIABLE | `2variable` | ANS double | 14 | **auto** |
@@ -39,6 +40,7 @@ RTS instruction at the end of each word.
 | DIGIT_QUESTION | `digit?` | Tali Forth | 52 | **auto** |
 | EXECUTE_PARSING | `execute-parsing` | Gforth | 38 | **auto** |
 | FIND_NAME | `find-name` | Gforth | 67 | **auto** |
+| HAVEKEY | `havekey` | Tali Forth | 10 | tested |
 | HEXSTORE | `hexstore` | Tali | 82 | **auto** |
 | INPUT | `input` | Tali Forth | 10 | tested |
 | INPUT_TO_R | `input>r` | Tali Forth | 21 | tested |
@@ -134,6 +136,7 @@ RTS instruction at the end of each word.
 | IS | `is` | ANS core ext | 24 | **auto** |
 | J | `j` | ANS core | 25 | **auto** |
 | KEY | `key` | ANS core | 9 | tested |
+| KEY? | `key?` | ANS core | missing | tested |
 | LEAVE | `leave` | ANS core | 21 | **auto** |
 | LEFT_BRACKET | `[` | ANS core | 4 | **auto** |
 | LESS_NUMBER_SIGN | `<#` | ANS core | 13 | **auto** |
@@ -152,7 +155,7 @@ RTS instruction at the end of each word.
 | NEGATE | `negate` | ANS core | 16 | **auto** |
 | NIP | `nip` | ANS core ext | 13 | **auto** |
 | NOT_EQUALS | `<>` | ANS core ext | 29 | **auto** |
-| NUMBER_SIGN | `#` | ANS core | 52 | **auto** |
+| NUMBER_SIGN | `#` | ANS core | 46 | **auto** |
 | NUMBER_SIGN_GREATER | `#>` | ANS core | 33 | **auto** |
 | NUMBER_SIGN_S | `#s` | ANS core | 16 | **auto** |
 | OF | `of` | ANS core ext | 24 | **auto** |
@@ -189,7 +192,7 @@ RTS instruction at the end of each word.
 | SOURCE | `source` | ANS core | 20 | **auto** |
 | SOURCE_ID | `source-id` | ANS core ext | 10 | tested |
 | SPACE | `space` | ANS core | 5 | **auto** |
-| SPACES | `spaces` | ANS core | 59 | **auto** |
+| SPACES | `spaces` | ANS core | 25 | **auto** |
 | STAR | `*` | ANS core | 8 | **auto** |
 | STAR_SLASH | `*/` | ANS core | 8 | **auto** |
 | STAR_SLASH_MOD | `*/mod` | ANS core | 15 | **auto** |
@@ -288,7 +291,7 @@ RTS instruction at the end of each word.
 | ED | `ed:` | Tali Forth | 3 | *fragment* |
 | DISASM | `disasm` | Tali Forth | 6 | tested |
 
-Found **280** native words in `native_words.asm`.
-Of those, **232** were automatically tested and
+Found **283** native words in `words/*.asm`.
+Of those, **235** were automatically tested and
           **1** are not marked as tested at all.
 
