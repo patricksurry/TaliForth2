@@ -94,17 +94,17 @@ nt_over:
         .text "over"
 
 nt_to_r:
-        .byte 2, CO ; native is special case
+        .byte 2, CO+ST       ; native skips stack juggling
         .word nt_r_from, xt_to_r, z_to_r
         .text ">r"
 
 nt_r_from:
-        .byte 2, CO    ; native is special case
+        .byte 2, CO+ST          ; native skips stack juggling
         .word nt_r_fetch, xt_r_from, z_r_from
         .text "r>"
 
 nt_r_fetch:
-        .byte 2, CO    ; native is special case
+        .byte 2, CO+ST          ; native skips stack juggling
         .word nt_nip, xt_r_fetch, z_r_fetch
         .text "r@"
 
@@ -115,10 +115,10 @@ nt_nip:
 
 nt_rot:
         .byte 3, 0
-        .word nt_not_rote, xt_rot, z_rot
+        .word nt_not_rot, xt_rot, z_rot
         .text "rot"
 
-nt_not_rote:
+nt_not_rot:
         .byte 4, 0
         .word nt_tuck, xt_not_rote, z_not_rote
         .text "-rot"
@@ -459,17 +459,17 @@ nt_two_literal:
         .text "2literal"
 
 nt_two_r_fetch:
-        .byte 3, CO+NN          ; native is special case, leave NN for now
+        .byte 3, CO+ST          ; native skips stack juggling
         .word nt_two_r_from, xt_two_r_fetch, z_two_r_fetch
         .text "2r@"
 
 nt_two_r_from:
-        .byte 3, CO             ; native is special case
+        .byte 3, CO+ST          ; native skips stack juggling
         .word nt_two_to_r, xt_two_r_from, z_two_r_from
         .text "2r>"
 
 nt_two_to_r:
-        .byte 3, CO             ; native is special case
+        .byte 3, CO+ST       ; native skips stack juggling
         .word nt_invert, xt_two_to_r, z_two_to_r
         .text "2>r"
 

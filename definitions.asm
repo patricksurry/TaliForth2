@@ -256,14 +256,16 @@ OpRTS   = $60
 OpBRA   = $80
 
 ; DICTIONARY FLAGS
-; The first two bits are currently unused
+; The first two bits (7, 6) are currently unused.  COMPILE, assumes bit7 is usually 0.
+N_FLAGS = 6
+; This list should match strings.asm::s_see_flags
 CO = 1  ; Compile Only
 AN = 2  ; Always Native Compile
 IM = 4  ; Immediate Word
 NN = 8  ; Never Native Compile
 HC = 16 ; Word has Code Field Area (CFA)
+ST = 32 ; Stack juggling to be stripped for native compile
 
-N_FLAGS = 5
 
 ; VARIOUS
 MAX_LINE_LENGTH  = 79      ; assumes 80 character lines
