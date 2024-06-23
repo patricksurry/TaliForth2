@@ -18,14 +18,15 @@ RTS instruction at the end of each word.
 | COLD | `cold` | Tali Forth | 175 | tested |
 | ABORT | `abort` | ANS core | 81 | tested |
 | QUIT | `quit` | ANS core | 79 | tested |
-| COMPILE_COMMA | `compile,` | ANS core ext | 200 | **auto** |
+| COMPILE_COMMA | `compile,` | ANS core ext | 203 | **auto** |
 | D_MINUS | `d-` | ANS double | 32 | **auto** |
 | D_PLUS | `d+` | ANS double | 32 | **auto** |
 | D_TO_S | `d>s` | ANS double | 5 | **auto** |
 | DABS | `dabs` | ANS double | 30 | **auto** |
 | DNEGATE | `dnegate` | ANS double | 26 | **auto** |
-| D_DOT | `d.` | ANS double | 30 | tested |
-| D_DOT_R | `d.r` | ANS double | 42 | tested |
+| D_DOT | `d.` | ANS double | 30 | **auto** |
+| D_DOT_R | `d.r` | ANS double | 42 | **auto** |
+| M_STAR_SLASH | `m*/` | ANS double | 102 | **auto** |
 | TWO_CONSTANT | `2constant` | ANS double | 36 | **auto** |
 | TWO_LITERAL | `2literal` | ANS double | 23 | **auto** |
 | TWO_VARIABLE | `2variable` | ANS double | 14 | **auto** |
@@ -39,6 +40,7 @@ RTS instruction at the end of each word.
 | DIGIT_QUESTION | `digit?` | Tali Forth | 52 | **auto** |
 | EXECUTE_PARSING | `execute-parsing` | Gforth | 38 | **auto** |
 | FIND_NAME | `find-name` | Gforth | 67 | **auto** |
+| HAVEKEY | `havekey` | Tali Forth | 10 | tested |
 | HEXSTORE | `hexstore` | Tali | 82 | **auto** |
 | INPUT | `input` | Tali Forth | 10 | tested |
 | INPUT_TO_R | `input>r` | Tali Forth | 21 | tested |
@@ -49,7 +51,7 @@ RTS instruction at the end of each word.
 | NAME_TO_STRING | `name>string` | Gforth | 22 | tested |
 | NC_LIMIT | `nc-limit` | Tali Forth | 5 | tested |
 | NEVER_NATIVE | `never-native` | Tali Forth | 13 | **auto** |
-| NOT_ROTE | `-rot` | Gforth | 27 | **auto** |
+| NOT_ROT | `-rot` | Gforth | 27 | **auto** |
 | NUMBER | `number` | Tali Forth | 249 | **auto** |
 | ONE | `1` | Tali Forth | 8 | **auto** |
 | OUTPUT | `output` | Tali Forth | 10 | tested |
@@ -95,8 +97,8 @@ RTS instruction at the end of each word.
 | CREATE | `create` | ANS core | 201 | **auto** |
 | DECIMAL | `decimal` | ANS core | 6 | **auto** |
 | DEFER | `defer` | ANS core ext | 50 | **auto** |
-| DEFER_FETCH | `defer@` | ANS core ext | 6 | **auto** |
-| DEFER_STORE | `defer!` | ANS core ext | 6 | **auto** |
+| DEFER_FETCH | `defer@` | ANS core ext | 9 | **auto** |
+| DEFER_STORE | `defer!` | ANS core ext | 9 | **auto** |
 | DEPTH | `depth` | ANS core | 14 | **auto** |
 | QUESTION_DO | `?do` | ANS core ext | 67 | **auto** |
 | DO | `do` | ANS core | 25 | **auto** |
@@ -107,14 +109,14 @@ RTS instruction at the end of each word.
 | DOT_R | `.r` | ANS core ext | 45 | tested |
 | DROP | `drop` | ANS core | 5 | **auto** |
 | DUP | `dup` | ANS core | 13 | **auto** |
-| ELSE | `else` | ANS core | 15 | **auto** |
+| ELSE | `else` | ANS core | 23 | **auto** |
 | EMIT | `emit` | ANS core | 10 | **auto** |
-| ENDCASE | `endcase` | ANS core ext | 20 | **auto** |
-| ENDOF | `endof` | ANS core ext | 15 | **auto** |
+| ENDCASE | `endcase` | ANS core ext | 23 | **auto** |
+| ENDOF | `endof` | ANS core ext | 23 | **auto** |
 | ENVIRONMENT_Q | `environment?` | ANS core | 124 | **auto** |
 | EQUAL | `=` | ANS core | 27 | **auto** |
-| BLANK | `blank` | ANS string | 82 | **auto** |
-| ERASE | `erase` | ANS core ext | 72 | **auto** |
+| BLANK | `blank` | ANS string | 90 | **auto** |
+| ERASE | `erase` | ANS core ext | 77 | **auto** |
 | FILL | `fill` | ANS core | 66 | **auto** |
 | EXECUTE | `execute` | ANS core | 6 | **auto** |
 | EXIT | `exit` | ANS core | 1 | **auto** |
@@ -134,6 +136,7 @@ RTS instruction at the end of each word.
 | IS | `is` | ANS core ext | 24 | **auto** |
 | J | `j` | ANS core | 25 | **auto** |
 | KEY | `key` | ANS core | 9 | tested |
+| KEY? | `key?` | ANS core | missing | tested |
 | LEAVE | `leave` | ANS core | 21 | **auto** |
 | LEFT_BRACKET | `[` | ANS core | 4 | **auto** |
 | LESS_NUMBER_SIGN | `<#` | ANS core | 13 | **auto** |
@@ -148,11 +151,11 @@ RTS instruction at the end of each word.
 | MIN | `min` | ANS core | 27 | **auto** |
 | MINUS | `-` | ANS core | 18 | **auto** |
 | MOD | `mod` | ANS core | 8 | **auto** |
-| MOVE | `move` | ANS core | 30 | **auto** |
+| MOVE | `move` | ANS core | 33 | **auto** |
 | NEGATE | `negate` | ANS core | 16 | **auto** |
 | NIP | `nip` | ANS core ext | 13 | **auto** |
 | NOT_EQUALS | `<>` | ANS core ext | 29 | **auto** |
-| NUMBER_SIGN | `#` | ANS core | 52 | **auto** |
+| NUMBER_SIGN | `#` | ANS core | 48 | **auto** |
 | NUMBER_SIGN_GREATER | `#>` | ANS core | 33 | **auto** |
 | NUMBER_SIGN_S | `#s` | ANS core | 16 | **auto** |
 | OF | `of` | ANS core ext | 24 | **auto** |
@@ -174,29 +177,29 @@ RTS instruction at the end of each word.
 | R_FROM | `r>` | ANS core | 16 | **auto** |
 | RECURSE | `recurse` | ANS core | 60 | **auto** |
 | REFILL | `refill` | ANS core ext | 65 | tested |
-| REPEAT | `repeat` | ANS core | 6 | **auto** |
+| REPEAT | `repeat` | ANS core | 9 | **auto** |
 | RIGHT_BRACKET | `]` | ANS core | 6 | **auto** |
 | ROT | `rot` | ANS core | 27 | **auto** |
 | RSHIFT | `rshift` | ANS core | 19 | **auto** |
 | S_BACKSLASH_QUOTE | `s\"` | ANS core | 9 | **auto** |
-| S_QUOTE | `s"` | ANS core | 260 | **auto** |
+| S_QUOTE | `s"` | ANS core | 233 | **auto** |
 | S_TO_D | `s>d` | ANS core | 17 | **auto** |
 | SEMICOLON | `;` | ANS core | 94 | **auto** |
 | SIGN | `sign` | ANS core | 20 | **auto** |
-| SLASH | `/` | ANS core | 28 | **auto** |
-| SLASH_MOD | `/mod` | ANS core | 23 | **auto** |
+| SLASH | `/` | ANS core | 33 | **auto** |
+| SLASH_MOD | `/mod` | ANS core | 26 | **auto** |
 | SM_SLASH_REM | `sm/rem` | ANS core | 40 | **auto** |
 | SOURCE | `source` | ANS core | 20 | **auto** |
 | SOURCE_ID | `source-id` | ANS core ext | 10 | tested |
 | SPACE | `space` | ANS core | 5 | **auto** |
-| SPACES | `spaces` | ANS core | 59 | **auto** |
+| SPACES | `spaces` | ANS core | 25 | **auto** |
 | STAR | `*` | ANS core | 8 | **auto** |
-| STAR_SLASH | `*/` | ANS core | 8 | **auto** |
+| STAR_SLASH | `*/` | ANS core | 11 | **auto** |
 | STAR_SLASH_MOD | `*/mod` | ANS core | 15 | **auto** |
 | STATE | `state` | ANS core | 10 | **auto** |
 | STORE | `!` | ANS core | 21 | **auto** |
 | SWAP | `swap` | ANS core | 19 | **auto** |
-| THEN | `then` | ANS core | 9 | **auto** |
+| THEN | `then` | ANS core | 12 | **auto** |
 | TICK | `'` | ANS core | 31 | **auto** |
 | TO | `to` | ANS core ext | 59 | **auto** |
 | TO_BODY | `>body` | ANS core | 34 | **auto** |
@@ -224,11 +227,11 @@ RTS instruction at the end of each word.
 | UM_SLASH_MOD | `um/mod` | ANS core | 65 | **auto** |
 | UM_STAR | `um*` | ANS core | 69 | **auto** |
 | UNLOOP | `unloop` | ANS core | 15 | **auto** |
-| UNTIL | `until` | ANS core | 3 | **auto** |
+| UNTIL | `until` | ANS core | 6 | **auto** |
 | UNUSED | `unused` | ANS core ext | 15 | **auto** |
 | VALUE | `value` | ANS core | 61 | **auto** |
 | VARIABLE | `variable` | ANS core | 24 | **auto** |
-| WHILE | `while` | ANS core | 6 | **auto** |
+| WHILE | `while` | ANS core | 9 | **auto** |
 | WITHIN | `within` | ANS core ext | 21 | **auto** |
 | WORD | `word` | ANS core | 67 | **auto** |
 | XOR | `xor` | ANS core | 17 | **auto** |
@@ -288,7 +291,7 @@ RTS instruction at the end of each word.
 | ED | `ed:` | Tali Forth | 3 | *fragment* |
 | DISASM | `disasm` | Tali Forth | 6 | tested |
 
-Found **280** native words in `native_words.asm`.
-Of those, **232** were automatically tested and
+Found **283** native words in `words/*.asm`.
+Of those, **235** were automatically tested and
           **1** are not marked as tested at all.
 
