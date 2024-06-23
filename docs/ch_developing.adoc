@@ -540,6 +540,9 @@ Note: If neither NN or AN is set, then the word might be native compiled based
 on its size and the value in the Forth variable `nc-limit`.
 HC:: Has CFA (words created by CREATE and DOES> only).  You will probably never
 need this bit for words that you write in assembly.
+ST:: Manipulates the return stack differently for native vs non-native compilation.
+This is used for words like R>, R@ and >R but you're unlikely to need this for
+your own words in assembly.
 
 If you created a short word made out of just JSRs, and
 you wanted it to be an immediate, compile-only word, you might put `IM+CO` for this field.

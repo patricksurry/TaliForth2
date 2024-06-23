@@ -654,7 +654,7 @@ when compiled with an `nc-limit` of 0 and check the actual code with `see`
 ----
 see aaa
 nt: 800  xt: 80B
-flags (CO AN IM NN HC): 0 0 0 1 1
+flags (CO AN IM NN HC ST): 0 0 0 1 1 0
 size (decimal): 6
 
 080B  20 A2 A7 20 2E 8D   .. ..
@@ -677,7 +677,7 @@ we get different code:
 ----
 see bbb
 nt: 812  xt: 81D
-flags (CO AN IM NN HC): 0 0 0 1 1
+flags (CO AN IM NN HC ST): 0 0 0 1 1 0
 size (decimal): 11
 
 081D  CA CA 74 00 74 01 20 29  D8 E8 E8  ..t.t. ) ...

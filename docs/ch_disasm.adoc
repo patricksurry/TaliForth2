@@ -49,7 +49,7 @@ base. So `see drop` produces:
 
 ----
 nt: BC3E  xt: 8D2E
-flags (CO AN IM NN HC): 0 0 0 0 0
+flags (CO AN IM NN HC ST): 0 0 0 0 0 0
 size (decimal): 5
 
 8D2E  20 29 D8 E8 E8   )...
@@ -71,7 +71,7 @@ Forth dictionary and so no name will be printed.  Here is an example when runnin
 
 ----
 nt: C9FF  xt: 9845
-flags (CO AN IM NN HC): 0 0 0 0 0
+flags (CO AN IM NN HC ST): 0 0 0 0 0 0
 size (decimal): 42
 
 9845  20 63 89 20 34 91 B5 00  F0 1E A8 E8 E8 B5 00 5A   c. 4... .......Z
@@ -129,7 +129,7 @@ followed by the address and length of the string.
 : example s" This is a string" ;  ok
 see example
 nt: 800  xt: 80F
-flags (CO AN IM NN HC): 0 0 0 1 1
+flags (CO AN IM NN HC ST): 0 0 0 1 1 0
 size (decimal): 26
 
 080F  4C 22 08 54 68 69 73 20  69 73 20 61 20 73 74 72  L".This  is a str
