@@ -619,12 +619,12 @@ nt_d_plus:
         .text "d+"
 
 nt_erase:
-        .byte 5, 0      ; underflow checked by FILL
+        .byte 5, 0
         .word nt_blank, xt_erase, z_erase
         .text "erase"
 
 nt_blank:
-        .byte 5, 0     ; underflow checked by FILL
+        .byte 5, 0
         .word nt_fill, xt_blank, z_blank
         .text "blank"
 
@@ -1276,22 +1276,22 @@ nt_blk:
         .text "blk"
 
 nt_block_write:
-        .byte 11, NN ; Deferred words need the HC (Code Field) flag.
+        .byte 11, NN
         .word nt_block_write_vector, xt_block_write, z_block_write
         .text "block-write"
 
 nt_block_write_vector:
-        .byte 18, NN ; Deferred words need the HC (Code Field) flag.
+        .byte 18, NN
         .word nt_block_read, xt_block_write_vector, z_block_write_vector
         .text "block-write-vector"
 
 nt_block_read:
-        .byte 10, HC+NN ; Deferred words need the HC (Code Field) flag.
+        .byte 10, NN
         .word nt_block_read_vector, xt_block_read, z_block_read
         .text "block-read"
 
 nt_block_read_vector:
-        .byte 17, HC+NN ; Deferred words need the HC (Code Field) flag.
+        .byte 17, NN
         .word nt_save_buffers, xt_block_read_vector, z_block_read_vector
         .text "block-read-vector"
 
