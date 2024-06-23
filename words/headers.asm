@@ -120,7 +120,7 @@ nt_rot:
 
 nt_not_rot:
         .byte 4, 0
-        .word nt_tuck, xt_not_rote, z_not_rote
+        .word nt_tuck, xt_not_rot, z_not_rot
         .text "-rot"
 
 nt_tuck:

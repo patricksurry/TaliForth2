@@ -295,16 +295,14 @@ w_see:
                 ; This is crude, but for the moment it is good enough
                 ldy #N_FLAGS            ; Not all bits are used
 _flag_loop:
-                pha
-                and #%00000001
-                clc
-                adc #'0'
+                lsr                     ; shift bit 0 into carry flag
+                pha                     ; save shifted flags
+                lda #'0'                ; convert C=0/1 into '0' or '1'
+                adc #0
                 jsr emit_a
                 jsr w_space
 
                 pla
-                ror                     ; Next flag
-
                 dey
                 bne _flag_loop
 

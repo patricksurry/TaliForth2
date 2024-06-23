@@ -121,37 +121,16 @@ _check_uf:
                 ; words that have the UF flag. This shortens the word by
                 ; 3 bytes if there is no underflow.
 
-                ; Does the user want to strip underflow check?
+                ; Does the user want to strip underflow checks?
                 ldy #uf_strip_offset
                 lda (up),y
                 iny
                 ora (up),y
                 beq _check_limit
 
-                ; OK, so does the word start with an underflow check?
-                lda (2,x)               ; get byte @ xt
-                cmp #OpJSR
-                bne _check_limit        ; not a JSR
-
-                ; check the address is between underflow_1 ... underflow_4
-                jsr xt_over
-                jsr xt_one_plus         ; jsr address is at xt+1
-                sec
-                lda (0, x)              ; LSB of jsr address
-                sbc #<underflow_1
-                tay                     ; stash LSB of result
-                inc 0,x                 ; MSB of jsr address is at xt+2
-                bne +
-                inc 1,x
-+
-                inx                     ; pre-drop the result to simplify branching
-                inx
-                lda ($fe, x)
-                sbc #>underflow_1
-                bne _check_limit        ; msb must be zero
-
-                cpy #(underflow_4-underflow_1+1)
-                bcs _check_limit        ; lsb isn't small enough
+                jsr w_over
+                jsr has_uf_check
+                bcc _check_limit        ; not an underflow check
 
                 ; Ready to remove the 3 byte underflow check.
 
@@ -233,6 +212,38 @@ cmpl_inline:
 z_compile_comma:
                 rts
 
+
+has_uf_check:
+                ; Check if the addr TOS points an underflow check,
+                ; consuming TOS and returning C=1 (true) or C=0 (false)
+                ; ( addr -- )
+
+                ; Does addr point at a JSR?
+                lda (0, x)              ; fetch byte @ addr
+                cmp #OpJSR
+                bne _not_uf             ; not a JSR
+
+                ; Is address between underflow_1 ... underflow_4 ?
+                ; We can check 0 <= addr - underflow_1 <= underflow_4 - underflow_1 < 256
+                jsr w_one_plus
+                jsr w_fetch             ; get JSR address to TOS
+                lda 0, x                ; LSB of jsr address
+                sec
+                sbc #<underflow_1
+                tay                     ; stash LSB of result and finish subtraction
+                lda 1, x                ; MSB of jsr address
+                sbc #>underflow_1
+                bne _not_uf             ; MSB of result must be zero
+
+                cpy #(underflow_4-underflow_1+1)
+                bcs _not_uf             ; LSB is too big
+
+                sec                     ; C=1 means it is an UF check
+                .byte $24               ; bit zp opcode masks the clc, with effect on carry
+_not_uf:        clc                     ; C=0 means it isn't a UF check
+                inx                     ; clean up stack
+                inx
+                rts
 
 
 ; =====================================================================

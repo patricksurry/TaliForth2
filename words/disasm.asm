@@ -416,11 +416,11 @@ disasm_jsr:
                 sbc #0         ; Subtract the carry if needed.
                 sta 1,x
                 ; ( xt )
-                ; double-check that xt points to a JSR and not some two byte word plus rts
+                ; double-check that xt points to JSR underflow_N
                 ; see discussion at https://github.com/SamCoVT/TaliForth2/pull/99#discussion_r1636394433
-                lda (0,x)
-                cmp #OpJSR
-                bne _no_nt
+                jsr w_dup
+                jsr has_uf_check
+                bcc _no_nt
 
                 jsr w_int_to_name     ; Try looking again
                 ; int>name returns zero if we just don't know.
