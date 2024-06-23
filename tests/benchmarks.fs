@@ -1,7 +1,7 @@
 
 (
   These are some simple benchmarks adapted from https://theultimatebenchmark.org/#sec-13.
-  They aren't part of the standard test suite since they take a few seconds to complete.
+  They aren't part of the standard test suite since they take several seconds to complete.
   To benchmark a build, run commands like this:
 
   export TALIBIN=taliforth-c65.bin
@@ -11,25 +11,45 @@
     echo $TALIVARS | cat - tests/benchmarks.fs | c65/c65 -r $TALIBIN | grep 'cycles\. ok'
   done
 
+This log records some historical results.  Each build date corresponds to commits linked below,
+with each row giving the 65c02 cycle count for each test (and the cumulative total)
+for `nc-limit` (NC) set to 0 or 20 bytes and `strip-underflow` (SUF) enabled or disabled.
+Setting `0 nc-limit` generates smaller but slower code, and `0 strip-underflow` trades some
+speed for run-time stack underflow checks.
+
 Build     Test       0 NC 0 SUF   0 NC 1 SUF  20 NC 0 SUF  20 NC 1 SUF
+
 20231101  ddbench      4751473      4751473      3965029      2916469
-<head>    ddbench      5081308      4032748      2197724      1149164
+20240623  ddbench      5081308      4032748      2197724      1149164
+
 20231101  intcalcs    28762819     28762819     25882671     22898462
-<head>    intcalcs    28722803     26290691     25522602     20633701
+20240623  intcalcs    27442769     25010657     24290570     21666430
+
 20231101  fib2        33746816     33746816     28490708     21501780
-<head>    fib2        35220166     28224838     20633701     13638373
+20240623  fib2        35220166     28224838     20633701     13638373
+
 20231101  nesting     25165800     25165800     25165800     25165800
-<head>    nesting     25165800     25165800     25165800     25165800
+20240623  nesting     25165800     25165800     25165800     25165800
+
 20231101  sieve       13602239     13602239     11737511      9491287
-<head>    sieve       13263183     11016943      9509933      7263694
+20240623  sieve       13271375     11025135      9518125      7271885
+
 20231101  gcd1        40939545     40939545     37438209     32771073
-<head>    gcd1        37793577     30474953     25723073     16415754
+20240623  gcd1        37793577     30474953     25722994     16415754
+
 20231101  pal         56252577     56252577     55211451     54105673
-<head>    pal         53720770     52265938     51802220     50249689
+20240623  pal         29691810     28236978     27773260     26220729
+
 20231101  coll        37286938     37286938     35333950     33462094
-<head>    coll        35818746     33731882     31269217     29182737
+20240623  coll        34477726     32390862     29940867     27841333
+
 20231101  Total      240508207    240508207    223225329    203504735
-<head>    Total      234786353    211203793    191824270    165963673
+20240623  Total      208144531    184561971    165243041    139369468
+
+Tested taliforth-c65.bin from these builds (20231101 used taliforth-py65mon.bin):
+
+20231101 https://github.com/SamCoVT/TaliForth2/commit/e9fff574d0a2390e9a5cfb0a09538292bc13db7e
+20240623 https://github.com/SamCoVT/TaliForth2/commit/032e914755f2ffb7f6a10fb4005d2ca9a1770edb
 
 )
 
