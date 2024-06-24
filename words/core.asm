@@ -1182,8 +1182,19 @@ z_cr:           rts
         ; """
 xt_create:
 w_create:
+                ; Several routines will use CREATE to build new words.
+                ; They'll pass the CFA in A/Y, with Y=0 indicating no CFA.
+                ldy #>dovar
+                lda #<dovar
+create_common:
+                ; save the CFA
+                dex
+                dex
+                sta 0,x
+                sty 1,x
+
                 ; get string
-                jsr w_parse_name       ; ( addr u )
+                jsr w_parse_name        ; ( cfa addr u )
 
                 ; if we were given an empty string, we complain and quit
                 lda 0,x
@@ -1195,23 +1206,24 @@ w_create:
 
 _got_name:
                 ; Enforce maximal length of string by overwriting the MSB of
-                ; the length. There is a possible error here: If the string
-                ; is exactly 255 chars long, then a lot of the following
-                ; additions will fail because of wrapping
+                ; the length.   We also implicitly assume below that N < 248 so that
+                ; the total header length (N+8) also fits in a byte.
+                ; If not a lot of the following additions will fail due to carry
                 stz 1,x
 
                 ; Check to see if this name already exists.
-                jsr w_two_dup          ; ( addr u addr u )
-                jsr w_find_name        ; ( addr u flag ) (non-zero nt as flag)
+                jsr w_two_dup           ; ( cfa addr u addr u )
+                jsr w_find_name         ; ( cfa addr u flag ) (non-zero nt as flag)
 
-                lda 0,x
-                ora 1,x
+                inx                     ; pre-drop flag (nt) from find-name.
+                inx
+
+                lda $fe,x
+                ora $ff,x
                 beq _new_name           ; We haven't seen this one before.
 
                 ; This name already exists.  See if we are supposed to print
                 ; the message for it.
-                inx                     ; Drop flag (nt) from find-name.
-                inx
 
                 ; Check bit 7
                 bit status
@@ -1221,8 +1233,7 @@ _got_name:
                 ; but we should indicate that it is redefined (for ; to print
                 ; later).
                 lda #$80                ; Set bit 7 to indicate dup
-                ora status
-                sta status
+                tsb status
                 bra _process_name
 
 _redefined_name:
@@ -1230,22 +1241,18 @@ _redefined_name:
                 lda #str_redefined
                 jsr print_string_no_lf
 
-                jsr w_two_dup           ; ( addr u addr u )
+                jsr w_two_dup           ; ( cfa addr u addr u )
                 jsr w_type
                 jsr w_space
 
                 bra _process_name
 
 _new_name:
-                inx                     ; Drop flag (0) from find-name.
-                inx
-                lda #$7F                ; Clear bit 0 of status to indicate new word.
-                and status
-                sta status
+                lda #$80                ; Clear status bit 0 to indicate new word.
+                trb status
 
 _process_name:
-                lda 0,x
-                sta tmp2                ; store length of string in tmp2
+                ; ( cfa addr u )
 
                 ; remember the first free byte of memory as the start of
                 ; the new word
@@ -1254,21 +1261,22 @@ _process_name:
                 lda cp+1
                 sta tmp1+1
 
-                ; We need 8 bytes plus the length of the string for our new header.
-                ; This is also the offset for the start of the code field (the
-                ; xt_ label) so we need to remember it. Otherwise, we could
-                ; just allot the space afterwards
+                ; ( cfa addr u )
                 lda 0,x
+                sta tmp2                ; store length of string in tmp2
+
+                ; The length of the new header is 8 bytes plus the length of
+                ; the string, so remember it in tmp2+1  (assumes u < 247)
                 clc
                 adc #8
-                sta tmp3                ; total header length
+                sta tmp2+1               ; total header length
 
-                ; We overwrite the length of the string returned by PARSE-NAME
-                ; and then call ALLOT.
-                ; We'll compile the CFA later
+                ; Also replace TOS with total header length and ALLOT the memory.
+                ; We'll conditionally compile the CFA jsr later
                 sta 0,x
-                stz 1,x         ; max header size is 255 chars
-                jsr w_allot    ; ( addr )
+                stz 1,x                 ; max header size is 255 chars
+                jsr w_allot
+                ; ( cfa addr )
 
                 ; Get the CURRENT dictionary pointer.
                 jsr current_to_dp
@@ -1280,19 +1288,26 @@ _process_name:
                 ; HEADER BYTE 0: Length of string
                 lda tmp2
                 sta (tmp1),y
+                iny
 
-                ; HEADER BYTE 1: Status byte. By default, we set all new words
-                ; to "never native", user will have to decide if they should
-                ; be inlined
-                lda #NN
+                ; HEADER BYTE 1: Status byte.
 
-                ; Also, words defined by CREATE are marked in the header has
+                ; Words defined by CREATE are marked in the header has
                 ; having a Code Field Area (CFA), which is a bit tricky for
                 ; Subroutine Threaded Code (STC). We do this so >BODY works
                 ; correctly with DOES> and CREATE. See the discussion at
                 ; http://forum.6502.org/viewtopic.php?f=9&t=5182 for details
-                ora #HC
-                iny
+
+                ; ( cfa addr )
+                stz tmptos              ; track CFA code size 0 or 3 bytes
+                lda 3,x                 ; check MSB of CFA
+                beq +                   ; no CFA, leave A=0
+                lda #3
+                sta tmptos              ; CFA will require 3 bytes
+                lda #HC                 ; else set the HC bit
++
+; TODO conditionally add NN flag in ";"
+                ora #NN
                 sta (tmp1),y
                 iny
 
@@ -1313,41 +1328,40 @@ _process_name:
 
                 ; HEADER BYTE 4,5: Start of the code field ("xt_" of this word).
                 ; This begins after the header so we take the length of the
-                ; header, which we cleverly saved in tmp3, and use it as an
+                ; header, which we cleverly saved in tmp2+1, and use it as an
                 ; offset to the address of the start of the word. We come here
                 ; with tmp1 in A
                 clc
-                adc tmp3        ; add total header length
+                adc tmp2+1              ; add total header length
                 sta (tmp1),y
-                pha             ; we need this in the next step
+                pha                     ; save LSB for next step
                 iny
 
                 lda tmp1+1
-                adc #0          ; only need the carry
+                adc #0                  ; only need the carry
                 sta (tmp1),y
+                sta tmptos+1            ; remember the MSB as well
                 iny
 
-                ; HEADER BYTE 6,7: End of code ("z_" of this word). By default,
-                ; we execute a jump to the DOVAR routine, so we need to move three
-                ; bytes down, and then one more byte so that the z_ label points
-                ; to the (still fictional) RTS instruction for correct compilation
-                pla             ; LSB of "z_" address
+                ; HEADER BYTE 6,7: End of code ("z_" of this word).
+                ; If there's no CFA this is the same as xt_ since we have no code yet,
+                ; otherwise we add three bytes for the subroutine call we'll compile below
+                pla                     ; LSB of "xt_" address
                 clc
-                adc #3
+                adc tmptos              ; Add 0 or 3
                 sta (tmp1),y
+                iny
 
-                dey             ; get the MSB of xt back
-                lda (tmp1),y
-                adc #0          ; only need the carry
-                iny
-                iny
+                lda tmptos+1            ; recall MSB of xt_
+                adc #0                  ; only need the carry
                 sta (tmp1),y
                 iny
 
                 ; HEADER BYTE 8: Start of name string. The address is TOS, the
                 ; length in tmp2. We subtract 8 from the address so we can
-                ; use the same loop index, which is already 8 byte ahead at
+                ; use the same loop index, which is already 8 bytes ahead at
                 ; this point
+                ; ( cfa addr )
                 lda 0,x
                 sec
                 sbc #8
@@ -1378,10 +1392,12 @@ _store_name:
                 bne _name_loop
 
                 ; After the name string comes the code field, starting at the
-                ; current xt of this word, which is initially a jump to the
-                ; subroutine to DOVAR.
-                ldy #>dovar
-                lda #<dovar
+                ; current xt of this word, which for CREATE is a subroutine call
+                ; to DOVAR.  Other words use different subroutines or omit the CFA.
+
+                ; ( cfa addr )
+                lda 2,x
+                ldy 3,x
                 jsr cmpl_subroutine
 
                 ; Update the CURRENT wordlist with the new DP.
@@ -1389,6 +1405,8 @@ _store_name:
                 jsr dp_to_current
 
                 ; And we're done. Restore stack
+                inx
+                inx
                 inx
                 inx
 
