@@ -919,8 +919,7 @@ z_chars:        rts
         ; """
 xt_colon:
 w_colon:
-                ; If we're already in the compile state, complain
-                ; and quit
+                ; If we're already in the compile state, complain and quit
                 lda state
                 ora state+1
                 beq +
@@ -933,52 +932,21 @@ w_colon:
                 dec state+1
 
                 ; Set bit 6 in status to tell ";" and RECURSE this is a normal
-                ; word
-                lda #%01000000
+                ; and bit 7 to tell CREATE not to warn on duplicate name.
+                lda #%11000000
                 tsb status
 
-                ; CREATE is going to change the DP to point to the new word's
-                ; header. While this is fine for (say) variables, it would mean
-                ; that FIND-NAME etc would find a half-finished word when
-                ; looking in the Dictionary. To prevent this, we save the old
-                ; version of DP and restore it later. The new DP is placed in
-                ; the variable WORKWORD until we're finished with a SEMICOLON.
-                jsr current_to_dp
-                lda dp+1            ; CREATE uses a lot of variables
-                pha
-                lda dp
-                pha
-
-                ; Tell create not to print warning for duplicate name.
-                lda #%10000000
-                tsb status
-
-                jsr w_create
-
-                ; Get the nt (not the xt!) of the new word as described above.
-                ; Only COLON, SEMICOLON and RECURSE get to access WORKWORD
-                jsr current_to_dp   ; This might be able to be omitted
-                lda dp
+                ; Save cp in WORKWORD so that ";" can add it to the dictionary later.
+                ; Otherwise FIND-NAME etc could find a half-finished word when
+                ; looking in the Dictionary.
+                lda cp
                 sta workword
-                lda dp+1
+                lda cp+1
                 sta workword+1
 
-                ; Restore original DP
-                pla
-                sta dp
-                pla
-                sta dp+1
-                jsr dp_to_current
+                ldy #0                  ; Tell CREATE we want neither CFA nor dictionary update
+                jsr create_common
 
-                ; CREATE includes a subroutine jump to DOVAR by default. We
-                ; back up three bytes and overwrite that.
-                lda cp
-                sec
-                sbc #3
-                sta cp
-                bcs _done
-                dec cp+1
-_done:
 z_colon:        rts
 
 
@@ -1074,24 +1042,11 @@ xt_constant:
                 jsr underflow_1
 w_value:
 w_constant:
-                jsr w_create
 
-            	; CREATE by default installs a subroutine jump to DOVAR,
-                ; but we want DOCONST for constants. Go back two bytes and
-                ; replace the subroutine jump target
-                sec
-                lda cp
-                sbc #2
-                sta tmp1
-                lda cp+1
-                sbc #0
-                sta tmp1+1
-
+            	; Use create but with DOCONST for constants.
                 lda #<doconst           ; LSB of DOCONST
-                sta (tmp1)
-                ldy #1
-                lda #>doconst           ; MSB of DOCONST
-                sta (tmp1),y
+                ldy #>doconst           ; MSB of DOCONST
+                jsr create_common
 
                 ; Now we save the constant number itself in the next cell
                 jsr w_comma            ; drop through to adjust_z
@@ -1248,7 +1203,7 @@ _redefined_name:
                 bra _process_name
 
 _new_name:
-                lda #$80                ; Clear status bit 0 to indicate new word.
+                lda #$80                ; Clear status bit 7 to indicate new word.
                 trb status
 
 _process_name:
@@ -1272,7 +1227,7 @@ _process_name:
                 sta tmp2+1               ; total header length
 
                 ; Also replace TOS with total header length and ALLOT the memory.
-                ; We'll conditionally compile the CFA jsr later
+                ; We'll compile the CFA jsr later if its needed
                 sta 0,x
                 stz 1,x                 ; max header size is 255 chars
                 jsr w_allot
@@ -1290,23 +1245,30 @@ _process_name:
                 sta (tmp1),y
                 iny
 
-                ; HEADER BYTE 1: Status byte.
+                ; HEADER BYTE 1: Flag bits (not to be confused with the status variable above)
 
-                ; Words defined by CREATE are marked in the header has
+                ; Words defined by CREATE are marked in the header as
                 ; having a Code Field Area (CFA), which is a bit tricky for
                 ; Subroutine Threaded Code (STC). We do this so >BODY works
                 ; correctly with DOES> and CREATE. See the discussion at
                 ; http://forum.6502.org/viewtopic.php?f=9&t=5182 for details
 
                 ; ( cfa addr )
-                stz tmptos              ; track CFA code size 0 or 3 bytes
                 lda 3,x                 ; check MSB of CFA
-                beq +                   ; no CFA, leave A=0
-                lda #3
-                sta tmptos              ; CFA will require 3 bytes
-                lda #HC                 ; else set the HC bit
+                beq +                   ; 0 means no CFA, leave A=0
+
+                lda #HC                 ; otherwise set the HC bit
 +
-; TODO conditionally add NN flag in ";"
+                ; most of the words CREATE'd with DOXXX CFA's must currently be
+                ; called via JSR (i.e. never native) since they are compiled like
+                ; `jsr doxxx + data` and expect to extract their data and then rts
+                ; to the parent caller.  They could probably support inlining (native)
+                ; if they were instead compiled like `<push address-of-data> + rts + data`
+                ; so there'd only be one instance of data and fewer jsr levels.
+
+                ; Many words CREATE'd without a CFA could already be compiled natively
+                ; but not all (e.g. looping constructs with non-relocatable jmp).
+                ; For safety we flag everything as NN here, but ";" will revert if possible.
                 ora #NN
                 sta (tmp1),y
                 iny
@@ -1320,35 +1282,42 @@ _process_name:
                 sta (tmp1),y
                 iny
 
-                ; Interlude: Make old CP new DP (new start of Dictionary)
+                lda 3,x
+                beq +
+
+                ; Interlude: Point start of dictionary (DP) at our new header (old CP)
+                ; unless it's a ":" word no CFA which ":" will add later
                 lda tmp1+1
                 sta dp+1
                 lda tmp1
                 sta dp
-
++
                 ; HEADER BYTE 4,5: Start of the code field ("xt_" of this word).
                 ; This begins after the header so we take the length of the
                 ; header, which we cleverly saved in tmp2+1, and use it as an
-                ; offset to the address of the start of the word. We come here
-                ; with tmp1 in A
+                ; offset to the address of the start of the word.
                 clc
+                lda tmp1                ; redundant unless we skipped interlude
                 adc tmp2+1              ; add total header length
                 sta (tmp1),y
-                pha                     ; save LSB for next step
+                sta tmptos              ; save result for next step
                 iny
 
                 lda tmp1+1
                 adc #0                  ; only need the carry
                 sta (tmp1),y
-                sta tmptos+1            ; remember the MSB as well
+                sta tmptos+1
                 iny
 
                 ; HEADER BYTE 6,7: End of code ("z_" of this word).
                 ; If there's no CFA this is the same as xt_ since we have no code yet,
                 ; otherwise we add three bytes for the subroutine call we'll compile below
-                pla                     ; LSB of "xt_" address
+                lda 3,x
+                beq +                   ; leave A=0
+                lda #3
++
                 clc
-                adc tmptos              ; Add 0 or 3
+                adc tmptos              ; add LSB of xt_
                 sta (tmp1),y
                 iny
 
@@ -1396,14 +1365,16 @@ _store_name:
                 ; to DOVAR.  Other words use different subroutines or omit the CFA.
 
                 ; ( cfa addr )
-                lda 2,x
                 ldy 3,x
-                jsr cmpl_subroutine
+                beq +
 
-                ; Update the CURRENT wordlist with the new DP.
+                lda 2,x
+                jsr cmpl_subroutine             ; Add the CFA jsr
+                ; Update the CURRENT wordlist with the new DP
+                ; unless this is a ":" word since ";" will do it later
                 ; We do this down here because this routine uses Y.
                 jsr dp_to_current
-
++
                 ; And we're done. Restore stack
                 inx
                 inx
@@ -1437,45 +1408,18 @@ z_decimal:      rts
 
 xt_defer:
 w_defer:
-                jsr w_create
-
-                ; CREATE by default installs a subroutine jump to DOVAR,
-                ; but we actually want DODEFER this time. Go back two
-                ; bytes and repace the subroutine jump target
-                lda cp          ; LSB
-                sec
-                sbc #2
-                sta tmp1
-
-                lda cp+1        ; MSB
-                sbc #0          ; we only care about the borrow
-                sta tmp1+1
-
-                ; Save the target address
-                ldy #0
+                ; we want CREATE but with DODEFER as the CFA
                 lda #<dodefer   ; LSB
-                sta (tmp1),y
-                iny
-                lda #>dodefer   ; MSB
-                sta (tmp1),y
-
+                ldy #>dodefer   ; MSB
+                jsr create_common
 
                 ; DODEFER executes the next address it finds after
                 ; its call. As default, we include the error
                 ; "Defer not defined"
                 lda #<defer_error
-                sta (cp)
-                inc cp
-                bne +
-                inc cp+1
-+
-                lda #>defer_error
-                sta (cp)
-                inc cp
-                bne +
-                inc cp+1
-+
-                jsr adjust_z    ; adjust header to correct length
+                ldy #>defer_error
+                jsr cmpl_word
+                jsr adjust_z    ; adjust header by two to correct length
 
 z_defer:        rts
 
@@ -3543,22 +3487,10 @@ w_marker:
                 lda cp+1
                 pha
 
-                jsr w_create
-
-                ; By default, CREATE installs a subroutine jump to DOVAR, which
-                ; we have to replace by a jump to marker_runtime. We back up
-                ; two bytes and then overwrite the address
-                lda cp          ; LSB
-                sec
-                sbc #2
-                sta cp
-                bcs +
-                dec cp+1        ; we only care about the borrow
-+
-                ; Add the address of the runtime component
-                ldy #>marker_runtime
+                ; we want CREATE but with marker_runtime as the CFA
                 lda #<marker_runtime
-                jsr cmpl_word
+                ldy #>marker_runtime
+                jsr create_common
 
                 ; Add original CP as payload
                 ply                     ; MSB
@@ -7043,21 +6975,12 @@ w_variable:
                 ; we let CREATE do the heavy lifting
                 jsr w_create
 
-                ; there is no "STZ (CP)" so we have to do this the hard
-                ; way
+                ; initialize the value to zero
                 lda #0
+                jsr cmpl_a
+                jsr cmpl_a
 
-                sta (cp)
-                inc cp
-                bne +
-                inc cp+1
-+
-                sta (cp)
-                inc cp
-                bne +
-                inc cp+1
-+
-                ; Now we need to adjust the length of the complete word by two
+                ; Now we need to adjust the length of the complete word by two bytes
                 jsr adjust_z
 
 z_variable:     rts
