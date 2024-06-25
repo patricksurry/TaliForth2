@@ -931,9 +931,10 @@ w_colon:
                 dec state
                 dec state+1
 
-                ; Set bit 6 in status to tell ";" and RECURSE this is a normal
+                ; Set bit 6 in status to tell ";" and RECURSE this is a normal word
                 ; and bit 7 to tell CREATE not to warn on duplicate name.
-                lda #%11000000
+                ; Also set bit 4 to initially flag as allow-native
+                lda #%11010000
                 tsb status
 
                 ; Save cp in WORKWORD so that ";" can add it to the dictionary later.
@@ -1259,14 +1260,14 @@ _process_name:
 
                 lda #HC                 ; otherwise set the HC bit
 +
-                ; most of the words CREATE'd with DOXXX CFA's must currently be
+                ; Most of the words CREATE'd with DOXXX CFA's must currently be
                 ; called via JSR (i.e. never native) since they are compiled like
                 ; `jsr doxxx + data` and expect to extract their data and then rts
                 ; to the parent caller.  They could probably support inlining (native)
                 ; if they were instead compiled like `<push address-of-data> + rts + data`
                 ; so there'd only be one instance of data and fewer jsr levels.
 
-                ; Many words CREATE'd without a CFA could already be compiled natively
+                ; Many words CREATE'd without a CFA can already be compiled natively
                 ; but not all (e.g. looping constructs with non-relocatable jmp).
                 ; For safety we flag everything as NN here, but ";" will revert if possible.
                 ora #NN
@@ -5338,7 +5339,7 @@ z_s_to_d:       rts
 xt_semicolon:
 w_semicolon:
                 ; Check if this is a : word or a :NONAME word.
-                bit status
+                bit status              ; check bit 6 (overflow flag)
                 bvs _colonword
 
                 ; This is a :NONAME word - just put an RTS on the end and
@@ -5355,6 +5356,17 @@ w_semicolon:
                 bra _semicolon_done
 
 _colonword:
+                ; if status bit 4 is still 1, we didn't compile any never-native
+                ; code so we can safely clear the NN flag
+                lda #%00010000
+                and status
+                beq +
+                ldy #1
+                lda (workword),y
+                and #255-NN
+                sta (workword),y
++
+
                 ; CP is the byte that will be the address we use in the
                 ; header as the end-of-compile address (z_word). This is
                 ; six bytes down from the header
