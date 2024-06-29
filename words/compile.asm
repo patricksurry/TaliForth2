@@ -93,8 +93,9 @@ w_compile_comma:
                 ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHING ---
 
                 lda tmp3
-                and #ST                 ; Check the Stack Thrash flag in status
-                beq _check_uf
+                and #ST                 ; Check the Stack Thrash flag (ST=NN+AN)
+                cmp #ST
+                bne _check_uf
 
 _strip_sz = 10  ; skip the standard 10 byte header which saves return address + 1 to tmp1
 
