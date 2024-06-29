@@ -636,15 +636,14 @@ _no_underflow:
 ; =====================================================================
 ; PRINTING ROUTINES
 
-; We distinguish two types of print calls, both of which take the string number
-; (see strings.asm) in A:
+; print_string_no_lf prints a string from string_table (see strings.asm)
+; indexed by the accumulator, with no trailing line ending.
 
-;       print_string       - with a line feed
-;       print_string_no_lf - without a line feed
+; print_error does likewise, with A indexing error_table
 
-; In addition, print_common provides a lower-level alternative for error
+; print_common provides a lower-level alternative for error
 ; handling and anything else that provides the address of the
-; zero-terminated string directly in tmp3. All of those routines assume that
+; zero-terminated string directly in tmp3. These routines assume that
 ; printing should be more concerned with size than speed, because anything to
 ; do with humans reading text is going to be slow.
 
@@ -671,12 +670,14 @@ print_common:
                 ldy #0
 _loop:
                 lda (tmp3),y
-                beq _done               ; strings are zero-terminated
-
+                bpl +               ; strings are high-bit terminated
+                and #$7f
+                ldy #$ff
++
                 jsr emit_a              ; allows vectoring via output
                 iny
-                bra _loop
-_done:
+                bne _loop
+
                 rts
 
 
@@ -691,16 +692,7 @@ print_error:
                 lda error_table,y
                 sta tmp3+1              ; MSB
 
-                jsr print_common
-                rts
-
-
-print_string:
-        ; """Print a zero-terminated string to the console/screen, adding a LF.
-        ; We do not check to see if the index is out of range. Uses tmp3.
-        ; """
-                jsr print_string_no_lf
-                jmp w_cr               ; JSR/RTS because never compiled
+                bra print_common
 
 
 print_u:

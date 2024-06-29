@@ -1185,21 +1185,25 @@ w_create:
                 ; get string
                 jsr w_parse_name       ; ( addr u )
 
-                ; if we were given an empty string, we complain and quit
+                ; We want a length between 1 and 31.  We could allow 1-32
+                ; and store length-1 but it doesn't seem worth the hassle.
+                ; Complain and quit if it's empty or too long.
+                lda 1,x
+                bne _too_long
+
                 lda 0,x
-                ora 1,x
-                bne _got_name
+                bne +
 
                 lda #err_noname
                 jmp error
++
+                cmp #32
+                bcc +
 
-_got_name:
-                ; Enforce maximal length of string by overwriting the MSB of
-                ; the length. There is a possible error here: If the string
-                ; is exactly 255 chars long, then a lot of the following
-                ; additions will fail because of wrapping
-                stz 1,x
-
+_too_long:
+                lda #err_toolong
+                jmp error
++
                 ; Check to see if this name already exists.
                 jsr w_two_dup          ; ( addr u addr u )
                 jsr w_find_name        ; ( addr u flag ) (non-zero nt as flag)
@@ -2084,7 +2088,7 @@ _table_loop:
                 sta 1,x                 ; ( addr u addr u addr-t )
                 iny
 
-                ; See if this is the last entry. The LSB is still in A
+                ; See if this is the last entry. The MSB is still in A
                 ora 0,x
                 beq _table_done
 
@@ -2092,8 +2096,8 @@ _table_loop:
                 ; old-style address format, that is, the first byte is the
                 ; length of the string
                 phy                     ; save Y, which is used by COUNT
-                jsr w_count            ; ( addr u addr u addr-s u-s )
-                jsr w_compare          ; ( addr u f )
+                jsr w_count             ; ( addr u addr u addr-s u-s )
+                jsr w_compare           ; ( addr u f )
                 ply
 
                 ; If we found a match (flag is zero -- COMPARE is weird
@@ -3938,7 +3942,7 @@ _skip:          jsr w_not_rot           ; ( qu v ru )
 
                 lda 0,x
                 tay
-                lda s_abc_upper,y       ; upper case 0-9A-Z
+                lda alpha36,y           ; upper case 0-9A-Z
                 sta 0,x
                 stz 1,x                 ; paranoid; now ( ud char )
 
