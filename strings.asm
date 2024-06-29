@@ -135,7 +135,7 @@ es_negallot:    .shift "Max memory freed with ALLOT"
 es_wordlist:    .shift "No wordlists available"
 es_blockwords:  .shift "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR"
 es_returnstack: .shift "Return stack:"
-es_toolong:     .shift "Names must be less than 32 characters"
+es_toolong:     .shift "Name too long (max 31)"
 .else
 es_allot:       .shift "EALLT"
 es_badsource:   .shift "EBSRC"
