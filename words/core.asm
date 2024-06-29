@@ -1194,20 +1194,11 @@ w_create:
                 jmp error
 
 _got_name:
-                ; Enforce max 31 character string length by overwriting
-                ; the length if needed
-                lda 1,x                 ; MSB should be zero
-                bne _clamp
-
-                lda 0,x
-                and #%11100000          ; LSB should be <= 31
-                beq +
-
-_clamp:         stz 1,x
-                lda #%00011111
-                sta 0,x
-+
-                ; TODO should we just lowercase the string here too?
+                ; Enforce maximal length of string by overwriting the MSB of
+                ; the length. There is a possible error here: If the string
+                ; is exactly 255 chars long, then a lot of the following
+                ; additions will fail because of wrapping
+                stz 1,x
 
                 ; Check to see if this name already exists.
                 jsr w_two_dup          ; ( addr u addr u )
