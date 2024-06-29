@@ -79,7 +79,7 @@ s_wid_forth:  .text "Forth ", 0      ; Wordlist ID 0, note space at end
 s_wid_root:   .text "Root ", 0       ; Wordlist ID 3, note space at end
 .endif
 
-s_see_flags:  .text "flags (CO AN IM NN UF HC): ", 0
+s_see_flags:  .text "flags (CO AN IM NN UF ST): ", 0
 s_see_nt:     .text "nt: ", 0
 s_see_xt:     .text "xt: ", 0
 s_see_size:   .text "size (decimal): ", 0

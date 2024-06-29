@@ -56,6 +56,37 @@ user_words_end:
 
 ; =====================================================================
 ; CODE FIELD ROUTINES
+;
+; We collect all the known static CFA entrypoints together so that
+; >BODY can detect words that have a CFA.  Note dodoes is special
+; because it appears as the target of a dynamic CFA.
+
+known_cfa_start:
+
+dovar:
+        ; """Execute a variable: Push the address of the first bytes of
+        ; the Data Field onto the stack. This is called with JSR so we
+        ; can pick up the address of the calling variable off the 65c02's
+        ; stack. The final RTS takes us to the original caller of the
+        ; routine that itself called DOVAR. This is the default
+        ; routine installed with CREATE.
+        ; """
+                ; Pull the return address off the machine's stack, adding
+                ; one because of the way the 65c02 handles subroutines
+                ply             ; LSB
+                pla             ; MSB
+                iny
+                bne +
+                ina
++
+                dex
+                dex
+
+                sta 1,x
+                tya
+                sta 0,x
+
+                rts
 
 doconst:
         ; """Execute a CONSTANT: Push the data in the first two bytes of
@@ -108,16 +139,61 @@ dodefer:
 
                 jmp (tmp2)      ; This is actually a jump to the new target
 
-defer_error:
-                ; """Error routine for undefined DEFER: Complain and abort"""
-                lda #err_defer
-                jmp error
+
+domarker:
+                ; keep actual code next to MARKER since save/restore mirror each other
+                jmp marker_runtime
+
+known_cfa_end:
+
+; dodoes is special because it appears as the target of dynamic CFA jsr
 
 dodoes:
         ; """Execute the runtime portion of DOES>. See DOES> and
         ; docs/create-does.txt for details and
         ; http://www.bradrodriguez.com/papers/moving3.htm
         ; """
+                ; typically called like
+                ;       : foo CREATE 0 , DOES> forth code ;
+                ;
+                ; which makes a defining word `foo` like
+                ;
+                ; xt_foo:
+                ;    jsr w_create
+                ;    jsr w_zero                 ; initialize PFA with 0
+                ;    jsr w_comma
+                ;    jsr does_runtime           ; point CFA to _doit and return
+                ; _doit:
+                ;    jsr dodoes
+                ; _action:
+                ;    <compiled forth code>
+                ;    rts
+                ;
+                ; so defining `foo someword` will first create something like:
+                ;
+                ; someword:
+                ;       jsr dovar       ; code field area (CFA)
+                ;       .word 0         ; parameter field area (PFA)
+                ;
+                ; and then does_runtime will convert it into:
+                ;
+                ; xt_someword:
+                ;       jsr _doit
+                ;       .word 0         ; PFA
+                ;
+                ; so finally invoking `someword` from some caller will
+                ; do `jsr xt_someword` followed by `jsr _doit` which in turn
+                ; triggers `jsr dodoes`, resulting in a return stack like:
+                ;
+                ;       (R: caller-1 PFA-1 _action-1 )
+                ;
+                ; our job here is to put the PFA address on the data stack
+                ; and jump to _action, eventually returning to caller, ie.
+                ;
+                ;       (R: caller-1 PFA-1 _action-1 -- caller-1 )
+                ;       ( -- PFA )
+                ;       jmp _action
+
                 ; Assumes the address of the CFA of the original defining word
                 ; (say, CONSTANT) is on the top of the Return Stack. Save it
                 ; for a later jump, adding one byte because of the way the
@@ -152,31 +228,6 @@ dodoes:
                 ; will take us back to the main routine
                 jmp (tmp2)
 
-
-dovar:
-        ; """Execute a variable: Push the address of the first bytes of
-        ; the Data Field onto the stack. This is called with JSR so we
-        ; can pick up the address of the calling variable off the 65c02's
-        ; stack. The final RTS takes us to the original caller of the
-        ; routine that itself called DOVAR. This is the default
-        ; routine installed with CREATE.
-        ; """
-                ; Pull the return address off the machine's stack, adding
-                ; one because of the way the 65c02 handles subroutines
-                ply             ; LSB
-                pla             ; MSB
-                iny
-                bne +
-                ina
-+
-                dex
-                dex
-
-                sta 1,x
-                tya
-                sta 0,x
-
-                rts
 
 ; =====================================================================
 ; LOW LEVEL HELPER FUNCTIONS

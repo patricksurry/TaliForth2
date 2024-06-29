@@ -40,7 +40,6 @@
 ;       NN - Never Native Compile (must always be called by JSR)
 ;       AN - Always Native Compile (may not be called by JSR)
 ;       UF - Contains underflow check
-;       HC - Has CFA (words created by CREATE and DOES> only)
 
 ; Note there are currently two bits unused.
 

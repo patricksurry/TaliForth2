@@ -259,11 +259,12 @@ xt_two_constant:
                 jsr underflow_2
 w_two_constant:
                 jsr w_create
-                jsr w_swap
+
+                jsr w_swap              ; swap double and store
                 jsr w_comma
                 jsr w_comma
 
-                jsr does_runtime    ; does> turns into these two routines.
+                jsr does_runtime        ; does> turns into these two routines.
                 jsr dodoes
 
                 jsr w_dup

@@ -1194,11 +1194,20 @@ w_create:
                 jmp error
 
 _got_name:
-                ; Enforce maximal length of string by overwriting the MSB of
-                ; the length. There is a possible error here: If the string
-                ; is exactly 255 chars long, then a lot of the following
-                ; additions will fail because of wrapping
-                stz 1,x
+                ; Enforce max 31 character string length by overwriting
+                ; the length if needed
+                lda 1,x                 ; MSB should be zero
+                bne _clamp
+
+                lda 0,x
+                and #%11100000          ; LSB should be <= 31
+                beq +
+
+_clamp:         stz 1,x
+                lda #%00011111
+                sta 0,x
++
+                ; TODO should we just lowercase the string here too?
 
                 ; Check to see if this name already exists.
                 jsr w_two_dup          ; ( addr u addr u )
@@ -1285,13 +1294,6 @@ _process_name:
                 ; to "never native", user will have to decide if they should
                 ; be inlined
                 lda #NN
-
-                ; Also, words defined by CREATE are marked in the header has
-                ; having a Code Field Area (CFA), which is a bit tricky for
-                ; Subroutine Threaded Code (STC). We do this so >BODY works
-                ; correctly with DOES> and CREATE. See the discussion at
-                ; http://forum.6502.org/viewtopic.php?f=9&t=5182 for details
-                ora #HC
                 iny
                 sta (tmp1),y
                 iny
@@ -1461,6 +1463,11 @@ w_defer:
 
 z_defer:        rts
 
+
+defer_error:
+                ; """Error routine for undefined DEFER: Complain and abort"""
+                lda #err_defer
+                jmp error
 
 
 ; ## DEFER_FETCH ( xt1 -- xt2 ) "Get the current XT for a deferred word"
@@ -1767,7 +1774,7 @@ does_runtime:
                 sta (tmp3),y    ; Y is still 1
 
                 ; Since we removed the return address that brought us here, we
-                ; go back to whatever the main routine was. Otherwise, we we
+                ; go back to whatever the main routine was. Otherwise we
                 ; smash into the subroutine jump to DODOES.
                 rts
 
@@ -3538,9 +3545,11 @@ w_marker:
                 dec cp+1        ; we only care about the borrow
 +
                 ; Add the address of the runtime component
-                ldy #>marker_runtime
-                lda #<marker_runtime
+                ldy #>domarker          ; redirect to marker_runtime from the CFA routines block
+                lda #<domarker
                 jsr cmpl_word
+
+                ; Save the payload
 
                 ; Add original CP as payload
                 ply                     ; MSB
@@ -3566,13 +3575,14 @@ z_marker:       rts
 
 
 marker_runtime:
-        ; """Restore Dictionary and memory (DP and CP) to where the were
-        ; when this marker was defined. We arrive here with the return
-        ; address on the Return Stack in the usual 65c02 format
+        ; """Restore Dictionary and memory (DP and CP) along with other
+        ; user state to where they were when marker was defined.
+        ; This is called as a CFA followed by the payload data in the PFA, so
+        ; the return address when we arrive here points to PFA-1
         ; """
 
-                ; Get the address of the string address off the stack and
-                ; increase by one because of the RTS mechanics
+                ; Get the address of the payload off the stack,
+                ; increasing by one because of the RTS mechanics
                 pla
                 sta tmp1        ; LSB of address
                 pla
@@ -5978,43 +5988,84 @@ z_to:           rts
         ; start of that word's parameter field (PFA). This is defined as the
         ; address that HERE would return right after CREATE.
         ;
-        ; This is a
-        ; difficult word for STC Forths, because most words don't actually
-        ; have a Code Field Area (CFA) to skip. We solve this by having CREATE
-        ; add a flag, "has CFA" (HC), in the header so >BODY know to skip
-        ; the subroutine jumps to DOVAR, DOCONST, or DODOES
+        ; This is a difficult word for STC Forths, because most words
+        ; don't actually have a Code Field Area (CFA) to skip.
+        ;
+        ; Rather than using a header flag (which requires us to search the
+        ; dictionary for the XT) we check the word's code directly to check
+        ; whether it either calls a known static CFA address or indirects to dodoes.
+        ; In those cases the body is xt+3, otherwise we just return xt.
         ; """
 
 xt_to_body:
                 jsr underflow_1
 w_to_body:
-                ; Ideally, xt already points to the CFA. We just need to check
-                ; the HC flag for special cases
-                jsr w_dup              ; ( xt xt )
-                jsr w_int_to_name      ; ( xt nt )
+                jsr w_dup               ; ( xt xt )
+                jsr has_cfa             ; ( xt ) with C=1 if CFA, 0 if not
+                bcc _done
 
-                ; The status byte is nt+1
-                inc 0,x
-                bne +
-                inc 1,x
-+
-                lda (0,x)               ; get status byte
-                and #HC
-                beq _no_cfa
-
-                ; We've got a DOVAR, DOCONST, DODEFER, DODOES or whatever,
-                ; so we add three to xt, which is NOS
+                ; We've got a DOVAR, DOCONST, DODEFER, (DODOES) etc so want xt+3
                 clc
-                lda 2,x         ; LSB
+                lda 0,x         ; LSB
                 adc #3
-                sta 2,x
-                bcc _no_cfa
-                inc 3,x         ; MSB
-_no_cfa:
-                inx             ; get rid of the nt
-                inx
+                sta 0,x
+                bcc _done
+                inc 1,x         ; MSB
+_done:
 z_to_body:      rts
 
+
+has_cfa:
+                ; Check if the addr TOS points a known CFA or indirects to dodoes
+                ; Consumes TOS and returns C=1 (true) or C=0 (false)
+                ; ( xt -- xt )
+
+                ; Does addr point at a JSR?
+                lda (0, x)              ; fetch byte @ addr
+                cmp #OpJSR
+                bne _unknown            ; not a JSR
+
+                ; Is address between known_cfa_start ... known_cfa_end ?
+                ; We can check 0 <= addr - start <= end - start
+
+                ; Currently consider only one-byte difference, could adapt if needed
+        .cerror known_cfa_end - known_cfa_start >= 256, "has_cfa currently assumes known CFA routines < 256 bytes"
+
+                jsr w_one_plus
+                jsr w_fetch             ; get JSR address to TOS
+                lda 0, x                ; LSB of jsr address
+                sec
+                sbc #<known_cfa_start
+                tay                     ; stash LSB of result and finish subtraction
+                lda 1, x                ; MSB of jsr address
+                sbc #>known_cfa_start
+                bne _unknown            ; MSB of result must be zero
+
+                cpy #(known_cfa_end - known_cfa_start + 1)
+                bcc _is_cfa             ; LSB looks good
+
+_unknown:
+                ; It's not a known static CFA.  Perhaps an indirect call to dodoes?
+                lda (0, x)              ; fetch byte @ addr
+                cmp #OpJSR
+                bne _not_cfa           ; not a JSR
+
+                jsr w_one_plus
+                jsr w_fetch
+                lda 0, x
+                cmp #<dodoes
+                bne _not_cfa
+                lda 1, x
+                cmp #>dodoes
+                bne _not_cfa
+
+_is_cfa:
+                sec                     ; C=1 means xt has CFA
+                .byte $24               ; bit zp opcode masks the clc, with no effect on carry
+_not_cfa:       clc                     ; C=0 means xt doesn't have CFA
+                inx                     ; clean up stack
+                inx
+                rts
 
 
 ; ## TO_IN ( -- addr ) "Return address of the input pointer"
