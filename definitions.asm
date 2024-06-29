@@ -258,13 +258,12 @@ OpBRA   = $80
 ; DICTIONARY FLAGS
 ; The first two bits are currently unused
 CO = 1  ; Compile Only
-AN = 2  ; Always Native Compile
-IM = 4  ; Immediate Word
+IM = 2  ; Immediate Word
+AN = 4  ; Always Native Compile
 NN = 8  ; Never Native Compile
+ST = AN+NN ; Stack juggling to be stripped for native compile
 UF = 16 ; Includes Underflow Check (RESERVED)
 HC = 32 ; Word has Code Field Area (CFA)
-ST = 64 ; Stack juggling to be stripped for native compile
-
 
 ; VARIOUS
 MAX_LINE_LENGTH  = 79      ; assumes 80 character lines
