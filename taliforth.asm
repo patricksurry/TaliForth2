@@ -636,14 +636,15 @@ _no_underflow:
 ; =====================================================================
 ; PRINTING ROUTINES
 
-; print_string_no_lf prints a string from string_table (see strings.asm)
-; indexed by the accumulator, with no trailing line ending.
+; print_string_no_lf prints a high-bit terminated string
+; from string_table (see strings.asm) indexed by the accumulator,
+; with no trailing line ending.
 
 ; print_error does likewise, with A indexing error_table
 
 ; print_common provides a lower-level alternative for error
-; handling and anything else that provides the address of the
-; zero-terminated string directly in tmp3. These routines assume that
+; handling and anything else that provides the address of a
+; high-bit terminated string directly in tmp3. These routines assume that
 ; printing should be more concerned with size than speed, because anything to
 ; do with humans reading text is going to be slow.
 
@@ -663,18 +664,19 @@ print_string_no_lf:
 
                 ; fall through to print_common
 print_common:
-        ; """Common print routine used by both the print functions and
-        ; the error printing routine. Assumes string address is in tmp3. Uses
-        ; Y.
+        ; """Common print routine used by both printing routines.
+        ; Assumes tmp3 points to a high-bit terminated string.
+        ; Uses Y.
         ; """
                 ldy #0
 _loop:
                 lda (tmp3),y
-                bpl +               ; strings are high-bit terminated
-                and #$7f
-                ldy #$ff
+                bpl +                           ; strings are high-bit terminated
+
+                and #$7f                        ; last character, clear high bit
+                ldy #$ff                        ; flag end of loop
 +
-                jsr emit_a              ; allows vectoring via output
+                jsr emit_a                      ; allows vectoring via output
                 iny
                 bne _loop
 
@@ -687,10 +689,10 @@ print_error:
                 asl
                 tay
                 lda error_table,y
-                sta tmp3                ; LSB
+                sta tmp3                        ; LSB
                 iny
                 lda error_table,y
-                sta tmp3+1              ; MSB
+                sta tmp3+1                      ; MSB
 
                 bra print_common
 
