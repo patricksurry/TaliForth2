@@ -120,14 +120,16 @@ NN::
 AN::
   *Always Native.* This word must always be inlined.
 UF::
-  *Undeflow Detection.* This word checks for Data Stack underflow before it is
+  *Underflow Detection.* This word checks for Data Stack underflow before it is
   executed.
-HC::
-  *Has CFA.* Consider first three bytes of the word's code the Code Field
-  Area (CFA) of the word. Used by words defined with `create` so `>body` returns
-  the correct value.
 
-Note there are currently two bits unused.
+There are currently two flag bits unused.
+
+NOTE: Previous versions of Tali included flags for UF
+(word includes an initial check for data stack underflow)
+and HC (words defined by `create,` which have a Code Field Area; CFA).
+Both conditions are now detected automatically through introspection
+by `compile,` and `>body` respectively.
 
 The status byte is followed by the **pointer to the next header** in the linked
 list, which makes it the name token of the next word. A 0000 in this position
@@ -657,7 +659,7 @@ when compiled with an `nc-limit` of 0 and check the actual code with `see`
 ----
 see aaa
 nt: 800  xt: 80B
-flags (CO AN IM NN UF HC): 0 0 0 1 0 1
+flags (CO AN IM NN UF): 0 0 0 1 0
 size (decimal): 6
 
 080B  20 A2 A7 20 2E 8D   .. ..
@@ -680,7 +682,7 @@ we get different code:
 ----
 see bbb
 nt: 812  xt: 81D
-flags (CO AN IM NN UF HC): 0 0 0 1 0 1
+flags (CO AN IM NN UF): 0 0 0 1 0
 size (decimal): 11
 
 081D  CA CA 74 00 74 01 20 29  D8 E8 E8  ..t.t. ) ...

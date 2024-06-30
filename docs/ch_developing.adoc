@@ -540,8 +540,6 @@ Note: If neither NN or AN is set, then the word might be native compiled based
 on its size and the value in the Forth variable `nc-limit`.
 UF:: Contains underflow check.  If you added a JSR to one of the underflow
 checking helper functions, you should set this bit.
-HC:: Has CFA (words created by CREATE and DOES> only).  You will probably never
-need this bit for words that you write in assembly.
 
 If you created a short word made out of just JSRs with underflow checking at the top, and
 you wanted it to be an immediate word, you might put `IM+UF` for this field.
