@@ -164,21 +164,22 @@ es_toolong:     .shift "E2LNG"
 ; "envs_".
 
 ; These return a single-cell number
-envs_cs:        .text 15, "/COUNTED-STRING"
-envs_hold:      .text 5, "/HOLD"
-envs_pad:       .text 4, "/PAD"
-envs_aub:       .text 17, "ADDRESS-UNIT-BITS"
-envs_floored:   .text 7, "FLOORED"
-envs_max_char:  .text 8, "MAX-CHAR"
-envs_max_n:     .text 5, "MAX-N"
-envs_max_u:     .text 5, "MAX-U"
-envs_rsc:       .text 18, "RETURN-STACK-CELLS"
-envs_sc:        .text 11, "STACK-CELLS"
-envs_wl:        .text 9, "WORDLISTS"
+envs_cs:        .text "/COUNTED-STRING"
+envs_hold:      .text "/HOLD"
+envs_pad:       .text "/PAD"
+envs_aub:       .text "ADDRESS-UNIT-BITS"
+envs_floored:   .text "FLOORED"
+envs_max_char:  .text "MAX-CHAR"
+envs_max_n:     .text "MAX-N"
+envs_max_u:     .text "MAX-U"
+envs_rsc:       .text "RETURN-STACK-CELLS"
+envs_sc:        .text "STACK-CELLS"
+envs_wl:        .text "WORDLISTS"
 
 ; These return a double-cell number
-envs_max_d:     .text 5, "MAX-D"
-envs_max_ud:    .text 6, "MAX-UD"
+envs_max_d:     .text "MAX-D"
+envs_max_ud:    .text "MAX-UD"
+envs_eot:
 .endif
 
 ; END
