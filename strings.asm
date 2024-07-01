@@ -79,10 +79,18 @@ s_wid_forth:  .shift "Forth "      ; Wordlist ID 0, note space at end
 s_wid_root:   .shift "Root "       ; Wordlist ID 3, note space at end
 .endif
 
-s_see_flags:  .shift "flags (CO AN IM NN UF HC): "
+s_see_flags:  .shift "flags (CO AN IM NN HC ST): "      ; must match definitions.asm DICTIONARY FLAGS
 s_see_nt:     .shift "nt: "
 s_see_xt:     .shift "xt: "
 s_see_size:   .shift "size (decimal): "
+
+CO = 1  ; Compile Only
+AN = 2  ; Always Native Compile
+IM = 4  ; Immediate Word
+NN = 8  ; Never Native Compile
+HC = 16 ; Word has Code Field Area (CFA)
+ST = 32 ; Stack juggling to be stripped for native compile
+
 
 .if "disassembler" in TALI_OPTIONAL_WORDS
 s_disasm_sdc: .shift " STACK DEPTH CHECK"

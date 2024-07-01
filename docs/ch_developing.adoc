@@ -459,8 +459,8 @@ w_two_constant:
 z_two_constant: rts
 ----
 
-This word takes an argument, so underflow checking is added right at the top
-(and the UF flag is added in headers.asm).  Underflow checking is optional, but
+This word takes an argument, so underflow checking is added right at the top.
+Underflow checking is optional, but
 recommended for words that take arguments on the stack.  To add underflow
 checking to your word, just call the appropriate underflow checking helper
 (underflow_1 to underflow_4) based on how many cells you are expecting (minimum)
@@ -500,12 +500,12 @@ The headers for these two words currently look like:
 
 ----
 nt_drop:
-        .byte 4, UF
+        .byte 4, 0
         .word nt_dup, xt_drop, z_drop
         .text "drop"
 
 nt_dup:
-        .byte 3, UF
+        .byte 3, 0
         .word nt_swap, xt_dup, z_dup
         .text "dup"
 ----
@@ -538,13 +538,14 @@ are just a sequence of JSRs, you can safely set this bit.  This bit should not
 be set if the assembly has a JMP instruction in it (see NN above).
 Note: If neither NN or AN is set, then the word might be native compiled based
 on its size and the value in the Forth variable `nc-limit`.
-UF:: Contains underflow check.  If you added a JSR to one of the underflow
-checking helper functions, you should set this bit.
 HC:: Has CFA (words created by CREATE and DOES> only).  You will probably never
 need this bit for words that you write in assembly.
+ST:: Manipulates the return stack differently for native vs non-native compilation.
+This is used for words like R>, R@ and >R but you're unlikely to need this for
+your own words in assembly.
 
-If you created a short word made out of just JSRs with underflow checking at the top, and
-you wanted it to be an immediate word, you might put `IM+UF` for this field.
+If you created a short word made out of just JSRs, and
+you wanted it to be an immediate, compile-only word, you might put `IM+CO` for this field.
 
 The next line contains three addresses, so the 64tass `.word` directive is used
 here.  The first address is the nt_xxxx of the next word in the word list (with 0
@@ -579,7 +580,7 @@ requires one of the status flags (`is`).
 
 ----
 nt_drop:
-        .byte 4, UF
+        .byte 4, 0
         .word nt_star_word, xt_drop, z_drop
         .text "drop"
 
@@ -593,7 +594,7 @@ nt_is:
         .word nt_dup, xt_is, z_is
         .text "is"
 nt_dup:
-        .byte 3, UF
+        .byte 3, 0
         .word nt_swap, xt_dup, z_dup
         .text "dup"
 ----
