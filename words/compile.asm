@@ -32,7 +32,7 @@
 ; Forth uses only two branching constructs, an unconditional jump
 ; and a conditional 0branch.  TaliForth doesn't expose 0BRANCH as
 ; a user word but see cmpl_jump, cmpl_jump_later, cmpl_jump_tos,
-; cmpl_0branch_tos and cmpl_0branch_tos.  The xxx_later variants
+; cmpl_0branch_tos and cmpl_0branch_later.  The xxx_later variants
 ; let us compile forward references where we need to come back
 ; and fill in the branch address after we've reached the target.
 ;
@@ -265,15 +265,40 @@ _not_uf:        clc                     ; C=0 means it isn't a UF check
 ; We have have various utility routines here for compiling a word in Y/A
 ; and a single byte in A.
 
-cmpl_subroutine:
-                ; This is the entry point to compile JSR <ADDR=Y/A>
-                pha             ; save LSB of address
-                lda #OpJSR      ; load opcode for JSR
-                bra +
+cmpl_jump_later:
+    ; compile a jump to be filled in later with dummy address <MSB=Y/LSB=??>
+    ; leaving address of the JMP target TOS
+                dex
+                dex
+                lda cp+1
+                sta 1,x
+                lda cp
+                inc a
+                sta 0,x
+                bne cmpl_jump
+                inc 1,x
+                bra cmpl_jump
+
+cmpl_jump_tos:
+                ; compile a jump to the address at TOS, consuming it
+                lda 0,x         ; set up for cmpl_jump Y/A
+                ldy 1,x
+                inx
+                inx
+
 cmpl_jump:
                 ; This is the entry point to compile JMP <ADDR=Y/A>
                 pha             ; save LSB of address
-                lda #OpJMP      ; load opcode for JMP, fall thru
+                lda #%00010000  ; unset bit 4 to flag as never-native
+                trb status
+                lda #OpJMP      ; load opcode for JMP
+                bra +
+
+cmpl_subroutine:
+                ; This is the entry point to compile JSR <ADDR=Y/A>
+                pha             ; save LSB of address
+                lda #OpJSR      ; load opcode for JSR and fall through
+
 +
                 ; At this point, A contains the opcode to be compiled,
                 ; the LSB of the address is on the 65c02 stack, and the MSB of
@@ -295,21 +320,6 @@ cmpl_a:
 _done:
                 rts
 
-
-cmpl_jump_tos:
-    ; compile a jump to the address at TOS, consuming it
-                lda #OpJMP
-                jsr cmpl_a
-                jmp w_comma
-
-
-cmpl_jump_later:
-    ; compile a jump to be filled in later. Populates the dummy address
-    ; MSB with Y, LSB indeterminate, leaving address of the JMP target TOS
-                lda #OpJMP
-                jsr cmpl_a
-                jsr w_here
-                bra cmpl_word
 
 
 check_nc_limit:

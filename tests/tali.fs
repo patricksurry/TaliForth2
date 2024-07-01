@@ -108,7 +108,7 @@ decimal
 ( TODO COMPILE-ONLY test missing)
 
 \ Test int>name, latestnt, latestxt, and wordsize
-: one 1 ;
+: one 1 ; never-native
 T{ ' one int>name wordsize    -> 8 }T
 T{ latestxt int>name wordsize -> 8 }T
 T{ latestnt wordsize          -> 8 }T

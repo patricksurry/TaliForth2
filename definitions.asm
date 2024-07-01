@@ -100,7 +100,7 @@ havekey:    .word kernel_kbhit      ; vector for KEY?
 base:       .word 10                ; number radix, default decimal
 state:      .word 0                 ; STATE: -1 compile, 0 interpret
 
-status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
+status:     .word 0                 ; internal status used by CREATE : :NONAME ; ACCEPT NUMBER
         ; Bit 7 = Redefined word message postpone
         ;         When set before calling CREATE, it will
         ;         not print the "redefined xxxx" message if
@@ -114,6 +114,8 @@ status:     .word 0                 ; internal status used by : :NONAME ; ACCEPT
         ;         WORKWORD contains xt of word being compiled
         ; Bit 5 = 1 for NUMBER returning a double word
         ;       = 0 for NUMBER returning a single word
+        ; Bit 4 = 1 for allow native during COLON compile
+        ;       = 0 if word contains never-native code like JMP
         ; Bit 3 = 1 makes CTRL-n recall current history
         ;       = 0 CTRL-n recalls previous history
         ; Bit 2 = Current history buffer msb
