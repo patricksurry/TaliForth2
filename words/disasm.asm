@@ -416,25 +416,17 @@ disasm_jsr:
                 sbc #0         ; Subtract the carry if needed.
                 sta 1,x
                 ; ( xt )
-                jsr w_int_to_name    ; Try looking again
+                ; double-check that xt points to JSR underflow_N
+                ; see discussion at https://github.com/SamCoVT/TaliForth2/pull/99#discussion_r1636394433
+                jsr w_dup
+                jsr has_uf_check
+                bcc _no_nt
+
+                jsr w_int_to_name     ; Try looking again
                 ; int>name returns zero if we just don't know.
                 lda 0,x
                 ora 1,x
                 beq _no_nt
-
-                ; We got an nt this time.  Double check that it has underflow
-                ; checking (that could be skipped).
-                ; Put the address of the status byte on the stack.
-                jsr w_dup
-                jsr w_one_plus
-                ; Grab the status into A
-                lda (0,x)
-                ; Get rid of the extra stack usage before doing the check
-                inx
-                inx
-                ;Check the UF flag
-                and #UF
-                beq _no_nt      ; The word doesn't have underflow checking
 
 _found_nt:
                 ; We now have a name token ( nt ) on the stack.
