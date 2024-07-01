@@ -68,6 +68,9 @@ string_table:
         .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do
 .endif
 
+; note .shift is like .text but terminates the string by setting bit 7 of the last character
+; print_common in taliforth.asm shows how we use these
+
 s_ok:         .shift " ok"              ; note space at beginning
 s_compiled:   .shift " compiled"        ; note space at beginning
 s_redefined:  .shift "redefined "       ; note space at end
