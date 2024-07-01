@@ -3,7 +3,7 @@
 xt_allow_native:
 w_allow_native:
                 jsr current_to_dp
-                ldy #1          ; offset for status byte
+                ldy #1          ; offset for header flag byte
                 lda (dp),y
                 and #$FF-NN-AN  ; AN and NN flag is clear.
                 sta (dp),y
@@ -17,7 +17,7 @@ z_allow_native:
 xt_always_native:
 w_always_native:
                 jsr current_to_dp
-                ldy #1          ; offset for status byte
+                ldy #1          ; offset for header flag byte
                 lda (dp),y
                 ora #AN         ; Make sure AN flag is set
                 and #$FF-NN     ; and NN flag is clear.
@@ -726,7 +726,7 @@ z_nc_limit:
 xt_never_native:
 w_never_native:
                 jsr current_to_dp
-                ldy #1          ; offset for status byte
+                ldy #1          ; offset for header flag byte
                 lda (dp),y
                 ora #NN         ; Make sure NN flag is set
                 and #$FF-AN     ; and AN flag is clear.
@@ -1092,7 +1092,7 @@ z_r_to_input: 	rts
 
 
 
-; ## STRIP_UNDERFLOW ( -- addr ) "Return address where underflow status is kept"
+; ## STRIP_UNDERFLOW ( -- addr ) "Return address where underflow flag is kept"
 ; ## "strip-underflow"  tested  Tali Forth
         ; """`STRIP-UNDERFLOW` is a flag variable that determines if underflow
         ; checking should be removed during the compilation of new words.

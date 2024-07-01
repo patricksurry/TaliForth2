@@ -309,10 +309,9 @@ z_two_literal:  rts
         ; CREATE 2 CELLS ALLOT  or just  CREATE 0 , 0 ,
         ; """
 xt_two_variable:
-w_two_variable:
-                ; We just let CRATE and ALLOT do the heavy lifting
+                ; We just let CREATE and ALLOT do the heavy lifting
                 jsr w_create
-
+w_two_variable:
                 dex
                 dex
                 lda #4

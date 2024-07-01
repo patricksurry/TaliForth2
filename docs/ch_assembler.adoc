@@ -123,7 +123,7 @@ Looking at our new word with `see` gives us (addresses may vary):
 
 ----
         nt: A2A  xt: A3C
-        flags (CO AN IM NN UF): 0 0 0 1 0
+        flags (CO AN IM NN): 0 0 0 1
         size (decimal): 19
 
         0A3C  A9 01 CA CA 95 00 74 01  20 3D D6 20 89 D6 A9 20  ......t.  =. ...
