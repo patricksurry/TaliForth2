@@ -1032,7 +1032,7 @@ we do not return the state itself, but only the address where
 it lives. The state should not be changed directly by the user; see
 http://forth.sourceforge.net/standard/dpans/dpans6.htm#6.1.2250
 
-`strip-underflow`:: _Tali Forth_ ( -- addr ) "Return address where underflow status is kept"
+`strip-underflow`:: _Tali Forth_ ( -- addr ) "Return address where underflow flag is kept"
 `STRIP-UNDERFLOW` is a flag variable that determines if underflow
 checking should be removed during the compilation of new words.
 Default is false.

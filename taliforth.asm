@@ -658,8 +658,7 @@ print_string_no_lf:
                 tay
                 lda string_table,y
                 sta tmp3                ; LSB
-                iny
-                lda string_table,y
+                lda string_table+1,y
                 sta tmp3+1              ; MSB
 
                 ; fall through to print_common
