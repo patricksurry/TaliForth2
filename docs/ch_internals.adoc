@@ -119,9 +119,6 @@ NN::
   should have this flag set and it is set by default for new words.
 AN::
   *Always Native.* This word must always be inlined.
-UF::
-  *Undeflow Detection.* This word checks for Data Stack underflow before it is
-  executed.
 HC::
   *Has CFA.* Consider first three bytes of the word's code the Code Field
   Area (CFA) of the word. Used by words defined with `create` so `>body` returns
@@ -156,7 +153,7 @@ to find that word.
 ==== Structure of the Header List
 
 Tali Forth distinguishes between three different word sources: The **native
-words** that are hard-coded in the file `native_words.asm`, the **Forth words**
+words** that are hard-coded in the `words/*.asm` files, the **Forth words**
 from `forth_words.asm` which are defined as high-level words and then generated
 at run-time when Tali Forth starts up, and **user words** in the file
 `user_words.asm`.
@@ -657,7 +654,7 @@ when compiled with an `nc-limit` of 0 and check the actual code with `see`
 ----
 see aaa
 nt: 800  xt: 80B
-flags (CO AN IM NN UF HC): 0 0 0 1 0 1
+flags (CO AN IM NN HC ST): 0 0 0 1 1 0
 size (decimal): 6
 
 080B  20 A2 A7 20 2E 8D   .. ..
@@ -680,7 +677,7 @@ we get different code:
 ----
 see bbb
 nt: 812  xt: 81D
-flags (CO AN IM NN UF HC): 0 0 0 1 0 1
+flags (CO AN IM NN HC ST): 0 0 0 1 1 0
 size (decimal): 11
 
 081D  CA CA 74 00 74 01 20 29  D8 E8 E8  ..t.t. ) ...

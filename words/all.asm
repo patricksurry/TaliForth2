@@ -27,6 +27,7 @@
 ;       use the 65c02 reset for that. Flows into ABORT.
 ;       """
 xt_cold:
+w_cold:
                 clc
                 ; to warm start into a preloaded RAM image the platform init routine
                 ; should sec and jump to forth_warm
@@ -78,7 +79,7 @@ _load_user_vars_loop:
                 ; Copy the 0th element.
                 lda cold_user_table
                 sta (up)
-                jsr xt_cr
+                jsr w_cr
 
                 ; Define high-level words in forth_words.asc via EVALUATE,
                 ; followed by any user-defined words from user_words.asc.
@@ -101,7 +102,7 @@ _load_user_vars_loop:
                 lda #>(user_words_end-forth_words_start)
                 sta 1,x
 
-                jsr xt_evaluate
+                jsr w_evaluate
 _turnkey:
                 lda turnkey+1
                 beq _no_turnkey
@@ -110,7 +111,7 @@ _turnkey:
                 sta 1,x
                 lda turnkey
                 sta 0,x
-                jsr xt_execute
+                jsr w_execute
 _no_turnkey:
 
 .if TALI_OPTION_HISTORY
@@ -137,6 +138,7 @@ _no_turnkey:
         ; actually delete the stuff on the Data Stack.
         ; """
 xt_abort:
+w_abort:
                 ldx #dsp0
 
                 ; fall through to QUIT
@@ -148,6 +150,7 @@ xt_abort:
         ; Rest the input and start command loop
         ; """
 xt_quit:
+w_quit:
                 ; Clear the Return Stack. This is a little screwed up
                 ; because the 65c02 can only set the Return Stack via X,
                 ; which is our Data Stack pointer. The ANS specification
@@ -192,7 +195,7 @@ _get_line:
 
                 ; Accept a line from the current import source. This is how
                 ; modern Forths do it.
-                jsr xt_refill           ; ( -- f )
+                jsr w_refill           ; ( -- f )
 
                 ; Test flag: LSB of TOS
                 lda 0,x

@@ -16,8 +16,8 @@
 ; cmpl_inline and cmpl_as_call.  Inline compilation copies the
 ; source code for a word between xt_<word> and <z_word>,
 ; optionally removing the initial stack depth check.
-; For some words we can also discard leading and trailing stack
-; manipulation: see check_strip_table.
+; For some words we also discard leading and trailing stack
+; juggling based on the ST flag.
 ;
 ; A great way to understand what's going on is to write simple
 ; Forth words and use SEE to disassemble them.  Try different
@@ -32,7 +32,7 @@
 ; Forth uses only two branching constructs, an unconditional jump
 ; and a conditional 0branch.  TaliForth doesn't expose 0BRANCH as
 ; a user word but see cmpl_jump, cmpl_jump_later, cmpl_jump_tos,
-; cmpl_0branch_tos and cmpl_0branch_tos.  The xxx_later variants
+; cmpl_0branch_tos and cmpl_0branch_later.  The xxx_later variants
 ; let us compile forward references where we need to come back
 ; and fill in the branch address after we've reached the target.
 ;
@@ -60,12 +60,12 @@
         ; """
 xt_compile_comma:
                 jsr underflow_1
-
+w_compile_comma:
                 ; See if this is an Always Native (AN) word by checking the
                 ; AN flag. We need nt for this.
-                jsr xt_dup              ; keep an unadjusted copy of xt
-                jsr xt_dup              ; plus one to convert to nt
-                jsr xt_int_to_name
+                jsr w_dup              ; keep an unadjusted copy of xt
+                jsr w_dup              ; plus one to convert to nt
+                jsr w_int_to_name
                 ; ( xt xt nt )
 
                 ; Does this xt even have a valid (non-zero) nt?
@@ -74,8 +74,8 @@ xt_compile_comma:
                 beq cmpl_as_call        ; No nt so unknown size; must compile as a JSR
 
                 ; Otherwise investigate the nt
-                jsr xt_dup
-                jsr xt_one_plus         ; status is at nt+1
+                jsr w_dup
+                jsr w_one_plus         ; status is at nt+1
                 ; ( xt xt nt nt+1 )
                 lda (0,x)               ; get status byte
                 inx                     ; drop pointer
@@ -85,33 +85,54 @@ xt_compile_comma:
                 and #NN
                 bne cmpl_as_call        ; never native
 
-                ; ( xt xt nt )             ; maybe native, let's check
-                jsr xt_wordsize
+                ; ( xt xt nt )          ; maybe native, let's check
+                jsr w_wordsize
                 ; ( xt xt u )
 
                 ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHING ---
 
-                jsr check_strip_table
+                lda tmp3
+                and #ST                 ; Check the Stack Thrash flag in status
+                beq _check_uf
+
+_strip_sz = 10  ; skip the standard 10 byte header which saves return address + 1 to tmp1
+
+                ; Start later: xt += sz
+                clc
+                lda 2,x
+                adc #_strip_sz
+                sta 2,x
+                bcc +
+                inc 3,x                 ; we just care about the carry
++
+                ; Quit earlier: u -= sz
+                sec
+                lda 0,x
+                sbc #_strip_sz
+                sta 0,x
+                bcs +
+                dec 1,x                 ; we just care about the borrow
++
+                ; ( xt xt+sz u-sz )
 
                 ; --- SPECIAL CASE 2: REMOVE UNDERFLOW CHECKING ---
-
+_check_uf:
                 ; The user can choose to remove the unterflow testing in those
                 ; words that have the UF flag. This shortens the word by
                 ; 3 bytes if there is no underflow.
 
-                ; See if this word even contains underflow checking
-                lda tmp3
-                and #UF
-                beq _check_limit
-
-                ; See if the user wants underflow stripping turned on
+                ; Does the user want to strip underflow checks?
                 ldy #uf_strip_offset
                 lda (up),y
                 iny
                 ora (up),y
                 beq _check_limit
 
-                ; Remove the 3 byte underflow check.
+                jsr w_over
+                jsr has_uf_check
+                bcc _check_limit        ; not an underflow check
+
+                ; Ready to remove the 3 byte underflow check.
 
                 ; Start later: xt += 3
                 clc
@@ -157,120 +178,78 @@ cmpl_by_limit:
 cmpl_as_call:
         ; Compile xt as a subroutine call, return with C=0
         ; Stack is either ( xt xt nt ) or ( xt xt' u )
-                jsr xt_two_drop         ; either way 2drop leaves original xt
-                ; ( xt -- )
+        ; If the word has stack juggling, we need to use original xt
+        ; otherwise use the middle value to respect strip-underflow.
+                lda tmp3
+                and #ST
+                bne +
+                jsr w_drop     ; no stack juggling, use middle (xt or xt')
+                jsr w_nip
+                bra _cmpl
++
+                jsr w_two_drop ; stack juggling, must use first (xt)
+_cmpl:
+                ; ( jsr_address -- )
                 lda #OpJSR
                 jsr cmpl_a
-                jsr xt_comma
+                jsr w_comma
                 sec
                 rts
 
 cmpl_inline:
         ; compile inline, returning C=1
                 ; ( xt xt' u -- )
-                jsr xt_here
-                jsr xt_swap
+                jsr w_here
+                jsr w_swap
                 ; ( xt xt' cp u -- )
-                jsr xt_dup
-                jsr xt_allot            ; allocate space for the word
+                jsr w_dup
+                jsr w_allot            ; allocate space for the word
                 ; Enough of this, let's move those bytes already!
                 ; ( xt xt' cp u ) on the stack at this point
-                jsr xt_move
-                jsr xt_drop             ; drop original xt
+                jsr w_move
+                jsr w_drop             ; drop original xt
                 clc
-                rts
-
-check_strip_table:
-                ; Native compiling allows us to strip the stack antics off
-                ; a number of words that use the Return Stack such as >R, R>,
-                ; 2>R and 2R> (but not 2R@ in this version). We compare the
-                ; xt with the contents of the table
-                ldy #0
-
-_strip_loop:
-                lda _strip_table,y       ; LSB of first word
-                cmp 2,x                 ; LSB of xt
-                bne _next_entry
-
-                ; LSB is the same, test MSB
-                lda _strip_table+1,y
-                cmp 3,x
-                beq _found_entry
-
-                ; MSB is not equal. Pretend though that we've come from LSB
-                ; so we can use the next step for both cases
-_next_entry:
-                ; Not a word that needs stripping, so check next entry in table
-
-                iny
-                iny
-                cpy #_strip_table_size
-                bne _strip_loop
-
-                rts
-
-
-_found_entry:
-                ; This word is one of the ones that needs to have its size
-                ; adjusted during native compile. We find the values in the
-                ; next table with the same index, which is Y. However, Y is
-                ; pointing to the MSB, so we need to go back to the LSB and
-                ; halve the index before we can use it.
-                tya
-                lsr
-                tay
-
-                ; Get the adjustment out of the size table. We were clever
-                ; enough to make sure the cut on both ends of the code is
-                ; is the same size.
-                lda _strip_size,y
-                pha                     ; save a copy
-
-                ; Start later: xt += sz
-                clc
-                adc 2,x
-                sta 2,x
-                bcc +
-                inc 3,x                 ; we just care about the carry
-+
-                ; Quit earlier: u -= 2 * sz
-                pla
-                asl a                   ; Double to cut off both top and bottom.
-                ; use negated subtraction trick:
-                ; LSB - A == - ( A - LSB ) == 255 - ( A - LSB - 1 )
-                ; carry is clear because 2*sz is less than 256
-                sbc 0,x
-                eor #$ff
-                sta 0,x
-                bcc +                   ; note inverted carry check
-                dec 1,x                 ; we just care about the borrow
-+
-                rts
-
-_strip_table:
-               ; List of words we strip the Return Stack antics from
-               ; during native compile. The index here
-               ; must be the same as for the sizes
-                .word xt_r_from, xt_r_fetch, xt_to_r    ; R>, R@, >R
-                .word xt_two_to_r, xt_two_r_from        ; 2>R, 2R>
-_strip_table_size = * - _strip_table
-
-_strip_size:
-                ; List of bytes to be stripped from both the start and end
-                ; of words that get their Return Stack antics removed.
-                ; Index must be the same as for the xts.
-                .byte 4, 4, 4                           ; R>, R@, >R
-                .byte 6, 6                              ; 2>R, 2R>
-
 z_compile_comma:
-                ; never native so no RTS
+                rts
 
+
+has_uf_check:
+                ; Check if the addr TOS points an underflow check,
+                ; consuming TOS and returning C=1 (true) or C=0 (false)
+                ; ( addr -- )
+
+                ; Does addr point at a JSR?
+                lda (0, x)              ; fetch byte @ addr
+                cmp #OpJSR
+                bne _not_uf             ; not a JSR
+
+                ; Is address between underflow_1 ... underflow_4 ?
+                ; We can check 0 <= addr - underflow_1 <= underflow_4 - underflow_1 < 256
+                jsr w_one_plus
+                jsr w_fetch             ; get JSR address to TOS
+                lda 0, x                ; LSB of jsr address
+                sec
+                sbc #<underflow_1
+                tay                     ; stash LSB of result and finish subtraction
+                lda 1, x                ; MSB of jsr address
+                sbc #>underflow_1
+                bne _not_uf             ; MSB of result must be zero
+
+                cpy #(underflow_4-underflow_1+1)
+                bcs _not_uf             ; LSB is too big
+
+                sec                     ; C=1 means it is an UF check
+                .byte $24               ; bit zp opcode masks the clc, with no effect on carry
+_not_uf:        clc                     ; C=0 means it isn't a UF check
+                inx                     ; clean up stack
+                inx
+                rts
 
 
 ; =====================================================================
 ; COMPILE WORDS, JUMPS and SUBROUTINE JUMPS INTO CODE
 
-; These routines compile instructions such as "jsr xt_words" into a word
+; These routines compile instructions such as "jsr w_words" into a word
 ; at compile time so they are available at run time. Words that use this
 ; routine may not be natively compiled. We use "cmpl" as not to confuse these
 ; routines with the COMPILE, word.  Always call this with a subroutine jump.
@@ -286,15 +265,40 @@ z_compile_comma:
 ; We have have various utility routines here for compiling a word in Y/A
 ; and a single byte in A.
 
-cmpl_subroutine:
-                ; This is the entry point to compile JSR <ADDR=Y/A>
-                pha             ; save LSB of address
-                lda #OpJSR      ; load opcode for JSR
-                bra +
+cmpl_jump_later:
+    ; compile a jump to be filled in later with dummy address <MSB=Y/LSB=??>
+    ; leaving address of the JMP target TOS
+                dex
+                dex
+                lda cp+1
+                sta 1,x
+                lda cp
+                inc a
+                sta 0,x
+                bne cmpl_jump
+                inc 1,x
+                bra cmpl_jump
+
+cmpl_jump_tos:
+                ; compile a jump to the address at TOS, consuming it
+                lda 0,x         ; set up for cmpl_jump Y/A
+                ldy 1,x
+                inx
+                inx
+
 cmpl_jump:
                 ; This is the entry point to compile JMP <ADDR=Y/A>
                 pha             ; save LSB of address
-                lda #OpJMP      ; load opcode for JMP, fall thru
+                lda #%00010000  ; unset bit 4 to flag as never-native
+                trb status
+                lda #OpJMP      ; load opcode for JMP
+                bra +
+
+cmpl_subroutine:
+                ; This is the entry point to compile JSR <ADDR=Y/A>
+                pha             ; save LSB of address
+                lda #OpJSR      ; load opcode for JSR and fall through
+
 +
                 ; At this point, A contains the opcode to be compiled,
                 ; the LSB of the address is on the 65c02 stack, and the MSB of
@@ -316,21 +320,6 @@ cmpl_a:
 _done:
                 rts
 
-
-cmpl_jump_tos:
-    ; compile a jump to the address at TOS, consuming it
-                lda #OpJMP
-                jsr cmpl_a
-                jmp xt_comma
-
-
-cmpl_jump_later:
-    ; compile a jump to be filled in later. Populates the dummy address
-    ; MSB with Y, LSB indeterminate, leaving address of the JMP target TOS
-                lda #OpJMP
-                jsr cmpl_a
-                jsr xt_here
-                bra cmpl_word
 
 
 check_nc_limit:
@@ -355,9 +344,9 @@ _done:
 cmpl_0branch_later:
         ; compile a 0BRANCH where we don't know the target yet
         ; leaves pointer to the target on TOS
-                jsr xt_zero             ; dummy placeholder, which forces long jmp in native version
+                jsr w_zero             ; dummy placeholder, which forces long jmp in native version
                 jsr cmpl_0branch_tos    ; generate native or subroutine branch code
-                jsr xt_here             ; either way the target address is two bytes before here
+                jsr w_here             ; either way the target address is two bytes before here
                 sec
                 lda 0,x
                 sbc #2
@@ -381,7 +370,7 @@ cmpl_0branch_tos:
                 lda #<zero_branch_runtime
                 jsr cmpl_subroutine             ; call the 0branch runtime
 
-                jmp xt_comma                    ; add the payload and return
+                jmp w_comma                    ; add the payload and return
 
 _inline:
                 ; inline the test code
@@ -402,8 +391,8 @@ _inline:
                 beq _long               ; always use the long form if target is 0
 
                 ; ( addr )
-                jsr xt_dup
-                jsr xt_here
+                jsr w_dup
+                jsr w_here
                 clc
                 lda #2
                 adc 0,x
@@ -411,7 +400,7 @@ _inline:
                 bcc +
                 inc 1,x
 +
-                jsr xt_minus
+                jsr w_minus
                 ; ( addr offset )
                 ; offset is a signed byte if LSB bit 7 is 0 and MSB is 0 or bit 7 is 1 and MSB is #ff
                 inx             ; pre-drop offset and use wraparound indexing to preserve flags

@@ -25,7 +25,7 @@ then, is one way to add assembler code:
 
 The first line is required to give the user access to the list of assembler
 mnemonics. They are not in the default wordlist path because of their sheer
-number: 
+number:
 
 ----
         adc.# adc.x adc.y adc.z adc.zi adc.ziy adc.zx adc.zxi and. and.# and.x
@@ -109,7 +109,7 @@ Running `print-a-one` prints the number `1`. We can use a slightly simpler varia
 
 ----
         : print-a-one  compiled
-        [ 1 lda.#  ok   
+        [ 1 lda.#  ok
         push-a ]  compiled
         u. ;  ok
 ----
@@ -122,11 +122,11 @@ write the machine code right away.
 Looking at our new word with `see` gives us (addresses may vary):
 
 ----
-        nt: A2A  xt: A3C 
-        flags (CO AN IM NN UF HC): 0 0 0 1 0 1 
-        size (decimal): 19 
+        nt: A2A  xt: A3C
+        flags (CO AN IM NN HC ST): 0 0 0 1 1 0
+        size (decimal): 19
 
-        0A3C  A9 01 CA CA 95 00 74 01  20 3D D6 20 89 D6 A9 20  ......t.  =. ... 
+        0A3C  A9 01 CA CA 95 00 74 01  20 3D D6 20 89 D6 A9 20  ......t.  =. ...
         0A4C  20 30 8E   0.
 
         A3C      1 lda.#   <1>
@@ -139,8 +139,8 @@ Looking at our new word with `see` gives us (addresses may vary):
         A4A     20 lda.#
         A4C   8E30 jsr
 ----
-<1> The `1 lda.#` as a single line; 
-<2> Four lines of code for `push-a`; 
+<1> The `1 lda.#` as a single line;
+<2> Four lines of code for `push-a`;
 <3> Four lines from `u.`
 
 Some Forths add the words `code` and `end-code` to mark the beginning and end of
@@ -180,7 +180,7 @@ marked with `+-->+` (the "arrow") as a target for a backwards jump with `<j`
         inc.a push-a pha ]      ; PHA required because u. will overwrite A
         u.
         [ pla <j jmp ]          ; endless loop
-        ; 
+        ;
 ----
 
 Executing the word `.nums` will print numbers starting with 1 till 255 and then
@@ -217,29 +217,29 @@ different notation):
 
 ----
         : .na ( n -- )
-        [ 
+        [
               0 lda.zx  <1>
-                tay 
-        --> 
-             97 lda.#  
-                push-a 
-                phy 
+                tay
+        -->
+             97 lda.#
+                push-a
+                phy
         ]
         emit
-        [ 
-                ply 
-                dey  
+        [
+                ply
+                dey
              <b bne
                 inx  <2>
-                inx 
+                inx
         ]
-        ; 
+        ;
 ----
 <1> `LDA 0,X` in traditional notation
 <2> Assembler version of `drop`
 
 Looking at the assembler code with `see`, we can see that the branch instruction
-takes $F2 as an operand. 
+takes $F2 as an operand.
 
 Currently, there is no mechanism that checks to see if the operand is in the
 correct range for a branch. It is assumed that the assembler will be used only
@@ -260,7 +260,7 @@ Forth Data Stack. This is a convenience macro for
 
 ==== Under the hood
 
-The assembler instructions are in fact just normal, very simple Forth words that 
+The assembler instructions are in fact just normal, very simple Forth words that
 send the opcode and the length of the instruction in bytes to common routines
 for processing.
 
@@ -321,7 +321,7 @@ string provided by `( addr u )` at the location `addr1` and returns the number o
 bytes stored.
 
 ----
-       hex  
+       hex
        s" a9 01 ca ca 95 00 74 01 60" 6000 hexstore
        drop     <1>
        6000 execute
@@ -334,8 +334,8 @@ stored:
 
 ----
         hex
-        here dup  s" a9 01 ca ca 95 00 74 01 60" rot hexstore 
-        drop execute 
+        here dup  s" a9 01 ca ca 95 00 74 01 60" rot hexstore
+        drop execute
 ----
 
 Instead of `drop execute` in the last line, a `dump` will show that the correct
@@ -379,9 +379,9 @@ call `hexstore`, we must switch at the right time:
 
 ----
         5000 27 6000 hex hexstore  ok
-        drop 
-        decimal 
-        6000 execute 
+        drop
+        decimal
+        6000 execute
 ----
 
 You can get around this by either using all-hex numbers or enter the number

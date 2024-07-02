@@ -1,5 +1,5 @@
 Tali Forth is currently shipped with a very primitive disassembler, which is
-started with `disasm ( addr u -- )`. 
+started with `disasm ( addr u -- )`.
 
 ==== Format
 
@@ -28,13 +28,13 @@ becomes (assuming `hex` for hexadecimal numbers):
        80 lda.zi
 ----
 
-See the Appendix for a more detailed discussion of the format. 
+See the Appendix for a more detailed discussion of the format.
 
 
 ==== Output
 
 The disassembler prints the address of the instruction, followed by any operand
-and the mnemonic. To get the code of `drop`, for instance, we can use 
+and the mnemonic. To get the code of `drop`, for instance, we can use
 `' drop 6 disasm`:
 
 ----
@@ -45,12 +45,12 @@ and the mnemonic. To get the code of `drop`, for instance, we can use
 ----
 
 The Forth word `see` calls the disassembler while using a hexadecimal number
-base. So `see drop` produces: 
+base. So `see drop` produces:
 
 ----
-nt: BC3E  xt: 8D2E 
-flags (CO AN IM NN UF HC): 0 0 0 0 1 0 
-size (decimal): 5 
+nt: BC3E  xt: 8D2E
+flags (CO AN IM NN HC ST): 0 0 0 0 0 0
+size (decimal): 5
 
 8D2E  20 29 D8 E8 E8   )...
 
@@ -70,9 +70,9 @@ Forth dictionary and so no name will be printed.  Here is an example when runnin
 `see order`
 
 ----
-nt: C9FF  xt: 9845 
-flags (CO AN IM NN UF HC): 0 0 0 0 0 0 
-size (decimal): 42 
+nt: C9FF  xt: 9845
+flags (CO AN IM NN HC ST): 0 0 0 0 0 0
+size (decimal): 42
 
 9845  20 63 89 20 34 91 B5 00  F0 1E A8 E8 E8 B5 00 5A   c. 4... .......Z
 9855  20 70 98 7A 88 D0 F4 20  1E A1 20 1E A1 20 29 91   p.z...  .. .. ).
@@ -87,7 +87,7 @@ size (decimal): 42
 9851        inx
 9852      0 lda.zx
 9854        phy
-9855   9870 jsr     
+9855   9870 jsr
 9858        ply
 9859        dey
 985A     F4 bne
@@ -95,7 +95,7 @@ size (decimal): 42
 985F   A11E jsr     space
 9862   9129 jsr     get-current
 9865      0 lda.zx
-9867   9870 jsr     
+9867   9870 jsr
 986A   8963 jsr     cr
 986D        inx
 986E        inx
@@ -127,16 +127,16 @@ handled).  When the disassembler encounters a string, it will print SLITERAL
 followed by the address and length of the string.
 ----
 : example s" This is a string" ;  ok
-see example 
-nt: 800  xt: 80F 
-flags (CO AN IM NN UF HC): 0 0 0 1 0 1 
-size (decimal): 26 
+see example
+nt: 800  xt: 80F
+flags (CO AN IM NN HC ST): 0 0 0 1 1 0
+size (decimal): 26
 
 080F  4C 22 08 54 68 69 73 20  69 73 20 61 20 73 74 72  L".This  is a str
 081F  69 6E 67 20 A9 A0 12 08  10 00  ing .... ..
 
 80F    822 jmp
-822   A0A9 jsr     SLITERAL 812 10 
+822   A0A9 jsr     SLITERAL 812 10
  ok
 ----
 To see the value of the string, you can either look at the memory dump above the
@@ -149,7 +149,7 @@ hex 812 10 type
 ==== Gotchas and known issues
 
 Tali Forth enforces the *signature byte* of the `brk` assembler instruction.
-That is, it is treated like a two-byte instruction. Since you probably shouldn't be 
+That is, it is treated like a two-byte instruction. Since you probably shouldn't be
 using `brk` anyway, this behavior is usually only interesting when examing the
 code, where a block of zeros will produce something like the following with the
 disassembler:
