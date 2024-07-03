@@ -37,9 +37,19 @@
 
 ;       CO - Compile Only
 ;       IM - Immediate Word
-;       NN - Never Native Compile (must always be called by JSR)
 ;       AN - Always Native Compile (may not be called by JSR)
-
+;       NN - Never Native Compile (must always be called by JSR)
+;
+;       The NN and AN flags are intrepreted together like this:
+;
+;            NN  AN
+;           +---+---+
+;           | 0 | 0 |  -- : Normal word called by JSR (non-native) or inlined (native)
+;           | 1 | 0 |  NN : Word can only be called by JSR (never native)
+;           | 0 | 1 |  AN : Word can only be inlined (always native)
+;           | 1 | 1 |  ST : Normal word with return stack juggling that
+;           +---+---+       must be removed when inlining (R>, R@, >R etc)
+;
 ; Note there are currently four bits unused.
 
 ; By default, all existing words can be natively compiled (compiled inline) or

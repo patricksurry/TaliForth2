@@ -281,30 +281,69 @@ w_see:
                 jsr w_u_dot
                 jsr w_cr               ; ( nt xt )
 
-                ; We print letters for flags and then later follow it with 1 or
-                ; 0 to mark if which flag is set
-                lda #str_see_flags
-                jsr print_string_no_lf
+                ; Show flag values from the status byte along with
+                ; several calculated (synthetic) flag values
+                jsr w_over              ; ( nt xt nt )
+                jsr w_one_plus          ; ( nt xt nt+1 )
+                lda (0, x)
+                sta 0,x                 ; stash status flag byte
+                stz 1,x                 ; placeholder for synthetic flags
 
-                jsr w_over             ; ( nt xt nt )
-                jsr w_one_plus         ; ( nt xt nt+1 )
-                jsr w_fetch            ; ( nt xt flags )
+                ; collect synthetic flags in reverse order for template
+                and #ST                 ; calculate ST flag
+                cmp #ST
+                beq +                   ; C=1 when ST set
+                clc
++
+                rol 1,x                 ; add to flag byte
 
-                lda 0,x
+                jsr w_over              ; grab a copy of XT for HC check
+                jsr has_cfa             ; C=1 when has CFA
+                rol 1,x                 ; add to flag byte
 
-                ; This is crude, but for the moment it is good enough
-                ldy #N_FLAGS            ; Not all bits are used
-_flag_loop:
-                lsr                     ; shift bit 0 into carry flag
-                pha                     ; save shifted flags
+                jsr w_over              ; grab a copy of XT for UF check
+                jsr has_uf_check        ; C=1 when UF set
+                rol 1,x                 ; add to flag byte
+
+                lda #N_FLAGS            ; count off status byte flags
+                sta tmptos
+
+                ; use a high-bit terminated template string to show flag names
+                ; and insert flag values at placeholders marked by ascii zeros
+                lda #<see_flags_template
+                sta tmp3                ; LSB
+                lda #>see_flags_template
+                sta tmp3+1              ; MSB
+
+                ldy #0                  ; index the string
+_loop:
+                lda (tmp3),y            ; next char in template
+                bpl +                   ; end of string?
+
+                ldy #$ff                ; flag end of loop
+                and #$7f                ; clear high bit of A to get last character
++
+                bne _emit               ; flag placeholder?
+
+                jsr w_space             ; print <space>, <flag>, <space>
+
+                dec tmptos
+                bmi _synthetic          ; more core status flags?
+                lsr 0,x                 ; shift next flag bit into carry
+                bra +
+_synthetic:
+                lsr 1,x                 ; show synthetic flags after core ones
++
                 lda #'0'                ; convert C=0/1 into '0' or '1'
                 adc #0
-                jsr emit_a
-                jsr w_space
+                jsr emit_a              ; write the flag digit
 
-                pla
-                dey
-                bne _flag_loop
+                lda #' '                ; fall through and add trailing space
+_emit:
+                jsr emit_a
+
+                iny
+                bne _loop
 
                 jsr w_cr
 

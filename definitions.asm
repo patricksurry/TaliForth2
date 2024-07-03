@@ -258,15 +258,15 @@ OpRTS   = $60
 OpBRA   = $80
 
 ; DICTIONARY FLAGS
-; The first two bits (7, 6) are currently unused.  COMPILE, assumes bit7 is usually 0.
-N_FLAGS = 5
-; This list should match strings.asm::s_see_flags
+; Bits 5-7 are currently unused.
+;TODO COMPILE, assumes bit7 is usually 0.
+N_FLAGS = 4
+; This list should match s_see_flags in strings.asm
 CO = 1  ; Compile Only
-AN = 2  ; Always Native Compile
-IM = 4  ; Immediate Word
+IM = 2  ; Immediate Word
+AN = 4  ; Always Native Compile
 NN = 8  ; Never Native Compile
-ST = 16 ; Stack juggling to be stripped for native compile
-
+ST = AN+NN ; Stack juggling to be stripped for native compile
 
 ; VARIOUS
 MAX_LINE_LENGTH  = 79      ; assumes 80 character lines
