@@ -295,18 +295,18 @@ w_see:
                 beq +                   ; C=1 when ST set
                 clc
 +
-                rol 1,x                 ; add to flag byte
+                rol 1,x                 ; add to synthetic flags
 
                 jsr w_over              ; grab a copy of XT for HC check
                 jsr has_cfa             ; C=1 when has CFA
-                rol 1,x                 ; add to flag byte
+                rol 1,x                 ; add to synthetic flags
 
                 jsr w_over              ; grab a copy of XT for UF check
                 jsr has_uf_check        ; C=1 when UF set
-                rol 1,x                 ; add to flag byte
+                rol 1,x                 ; add to synthetic flags
 
-                lda #N_FLAGS            ; count off status byte flags
-                sta tmptos
+                lda #N_FLAGS            ; count down status flags
+                sta $ff, x              ; use byte past TOS since loop has no stack effect
 
                 ; use a high-bit terminated template string to show flag names
                 ; and insert flag values at placeholders marked by ascii zeros
@@ -325,14 +325,15 @@ _loop:
 +
                 bne _emit               ; flag placeholder?
 
-                jsr w_space             ; print <space>, <flag>, <space>
+                ; for each flag, print <space>, <flag>, <space>
+                jsr w_space             ; no stack effect
 
-                dec tmptos
-                bmi _synthetic          ; more core status flags?
-                lsr 0,x                 ; shift next flag bit into carry
+                dec $ff,x               ; count off flag
+                bmi _synthetic          ; after all core flags show synthetic ones
+                lsr 0,x                 ; shift core flag bit into carry
                 bra +
 _synthetic:
-                lsr 1,x                 ; show synthetic flags after core ones
+                lsr 1,x                 ; else shift synthetcic flag bit
 +
                 lda #'0'                ; convert C=0/1 into '0' or '1'
                 adc #0
