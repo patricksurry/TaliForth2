@@ -82,8 +82,9 @@ w_compile_comma:
                 inx
                 ; ( xt xt nt )
                 sta tmp3                ; keep copy of status byte
-                and #NN
-                bne cmpl_as_call        ; never native
+                and #AN+NN              ; check if never native (NN)
+                cmp #NN                 ; NN=1, AN=0?  i.e. not ST=AN+AN
+                beq cmpl_as_call
 
                 ; ( xt xt nt )          ; maybe native, let's check
                 jsr w_wordsize
@@ -92,8 +93,9 @@ w_compile_comma:
                 ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHING ---
 
                 lda tmp3
-                and #ST                 ; Check the Stack Thrash flag in status
-                beq _check_uf
+                and #ST                 ; Check the Stack Thrash flag (ST=NN+AN)
+                cmp #ST
+                bne _check_uf
 
 _strip_sz = 10  ; skip the standard 10 byte header which saves return address + 1 to tmp1
 
@@ -155,8 +157,9 @@ _check_limit:
                 ; ( xt xt' u )
 
                 lda tmp3
-                and #AN                 ; check Always Native (AN) bit
-                bne cmpl_inline         ; always natively compile
+                and #AN+NN              ; check Always Native (AN) bit
+                cmp #AN                 ; AN=1, NN=0?  (i.e. not ST=AN+NN)
+                beq cmpl_inline         ; always natively compile
 
 cmpl_by_limit:
                 ; Compile either inline or as subroutine depending on
@@ -183,11 +186,11 @@ cmpl_as_call:
                 lda tmp3
                 and #ST
                 bne +
-                jsr w_drop     ; no stack juggling, use middle (xt or xt')
+                jsr w_drop              ; no stack juggling, use middle (xt or xt')
                 jsr w_nip
                 bra _cmpl
 +
-                jsr w_two_drop ; stack juggling, must use first (xt)
+                jsr w_two_drop          ; stack juggling, must use first (xt)
 _cmpl:
                 ; ( jsr_address -- )
                 lda #OpJSR

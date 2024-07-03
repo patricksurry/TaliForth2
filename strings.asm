@@ -35,8 +35,6 @@ ix += 1
 str_wid_root       = ix
 ix += 1
 .endif
-str_see_flags      = ix
-ix += 1
 str_see_nt         = ix
 ix += 1
 str_see_xt         = ix
@@ -63,9 +61,10 @@ string_table:
 .if "wordlist" in TALI_OPTIONAL_WORDS
         .word s_wid_forth, s_wid_editor, s_wid_asm, s_wid_root  ; 3-6
 .endif
-        .word s_see_flags, s_see_nt, s_see_xt, s_see_size       ; 7-10
-.if "disassembler" in TALI_OPTIONAL_WORDS                       ; 11-15
-        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do
+        .word s_see_nt, s_see_xt, s_see_size                    ; 7-9
+.if "disassembler" in TALI_OPTIONAL_WORDS
+        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra         ; 10-12
+        .word s_disasm_loop, s_disasm_do                        ; 13-14
 .endif
 
 ; note .shift is like .text but terminates the string by setting bit 7 of the last character
@@ -82,11 +81,14 @@ s_wid_forth:  .shift "Forth "      ; Wordlist ID 0, note space at end
 s_wid_root:   .shift "Root "       ; Wordlist ID 3, note space at end
 .endif
 
-s_see_flags:  .shift "flags (CO AN IM NN HC ST): "      ; must match definitions.asm DICTIONARY FLAGS
 s_see_nt:     .shift "nt: "
 s_see_xt:     .shift "xt: "
 s_see_size:   .shift "size (decimal): "
 
+
+; this string is referenced directly, not via string table
+; must match DICTIONARY FLAGS in definitions.asm and calculated flag order in xt_see
+see_flags_template:     .shift "flags: CO",0,"IM",0,"AN",0,"NN",0,"HC",0,"| UF",0,"ST",0
 
 .if "disassembler" in TALI_OPTIONAL_WORDS
 s_disasm_sdc: .shift " STACK DEPTH CHECK"
