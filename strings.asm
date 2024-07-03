@@ -83,7 +83,7 @@ s_see_size:   .text "size (decimal): ", 0
 
 ; this string is referenced directly, not via string table
 ; must match DICTIONARY FLAGS in definitions.asm and calculated flag order in xt_see
-see_flags_template:     .shift "flags: CO",0,"IM",0,"AN",0,"NN",0,"HC",0,"| UF",0,"ST",0
+see_flags_template:     .shift "flags: FP",0,"LB",0,"DB",0,"CO",0,"IM",0,"AN",0,"NN",0,"HC",0,"| UF",0,"ST",0
 
 .if "disassembler" in TALI_OPTIONAL_WORDS
 s_disasm_sdc: .text " STACK DEPTH CHECK", 0

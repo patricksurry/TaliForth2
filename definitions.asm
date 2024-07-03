@@ -259,14 +259,20 @@ OpBRA   = $80
 
 ; DICTIONARY FLAGS
 ; The first two bits (7, 6) are currently unused.  COMPILE, assumes bit7 is usually 0.
-N_FLAGS = 5
-; This list should match strings.asm::s_see_flags
-CO = 1  ; Compile Only
-IM = 2  ; Immediate Word
-AN = 4  ; Always Native Compile
-NN = 8  ; Never Native Compile
-ST = AN+NN ; Stack juggling to be stripped for native compile
-HC = 16 ; Word has Code Field Area (CFA)
+N_FLAGS = 8
+
+; This list should match s_see_flags in strings.asm
+
+FP = 1      ; Far previous NT (two byte pointer rather than one byte offset)
+LB = 2      ; Large body (two byte vs one byte length)
+DB = 4      ; Disjoint body (two byte pointer rather than adjoining body code)
+
+CO = 8      ; Compile Only
+IM = 16     ; Immediate Word
+AN = 32     ; Always Native Compile
+NN = 64     ; Never Native Compile
+ST = AN+NN  ; Stack juggling to be stripped for native compile
+HC = 128    ; Word has Code Field Area (CFA)
 
 ; VARIOUS
 MAX_LINE_LENGTH  = 79      ; assumes 80 character lines

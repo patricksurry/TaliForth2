@@ -75,7 +75,7 @@ w_compile_comma:
 
                 ; Otherwise investigate the nt
                 jsr w_dup
-                jsr w_one_plus         ; status is at nt+1
+                jsr w_one_plus          ; status is at nt+1
                 ; ( xt xt nt nt+1 )
                 lda (0,x)               ; get status byte
                 inx                     ; drop pointer

@@ -8,38 +8,44 @@
 ; tricks in the code. We roughly follow the Gforth terminology: The Execution
 ; Token (xt) is the address of the first byte of a word's code that can be, uh,
 ; executed; the Name Token (nt) is a pointer to the beginning of the word's
-; header in the Dictionary. There the link to the next word in the Dictionary
-; is always one cell down from the current word's own nt. In the code itself,
-; we use "nt_<WORD>" for the nt and "xt_<WORD>" for the xt.
+; header in the Dictionary.   Conceptually the header looks like this:
 
-; This gives us the following header structure:
-
-;              8 bit     8 bit
-;               LSB       MSB
-; nt_word ->  +--------+--------+
-;          +0 | Length | Status |
-;             +--------+--------+
-;          +2 | Next Header     | -> nt_next_word
-;             +-----------------+
-;          +4 | Start of Code   | -> xt_word
-;             +-----------------+
-;          +6 | End of Code     | -> z_word
-;             +--------+--------+
-;          +8 | Name   |        |
-;             +--------+--------+
-;             |        |        |
-;             +--------+--------+
-;             |        |  ...   | (name string does not end with a zero)
-;          +n +--------+--------+
-
-; The Status Byte is created by adding the flags defined in definitions.asm,
-; which are:
-
+;   nt_word --> +----------------+
+;               | Status flags   |
+;               +----------------+
+;               | Name length    |
+;               +----------------+
+;               | Last header    | -> nt_last_word
+;               +----------------+
+;               | Start of code  | -> xt_word
+;               +----------------+
+;               | Length of code | -> z_word - xt_word
+;               +----------------+
+;               | Name string    | (name length bytes, not zero terminated)
+;               +----------------+
+;
+; In practice we use variable sizes for several of the fields so that
+; each header is between 4-8 bytes plus the word's name, with most headers
+; taking only four bytes.  The variable size fields are indicated in the status byte
+; along with other flags defined in definitions.asm:
+;
+; Status flags byte
+;
+;  (msb)  7    6    5    4    3    2    1    0  (lsb)
+;       +----+----+----+----+----+----+----+----+
+;       | 0  | NN | AN | IM | CO | DB | LB | FP |
+;       +----+----+----+----+----+----+----+----+
+;
+; Flag bits:
+;
+;       FP - Far previous NT (two byte pointer rather than one byte offset)
+;       LB - Large body (two byte vs one byte length)
+;       DB - Disjoint body (two byte pointer rather than adjoining body code)
+;
 ;       CO - Compile Only
 ;       IM - Immediate Word
 ;       NN - Never Native Compile (must always be called by JSR)
 ;       AN - Always Native Compile (may not be called by JSR)
-;       HC - Has CFA (words created by CREATE and DOES> only)
 ;
 ;       The NN and AN flags are intrepreted together like this:
 ;
@@ -51,44 +57,113 @@
 ;           | 1 | 1 |  ST : Normal word with return stack juggling that
 ;           +---+---+       must be removed when inlining (R>, R@, >R etc)
 ;
-; Note there are currently two bits unused.
-
+; Note there is currently one bit unused.
+;
 ; By default, all words can be natively compiled (compiled inline) or
 ; as a subroutine jump target; the system decides which variant to use based on
 ; a threshold the user can set. Tali detects users words that can't be inlined,
 ; typically because they contain non-relocatable `jmp` instructions, and flags
 ; them as NN.  The user can override the default flags using the `always-native`
 ; or `never-native` words, for example when using raw assembly.
+;
+;
+; The actual header implementation looks like this:
+;
+;   nt_last --> +----------------+
+;               :                :
+;               :                :
+;                     ...
+;
+;   nt_word --> +----------------+
+;               |  Status flags  |   See description below
+;               |    (1 byte)    |
+;               +----------------+
+;               |  Name length   |   Max name length 31 (5 bits)
+;               |   (1 byte)     |   Top three bits are currently reserved
+;               +----------------+
+;               |    Last NT     |   FP=0: nt_last = nt_word - offset
+;               |  (1|2 bytes)   |   FP=1: nt_last = 2 byte pointer
+;               +----------------+
+;               | Start of code  |   DB=0: xt_word = nt_end
+;               |  (0|2 bytes)   |   DB=1: xt_word = 2 byte pointer
+;               +----------------+
+;               |   Code size    |   LB=0: One byte code length
+;               |  (1|2 bytes)   |   LB=1: Two byte code length
+;               +----------------+
+;               |  Name string   |   Name is 7-bit lower case ascii
+;               :                :
+;               :                :   Note string is not zero-terminated
+;    nt_end --> +----------------+
+;                       ...
+;   xt_word --> +----------------+
+;               |   Word body    |   When DB=0 the code body adjoins the header
+;               :  (65c02 code)  :
+;               :                :
+;    z_word --> +----------------+
+;
+;
+; We can calculate the actual header length from the flag bits FP, LB and DB
+; using simple assembly:
+;
+;       lda flags       ; start with status flags in the accumulator
+;       lsr             ; shift FP to carry flag
+;       and #%00000011  ; A is left with 2*DB + LB
+;       adc #4          ; header length is 4 bytes + 2*DB+LB+FP
+;
+; To simplify header creation, reduce errors and allow for future changes
+; we use the #nt_header macro to generate the actual header bytes for each word.
+; Usually word NAME is implemented by code between `xt_name` and `z_name`.
+; These headers are generated with just `#nt_header name`.  When a word's name
+; doesn't match its start and end labels simply pass the name string
+; as the optional second argument, like `#nt_header m_star_slash, "m*/"`.
+; If the word needs any of the CO, IM, AN, NN flags, pass both the name
+; and flags like `#nt_header myword, "myword", IM+CO`.
+; The macro automatically chains words together in the dictionary using
+; the `last_nt` compiler variable.  When your word list is complete
+; you can capture the head of the dictionary (the latest NT header)
+; by assigning from it, like `dictionary_start = last_nt`.
+; Then start a new wordlist by resetting `last_nt := 0`.
 
-; The nt_header macro here is used to generate a header for each word in
-; the chain of dictionary entries.  Most words use the convention that
-; word NAME is implemented by code between `xt_name` and `z_name`.
-; These can be created using `#nt_header name`.  If the word's name doesn't
-; match their start and end labels, pass their name as the secon argument
-; like `#nt_header m_star_slash, "m*/"`.  If the word has special flags
-; pass both the name and flags like `#def_nt myword, "myword", IM+CO`.
-; Start a new wordlist by setting `last_nt := 0`.
 
-; It would be nicer to pass the name string instead of the bare label
-; but it's hard to generate a symbol from a string in 64tass
-; see https://sourceforge.net/p/tass64/feature-requests/23/
-
+; The #nt_header macro is used to generate the physical header representation
 nt_header .macro label, name="", flags=0
+        ; It might be nicer to pass the name string instead of the bare label
+        ; but it seems hard to generate a symbol from a string in 64tass
+        ; see https://sourceforge.net/p/tass64/feature-requests/23/
+
     ; temp string with explicit name or stringified label
     _s := \name ? \name : str(.\label)
 
 _nt:                    ; remember start of header to update last_nt pointer
+    _fp := _nt < last_nt || _nt - last_nt > 255 ? FP : 0
+    _sz := z_\label - xt_\label
+    _lb := _sz > 255 ? LB : 0
+    _db := _nt_end != xt_\label ? DB : 0
+
     .byte len(_s)       ; length of word string, max 31
-    .byte \flags        ; status flags byte
+    .byte \flags | _fp | _lb | _db       ; status flags byte
+; .if _fp
     .word last_nt       ; previous Dictionary header, 0000 signals start
+; .else
+;     .byte _nt - last_nt
+; .endif
+; .if _db
     .word xt_\label     ; start of code block (xt of this word)
-    .word z_\label      ; end of code (RTS)
+; .endif
+; .if _lb
+;     .word _sz           ; end of code (RTS)
+    .word z_\label
+; .else
+;     .byte _sz
+; .endif
     .text _s            ; word name, always lower case, not zero-terminated
+_nt_end = *
 
 last_nt ::= _nt         ; update to this header
 .endmacro
 
-last_nt := 0            ; tracks the previous header, reset after each wordlist
+; last_nt tracks the previous header, and is reset after each wordlist
+last_nt := 0
 
 
 ; FORTH-WORDLIST
@@ -98,12 +173,12 @@ last_nt := 0            ; tracks the previous header, reset after each wordlist
 ; dictionary is linked at `dictionary_start`.  Whenever we search for a word,
 ; for example via `find-name`, we begin at the head and walk through the linked
 ; list until we find the word or find a header whose previous NT pointer is 0.
-; This makes it more efficient to have frequently used words towards the head
-; of the list (later in memory).  In the main dictionary the last word we search
-; (earliest in memory) is always BYE.  Other words are sorted with the
-; more common ones first (later in memory) so they are found earlier.
-; Anything to do with output comes later (further up) because things will
-; always be slow when a human is involved.
+; This means it's more efficient to have frequently used words towards the head
+; of the list (later in memory).  In the main dictionary the first word we search
+; (last in memory) is DROP and the last word we search (earliest in memory) is BYE.
+; Other words are sorted with the more common ones later in memory so they are
+; found earlier. Anything to do with output comes later (further up) because
+; speed is less important when a human is involved.
 
 ; The initial skeleton of this list was automatically generated by a script
 ; in the tools folder and then sorted by hand.
