@@ -223,7 +223,7 @@ T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T
 
 : digit_oneoff ( -- f )
    true
-   7 0 ?do
+   6 0 ?do
       digit_bad i + c@
       dup emit
       digit?  ( char 0 )
