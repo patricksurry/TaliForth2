@@ -1056,7 +1056,7 @@ adjust_z:
                 ; Now the length of the complete word (z_word) has increased by
                 ; two. We need to update that number or else words such as SEE
                 ; will ignore the PFA. We use this same routine for VARIABLE,
-                ; VALUE and DEFER
+                ; VALUE (aka CONSTANT) and DEFER
                 jsr w_latestnt         ; gives us ( -- nt )
 
                 ; z_word is six bytes further down
