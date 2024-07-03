@@ -74,14 +74,10 @@ w_compile_comma:
                 beq cmpl_as_call        ; No nt so unknown size; must compile as a JSR
 
                 ; Otherwise investigate the nt
-                jsr w_dup
-                jsr w_one_plus          ; status is at nt+1
-                ; ( xt xt nt nt+1 )
-                lda (0,x)               ; get status byte
-                inx                     ; drop pointer
-                inx
+                lda (0,x)               ; get status flags byte @ NT
+
                 ; ( xt xt nt )
-                sta tmp3                ; keep copy of status byte
+                sta tmp3                ; and keep a copy
                 and #AN+NN              ; check if never native (NN)
                 cmp #NN                 ; NN=1, AN=0?  i.e. not ST=AN+AN
                 beq cmpl_as_call

@@ -1020,10 +1020,9 @@ z_comma:        rts
 xt_compile_only:
 w_compile_only:
                 jsr current_to_dp
-                ldy #1          ; offset for status byte
-                lda (dp),y
+                lda (dp)        ; status flags are @ NT
                 ora #CO        ; make sure bit 7 is set
-                sta (dp),y
+                sta (dp)
 
 z_compile_only: rts
 
@@ -1241,12 +1240,7 @@ _process_name:
                 ; information byte-by-byte
                 ldy #0
 
-                ; HEADER BYTE 0: Length of string
-                lda tmp2
-                sta (tmp1),y
-                iny
-
-                ; HEADER BYTE 1: Flag bits (not to be confused with the status variable above)
+                ; HEADER BYTE 0: Flag bits (not to be confused with the status variable above)
 
                 ; Words defined by CREATE are marked in the header as
                 ; having a Code Field Area (CFA), which is a bit tricky for
@@ -1271,6 +1265,11 @@ _process_name:
                 ; but not all (e.g. looping constructs with non-relocatable jmp).
                 ; For safety we flag everything as NN here, but ";" will revert if possible.
                 ora #NN
+                sta (tmp1),y
+                iny
+
+                ; HEADER BYTE 1: Length of string
+                lda tmp2
                 sta (tmp1),y
                 iny
 
@@ -2426,67 +2425,43 @@ z_fetch:        rts
 xt_find:
                 jsr underflow_1
 w_find:
-                ; Save address in case conversion fails. We use the
-                ; Return Stack instead of temporary variables like TMP1
-                ; because this is shorter and anybody still using FIND
-                ; can't be worried about speed anyway
-                lda 1,x                 ; MSB
-                pha
-                lda 0,x                 ; LSB
-                pha
+                ; Duplicate caddr in case conversion fails. We use the
+                jsr w_dup
 
                 ; Convert ancient-type counted string address to
                 ; modern format
                 jsr w_count            ; ( caddr -- addr u )
                 jsr w_find_name        ; ( addr u -- nt | 0 )
 
+                ; ( caddr nt | 0 )
+
                 lda 0,x
                 ora 1,x
-                bne _found_word
+                beq _done               ; Not found, just return ( caddr 0 )
 
-                ; No word found. Return address of the string and a false
-                ; flag
-                jsr w_false            ; ( 0 0 )
-
-                ; The address needs to be restored.
-                pla                     ; LSB of address
-                sta 2,x
-                pla
-                sta 3,x                 ; MSB of address
-
-                bra _done               ; ( addr 0 )
-
-_found_word:
-                ; We don't need the address after all, dump it
-                pla
-                pla
-
-                ; We arrive here with ( nt ) on the TOS. Now we have to
+                ; We arrive here with ( caddr nt ). Now we have to
                 ; convert the return values to FIND's format
-                jsr w_dup              ; ( nt nt )
-                jsr w_name_to_int      ; ( nt xt )
-                jsr w_swap             ; ( xt nt )
 
-                ldy #0                  ; Prepare flag
-
-                ; The flags are in the second byte of the header
-                inc 0,x
+                ; First check the status flag @ nt
+                ldy #1                  ; assume immediate, returning 1
+                lda (0,x)              ; check status flag byte
+                and #IM                 ; is IM set?
                 bne +
-                inc 1,x                 ; ( xt nt+1 )
+                ldy #$ff                ; not immediate, return -1
 +
-                lda (0,x)               ; ( xt char )
-                and #IM
-                bne _immediate          ; bit set, we're immediate
+                phy                     ; stash the 1 or -1
 
-                lda #$FF                ; We're not immediate, return -1
+                jsr w_name_to_int       ; ( nt -- xt )
+                jsr w_swap
+
+                ; ( xt caddr )
+                pla                     ; result 1 or -1
+
                 sta 0,x
+                bmi +                   ; for -1 we store $ff twice
+                dec a                   ; for 1 we store 1 and then 0
++
                 sta 1,x
-                bra _done
-
-_immediate:
-                lda #1                  ; We're immediate, return 1
-                sta 0,x
-                stz 1,x
 _done:
 z_find:         rts
 
@@ -2805,10 +2780,9 @@ z_if:           rts
 xt_immediate:
 w_immediate:
                 jsr current_to_dp
-                ldy #1          ; offset for status byte
-                lda (dp),y
-                ora #IM        ; make sure bit 7 is set
-                sta (dp),y
+                lda (dp)        ; status flags are first header byte
+                ora #IM         ; ensure IM bit is set
+                sta (dp)
 
 z_immediate:    rts
 
@@ -4569,12 +4543,7 @@ w_postpone:
                 jsr w_name_to_int              ; ( nt -- xt )
 
                 ; See if this is an immediate word. This is easier
-                ; with nt than with xt. The status byte of the word
-                ; is nt+1
-                inc tmp1
-                bne +
-                inc tmp1+1
-+
+                ; with nt than with xt. The status byte is @NT
                 lda (tmp1)
                 and #IM         ; mask all but Intermediate flag
                 beq _not_immediate
@@ -4759,8 +4728,8 @@ _nt_in_workword:
                 lda workword+1          ; MSB
                 adc #0
                 sta tmp1+1
-
-                lda (tmp1)
+        ;TODO seems like this could be simpler?
+                lda (tmp1)              ; compile xt from (tmp1)
                 sta (cp),y
                 phy
                 ldy #1
@@ -5361,10 +5330,9 @@ _colonword:
                 lda #%00010000
                 and status
                 beq +
-                ldy #1
-                lda (workword),y
+                lda (workword)
                 and #255-NN
-                sta (workword),y
+                sta (workword)
 +
 
                 ; CP is the byte that will be the address we use in the
@@ -5392,34 +5360,22 @@ _colonword:
                 bit status
                 bpl _new_word   ; Bit 7 is clear = new word
 
-                ; We start by putting the string of the
-                ; word we're defining on the stack
-                dex
-                dex
-                dex
-                dex
-
-                ; WORKWORD points to the beginning of the head of our new
-                ; word, where the first byte is the length of the string
-                ; We can't use LATESTNT because we haven't added the new
-                ; word to the Dictionary yet
-                lda (workword)
-                sta 0,x
-                stz 1,x
-
-                ; Eight bytes below WORKWORD is the actual beginning of
-                ; the string
-                lda workword
-                clc
-                adc #8
-                sta 2,x
-                lda workword+1
-                adc #0                  ; only want carry
-                sta 3,x
-
                 ; This word is already in the Dictionary, so we print a
                 ; warning to the user.
-                lda #str_redefined       ; address of string "redefined"
+
+                ; Start by putting nt on the stack, using WORKWORD.
+                ; Note LATESTNT won't work since we haven't added the
+                ; new word to the Dictionary yet
+                dex
+                dex
+                lda workword
+                sta 0,x
+                lda workword+1
+                sta 1,x
+
+                jsr w_name_to_string    ; ( nt -- addr u )
+
+                lda #str_redefined      ; address of string "redefined"
                 jsr print_string_no_lf
 
                 ; Now we print the offending word.
@@ -5955,11 +5911,7 @@ w_to_body:
                 jsr w_dup              ; ( xt xt )
                 jsr w_int_to_name      ; ( xt nt )
 
-                ; The status byte is nt+1
-                inc 0,x
-                bne +
-                inc 1,x
-+
+                ; The status flags byte is @ NT
                 lda (0,x)               ; get status byte
                 and #HC
                 beq _no_cfa

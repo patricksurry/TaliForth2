@@ -223,7 +223,7 @@ _nibble_to_ascii:
 
 
 find_header_name:
-        ; """Given a string on the stack ( addr  n ) with n at most 255
+        ; """Given a string on the stack ( addr n ) with n at most 255
         ; and tmp1 pointing at an NT header, search each
         ; linked header looking for a matching name.
         ; Each header has length at NT, name at NT+8
@@ -240,7 +240,8 @@ find_header_name:
 
 _loop:
                 ; first quick test: Are strings the same length?
-                lda (tmp1)
+                ldy #1          ; length is at header offset 1
+                lda (tmp1),y
                 cmp 0,x
                 bne _next_entry
 
@@ -481,25 +482,21 @@ _got_name_token:
 
                 ; Whether interpreting or compiling we'll need to check the
                 ; status byte at nt+1 so let's save it now
-                jsr w_one_plus
                 lda (0,x)
                 pha
-                jsr w_one_minus
                 jsr w_name_to_int      ; ( nt - xt )
 
                 ; See if we are in interpret or compile mode, 0 is interpret
                 lda state
-                bne _compile
+                lsr a                   ; C=1 for compile, 0 for interpret
+                pla                     ; A=flags
+                bcs _compile
 
                 ; We are interpreting, so EXECUTE the xt that is TOS. First,
                 ; though, see if this isn't a compile-only word, which would be
                 ; illegal. The status byte is the second one of the header.
-                pla
                 and #CO                 ; mask everything but Compile Only bit
-                beq _interpret
-
-                lda #err_compileonly
-                jmp error
+                bne _compileonly
 
 _interpret:
                 ; We JSR to EXECUTE instead of calling the xt directly because
@@ -510,14 +507,17 @@ _interpret:
                 jsr w_execute
 
                 ; That's quite enough for this word, let's get the next one
-                jmp _loop
+                bra _loop
+
+_compileonly:
+                lda #err_compileonly
+                jmp error
 
 _compile:
                 ; We're compiling! However, we need to see if this is an
                 ; IMMEDIATE word, which would mean we execute it right now even
                 ; during compilation mode. Fortunately, we saved the nt so life
                 ; is easier. The flags are in the second byte of the header
-                pla
                 and #IM                 ; Mask all but IM bit
                 bne _interpret          ; IMMEDIATE word, execute right now
 

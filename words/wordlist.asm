@@ -325,21 +325,31 @@ w_search_wordlist:
                 ; tmp2 now holds the address of the dictionary pointer
                 ; for the given wordlist.
 +
-                ; Remove the wid from the stack.
+                ; Remove the wid from the stack leaving ( caddr u )
                 inx
                 inx
 
                 ; check for special case of an empty string (length zero)
                 lda 0,x
                 ora 1,x
-                beq _done
+                bne +
 
+                jsr xt_nip      ; drop caddr leaving ( 0 )
+                bra _done
++
                 ; Check for special case of empty wordlist
                 ; (dictionary pointer, in tmp2, is 0)
                 lda tmp2
                 ora tmp2+1
-                beq _done
-
+                bne +
+ _drop_fail:
+                ; ( caddr u -- 0 )
+                inx
+                inx
+                stz 0,x
+                stz 1,x
+                bra _done
++
                 ; set up first loop iteration
                 lda (tmp2)              ; nt of first word in Dictionary
                 sta tmp1
@@ -352,7 +362,7 @@ w_search_wordlist:
                 sta tmp1+1
 
                 jsr find_header_name
-                beq _fail_done
+                beq _drop_fail
 
                 ; The strings match. Drop the count and put correct nt TOS
                 inx
@@ -362,42 +372,29 @@ w_search_wordlist:
                 lda tmp1+1
                 sta 1,x
 
-                ; Change the nt into an xt, but save a copy of the nt
-                ; to look up whether the word is immediate or not.
-                jsr w_dup              ; ( nt nt )
-                jsr w_name_to_int      ; ( nt xt )
-                jsr w_swap             ; ( xt nt )
-
-                ldy #0                  ; Prepare flag
-
-                ; The flags are in the second byte of the header
-                inc 0,x
+                ; Grab the status flags from the nt (compare "FIND")
+                ldy #1                  ; assume immediate, returning 1
+                lda (0,x)
+                and #IM                 ; is IM set?
                 bne +
-                inc 1,x                 ; ( xt nt+1 )
+                ldy #$ff                ; not immediate, return -1
 +
-                lda (0,x)               ; ( xt char )
-                and #IM
-                bne _immediate          ; bit set, we're immediate
+                phy                     ; stash the 1 or -1
 
-                lda #$FF                ; We're not immediate, return -1
+                ; Change the nt into an xt
+                jsr w_name_to_int      ; ( xt )
+
+                dex
+                dex
+
+                pla                     ; result 1 or -1
+
                 sta 0,x
+                bmi +                   ; for -1 we store $ff twice
+                dec a                   ; for 1 we store 1 and then 0
++
                 sta 1,x
-                bra _done_nodrop
-
-_immediate:
-                lda #1                  ; We're immediate, return 1
-                sta 0,x
-                stz 1,x
-
-                bra _done_nodrop
-
-_fail_done:
-                stz 2,x         ; failure flag
-                stz 3,x
 _done:
-                inx
-                inx
-_done_nodrop:
 z_search_wordlist:
                 rts
 

@@ -140,8 +140,8 @@ _nt:                    ; remember start of header to update last_nt pointer
     _lb := _sz > 255 ? LB : 0
     _db := _nt_end != xt_\label ? DB : 0
 
-    .byte len(_s)       ; length of word string, max 31
     .byte \flags | _fp | _lb | _db       ; status flags byte
+    .byte len(_s)       ; length of word string, max 31
 ; .if _fp
     .word last_nt       ; previous Dictionary header, 0000 signals start
 ; .else

@@ -283,9 +283,9 @@ w_see:
 
                 ; Show flag values from the status byte along with
                 ; several calculated (synthetic) flag values
-                jsr w_over              ; ( nt xt nt )
-                jsr w_one_plus          ; ( nt xt nt+1 )
-                lda (0, x)
+                lda (2, x)              ; grab status flags @ NT
+                dex                     ; make some space
+                dex                     ; ( nt xt flags )
                 sta 0,x                 ; stash status flag byte
                 stz 1,x                 ; placeholder for synthetic flags
 
@@ -343,7 +343,7 @@ _emit:
 
                 jsr w_cr
 
-                inx
+                inx                     ; drop flags
                 inx                     ; ( nt xt )
 
                 ; Figure out the size

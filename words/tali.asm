@@ -3,10 +3,9 @@
 xt_allow_native:
 w_allow_native:
                 jsr current_to_dp
-                ldy #1          ; offset for header flag byte
-                lda (dp),y
+                lda (dp)        ; header status flags are @ nt
                 and #$FF-NN-AN  ; AN and NN flag is clear.
-                sta (dp),y
+                sta (dp)
 z_allow_native:
                 rts
 
@@ -17,11 +16,10 @@ z_allow_native:
 xt_always_native:
 w_always_native:
                 jsr current_to_dp
-                ldy #1          ; offset for header flag byte
-                lda (dp),y
+                lda (dp)        ; header status flags are @ nt
                 ora #AN         ; Make sure AN flag is set
                 and #$FF-NN     ; and NN flag is clear.
-                sta (dp),y
+                sta (dp)
 z_always_native:
                 rts
 
@@ -689,22 +687,34 @@ z_name_to_int:  rts
 xt_name_to_string:
                 jsr underflow_1
 w_name_to_string:
-                dex
+                dex             ; make space for length
                 dex
 
-                ; the length of the string is the first byte of the
-                ; header pointed to by nt
-                lda (2,x)
-                sta 0,x
+                lda (2,x)       ; grab status flags for header length
+                pha
+
+                inc 2,x         ; increment to nt+1 for name length
+                bne +
+                inc 3,x
++
+                lda (2,x)       ; fetch length byte
+                sta 0,x         ; ( nt+1 u )
                 stz 1,x
 
-                ; the string itself always starts eight bytes down
-                lda 2,x         ; LSB
+                pla             ; calculate header length from flags
+
+; TODO
                 clc
-                adc #8
+                lda #7
+;                lsr
+;                and #3
+;                adc #3          ; add 3 since we already incremented one
+
+                adc 2,x         ; add header size to nt+1 (carry already clear)
                 sta 2,x
-                bcc z_name_to_string
+                bcc +
                 inc 3,x         ; MSB
++
 
 z_name_to_string:
                 rts
@@ -726,11 +736,10 @@ z_nc_limit:
 xt_never_native:
 w_never_native:
                 jsr current_to_dp
-                ldy #1          ; offset for header flag byte
-                lda (dp),y
+                lda (dp)        ; header status flags are @ nt
                 ora #NN         ; Make sure NN flag is set
                 and #$FF-AN     ; and AN flag is clear.
-                sta (dp),y
+                sta (dp)
 z_never_native:
                 rts
 
