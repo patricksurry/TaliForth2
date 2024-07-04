@@ -2791,7 +2791,7 @@ T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T  ok
   ok
 : digit_oneoff ( -- f )  compiled
    true  compiled
-   7 0 ?do  compiled
+   6 0 ?do  compiled
       digit_bad i + c@  compiled
       dup emit  compiled
       digit?  ( char 0 )  compiled
@@ -2891,41 +2891,41 @@ Letters, base 34 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxX -> -1
 Letters, base 35 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY -> -1 
 Letters, base 36 : aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ -> -1 
 
-One-off chars, base 2 : /:@[`{	 -> -1 
-One-off chars, base 3 : /:@[`{	 -> -1 
-One-off chars, base 4 : /:@[`{	 -> -1 
-One-off chars, base 5 : /:@[`{	 -> -1 
-One-off chars, base 6 : /:@[`{	 -> -1 
-One-off chars, base 7 : /:@[`{	 -> -1 
-One-off chars, base 8 : /:@[`{	 -> -1 
-One-off chars, base 9 : /:@[`{	 -> -1 
-One-off chars, base 10 : /:@[`{	 -> -1 
-One-off chars, base 11 : /:@[`{	 -> -1 
-One-off chars, base 12 : /:@[`{	 -> -1 
-One-off chars, base 13 : /:@[`{	 -> -1 
-One-off chars, base 14 : /:@[`{	 -> -1 
-One-off chars, base 15 : /:@[`{	 -> -1 
-One-off chars, base 16 : /:@[`{	 -> -1 
-One-off chars, base 17 : /:@[`{	 -> -1 
-One-off chars, base 18 : /:@[`{	 -> -1 
-One-off chars, base 19 : /:@[`{	 -> -1 
-One-off chars, base 20 : /:@[`{	 -> -1 
-One-off chars, base 21 : /:@[`{	 -> -1 
-One-off chars, base 22 : /:@[`{	 -> -1 
-One-off chars, base 23 : /:@[`{	 -> -1 
-One-off chars, base 24 : /:@[`{	 -> -1 
-One-off chars, base 25 : /:@[`{	 -> -1 
-One-off chars, base 26 : /:@[`{	 -> -1 
-One-off chars, base 27 : /:@[`{	 -> -1 
-One-off chars, base 28 : /:@[`{	 -> -1 
-One-off chars, base 29 : /:@[`{	 -> -1 
-One-off chars, base 30 : /:@[`{	 -> -1 
-One-off chars, base 31 : /:@[`{	 -> -1 
-One-off chars, base 32 : /:@[`{	 -> -1 
-One-off chars, base 33 : /:@[`{	 -> -1 
-One-off chars, base 34 : /:@[`{	 -> -1 
-One-off chars, base 35 : /:@[`{	 -> -1 
-One-off chars, base 36 : /:@[`{	 -> -1  ok
+One-off chars, base 2 : /:@[`{ -> -1 
+One-off chars, base 3 : /:@[`{ -> -1 
+One-off chars, base 4 : /:@[`{ -> -1 
+One-off chars, base 5 : /:@[`{ -> -1 
+One-off chars, base 6 : /:@[`{ -> -1 
+One-off chars, base 7 : /:@[`{ -> -1 
+One-off chars, base 8 : /:@[`{ -> -1 
+One-off chars, base 9 : /:@[`{ -> -1 
+One-off chars, base 10 : /:@[`{ -> -1 
+One-off chars, base 11 : /:@[`{ -> -1 
+One-off chars, base 12 : /:@[`{ -> -1 
+One-off chars, base 13 : /:@[`{ -> -1 
+One-off chars, base 14 : /:@[`{ -> -1 
+One-off chars, base 15 : /:@[`{ -> -1 
+One-off chars, base 16 : /:@[`{ -> -1 
+One-off chars, base 17 : /:@[`{ -> -1 
+One-off chars, base 18 : /:@[`{ -> -1 
+One-off chars, base 19 : /:@[`{ -> -1 
+One-off chars, base 20 : /:@[`{ -> -1 
+One-off chars, base 21 : /:@[`{ -> -1 
+One-off chars, base 22 : /:@[`{ -> -1 
+One-off chars, base 23 : /:@[`{ -> -1 
+One-off chars, base 24 : /:@[`{ -> -1 
+One-off chars, base 25 : /:@[`{ -> -1 
+One-off chars, base 26 : /:@[`{ -> -1 
+One-off chars, base 27 : /:@[`{ -> -1 
+One-off chars, base 28 : /:@[`{ -> -1 
+One-off chars, base 29 : /:@[`{ -> -1 
+One-off chars, base 30 : /:@[`{ -> -1 
+One-off chars, base 31 : /:@[`{ -> -1 
+One-off chars, base 32 : /:@[`{ -> -1 
+One-off chars, base 33 : /:@[`{ -> -1 
+One-off chars, base 34 : /:@[`{ -> -1 
+One-off chars, base 35 : /:@[`{ -> -1 
+One-off chars, base 36 : /:@[`{ -> -1  ok
 T{ decimal -> }T  ok
   ok
   ok
@@ -3553,4 +3553,4 @@ char "       ' word          cycle_test "txt" drop CYCLES:    620 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     48 ok
   ok
-bye c65: PC=f015 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=143177552
+bye c65: PC=f015 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=143159072
