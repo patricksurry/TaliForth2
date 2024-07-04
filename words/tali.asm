@@ -502,6 +502,8 @@ z_input_to_r: 	rts
         ; """www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
         ; This is called >NAME in Gforth, but we change it to
         ; INT>NAME to match NAME>INT
+        ;
+        ; Uses tmp2 and indirectly tmp3
         ; """
 
 xt_int_to_name:
@@ -548,7 +550,8 @@ _nt_loop:
                 lda 1,x
                 sta tmp2+1              ; stash the nt
 
-                jsr w_name_to_int       ; ( xt xt' )
+;TODO helper
+                jsr w_name_to_int       ; ( xt xt' ) - uses tmp3
 
                 lda 0,x                 ; does this xt' match?
                 cmp 2,x
@@ -645,6 +648,8 @@ z_latestxt:     rts
 ; ## "name>int"  tested  Gforth
         ; """See
         ; https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
+        ;
+        ; Uses tmp3
         ; """
 
 xt_name_to_int:
@@ -678,7 +683,7 @@ w_name_to_int:
 
 _sequential:
                 ; otherwise calculate nt + header + name length
-
+;TODO combine wordsize?
                 lda (tmp3)              ; use flag bits to get variable header length
                 lsr
                 and #3

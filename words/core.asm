@@ -1060,8 +1060,8 @@ adjust_z:
 
                 ; code size is 3 + 0-3 bytes further down
                 lda (0,x)               ; calculate variable length from status flags
+                and #DC+FP
                 lsr
-                and #2
                 adc #3                  ; 3 + 0/2(DC) + 0/1(FP=C)
                 adc 0,x                 ; add nt to offset
                 sta 0,x
@@ -5293,18 +5293,25 @@ _colonword:
                 lda cp+1
                 sta 1,x                 ; ( cp )
 
-                jsr w_latestnt          ; ( cp nt )
+;TODO some helper?
+                dex
+                dex
+                lda workword
+                sta 0,x
+                lda workword+1
+                sta 1,x                 ; ( cp nt )
                 jsr w_name_to_int       ; ( cp xt )
 
                 jsr w_minus             ; ( cp-xt )
 
-                ; Update the word size
+                ; Find the offset to code size
                 lda (workword)          ; status flags
-                lsr
-                and #2                  ; preserve DC with FP in carry
+                and #DC+FP
+                lsr                     ; A=0 or 2 with FP in carry
                 adc #3
                 tay
 
+;TODO if 1,x is nonzero then we have a large word, so do the shuffle or clamp depending on NN value
                 lda 0,x
                 sta (workword),y
                 inx

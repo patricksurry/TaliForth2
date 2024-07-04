@@ -248,8 +248,8 @@ _loop:
                 ; second quick test: could first characters be equal?
 
                 lda (tmp1)      ; calculate name offset
+                and #DC+LC+FP
                 lsr
-                and #3
                 adc #4
                 tay
                 lda (tmp1),y    ; first character of candidate
@@ -495,7 +495,7 @@ _got_name_token:
 
                 ; See if we are in interpret or compile mode, 0 is interpret
                 lda state
-                lsr a                   ; C=1 for compile, 0 for interpret
+                lsr                     ; C=1 for compile, 0 for interpret
                 pla                     ; A=flags
                 bcs _compile
 

@@ -37,6 +37,8 @@ str_see_nt         = ix
 ix += 1
 str_see_xt         = ix
 ix += 1
+str_see_header     = ix
+ix += 1
 str_see_size       = ix
 ix += 1
 .if "disassembler" in TALI_OPTIONAL_WORDS
@@ -59,9 +61,9 @@ string_table:
 .if "wordlist" in TALI_OPTIONAL_WORDS
         .word s_wid_forth, s_wid_editor, s_wid_asm, s_wid_root        ; 4-7
 .endif
-        .word s_see_nt, s_see_xt, s_see_size                          ; 8-10
+        .word s_see_nt, s_see_xt, s_see_header, s_see_size            ; 8-11
 .if "disassembler" in TALI_OPTIONAL_WORDS
-        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do ; 11-15
+        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do ; 12-15
 .endif
 
 s_ok:         .text " ok", 0         ; note space at beginning
@@ -79,11 +81,12 @@ s_wid_root:   .text "Root ", 0       ; Wordlist ID 3, note space at end
 
 s_see_nt:     .text "nt: ", 0
 s_see_xt:     .text "xt: ", 0
+s_see_header: .text "header: ", 0
 s_see_size:   .text "size (decimal): ", 0
 
 ; this string is referenced directly, not via string table
 ; must match DICTIONARY FLAGS in definitions.asm and calculated flag order in xt_see
-see_flags_template:     .shift "flags: FP",0,"LC",0,"DC",0,"CO",0,"IM",0,"AN",0,"NN",0,"HC",0,"| UF",0,"ST",0
+see_flags_template:     .shift "flags: HC",0,"NN",0,"AN",0,"IM",0,"CO",0,"DC",0,"LC",0,"FP",0,"| UF",0,"ST",0
 
 .if "disassembler" in TALI_OPTIONAL_WORDS
 s_disasm_sdc: .text " STACK DEPTH CHECK", 0

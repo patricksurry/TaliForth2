@@ -277,9 +277,31 @@ w_see:
                 lda #str_see_xt
                 jsr print_string_no_lf
 
-                jsr w_dup              ; ( nt xt xt )
+                jsr w_dup               ; ( nt xt xt )
                 jsr w_u_dot
-                jsr w_cr               ; ( nt xt )
+                jsr w_cr                ; ( nt xt )
+
+                lda #str_see_header
+                jsr print_string_no_lf
+;TODO header size
+                jsr w_over
+                lda (0,x)               ; calculate variable header length
+                and #DC+LC+FP           ; mask length bits
+                lsr                     ; shift FP to carry flag, A = 2*DC + LC
+                adc #4                  ; header length is 4 bytes + 2*DC + LC + FP
+                tay
+_show_header:
+                lda (0,x)
+                jsr byte_to_ascii
+                jsr w_space
+                inc 0,x
+                bne +
+                inc 1,x
++
+                dey
+                bne _show_header
+                jsr w_cr
+                jsr w_drop              ; ( nt xt )
 
                 ; Show flag values from the status byte along with
                 ; several calculated (synthetic) flag values
@@ -295,15 +317,22 @@ w_see:
                 beq +                   ; C=1 when ST set
                 clc
 +
-                rol 1,x                 ; add to flag byte
+                ror 1,x                 ; add to flag byte
 
                 jsr w_over
                 jsr has_uf_check        ; C=1 when UF set
-                rol 1,x                 ; add to flag byte
+                ror 1,x                 ; add to flag byte
 
                 lda #N_FLAGS            ; count off status byte flags
                 sta tmptos
 
+-
+                cmp #8                  ; discard unused high bits
+                beq +
+                asl 0,x
+                ina
+                bra -
++
                 ; use a high-bit terminated template string to show flag names
                 ; and insert flag values at placeholders marked by ascii zeros
                 lda #<see_flags_template
@@ -312,7 +341,7 @@ w_see:
                 sta tmp3+1              ; MSB
 
                 ldy #0                  ; index the string
-_loop:
+_show_flags:
                 lda (tmp3),y            ; next char in template
                 bpl +                   ; end of string?
 
@@ -325,10 +354,10 @@ _loop:
 
                 dec tmptos
                 bmi _synthetic          ; more core status flags?
-                lsr 0,x                 ; shift next flag bit into carry
+                asl 0,x                 ; shift next flag bit into carry
                 bra +
 _synthetic:
-                lsr 1,x                 ; show synthetic flags after core ones
+                asl 1,x                 ; show synthetic flags after core ones
 +
                 lda #'0'                ; convert C=0/1 into '0' or '1'
                 adc #0
@@ -339,7 +368,7 @@ _emit:
                 jsr emit_a
 
                 iny
-                bne _loop
+                bne _show_flags
 
                 jsr w_cr
 
@@ -351,6 +380,7 @@ _emit:
                 jsr print_string_no_lf
 
                 jsr w_swap             ; ( xt nt )
+;TODO show header bytes
                 jsr w_wordsize         ; ( xt u )
                 jsr w_dup              ; ( xt u u ) for DUMP and DISASM
                 jsr w_decimal

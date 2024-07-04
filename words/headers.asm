@@ -106,8 +106,8 @@
 ; using simple assembly:
 ;
 ;       lda flags       ; start with status flags in the accumulator
-;       lsr             ; shift FP to carry flag
-;       and #%00000011  ; A is left with 2*DC + LC
+;       and #DC+LC+FP   ; mask the header length bits
+;       lsr             ; shift FP to carry flag, A = 2*DC + LC
 ;       adc #4          ; header length is 4 bytes + 2*DC + LC + FP
 ;
 ; To simplify header creation, reduce errors and allow for future changes
