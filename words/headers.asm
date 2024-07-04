@@ -33,14 +33,14 @@
 ;
 ;  (msb)  7    6    5    4    3    2    1    0  (lsb)
 ;       +----+----+----+----+----+----+----+----+
-;       | 0  | NN | AN | IM | CO | DB | LB | FP |
+;       | 0  | NN | AN | IM | CO | DC | LC | FP |
 ;       +----+----+----+----+----+----+----+----+
 ;
 ; Flag bits:
 ;
 ;       FP - Far previous NT (two byte pointer rather than one byte offset)
-;       LB - Large body (two byte vs one byte length)
-;       DB - Disjoint body (two byte pointer rather than adjoining body code)
+;       LC - Long code (two byte vs one byte length for native compile)
+;       DC - Disjoint code (two byte pointer to xt rather than adjoining header)
 ;
 ;       CO - Compile Only
 ;       IM - Immediate Word
@@ -84,11 +84,11 @@
 ;               |    Last NT     |   FP=0: nt_last = nt_word - offset
 ;               |  (1|2 bytes)   |   FP=1: nt_last = 2 byte pointer
 ;               +----------------+
-;               | Start of code  |   DB=0: xt_word = nt_end
-;               |  (0|2 bytes)   |   DB=1: xt_word = 2 byte pointer
+;               | Start of code  |   DC=0: xt_word = nt_end
+;               |  (0|2 bytes)   |   DC=1: xt_word = 2 byte pointer
 ;               +----------------+
-;               |   Code size    |   LB=0: One byte code length
-;               |  (1|2 bytes)   |   LB=1: Two byte code length
+;               |   Code size    |   LC=0: One byte code length
+;               |  (1|2 bytes)   |   LC=1: Two byte code length
 ;               +----------------+
 ;               |  Name string   |   Name is 7-bit lower case ascii
 ;               :                :
@@ -96,19 +96,19 @@
 ;    nt_end --> +----------------+
 ;                       ...
 ;   xt_word --> +----------------+
-;               |   Word body    |   When DB=0 the code body adjoins the header
+;               |   Word body    |   When DC=0 the code body adjoins the header
 ;               :  (65c02 code)  :
 ;               :                :
 ;    z_word --> +----------------+
 ;
 ;
-; We can calculate the actual header length from the flag bits FP, LB and DB
+; We can calculate the actual header length from the flag bits FP, LC and DC
 ; using simple assembly:
 ;
 ;       lda flags       ; start with status flags in the accumulator
 ;       lsr             ; shift FP to carry flag
-;       and #%00000011  ; A is left with 2*DB + LB
-;       adc #4          ; header length is 4 bytes + 2*DB+LB+FP
+;       and #%00000011  ; A is left with 2*DC + LC
+;       adc #4          ; header length is 4 bytes + 2*DC + LC + FP
 ;
 ; To simplify header creation, reduce errors and allow for future changes
 ; we use the #nt_header macro to generate the actual header bytes for each word.
@@ -135,27 +135,28 @@ nt_header .macro label, name="", flags=0
     _s := \name ? \name : str(.\label)
 
 _nt:                    ; remember start of header to update last_nt pointer
-    _fp := _nt < last_nt || _nt - last_nt > 255 ? FP : 0
+;    _fp := _nt < last_nt || _nt - last_nt > 255 ? FP : 0
+    _fp := FP
     _sz := z_\label - xt_\label
-    _lb := _sz > 255 ? LB : 0
-    _db := _nt_end != xt_\label ? DB : 0
+    _lc := _sz > 255 ? LC : 0
+;    _dc := _nt_end != xt_\label ? DC : 0
+    _dc := DC
 
-    .byte \flags | _fp | _lb | _db       ; status flags byte
+    .byte \flags | _fp | _lc | _dc       ; status flags byte
     .byte len(_s)       ; length of word string, max 31
-; .if _fp
+.if _fp
     .word last_nt       ; previous Dictionary header, 0000 signals start
-; .else
-;     .byte _nt - last_nt
-; .endif
-; .if _db
+.else
+   .byte _nt - last_nt
+.endif
+.if _dc
     .word xt_\label     ; start of code block (xt of this word)
-; .endif
-; .if _lb
-;     .word _sz           ; end of code (RTS)
-    .word z_\label
-; .else
-;     .byte _sz
-; .endif
+.endif
+.if _lc
+    .word _sz          ; code size up to but not including final RTS
+.else
+    .byte _sz
+.endif
     .text _s            ; word name, always lower case, not zero-terminated
 _nt_end = *
 
@@ -331,7 +332,7 @@ last_nt := 0
 #nt_header again, "again", CO+IM
 #nt_header begin, "begin", CO+IM
 #nt_header quit
-#nt_header recurse, "recurse", CO+IM+NN
+#nt_header recurse, "recurse", CO+IM
 #nt_header leave, "leave", CO+IM
 #nt_header unloop, "unloop", CO
 #nt_header exit, "exit", AN+CO

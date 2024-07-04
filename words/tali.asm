@@ -497,7 +497,7 @@ z_input_to_r: 	rts
 
 
 
-; ## INT_TO_NAME ( xt -- nt ) "Get name token from execution token"
+; ## INT_TO_NAME ( xt -- nt | 0 ) "Get name token from execution token"
 ; ## "int>name"  auto  Tali Forth
         ; """www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
         ; This is called >NAME in Gforth, but we change it to
@@ -510,103 +510,96 @@ w_int_to_name:
                 ; Unfortunately, to find the header, we have to walk through
                 ; all of the wordlists. We are running out of tmp variables.
                 ; (I'm assuming there is a reason this is avoiding tmp1) so
-                ; hold the current wordlist on the data stack. This searches
+                ; hold the current wordlist on the return stack. This searches
                 ; all of the wordlists in id order.
+                lda #0                  ; put first wordlist id on the stack
+                pha
+
                 dex
-                dex
-                stz 0,x
-                stz 1,x
+                dex                     ; ( xt ? )  (R: wid)
 
 _wordlist_loop:
-                ; A needs to have the current wordlist id in it at
-                ; the top of this loop.
-                lda 0,x                 ; Get the current wordlist.
+                ply                     ; fetch and increment wordlist id
+                tya
+                iny
+                phy                     ; A = wid  ( xt ? )  (R: wid+1)
+                cmp #max_wordlists
+                beq _fail
 
                 ; Get the DP for that wordlist.
                 asl                     ; Turn offset into cells offset.
                 clc
                 adc #wordlists_offset
                 tay
-                lda (up),y              ; Save the DP for this wordlist
-                sta tmp2                ; into tmp2
+                lda (up),y              ; Save the DP (first nt) for this wordlist
+                sta 0,x
                 iny
                 lda (up),y
-                sta tmp2+1
+                sta 1,x
 
-                ; Check for an empty wordlist (DP will be 0)
-                lda tmp2
-                ora tmp2+1
-                beq _next_wordlist
+_nt_loop:
+                ; ( xt nt )
 
-                lda 2,x         ; Target xt is now behind wordlist id.
-                sta tmp3        ; Save target xt in tmp3
-                lda 3,x
-                sta tmp3+1
+                lda 0,x                 ; if the nt is zero we're done
+                sta tmp2                ; stash it in tmp2
+                ora 1,x
+                beq _wordlist_loop
 
-_loop:
-                ldy #4          ; xt is four bytes down
-                lda (tmp2),y    ; LSB of xt of current nt
-                cmp tmp3
+                lda 1,x
+                sta tmp2+1              ; stash the nt
+
+                jsr w_name_to_int       ; ( xt xt' )
+
+                lda 0,x                 ; does this xt' match?
+                cmp 2,x
                 bne _no_match
 
-                ; LSB is the same, now check MSB
-                iny
-                lda (tmp2),y    ; MSB of xt of current nt
-                cmp tmp3+1
+                lda 1,x
+                cmp 3,x
                 beq _match
 
 _no_match:
-                ; no match, so we need to get the next word. Next nt is two
-                ; bytes down
-                clc
-                lda tmp2
-                adc #2
-                sta tmp2
-                bcc +
-                inc tmp2+1
-+
-                ldy #0
+                ; get the next nt in the list, from tmp2 -> TOS
+
+;TODO extract nt_to_nt routine
+                ; Next nt is at offset 2, either a two-byte pointer (FP=1)
+                ; or an offset (FP=0)
+
+                lda (tmp2)
+                lsr                     ; FP => carry
+
+                ldy #2
                 lda (tmp2),y
-                pha
-                iny
-                ora (tmp2),y
-                beq _zero
+                bcs +                   ; pointer or offset?
 
-                ; Not zero continue
-                lda (tmp2),y
-                sta tmp2+1
-                pla
-                sta tmp2
-                bra _loop
-
-_zero:
-                ; if next word is zero, the xt has no nt in this wordlist
-                pla             ; Leftover from above loop
-
-_next_wordlist:
-                ; Move on to the next wordlist.
-                lda 0,x
-                ina
+                ; It's an offset, calculate <tmp2,tmp2+1> - A
+                ; tmp2 - A = tmp2 + (256-A) - 256 = tmp2 + (255-A) + 1 - 256
+                sec
+                eor #$ff
+                adc tmp2
                 sta 0,x
-                cmp #max_wordlists
-                bne _wordlist_loop
+                lda tmp2+1
+                sbc #0
+                sta 1,x
+                bra _nt_loop
++
+                ; It's a two byte pointer
+                sta 0,x
+                iny
+                lda (tmp2),y
+                sta 1,x
+                bra _nt_loop
 
-                ; We didn't find it in any of the wordlists.
-                ; Remove the wordlist id from the stack.
-                inx
-                inx
-
-                ; We return a zero to indicate that we didn't find it.
-                stz 0,x
-                stz 1,x
-                bra z_int_to_name
-
+_fail:
+                ; We didn't find it in any of the wordlists
+                ; Set stashed nt in tmp2 to zero to indicate failure
+                stz tmp2
+                stz tmp2+1
 _match:
-                ; We found it. Remove wordlist id from stack.
+                pla                     ; clear wid counter
+                inx                     ; ( xt xt' -- xt )
                 inx
-                inx
-
-                ; It's a match! Replace TOS with nt
+                ; Write stashed nt (found or 0) to TOS
                 lda tmp2
                 sta 0,x
                 lda tmp2+1
@@ -657,25 +650,50 @@ z_latestxt:     rts
 xt_name_to_int:
                 jsr underflow_1
 w_name_to_int:
-                ; The xt starts four bytes down from the nt
-                lda 0,x
-                clc
-                adc #4
-                sta tmp3
+                ; The header either has an explict xt pointer (DC=1)
+                ; or the xt immediately follows the header (DC=0)
 
+                lda 0,x                 ; copy nt to tmp3
+                sta tmp3
                 lda 1,x
-                bcc _done
-                ina
-_done:
                 sta tmp3+1
 
-                ldy #0
-                lda (tmp3),y
+                lda (tmp3)              ; check status flag for DC=1
+                and #DC
+                beq _sequential
+
+                ; explicit xt pointer at offset 3 (FP=0) or 4 (FP=1)
+                lda (tmp3)
+                lsr                     ; FP to carry
+                ldy #3
+                bcc +
+                iny
++
+                lda (tmp3),y            ; fetch LSB of xt
                 sta 0,x
                 iny
-                lda (tmp3),y
+                lda (tmp3),y            ; fetch MSB
                 sta 1,x
+                bra _done
 
+_sequential:
+                ; otherwise calculate nt + header + name length
+
+                lda (tmp3)              ; use flag bits to get variable header length
+                lsr
+                and #3
+                adc #4
+
+                ldy #1                  ; add name length byte
+                adc (tmp3),y            ; carry already clear and stays clear
+
+                adc tmp3                ; add to nt
+                sta 0,x                 ; update LSB
+                bcc _done
+
+                inc 1,x                 ; maybe update MSB
+
+_done:
 z_name_to_int:  rts
 
 
@@ -703,12 +721,9 @@ w_name_to_string:
 
                 pla             ; calculate header length from flags
 
-; TODO
-                clc
-                lda #7
-;                lsr
-;                and #3
-;                adc #3          ; add 3 since we already incremented one
+                lsr
+                and #3
+                adc #3          ; add 3 since we already incremented one
 
                 adc 2,x         ; add header size to nt+1 (carry already clear)
                 sta 2,x
@@ -1158,31 +1173,30 @@ z_useraddr:     rts
 xt_wordsize:
                 jsr underflow_1
 w_wordsize:
-                ; We get the start address of the word from its header entry
-                ; for the start of the actual code (execution token, xt)
-                ; which is four bytes down, and the pointer to the end of the
-                ; code (z_word, six bytes down)
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
+                ; Use status flags to find offset to body size
+                lda (0,x)
+                pha             ; stash the flags for one/two byte check
+                lsr A
+                and #2          ; preserve DC flag with FP in carry
+                adc #3          ; offset to code size is 3 + 0-3
+                adc 0,x         ; add offset to nt, note C=0 from offset calc
+                sta 0,x         ; LSB of size byte(s) address
+                bcc +
+                inc 1,x         ; MSB
++
+                lda (0,x)       ; get LSB of body size
+                tay             ; hold that thought
+                pla             ; check if there's a MSB
+                and #LC         ; extra byte if LC is set
+                beq _small      ; otherwise it's zero
+                inc 0,x
+                bne +
+                inc 1,x
++
+                lda (0,x)       ; grab MSB
 
-                ldy #6
-                lda (tmp1),y    ; LSB of z
-                dey
-                dey
-
-                sec
-                sbc (tmp1),y    ; LSB of xt
-                sta 0,x
-
-                ldy #7
-                lda (tmp1),y    ; MSB of z
-                dey
-                dey
-
-                sbc (tmp1),y    ; MSB of xt
-                sta 1,x
+_small:         sty 0,x         ; Y has LSB
+                sta 1,x         ; A has either MSB we fetched or 0 if there wasn't one
 
 z_wordsize:     rts
 

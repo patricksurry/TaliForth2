@@ -246,9 +246,14 @@ _loop:
                 bne _next_entry
 
                 ; second quick test: could first characters be equal?
-                lda (tmp2)      ; first character of mystery string
-                ldy #8
-                eor (tmp1),y    ; flag any mismatched bits
+
+                lda (tmp1)      ; calculate name offset
+                lsr
+                and #3
+                adc #4
+                tay
+                lda (tmp1),y    ; first character of candidate
+                eor (tmp2)      ; flag any mismatched bits
                 and #%11011111  ; but ignore upper/lower case bit
                 bne _next_entry ; definitely not equal if any bits differ
 
@@ -258,11 +263,12 @@ _loop:
                 ; from back to front, because words like CELLS and CELL+ would
                 ; take longer otherwise.
 
-                ; The string of the word we're testing against is 8 bytes down
+                ; The name of the word we're testing against is 8 bytes down
                 lda tmp1
                 pha             ; Save original address on the stack
                 clc
-                adc #8
+                tya             ; add offset
+                adc tmp1
                 sta tmp1
                 lda tmp1+1
                 pha
@@ -306,6 +312,7 @@ _reset_tmp1:
 _next_entry:
                 ; Otherwise move on to next header address
                 ldy #2
+;TODO
                 lda (tmp1),y
                 pha
                 iny

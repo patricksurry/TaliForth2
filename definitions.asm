@@ -264,8 +264,8 @@ N_FLAGS = 8
 ; This list should match s_see_flags in strings.asm
 
 FP = 1      ; Far previous NT (two byte pointer rather than one byte offset)
-LB = 2      ; Large body (two byte vs one byte length)
-DB = 4      ; Disjoint body (two byte pointer rather than adjoining body code)
+LC = 2      ; Long code (two byte vs one byte length for native compile)
+DC = 4      ; Disjoint code (two byte pointer rather than xt adjoining header)
 
 CO = 8      ; Compile Only
 IM = 16     ; Immediate Word
