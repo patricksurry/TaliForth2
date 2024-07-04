@@ -114,7 +114,6 @@ outlines = out.splitlines()
 undefined = []
 
 for line in outlines:
-
     if 'undefined' in line:
         undefined.append(line)
 
