@@ -226,8 +226,7 @@ find_header_name:
         ; """Given a string on the stack ( addr n ) with n at most 255
         ; and tmp1 pointing at an NT header, search each
         ; linked header looking for a matching name.
-        ; Each header has length at NT, name at NT+8
-        ; and next header pointer at NT+2 with 0 marking the end.
+        ;
         ; On success tmp1 points at the matching NT, with A=$FF and Z=0.
         ; On failure tmp1 is 0, A=0 and Z=1.
         ; Stomps tmp2.  The stack is unchanged.
@@ -238,24 +237,26 @@ find_header_name:
                 lda 3,x
                 sta tmp2+1
 
+                bra _check_nil          ; Start by checking if initial NT is zero
 _loop:
                 ; first quick test: Are strings the same length?
-                ldy #1          ; length is at header offset 1
+                ldy #1                  ; length is at header offset 1
                 lda (tmp1),y
                 cmp 0,x
                 bne _next_entry
 
                 ; second quick test: could first characters be equal?
-
-                lda (tmp1)      ; calculate name offset
+;TODO headersize (excl name)
+                lda (tmp1)              ; calculate name offset
                 and #DC+LC+FP
                 lsr
                 adc #4
                 tay
-                lda (tmp1),y    ; first character of candidate
-                eor (tmp2)      ; flag any mismatched bits
-                and #%11011111  ; but ignore upper/lower case bit
-                bne _next_entry ; definitely not equal if any bits differ
+
+                lda (tmp1),y            ; first character of candidate
+                eor (tmp2)              ; flag any mismatched bits
+                and #%11011111          ; but ignore upper/lower case bit
+                bne _next_entry         ; definitely not equal if any bits differ
 
                 ; Same length and probably same first character
                 ; (though we still have to check properly).
@@ -263,24 +264,24 @@ _loop:
                 ; from back to front, because words like CELLS and CELL+ would
                 ; take longer otherwise.
 
-                ; The name of the word we're testing against is 8 bytes down
+                ; Update tmp1 += Y to point at name, saving original address
                 lda tmp1
-                pha             ; Save original address on the stack
+                pha                     ; Save original address on the stack
                 clc
-                tya             ; add offset
+                tya                     ; add offset to name
                 adc tmp1
                 sta tmp1
                 lda tmp1+1
-                pha
+                pha                     ; save MSB
                 bcc +
                 ina
                 sta tmp1+1
 +
-                ldy 0,x         ; index is length of string minus 1
+                ldy 0,x                 ; index is length of string minus 1
                 dey
 
 _next_char:
-                lda (tmp2),y    ; last char of mystery string
+                lda (tmp2),y            ; last char of mystery string
 
                 ; Lowercase the incoming charcter.
                 cmp #'Z'+1
@@ -292,43 +293,71 @@ _next_char:
                 ora #$20
 
 _check_char:
-                cmp (tmp1),y    ; last char of word we're testing against
+                cmp (tmp1),y            ; last char of word we're testing against
                 bne _reset_tmp1
 
                 dey
                 bpl _next_char
 
-        ; if we fall through on success, and only then, Y is $FF
+                ; if we fall through on success, and only then, Y is $FF
 _reset_tmp1:
                 pla
                 sta tmp1+1
                 pla
                 sta tmp1
 
-                tya             ; leave A = $FF on success
-                iny             ; if Y was $FF, we succeeded
+                tya                     ; leave A = $FF on success
+                iny                     ; if Y was $FF, we succeeded
                 beq _done
 
 _next_entry:
                 ; Otherwise move on to next header address
+                jsr nt_to_nt
+_check_nil:
+                lda tmp1                ; are we at the end of the list?
+                ora tmp1+1
+                bne _loop               ; A=0 means failure, otherwise try again
+
+_done:          cmp #0                  ; A is 0 on failure and $FF on success
+                rts                     ; so cmp #0 sets Z=1 on failure and 0 on success
+
+
+nt_to_nt:
+        ; Header helper to follow the last nt pointer or offset for the nt in tmp1
+        ; tmp1 is updated in place to the previous entry in the linked list
+
+        ; The last nt is stored at offset 2, as either a two-byte pointer (FP=1)
+        ; or a single byte offset preceding this one (FP=0)
+                lda (tmp1)              ; check the flag bits
+                lsr                     ; FP => carry
+
                 ldy #2
-;TODO
-                lda (tmp1),y
-                pha
-                iny
-                lda (tmp1),y
+                lda (tmp1),y            ; get the LSB or offset byte
+                bcs _pointer            ; pointer or offset?
+
+                ; It's an offset, so calculate tmp1 aka <tlo,thi> minus A
+                ;       = <tlo, thi> + (256-A) - 256
+                ;       = <tlo, thi> + (255-A) + 1 - 256
+                ;       = <tlo, thi> + <(255-A) + 1, -1>
+                ;       = <tlo + (A^$ff) + 1, thi-1>
+                sec
+                eor #$ff
+                adc tmp1
+                sta tmp1
+                lda tmp1+1
+                sbc #0          ; when C=1 msb is unchanged, C=0 msb is decremented
                 sta tmp1+1
+                bra _done
+_pointer:
+                ; It's a two byte pointer, with A as LSB
+                pha             ; stash LSB
+                iny
+                lda (tmp1),y    ; fetch MSB
+                sta tmp1+1      ; now we can overwrite tmp1
                 pla
                 sta tmp1
-
-                ; If we got a zero, we've walked the whole Dictionary and
-                ; return as a failure, otherwise try again
-                ora tmp1+1
-                bne _loop
-
-_done:          cmp #0      ; A is 0 on failure and $FF on success
-                rts         ; so cmp #0 sets Z on failure and clears on success
-
+_done:
+                rts
 
 
 compare_16bit:
@@ -523,8 +552,8 @@ _compileonly:
 _compile:
                 ; We're compiling! However, we need to see if this is an
                 ; IMMEDIATE word, which would mean we execute it right now even
-                ; during compilation mode. Fortunately, we saved the nt so life
-                ; is easier. The flags are in the second byte of the header
+                ; during compilation mode. Fortunately, we saved the header flags
+                ; so life is easier.
                 and #IM                 ; Mask all but IM bit
                 bne _interpret          ; IMMEDIATE word, execute right now
 

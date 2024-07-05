@@ -65,6 +65,7 @@ w_compile_comma:
                 ; AN flag. We need nt for this.
                 jsr w_dup              ; keep an unadjusted copy of xt
                 jsr w_dup              ; plus one to convert to nt
+;TODO avoid this check
                 jsr w_int_to_name
                 ; ( xt xt nt )
 

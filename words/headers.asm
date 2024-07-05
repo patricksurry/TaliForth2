@@ -135,12 +135,10 @@ nt_header .macro label, name="", flags=0
     _s := \name ? \name : str(.\label)
 
 _nt:                    ; remember start of header to update last_nt pointer
-;    _fp := _nt < last_nt || _nt - last_nt > 255 ? FP : 0
-    _fp := FP
+    _fp := _nt < last_nt || _nt - last_nt > 255 ? FP : 0
     _sz := z_\label - xt_\label
     _lc := _sz > 255 ? LC : 0
-;    _dc := _nt_end != xt_\label ? DC : 0
-    _dc := DC
+    _dc := _nt_end != xt_\label ? DC : 0
 
     .byte \flags | _fp | _lc | _dc       ; status flags byte
     .byte len(_s)       ; length of word string, max 31

@@ -1058,6 +1058,7 @@ adjust_z:
                 ; VALUE and DEFER
                 jsr w_latestnt          ; gives us ( -- nt )
 
+;TODO nt>codesize offset stack -- stack
                 ; code size is 3 + 0-3 bytes further down
                 lda (0,x)               ; calculate variable length from status flags
                 and #DC+FP
@@ -1236,9 +1237,9 @@ _process_name:
                 lda cp+1
                 sta tmp1+1
                 sbc dp+1
-;TODO                beq +                   ; if A is 0 we can use a single byte offset
+                beq +                   ; if A is 0 we can use a single byte offset
                 lda #FP                 ; otherwise we'll need a two byte pointer
-;TODO +
++
                 ; Finish determining the status flag byte in A.
 
                 ; Most of the words CREATE'd with DOXXX CFA's must currently be
@@ -1273,7 +1274,7 @@ _process_name:
 
                 ; HEADER BYTE 0: status flags byte
                 jsr cmpl_a
-                lsr                     ; save FP flag in the carry
+                lsr                     ; FP -> C tells us 1 or 2 byte last nt
 
                 ; HEADER BYTE 1: length of name
                 lda 0,x
@@ -1692,7 +1693,7 @@ does_runtime:
                 sta 0,x
                 lda dp+1
                 sta 1,x
-;TODO could have internal helpers for these
+;TODO name>int dp -- tmp2
                 jsr w_name_to_int
                 lda 0,x
                 sta tmp2                ; xt in tmp2
@@ -5293,7 +5294,7 @@ _colonword:
                 lda cp+1
                 sta 1,x                 ; ( cp )
 
-;TODO some helper?
+;TODO name>int workword - stack
                 dex
                 dex
                 lda workword
@@ -5304,6 +5305,7 @@ _colonword:
 
                 jsr w_minus             ; ( cp-xt )
 
+;TODO name>codesize workword -- A
                 ; Find the offset to code size
                 lda (workword)          ; status flags
                 and #DC+FP
@@ -5311,7 +5313,7 @@ _colonword:
                 adc #3
                 tay
 
-;TODO if 1,x is nonzero then we have a large word, so do the shuffle or clamp depending on NN value
+;TODO LC shuffle: if 1,x is nonzero then we have a large word, so shuffle or clamp based on NN
                 lda 0,x
                 sta (workword),y
                 inx

@@ -267,23 +267,23 @@ w_see:
                 lda #str_see_nt
                 jsr print_string_no_lf
 
-                jsr w_dup              ; ( nt nt )
+                jsr w_dup               ; ( nt nt )
                 jsr w_u_dot
-                jsr w_space            ; ( nt )
+                jsr w_space             ; ( nt )
 
-                jsr w_dup              ; ( nt nt )
-                jsr w_name_to_int      ; ( nt xt )
+                jsr w_dup               ; ( nt nt )
+                jsr w_name_to_int       ; ( nt xt )
 
                 lda #str_see_xt
                 jsr print_string_no_lf
 
                 jsr w_dup               ; ( nt xt xt )
-                jsr w_u_dot
-                jsr w_cr                ; ( nt xt )
+                jsr w_u_dot             ; ( nt xt )
+                jsr w_space
 
                 lda #str_see_header
                 jsr print_string_no_lf
-;TODO header size
+;TODO hdrsize stack -- A
                 jsr w_over
                 lda (0,x)               ; calculate variable header length
                 and #DC+LC+FP           ; mask length bits
@@ -294,12 +294,10 @@ _show_header:
                 lda (0,x)
                 jsr byte_to_ascii
                 jsr w_space
-                inc 0,x
-                bne +
-                inc 1,x
-+
+                jsr w_one_plus
                 dey
                 bne _show_header
+
                 jsr w_cr
                 jsr w_drop              ; ( nt xt )
 
@@ -380,7 +378,6 @@ _emit:
                 jsr print_string_no_lf
 
                 jsr w_swap             ; ( xt nt )
-;TODO show header bytes
                 jsr w_wordsize         ; ( xt u )
                 jsr w_dup              ; ( xt u u ) for DUMP and DISASM
                 jsr w_decimal
