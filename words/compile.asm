@@ -44,6 +44,17 @@
 ; The inline forms are typically much simpler since they can use
 ; 65c02 jmp and bxx branch opcodes directly.
 
+;TODO does it make sense to have an actual word, like COMPILE-NT, ?
+compile_nt_comma:  ; ( nt -- )
+        ; compile, looks up the nt from the xt which is very slow
+        ; if we already have the nt, we can get things rolling faster
+
+        jsr w_dup                       ; ( nt nt )
+        jsr w_name_to_int               ; ( nt xt )
+        jsr w_dup                       ; ( nt xt xt )
+        jsr w_rot                       ; ( xt xt nt )
+        bra compile_comma_common
+
 
 ; ## COMPILE_COMMA ( xt -- ) "Compile xt"
 ; ## "compile,"  auto  ANS core ext
@@ -63,8 +74,8 @@ xt_compile_comma:
 w_compile_comma:
                 ; See if this is an Always Native (AN) word by checking the
                 ; AN flag. We need nt for this.
-                jsr w_dup              ; keep an unadjusted copy of xt
-                jsr w_dup              ; plus one to convert to nt
+                jsr w_dup               ; keep an unadjusted copy of xt
+                jsr w_dup               ; plus one to convert to nt
                 jsr w_int_to_name
                 ; ( xt xt nt )
 
@@ -73,6 +84,7 @@ w_compile_comma:
                 ora 1,x
                 beq cmpl_as_call        ; No nt so unknown size; must compile as a JSR
 
+compile_comma_common:
                 ; Otherwise investigate the nt
                 jsr w_dup
                 jsr w_one_plus         ; status is at nt+1

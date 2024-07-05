@@ -3280,11 +3280,11 @@ _noleave:
                 ; reuse TOS
 
                 ; Clean up the loop params by appending unloop
-                lda #<w_unloop
+                lda #<nt_unloop
                 sta 0,x
-                lda #>w_unloop
+                lda #>nt_unloop
                 sta 1,x
-                jsr w_compile_comma
+                jsr compile_nt_comma    ; use the faster entry with the NT
 
                 ; Finally we're left with qdo-skip which either
                 ; points at ?DO's "skip the loop" jmp address,
@@ -3294,7 +3294,7 @@ _noleave:
                 beq +
                 jsr w_here
                 jsr w_swap
-                jmp w_store            ; write here as ?DO jmp target and return
+                jmp w_store             ; write here as ?DO jmp target and return
 
 +               inx                     ; drop the ignored word for DO
                 inx
@@ -4559,42 +4559,31 @@ w_postpone:
                 jmp error
 
 +
-                ; keep a copy of nt for later
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
+                ; See if this is an immediate word
+                ; by fetching the status flag at nt+1
+                jsr w_dup
+                jsr w_one_plus
+                lda (0,x)
+                inx
+                inx
 
-                ; We need the xt instead of the nt
-                jsr w_name_to_int              ; ( nt -- xt )
-
-                ; See if this is an immediate word. This is easier
-                ; with nt than with xt. The status byte of the word
-                ; is nt+1
-                inc tmp1
-                bne +
-                inc tmp1+1
-+
-                lda (tmp1)
                 and #IM         ; mask all but Intermediate flag
                 beq _not_immediate
 
                 ; We're immediate, so instead of executing it right now, we
-                ; compile it. xt is TOS, so this is easy. The RTS at the end
-                ; takes us back to the original caller
-                jsr w_compile_comma
+                ; compile it. nt is TOS, so this is easy.
+                jsr compile_nt_comma
                 bra _done
 
 _not_immediate:
                 ; This is not an immediate word, so we enact "deferred
-                ; compilation" by including ' <NAME> COMPILE, which we do by
-                ; compiling the run-time routine of LITERAL, the xt itself, and
-                ; a subroutine jump to COMPILE,
-                jsr w_literal
+                ; compilation" by including ' <NAME> COMPILE-NT, which we do by
+                ; compiling the literal xt, and a subroutine jump to COMPILE-NT,
+                jsr w_literal                   ; ( nt -- )
 
                 ; Last, compile COMPILE,
-                ldy #>w_compile_comma
-                lda #<w_compile_comma
+                ldy #>compile_nt_comma
+                lda #<compile_nt_comma
                 jsr cmpl_subroutine
 _done:
 z_postpone:     rts
