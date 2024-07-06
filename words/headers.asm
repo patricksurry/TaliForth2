@@ -38,7 +38,7 @@
 ;
 ; Flag bits:
 ;
-;       FP - Far previous NT (two byte pointer rather than one byte offset)
+;       FP - Far previous NT (LSB/MSB not just LSB within previous page)
 ;       LC - Long code (two byte vs one byte length for native compile)
 ;       DC - Disjoint code (two byte pointer to xt rather than adjoining header)
 ;
@@ -135,7 +135,7 @@ nt_header .macro label, name="", flags=0
     _s := \name ? \name : str(.\label)
 
 _nt:                    ; remember start of header to update last_nt pointer
-    _fp := _nt < last_nt || _nt - last_nt > 255 ? FP : 0
+    _fp := _nt < last_nt || _nt - last_nt > 256 ? FP : 0
     _sz := z_\label - xt_\label
     _lc := _sz > 255 ? LC : 0
     _dc := _nt_end != xt_\label ? DC : 0
@@ -145,7 +145,7 @@ _nt:                    ; remember start of header to update last_nt pointer
 .if _fp
     .word last_nt       ; previous Dictionary header, 0000 signals start
 .else
-   .byte _nt - last_nt
+   .byte <last_nt
 .endif
 .if _dc
     .word xt_\label     ; start of code block (xt of this word)

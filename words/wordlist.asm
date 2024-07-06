@@ -419,11 +419,9 @@ z_set_current:  rts
 
 xt_set_order:
 w_set_order:
-                ; Test for -1 TOS
-                lda 0,x
-                and 1,x
-                ina
-                bne _start
+                ; Test for -1 TOS.
+                lda 1,x         ; just check MSB sign bit since other negative
+                bpl _start      ; values have undefined behavior anyway
 
                 ; There is a -1 TOS.  Replace it with the default
                 ; search order, which is just the FORTH-WORDLIST.
@@ -440,7 +438,7 @@ w_set_order:
 _start:
                 ; Set #ORDER - the number of wordlists in the search order.
                 ldy #num_order_offset
-                inx             ; Pre-drop the count so we can preserve Z
+                inx             ; Pre-drop the count so we can preserve Z flag
                 inx
                 lda $fe,x
 

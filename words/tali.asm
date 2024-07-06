@@ -533,14 +533,13 @@ _wordlist_loop:
                 iny
                 lda (up),y
                 sta tmp1+1
+                ora tmp1
+                beq _wordlist_loop     ; empty wordlist
 
 _nt_loop:
                 ; ( xt nt )
                 lda tmp1                ; if the nt is zero this list is done
                 sta 0,x                 ; but start stashing on stack just in case
-                ora tmp1+1
-                beq _wordlist_loop
-
                 lda tmp1+1              ; finish writing nt to stack
                 sta 1,x
 
@@ -558,7 +557,8 @@ _nt_loop:
 _no_match:
                 ; follow last nt link for nt in tmp1, updating in place
                 jsr nt_to_nt
-                bra _nt_loop
+                bne _nt_loop
+                beq _wordlist_loop
 
 _fail:
                 ; We didn't find it in any of the wordlists
@@ -637,7 +637,7 @@ w_name_to_int:
                 and #DC>>1              ; was DC set ?
                 beq _adjoint
 
-                ; explicit xt pointer at offset 3 (FP=0) or 4 (FP=1)
+                ; the explicit xt pointer is at offset 3 (when FP=0) or 4 (when FP=1)
                 ldy #3
                 bcc +
                 iny

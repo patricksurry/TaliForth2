@@ -1211,8 +1211,8 @@ _process_name:
 
                 ; We need to decide on the flexible sizes in the header before
                 ; we know how much memory to allot.  We'll always generate adjoining
-                ; code so DC=0.  We can check nt - last_nt to see if a one byte
-                ; offset works (FP=0) or we need two bytes (FP=1).  The LC (long code)
+                ; code so DC=0.  We can check nt - last_nt to see if we can just store
+                ; the LSB (FP=0) or we need LSB/MSB (FP=1).  The LC (long code)
                 ; flag is harder since we don't know the code length until after we've
                 ; written the header and finish code generation.  Catch-22?
                 ; Luckily we have an out.  We'll optimistically assume the generated
@@ -1227,16 +1227,19 @@ _process_name:
                 jsr current_to_dp
 
                 ; Remember the first free byte of memory as the start of
-                ; the header for the new word.  Calculate the difference
-                ; from dp at the same time.
-                sec
+                ; the header for the new word: tmp1 = cp.
+                ; Calculate offset from dp at the same time.
                 lda cp
                 sta tmp1
+                clc                     ; we want cp - dp - 1 so clc for the -1
                 sbc dp
-                pha                     ; stash the LSB of cp - dp
+
                 lda cp+1
                 sta tmp1+1
-                sbc dp+1
+                sbc dp+1                ; A has MSB of cp - dp - 1
+
+                ; we can skip MSB if cp-dp-1 is 0
+
                 beq +                   ; if A is 0 we can use a single byte offset
                 lda #FP                 ; otherwise we'll need a two byte pointer
 +
@@ -1281,22 +1284,19 @@ _process_name:
                 jsr cmpl_a
 
                 ; HEADER BYTE 2 or 2,3: last nt
-                ; If C=FP=1 we write dp, otherwise the offset we saved
-                pla                     ; fetch the offset either way
-                bcc +                   ; FP=0, use the offset
-
-                lda dp                  ; otherwise LSB of dp
-+
+                ; We always write the LSB
+                lda dp                  ; LSB of prev header is in dp
                 jsr cmpl_a              ; note cmpl_a doesn't affect carry
-                bcc +                   ; FP=0, skip the MSB
 
+                ; If C=FP=1 we write the MSB, otherwise we'll infer it later
+                bcc +                   ; FP=0, skip the MSB
                 lda dp+1                ; otherwise MSB of dp
                 jsr cmpl_a
 +
                 ; Interlude: Point start of dictionary (DP) at our new header (old CP)
                 ; and update the CURRENT wordlist with the new DP
                 ; unless it's a ":" word with no CFA which ";" will add to dictionary later
-                lda 5,x
+                lda 5,x                 ; has cfa?
                 beq +
 
                 lda tmp1

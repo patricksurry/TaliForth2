@@ -232,12 +232,15 @@ find_header_name:
         ; Stomps tmp2.  The stack is unchanged.
         ; """
 
+                lda tmp1                ; Start by checking if initial NT is zero
+                ora tmp1+1
+                beq _done
+
                 lda 2,x                 ; Copy mystery string to tmp2
                 sta tmp2
                 lda 3,x
                 sta tmp2+1
 
-                bra _check_nil          ; Start by checking if initial NT is zero
 _loop:
                 ; first quick test: Are strings the same length?
                 ldy #1                  ; length is at header offset 1
@@ -313,9 +316,6 @@ _reset_tmp1:
 _next_entry:
                 ; Otherwise move on to next header address
                 jsr nt_to_nt
-_check_nil:
-                lda tmp1                ; are we at the end of the list?
-                ora tmp1+1
                 bne _loop               ; A=0 means failure, otherwise try again
 
 _done:          cmp #0                  ; A is 0 on failure and $FF on success
@@ -323,40 +323,38 @@ _done:          cmp #0                  ; A is 0 on failure and $FF on success
 
 
 nt_to_nt:
-        ; Header helper to follow the last nt pointer or offset for the nt in tmp1
+        ; Header helper to follow the last nt pointer or offset for the non-nil nt in tmp1
         ; tmp1 is updated in place to the previous entry in the linked list
 
-        ; The last nt is stored at offset 2, as either a two-byte pointer (FP=1)
-        ; or a single byte offset preceding this one (FP=0)
+        ; The last nt is stored at offset 2, as either as LSB/MSB (FP=1)
+        ; or just LSB within previous 256 bytes (FP=0)
                 lda (tmp1)              ; check the flag bits
                 lsr                     ; FP => carry
 
                 ldy #2
-                lda (tmp1),y            ; get the LSB or offset byte
-                bcs _pointer            ; pointer or offset?
+                lda (tmp1),y            ; get the LSB
+                bcc _no_msb             ; is there a MSB?
 
-                ; It's an offset, so calculate tmp1 aka <tlo,thi> minus A
-                ;       = <tlo, thi> + (256-A) - 256
-                ;       = <tlo, thi> + (255-A) + 1 - 256
-                ;       = <tlo, thi> + <(255-A) + 1, -1>
-                ;       = <tlo + (A^$ff) + 1, thi-1>
-                sec
-                eor #$ff
-                adc tmp1
-                sta tmp1
-                lda tmp1+1
-                sbc #0          ; when C=1 msb is unchanged, C=0 msb is decremented
-                sta tmp1+1
-                bra _done
-_pointer:
                 ; It's a two byte pointer, with A as LSB
-                pha             ; stash LSB
+                pha                     ; stash LSB since we can't update tmp1 yet
                 iny
-                lda (tmp1),y    ; fetch MSB
-                sta tmp1+1      ; now we can overwrite tmp1
+                lda (tmp1),y            ; fetch MSB
+                sta tmp1+1              ; update MSB
                 pla
+                bra _finish
+
+_no_msb:
+                ; New MSB is same as current one if new LSB < current one
+                ; else current MSB-1 if new LSB >= current one
+                cmp tmp1                ; C=1 when new LSB >= current one
+                bcc _finish             ; leave current MSB alone
+                dec tmp1+1
+
+_finish:
+                ; write LSB set Z flag
                 sta tmp1
-_done:
+                ora tmp1+1      ; set Z flag
+
                 rts
 
 

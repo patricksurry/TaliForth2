@@ -263,7 +263,7 @@ N_FLAGS = 8
 
 ; This list should match s_see_flags in strings.asm
 
-FP = 1      ; Far previous NT (two byte pointer rather than one byte offset)
+FP = 1      ; Far previous NT (LSB/MSB not just LSB within previous page)
 LC = 2      ; Long code (two byte vs one byte length for native compile)
 DC = 4      ; Disjoint code (two byte pointer rather than xt adjoining header)
 
