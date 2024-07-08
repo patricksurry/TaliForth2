@@ -1058,9 +1058,9 @@ adjust_z:
                 ; VALUE and DEFER
                 jsr w_latestnt          ; gives us ( -- nt )
 
-;TODO nt>codesize offset stack -- stack
+                ; Use header status flags to calculate offset to code size
                 ; code size is 3 + 0-3 bytes further down
-                lda (0,x)               ; calculate variable length from status flags
+                lda (0,x)               ; Fetch status flags
                 and #DC+FP
                 lsr
                 adc #3                  ; 3 + 0/2(DC) + 0/1(FP=C)
@@ -1671,44 +1671,35 @@ does_runtime:
         ; other Forths
         ; """
 
-                ply             ; LSB
-                pla             ; MSB
-
-                iny
-                bne +
-                ina
-+
-                sty tmp1
-                sta tmp1+1
-
                 ; CREATE has also already modified the DP to point to the new
                 ; word. We have no idea which instructions followed the CREATE
                 ; command if there is a DOES> so the CP could point anywhere
                 ; by now.
 
                 jsr current_to_dp       ; Grab the DP from the CURRENT wordlist.
-                dex
-                dex
                 lda dp
-                sta 0,x
+                sta tmp1
                 lda dp+1
-                sta 1,x
-;TODO name>int dp -- tmp2
-                jsr w_name_to_int
-                lda 0,x
-                sta tmp2                ; xt in tmp2
-                lda 1,x
-                sta tmp2+1
-                inx
-                inx
+                sta tmp1+1
+                jsr nt_to_xt            ; nt in tmp1 to xt in y/a
+                sta tmp1                ; xt in tmp2
+                sty tmp1+1
+
+                pla                     ; LSB of return address
+                ply                     ; MSB
+
+                ina                     ; increment to point at PFA
+                bne +
+                iny
++
+                phy
 
                 ; Replace the DOVAR address with our own
-                ldy #1
-                lda tmp1        ; LSB
-                sta (tmp2),y
+                ldy #1                  ; xt points at jsr lsb/msb
+                sta (tmp1),y
                 iny
-                lda tmp1+1
-                sta (tmp2),y
+                pla
+                sta (tmp1),y
 
                 ; Since we removed the return address that brought us here, we
                 ; go back to whatever the main routine was. Otherwise, we we
@@ -4508,7 +4499,7 @@ w_postpone:
                 lda #err_noname
                 jmp error
 +
-                jsr w_find_name                ; ( -- nt | 0 )
+                jsr w_find_name                 ; ( -- nt | 0 )
 
                 ; if word not in Dictionary, complain and quit
                 bne +
@@ -4516,19 +4507,16 @@ w_postpone:
                 jmp error
 
 +
-                ; keep a copy of nt for later
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
+                ; Grab status flag byte from NT
+                lda (0,x)
+                pha
 
                 ; We need the xt instead of the nt
-                jsr w_name_to_int              ; ( nt -- xt )
+                jsr w_name_to_int               ; ( nt -- xt )
 
-                ; See if this is an immediate word. This is easier
-                ; with nt than with xt. The status byte is @NT
-                lda (tmp1)
-                and #IM         ; mask all but Intermediate flag
+                ; Is it an immediate word?
+                pla
+                and #IM                         ; check Immediate status flag
                 beq _not_immediate
 
                 ; We're immediate, so instead of executing it right now, we
@@ -4685,15 +4673,9 @@ w_recurse:
                 bvc _got_xt
 
                 ; we have a bit more work to get nt -> xt
-                dex
-                dex
-                sta 0,x
-                sty 1,x
-                jsr w_name_to_int               ; ( nt -- xt )
-                lda 0,x
-                ldy 1,x
-                inx
-                inx
+                sta tmp1
+                sty tmp1+1
+                jsr nt_to_xt                    ; nt in tmp1 to y/a
 
 _got_xt:
                 jsr cmpl_subroutine             ; JSR <Y/A>
@@ -5243,7 +5225,7 @@ z_s_to_d:       rts
 
 
 
-; ## SEMICOLON ( -- ) "End compilation of new word"
+; ## SEMICOLON ( -- ) or ( -- xt ) for :noname "End compilation of new word"
 ; ## ";"  auto  ANS core
         ; """https://forth-standard.org/standard/core/Semi
         ; End the compilation of a new word into the Dictionary.
@@ -5259,24 +5241,27 @@ z_s_to_d:       rts
 
 xt_semicolon:
 w_semicolon:
-                ; Check if this is a : word or a :NONAME word.
-                bit status              ; check bit 6 (overflow flag)
-                bvs _colonword
-
-                ; This is a :NONAME word - just put an RTS on the end and
-                ; the address (held in workword) on the stack.
-                lda #OpRTS
-                jsr cmpl_a
-
                 dex
                 dex
                 lda workword
                 sta 0,x
                 lda workword+1
-                sta 1,x
+                sta 1,x                 ; ( xt|nt )
+
+                ; Check if this is a : word or a :NONAME word.
+                bit status              ; check bit 6 (overflow flag)
+                bvs _colonword
+
+                ; This is a :NONAME word - just put an RTS on the end and
+                ; leave workword (xt) on the stack.
+                lda #OpRTS
+                jsr cmpl_a
+
                 bra _semicolon_done
 
 _colonword:
+                ; ( nt )
+
                 ; if status bit 4 is still 1, we didn't compile any never-native
                 ; code so we can safely clear the NN flag
                 lda #%00010000
@@ -5292,30 +5277,22 @@ _colonword:
                 lda cp
                 sta 0,x
                 lda cp+1
-                sta 1,x                 ; ( cp )
+                sta 1,x                 ; ( nt cp )
 
-;TODO name>int workword - stack
-                dex
-                dex
-                lda workword
-                sta 0,x
-                lda workword+1
-                sta 1,x                 ; ( cp nt )
+                jsr w_swap              ; ( cp nt)
                 jsr w_name_to_int       ; ( cp xt )
-
                 jsr w_minus             ; ( cp-xt )
 
-;TODO name>codesize workword -- A
-                ; Find the offset to code size
-                lda (workword)          ; status flags
+                ; Use header status flags to calculate offset to code size
+                lda (workword)          ; Fetch status flags
                 and #DC+FP
                 lsr                     ; A=0 or 2 with FP in carry
                 adc #3
                 tay
 
+                lda 0,x                 ; LSB of code size
+                sta (workword),y        ; Write code size
 ;TODO LC shuffle: if 1,x is nonzero then we have a large word, so shuffle or clamp based on NN
-                lda 0,x
-                sta (workword),y
                 inx
                 inx
 

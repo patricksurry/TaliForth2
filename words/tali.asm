@@ -312,7 +312,7 @@ _wordlist_loop:
                 lda (up),y
                 sta tmp1+1
 
-                jsr find_header_name
+                jsr find_nt_by_name
                 bne _success
 
                 ; Move on to the next wordlist in the search order.
@@ -500,7 +500,7 @@ z_input_to_r: 	rts
         ; This is called >NAME in Gforth, but we change it to
         ; INT>NAME to match NAME>INT
         ;
-        ; Uses tmp1 and indirectly tmp3
+        ; Uses tmp1
         ; """
 
 xt_int_to_name:
@@ -509,19 +509,13 @@ w_int_to_name:
                 ; Unfortunately, to find the header, we have to walk through
                 ; all of the wordlists, which we do in id order.
 
-                lda #0                  ; put first wordlist id on the stack
-                pha
-
-                dex
-                dex                     ; ( xt ? )  (R: wid)
+                stz tmptos              ; initialize loop counter with first wordlist id
 
 _wordlist_loop:
-                ply                     ; fetch and increment wordlist id
-                tya
-                iny
-                phy                     ; ( xt ? )  (R: wid+1)  A = wid
+                lda tmptos              ; fetch and increment wordlist id
                 cmp #max_wordlists
-                beq _fail
+                bcs _done               ; we're done when index >= max
+                inc tmptos              ; bump index for next go round
 
                 ; Get the DP for that wordlist.
                 asl                     ; Turn offset into cells offset.
@@ -533,42 +527,11 @@ _wordlist_loop:
                 iny
                 lda (up),y
                 sta tmp1+1
-                ora tmp1
-                beq _wordlist_loop     ; empty wordlist
 
-_nt_loop:
-                ; ( xt nt )
-                lda tmp1                ; if the nt is zero this list is done
-                sta 0,x                 ; but start stashing on stack just in case
-                lda tmp1+1              ; finish writing nt to stack
-                sta 1,x
+                jsr find_nt_by_xt
+                beq _wordlist_loop      ; found?
 
-;TODO name>int tmp1 (or stack) -- stack
-                jsr w_name_to_int       ; ( xt xt' ) - uses tmp3
-
-                lda 0,x                 ; does this xt' match?
-                cmp 2,x
-                bne _no_match
-
-                lda 1,x
-                cmp 3,x
-                beq _match
-
-_no_match:
-                ; follow last nt link for nt in tmp1, updating in place
-                jsr nt_to_nt
-                bne _nt_loop
-                beq _wordlist_loop
-
-_fail:
-                ; We didn't find it in any of the wordlists
-                ; Clear tmp1 to indicate failure
-                stz tmp1
-                stz tmp1+1
-_match:
-                pla                     ; clear wid counter
-                inx                     ; ( xt xt' -- xt )
-                inx
+_done:
                 ; Write stashed nt (found or 0) to TOS
                 lda tmp1
                 sta 0,x
@@ -616,7 +579,7 @@ z_latestxt:     rts
         ; """See
         ; https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
         ;
-        ; Uses tmp3
+        ; Uses tmp1
         ; """
 
 xt_name_to_int:
@@ -625,46 +588,16 @@ w_name_to_int:
                 ; The header either has an explict xt pointer (DC=1)
                 ; or the xt immediately follows the header (DC=0)
 
-                lda 0,x                 ; copy nt to tmp3
-                sta tmp3
+                lda 0,x                 ; copy nt to tmp1
+                sta tmp1
                 lda 1,x
-                sta tmp3+1
+                sta tmp1+1
 
-                lda (tmp3)              ; DC flag tells us pointer (1) or adjoining (0)
-                and #DC+LC+FP           ; mask length bits
-                lsr                     ; push FP to carry
-                tay                     ; stash A in case we need it
-                and #DC>>1              ; was DC set ?
-                beq _adjoint
-
-                ; the explicit xt pointer is at offset 3 (when FP=0) or 4 (when FP=1)
-                ldy #3
-                bcc +
-                iny
-+
-                lda (tmp3),y            ; fetch LSB of xt
-                sta 0,x
-                iny
-                lda (tmp3),y            ; fetch MSB
-                sta 1,x
-                bra _done
-
-_adjoint:
-                ; otherwise calculate nt + header + name length
-;TODO hdrsize tmp3 -- A
-                tya                     ; Y and the carry have the variable length info
-                adc #4
-
-                ldy #1                  ; add name length byte
-                adc (tmp3),y            ; carry already clear and stays clear
-
-                adc tmp3                ; add to nt
-                sta 0,x                 ; update LSB
-                bcc _done
-
-                inc 1,x                 ; maybe update MSB
+                jsr nt_to_xt            ; get xt to Y/A
 
 _done:
+                sta 0,x
+                sty 1,x
 z_name_to_int:  rts
 
 
@@ -1143,9 +1076,8 @@ z_useraddr:     rts
 xt_wordsize:
                 jsr underflow_1
 w_wordsize:
-;TODO nt>codesize stack -- A
-                ; Use status flags to find offset to body size
-                lda (0,x)
+                ; Use header status flags to calculate offset to code size
+                lda (0,x)       ; fetch status flag byte
                 pha             ; stash the flags for later LC check
                 and #DC+FP      ; mask length bits excluding LC
                 lsr             ; preserve DC flag with FP in carry

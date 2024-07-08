@@ -283,9 +283,9 @@ w_see:
 
                 lda #str_see_header
                 jsr print_string_no_lf
-;TODO hdrsize stack -- A
                 jsr w_over
-                lda (0,x)               ; calculate variable header length
+                ; calculate header length from status flag byte
+                lda (0,x)               ; fetch status byte
                 and #DC+LC+FP           ; mask length bits
                 lsr                     ; shift FP to carry flag, A = 2*DC + LC
                 adc #4                  ; header length is 4 bytes + 2*DC + LC + FP

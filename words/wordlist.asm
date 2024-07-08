@@ -348,7 +348,7 @@ w_search_wordlist:
                 lda (tmp2)
                 sta tmp1+1
 
-                jsr find_header_name
+                jsr find_nt_by_name
                 beq _drop_fail
 
                 ; The strings match. Drop the count and put correct nt TOS

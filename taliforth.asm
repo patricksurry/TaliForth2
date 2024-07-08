@@ -222,112 +222,77 @@ _nibble_to_ascii:
                 rts
 
 
-find_header_name:
-        ; """Given a string on the stack ( addr n ) with n at most 255
+; =====================================================================
+; HEADER HELPER FUNCTIONS
+;
+; These functions help navigate the variable size headers.
+; You'll see that both find_nt_by_name and find_nt_by_xt share a block
+; called _nt_to_nt.   This is inlined rather than extracting a
+; shared nt_to_nt subroutine and/or merging the two calling routines
+; because they get a lot of exercise during compilation:
+; in the current test suite the _nt_to_nt step happens about 2M times
+; in find_nt_by_name (during parsing), and another 100K times
+; in find_nt_by_xt (mostly from compile,).
+; This might be worth revisiting down the road.
+
+nt_to_xt:
+        ; Given a valid nt in tmp1 (unchanged), return its xt in Y/A
+
+                lda (tmp1)              ; DC flag tells us pointer (1) or adjoining (0)
+                lsr                     ; FP -> carry bit
+                bit #DC>>1              ; is DC set (leaves carry unchanged)?
+                beq _adjoint
+
+                ; the explicit xt pointer is at offset 3 (when FP=0) or 4 (when FP=1)
+                ldy #3
+                bcc +
+                iny
++
+                lda (tmp1),y            ; fetch LSB of xt
+                pha
+                iny
+                lda (tmp1),y            ; fetch MSB
+                tay
+                pla
+                rts
+_adjoint:
+                ; otherwise calculate nt + header + name length
+                and #(DC+LC)>>1         ; mask length bits
+                adc #4                  ; add along with FP in carry
+
+                ldy #1                  ; add name length byte
+                adc (tmp1),y            ; carry already clear and stays clear
+
+                adc tmp1                ; add to nt
+                ldy tmp1+1
+                bcc +
+                iny                     ; maybe update MSB
++
+                rts
+
+
+find_nt_by_name:
+        ; Given a string on the stack ( addr n ) with n at most 255
         ; and tmp1 pointing at an NT header, search each
         ; linked header looking for a matching name.
         ;
-        ; On success tmp1 points at the matching NT, with A=$FF and Z=0.
+        ; On success tmp1 points at the matching NT, with A nonzero and Z=0.
         ; On failure tmp1 is 0, A=0 and Z=1.
         ; Stomps tmp2.  The stack is unchanged.
-        ; """
 
                 lda tmp1                ; Start by checking if initial NT is zero
                 ora tmp1+1
                 beq _done
-
-                lda 2,x                 ; Copy mystery string to tmp2
-                sta tmp2
-                lda 3,x
-                sta tmp2+1
 
 _loop:
                 ; first quick test: Are strings the same length?
                 ldy #1                  ; length is at header offset 1
                 lda (tmp1),y
                 cmp 0,x
-                bne _next_entry
+                beq _maybe
 
-                ; second quick test: could first characters be equal?
-;TODO headersize (excl name)
-                lda (tmp1)              ; calculate name offset
-                and #DC+LC+FP
-                lsr
-                adc #4
-                tay
-
-                lda (tmp1),y            ; first character of candidate
-                eor (tmp2)              ; flag any mismatched bits
-                and #%11011111          ; but ignore upper/lower case bit
-                bne _next_entry         ; definitely not equal if any bits differ
-
-                ; Same length and probably same first character
-                ; (though we still have to check properly).
-                ; Suck it up and compare all characters. We go
-                ; from back to front, because words like CELLS and CELL+ would
-                ; take longer otherwise.
-
-                ; Update tmp1 += Y to point at name, saving original address
-                lda tmp1
-                pha                     ; Save original address on the stack
-                clc
-                tya                     ; add offset to name
-                adc tmp1
-                sta tmp1
-                lda tmp1+1
-                pha                     ; save MSB
-                bcc +
-                ina
-                sta tmp1+1
-+
-                ldy 0,x                 ; index is length of string minus 1
-                dey
-
-_next_char:
-                lda (tmp2),y            ; last char of mystery string
-
-                ; Lowercase the incoming charcter.
-                cmp #'Z'+1
-                bcs _check_char
-                cmp #'A'
-                bcc _check_char
-
-                ; Convert uppercase letter to lowercase.
-                ora #$20
-
-_check_char:
-                cmp (tmp1),y            ; last char of word we're testing against
-                bne _reset_tmp1
-
-                dey
-                bpl _next_char
-
-                ; if we fall through on success, and only then, Y is $FF
-_reset_tmp1:
-                pla
-                sta tmp1+1
-                pla
-                sta tmp1
-
-                tya                     ; leave A = $FF on success
-                iny                     ; if Y was $FF, we succeeded
-                beq _done
-
-_next_entry:
+_nt_to_nt:
                 ; Otherwise move on to next header address
-                jsr nt_to_nt
-                bne _loop               ; A=0 means failure, otherwise try again
-
-_done:          cmp #0                  ; A is 0 on failure and $FF on success
-                rts                     ; so cmp #0 sets Z=1 on failure and 0 on success
-
-
-nt_to_nt:
-        ; Header helper to follow the last nt pointer or offset for the non-nil nt in tmp1
-        ; tmp1 is updated in place to the previous entry in the linked list
-
-        ; The last nt is stored at offset 2, as either as LSB/MSB (FP=1)
-        ; or just LSB within previous 256 bytes (FP=0)
                 lda (tmp1)              ; check the flag bits
                 lsr                     ; FP => carry
 
@@ -353,8 +318,132 @@ _no_msb:
 _finish:
                 ; write LSB set Z flag
                 sta tmp1
-                ora tmp1+1      ; set Z flag
+                ora tmp1+1
 
+                bne _loop               ; A=0 means failure, otherwise try again
+
+; -- end _nt_to_nt
+
+                beq _done
+
+_maybe:
+                ; second quick test: could first characters be equal?
+                ; Use header status flags to calculate offset to name (header size)
+                lda (tmp1)              ; Fetch status flags
+                and #DC+LC+FP
+                lsr
+                adc #4
+                tay
+
+                lda (tmp1),y            ; first character of candidate
+                eor (2,x)               ; flag any mismatched bits
+                and #%11011111          ; but ignore upper/lower case bit
+                bne _nt_to_nt           ; definitely not equal if any bits differ
+
+                ; Same length and probably same first character
+                ; (though we still have to check properly).
+                ; Suck it up and compare all characters. We go
+                ; from back to front, because words like CELLS and CELL+ would
+                ; take longer otherwise.
+
+                sty tmptos              ; stash header length, the name offset
+                sec
+                lda 2,x                 ; Copy mystery string addr - Y to tmp2
+                sbc tmptos
+                sta tmp2
+                lda 3,x
+                sbc #0
+                sta tmp2+1
+
+                clc
+                lda 0,x                 ; string length
+                sta tmptos+1            ; our loop counter
+                adc tmptos              ; add offset
+                tay
+                dey
+
+_next_char:
+                lda (tmp2),y            ; last char of mystery string
+                ; Lowercase the incoming charcter.
+                cmp #'Z'+1
+                bcs _check_char
+                cmp #'A'
+                bcc _check_char
+
+                ; Convert uppercase letter to lowercase.
+                ora #$20
+
+_check_char:
+                cmp (tmp1),y            ; last char of word we're testing against
+                bne _nt_to_nt
+
+                dey
+                dec tmptos+1
+                bne _next_char
+
+                ; fall through on success with non-zero result
+                lda #$ff
+
+_done:          rts
+
+
+
+
+find_nt_by_xt:
+        ; Given ( xt ) on the stack and tmp1 pointing to an NT header
+        ; search each linked header looking for a matching xt
+
+                lda tmp1                ; Start by checking if initial NT is zero
+                ora tmp1+1
+                beq _done               ; failure with A=0, Z=1
+
+_loop:
+                jsr nt_to_xt            ; nt in tmp1 to xt in y/a
+
+                ; ( xt )
+                cmp 0,x                 ; does LSB match?
+                bne _nt_to_nt
+                tya
+                cmp 1,x                 ; does MSB match?
+                bne _nt_to_nt
+
+                lda #$ff                ; non-zero result for success
+                bra _done
+
+_nt_to_nt:
+                ; Otherwise move on to next header address
+                lda (tmp1)              ; check the flag bits
+                lsr                     ; FP => carry
+
+                ldy #2
+                lda (tmp1),y            ; get the LSB
+                bcc _no_msb             ; is there a MSB?
+
+                ; It's a two byte pointer, with A as LSB
+                pha                     ; stash LSB since we can't update tmp1 yet
+                iny
+                lda (tmp1),y            ; fetch MSB
+                sta tmp1+1              ; update MSB
+                pla
+                bra _finish
+
+_no_msb:
+                ; New MSB is same as current one if new LSB < current one
+                ; else current MSB-1 if new LSB >= current one
+                cmp tmp1                ; C=1 when new LSB >= current one
+                bcc _finish             ; leave current MSB alone
+                dec tmp1+1
+
+_finish:
+                ; write LSB set Z flag
+                sta tmp1
+                ora tmp1+1
+
+                bne _loop               ; A=0 means failure, otherwise try again
+
+; -- end _nt_to_nt
+
+_done:
                 rts
 
 
