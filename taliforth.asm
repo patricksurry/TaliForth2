@@ -226,14 +226,48 @@ _nibble_to_ascii:
 ; HEADER HELPER FUNCTIONS
 ;
 ; These functions help navigate the variable size headers.
-; You'll see that both find_nt_by_name and find_nt_by_xt share a block
-; called _nt_to_nt.   This is inlined rather than extracting a
-; shared nt_to_nt subroutine and/or merging the two calling routines
-; because they get a lot of exercise during compilation:
-; in the current test suite the _nt_to_nt step happens about 2M times
+; Currently nt_to_nt is a subroutine that's shared by several callers.
+; In the current test suite this is called about 2M times
 ; in find_nt_by_name (during parsing), and another 100K times
-; in find_nt_by_xt (mostly from compile,).
-; This might be worth revisiting down the road.
+; in find_nt_by_xt (mostly by compile,).
+; Inlining nt_to_nt in the find_nt_by_name variant would save about 25M cycles
+; (about 14% of the test suite cycles) but this is only a compile time expense
+; so might not be worth it for "real" forth code,
+; particularly if we add some simple cache to find_nt_by.
+
+nt_to_nt:
+                ; nt_to_nt updates tmp1 to point to the next header address
+                ; Use as standalone subroutine by setting V=1 (e.g. bit z_drop)
+                ; Sets tmp1=0 and Z=1 when we reach the end of the list
+                lda (tmp1)              ; check the flag bits
+                lsr                     ; FP => carry
+
+                ldy #2
+                lda (tmp1),y            ; get the LSB
+                bcc _no_msb             ; is there a MSB?
+
+                ; It's a two byte pointer, with A as LSB
+                pha                     ; stash LSB since we can't update tmp1 yet
+                iny
+                lda (tmp1),y            ; fetch MSB
+                sta tmp1+1              ; update MSB
+                pla
+                bra _finish
+
+_no_msb:
+                ; New MSB is same as current one if new LSB < current one
+                ; else current MSB-1 if new LSB >= current one
+                cmp tmp1                ; C=1 when new LSB >= current one
+                bcc _finish             ; leave current MSB alone
+                dec tmp1+1
+
+_finish:
+                ; write LSB and set Z flag
+                sta tmp1
+                ora tmp1+1
+
+                rts
+
 
 nt_to_xt:
         ; Given a valid nt in tmp1 (unchanged), return its xt in Y/A
@@ -291,40 +325,11 @@ _loop:
                 cmp 0,x
                 beq _maybe
 
-_nt_to_nt:
-                ; Otherwise move on to next header address
-                lda (tmp1)              ; check the flag bits
-                lsr                     ; FP => carry
+_next_nt:
+                jsr nt_to_nt
 
-                ldy #2
-                lda (tmp1),y            ; get the LSB
-                bcc _no_msb             ; is there a MSB?
-
-                ; It's a two byte pointer, with A as LSB
-                pha                     ; stash LSB since we can't update tmp1 yet
-                iny
-                lda (tmp1),y            ; fetch MSB
-                sta tmp1+1              ; update MSB
-                pla
-                bra _finish
-
-_no_msb:
-                ; New MSB is same as current one if new LSB < current one
-                ; else current MSB-1 if new LSB >= current one
-                cmp tmp1                ; C=1 when new LSB >= current one
-                bcc _finish             ; leave current MSB alone
-                dec tmp1+1
-
-_finish:
-                ; write LSB set Z flag
-                sta tmp1
-                ora tmp1+1
-
-                bne _loop               ; A=0 means failure, otherwise try again
-
-; -- end _nt_to_nt
-
-                beq _done
+                bne _loop        ; A=0 means failure, otherwise try again
+                bra _done
 
 _maybe:
                 ; second quick test: could first characters be equal?
@@ -338,7 +343,7 @@ _maybe:
                 lda (tmp1),y            ; first character of candidate
                 eor (2,x)               ; flag any mismatched bits
                 and #%11011111          ; but ignore upper/lower case bit
-                bne _nt_to_nt           ; definitely not equal if any bits differ
+                bne _next_nt            ; definitely not equal if any bits differ
 
                 ; Same length and probably same first character
                 ; (though we still have to check properly).
@@ -375,7 +380,7 @@ _next_char:
 
 _check_char:
                 cmp (tmp1),y            ; last char of word we're testing against
-                bne _nt_to_nt
+                bne _next_nt
 
                 dey
                 dec tmptos+1
@@ -384,9 +389,8 @@ _check_char:
                 ; fall through on success with non-zero result
                 lda #$ff
 
-_done:          rts
-
-
+_done:
+                rts
 
 
 find_nt_by_xt:
@@ -402,46 +406,17 @@ _loop:
 
                 ; ( xt )
                 cmp 0,x                 ; does LSB match?
-                bne _nt_to_nt
+                bne _next_nt
                 tya
                 cmp 1,x                 ; does MSB match?
-                bne _nt_to_nt
+                bne _next_nt
 
                 lda #$ff                ; non-zero result for success
                 bra _done
 
-_nt_to_nt:
-                ; Otherwise move on to next header address
-                lda (tmp1)              ; check the flag bits
-                lsr                     ; FP => carry
-
-                ldy #2
-                lda (tmp1),y            ; get the LSB
-                bcc _no_msb             ; is there a MSB?
-
-                ; It's a two byte pointer, with A as LSB
-                pha                     ; stash LSB since we can't update tmp1 yet
-                iny
-                lda (tmp1),y            ; fetch MSB
-                sta tmp1+1              ; update MSB
-                pla
-                bra _finish
-
-_no_msb:
-                ; New MSB is same as current one if new LSB < current one
-                ; else current MSB-1 if new LSB >= current one
-                cmp tmp1                ; C=1 when new LSB >= current one
-                bcc _finish             ; leave current MSB alone
-                dec tmp1+1
-
-_finish:
-                ; write LSB set Z flag
-                sta tmp1
-                ora tmp1+1
-
+_next_nt:
+                jsr nt_to_nt
                 bne _loop               ; A=0 means failure, otherwise try again
-
-; -- end _nt_to_nt
 
 _done:
                 rts

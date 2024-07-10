@@ -122,6 +122,7 @@ io_blk_buffer = 0
 .endweak
 xt_block_c65_init:
 w_block_c65_init:
+;TODO shouldn't update vectors on failure. should return false right away when not c65
                 lda #$ff
                 sta io_blk_status
                 lda #$0

@@ -285,6 +285,7 @@ last_nt := 0
 #nt_header aligned
 #nt_header wordsize
 #nt_header words
+#nt_header djb2
 #nt_header marker, "marker", IM
 #nt_header at_xy, "at-xy"
 #nt_header page

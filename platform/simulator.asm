@@ -31,6 +31,7 @@ io_putc:        .byte ?         ; $f001     write byte to stdout
                 .byte ?
 io_kbhit:       .byte ?         ; $f003     read non-zero on key ready (c65 only)
 io_getc:        .byte ?         ; $f004     non-blocking read input character (0 if no key)
+                .byte ?
 io_clk_start:   .byte ?         ; $f006     *read* to start cycle counter
 io_clk_stop:    .byte ?         ; $f007     *read* to stop the cycle counter
 io_clk_cycles:  .word ?,?       ; $f008-b   32-bit cycle count in NUXI order
