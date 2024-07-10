@@ -103,16 +103,8 @@ _done:
 
 z_block:        rts
 
-.weak
-; These labels allow this to assemble even if c65 is not the target platform.
-; Because they are weak, they will be replaced when c65 is the target platform.
-io_blk_status = 0
-io_blk_action = 0
-io_blk_number = 0
-io_blk_buffer = 0
-.endweak
 
-.if io_blk_action != 0
+.if TALI_ARCH == "c65"
 
 ; ## BLOCK_C65_INIT ( -- f ) "Initialize c65 simulator block storage"
 ; ## "block-c65-init"  auto  Tali block
