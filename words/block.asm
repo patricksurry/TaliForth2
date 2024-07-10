@@ -103,15 +103,6 @@ _done:
 
 z_block:        rts
 
-.if "block" in TALI_OPTIONAL_WORDS
-
-; ## BLOCK_C65_INIT ( -- f ) "Initialize c65 simulator block storage"
-; ## "block-c65-init"  auto  Tali block
-        ; """Set up block IO to read/write to/from c65 block file.
-        ; Run simulator with a writable block file option
-        ; e.g. `touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin`
-        ; Returns true if c65 block storage is available and false otherwise."""
-
 .weak
 ; These labels allow this to assemble even if c65 is not the target platform.
 ; Because they are weak, they will be replaced when c65 is the target platform.
@@ -120,19 +111,36 @@ io_blk_action = 0
 io_blk_number = 0
 io_blk_buffer = 0
 .endweak
+
+.if io_blk_action != 0
+
+; ## BLOCK_C65_INIT ( -- f ) "Initialize c65 simulator block storage"
+; ## "block-c65-init"  auto  Tali block
+        ; """Set up block IO to read/write to/from c65 block file.
+        ; Run simulator with a writable block file option
+        ; e.g. `touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin`
+        ; Returns true if c65 block storage is available and false otherwise."""
+
+
 xt_block_c65_init:
 w_block_c65_init:
+                ldy #0                  ; Y will be result 0 or -1, assume the worst
                 lda #$ff
-                sta io_blk_status
+                sta io_blk_status       ; write status so we can see if it changes
                 lda #$0
                 sta io_blk_action
-                lda io_blk_status      ; $0 if OK, $ff otherwise
-                eor #$ff            ; invert to forth true/false
+                lda io_blk_status       ; $0 if OK, non-zero otherwise
+                bne +                   ; failed, leave Y=0
+                dey                     ; otherwise set Y=-1
++
+                dex                     ; make space for result
                 dex
-                dex
-                sta 0,x             ; true ($ff) if OK, false (0) otherwise
-                sta 1,x
-                dex
+                sty 0,x                 ; true ($ff) if OK, false (0) otherwise
+                sty 1,x
+                tya                     ; check zero status
+                beq z_block_c65_init    ; if failed, skip vector setup
+
+                dex                     ; set block read/write vectors
                 dex
                 lda #<c65_blk_read
                 sta 0,x
@@ -140,6 +148,7 @@ w_block_c65_init:
                 sta 1,x
                 jsr w_block_read_vector
                 jsr w_store
+
                 dex
                 dex
                 lda #<c65_blk_write
@@ -148,6 +157,7 @@ w_block_c65_init:
                 sta 1,x
                 jsr w_block_write_vector
                 jsr w_store
+
 z_block_c65_init:
                 rts
 
@@ -169,7 +179,6 @@ c65_blk_rw:     lda 0,x                 ; ( addr blk# )
                 inx
                 rts
 .endif
-
 
 
 .if "ramdrive" in TALI_OPTIONAL_WORDS
