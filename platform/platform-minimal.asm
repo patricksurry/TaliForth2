@@ -12,6 +12,8 @@
         ; No special text encoding (eg. ASCII)
         .enc "none"
 
+TALI_ARCH := "c65"
+
 ram_end = $c000-1
 
 ; Where to start Tali Forth 2 in ROM (or RAM if loading it)

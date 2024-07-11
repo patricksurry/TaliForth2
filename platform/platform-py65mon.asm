@@ -5,6 +5,8 @@
         ; No special text encoding (eg. ASCII)
         .enc "none"
 
+TALI_ARCH := "py65mon"
+
 ram_end = $7fff
 
         ; Set the origin for Tali Forth 2 in ROM (or RAM if loading it)

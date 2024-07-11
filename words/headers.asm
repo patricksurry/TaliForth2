@@ -218,13 +218,15 @@ last_nt := 0
 #nt_header definitions
 .endif
 
-.if "block" in TALI_OPTIONAL_WORDS && "ramdrive" in TALI_OPTIONAL_WORDS
-#nt_header block_ramdrive_init, "block-ramdrive-init"
-.endif
-
 .if "block" in TALI_OPTIONAL_WORDS
-   .if "editor" in TALI_OPTIONAL_WORDS
+
+    .if "ramdrive" in TALI_OPTIONAL_WORDS
+#nt_header block_ramdrive_init, "block-ramdrive-init"
+    .endif
+   .if TALI_ARCH == "c65"
 #nt_header block_c65_init, "block-c65-init"
+   .endif
+   .if "editor" in TALI_OPTIONAL_WORDS
 #nt_header list
    .endif
 

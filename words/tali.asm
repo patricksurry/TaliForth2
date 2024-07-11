@@ -447,7 +447,7 @@ z_input:        rts
 ; ## INPUT_TO_R ( -- ) ( R: -- n n n n ) "Save input state to the Return Stack"
 ; ## "input>r"  tested  Tali Forth
    	; """Save the current input state as defined by insrc, cib, ciblen, and
-        ; toin to the Return Stack. Used by EVALUTE.
+        ; toin to the Return Stack. Used by EVALUATE.
         ;
         ; The naive way of doing
         ; this is to push each two-byte variable to the stack in the form of

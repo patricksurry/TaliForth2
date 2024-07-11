@@ -25,6 +25,9 @@ TALI_OPTION_TERSE :?= 0
 ; Default to ctrl-n/p accept history
 TALI_OPTION_HISTORY :?= 1
 
+; Optional hardware/simulator architecture name for customization
+TALI_ARCH :?= ""
+
 ; Label used to calculate UNUSED based on the hardware configuration in platform/
 code0:
 
