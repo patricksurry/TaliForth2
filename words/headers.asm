@@ -1344,17 +1344,18 @@ nt_thru:
         .word +, xt_thru, z_thru
         .text "thru"
 +
-
-.if "editor" in TALI_OPTIONAL_WORDS
-nt_list:
-        .byte 4, 0
-        .word nt_block_c65_init, xt_list, z_list
-        .text "list"
-
+.if TALI_ARCH == "c65"
 nt_block_c65_init:
         .byte 14, 0
         .word +, xt_block_c65_init, z_block_c65_init
         .text "block-c65-init"
++
+.endif
+.if "editor" in TALI_OPTIONAL_WORDS
+nt_list:
+        .byte 4, 0
+        .word +, xt_list, z_list
+        .text "list"
 +
 .endif
 .endif

@@ -31,20 +31,26 @@ io_putc:        .byte ?         ; $f001     write byte to stdout
                 .byte ?
 io_kbhit:       .byte ?         ; $f003     read non-zero on key ready (c65 only)
 io_getc:        .byte ?         ; $f004     non-blocking read input character (0 if no key)
+                .byte ?
 io_clk_start:   .byte ?         ; $f006     *read* to start cycle counter
 io_clk_stop:    .byte ?         ; $f007     *read* to stop the cycle counter
 io_clk_cycles:  .word ?,?       ; $f008-b   32-bit cycle count in NUXI order
                 .word ?,?
 
+.cerror * != io_start + $10, "Mismatched magic IO interface"
+
+.if TALI_ARCH == "c65"
+
 ; These magic block IO addresses are only implemented by c65 (not py65mon)
 ; see c65/README.md for more detail
 
-io_blk_action:  .byte ?     ; $f010     Write to act (status=0 read=1 write=2)
-io_blk_status:  .byte ?     ; $f011     Read action result (OK=0)
-io_blk_number:  .word ?     ; $f012     Little endian block number 0-ffff
-io_blk_buffer:  .word ?     ; $f014     Little endian memory address
+io_blk_action:  .byte ?         ; $f010     Write to act (status=0 read=1 write=2)
+io_blk_status:  .byte ?         ; $f011     Read action result (OK=0)
+io_blk_number:  .word ?         ; $f012     Little endian block number 0-ffff
+io_blk_buffer:  .word ?         ; $f014     Little endian memory address
 
-io_end:
+.cerror * != io_start + $16, "Mismatched magic block IO interface"
+.endif
 
 ; Now we're safe to inject the required kernel routines to interface to
 ; our "hardware" which is a simulator in this configuration.

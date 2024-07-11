@@ -4281,7 +4281,7 @@ _char_found:
         ; Since PARSE does not skip leading delimiters, we assume we are on a
         ; useful string if there are any characters at all. As with
         ; PARSE-NAME, we must be able to handle strings with a length of
-        ; 16-bit for EVALUTE, which is a pain on an 8-bit machine.
+        ; 16-bit for EVALUATE, which is a pain on an 8-bit machine.
         ; """
 
 xt_parse:
