@@ -763,7 +763,7 @@ z_bracket_tick: rts
                 ; """
 xt_buffer_colon:
 w_buffer_colon:
-                jsr w_create
+                jsr w_create            ; will show PFA size 2 in SEE
                 jsr w_allot
 z_buffer_colon: rts
 
@@ -1045,39 +1045,14 @@ w_value:
 w_constant:
 
             	; Use create but with DOCONST for constants.
+                lda #2
+                sta tmpdsp              ; 2 byte PFA
                 lda #<doconst           ; LSB of DOCONST
                 ldy #>doconst           ; MSB of DOCONST
                 jsr create_common
 
                 ; Now we save the constant number itself in the next cell
                 jsr w_comma            ; drop through to adjust_z
-
-adjust_z:
-                ; Now the length of the complete word (z_word) has increased by
-                ; two. We need to update that number or else words such as SEE
-                ; will ignore the PFA. We use this same routine for VARIABLE,
-                ; VALUE (aka CONSTANT) and DEFER
-                jsr w_latestnt         ; gives us ( -- nt )
-
-                ; z_word is six bytes further down
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
-
-                ldy #6
-                lda (tmp1),y
-                clc
-                adc #2
-                sta (tmp1),y
-                iny
-                lda (tmp1),y
-                adc #0                  ; only need carry
-                sta (tmp1),y
-
-                inx
-                inx
-
 z_value:
 z_constant:     rts
 
@@ -1140,6 +1115,11 @@ xt_create:
 w_create:
                 ; Several routines will use CREATE to build new words.
                 ; They'll pass the CFA in A/Y, with Y=0 indicating no CFA.
+                ; When Y is non-zero, tmpdsp should contain the PFA size
+                ; so we can adjust the word length for SEE.
+                lda #2                  ; 2 byte PFA for variable
+                sta tmpdsp
+create_dovar:
                 ldy #>dovar
                 lda #<dovar
 create_common:
@@ -1299,11 +1279,12 @@ _process_name:
                 ; HEADER BYTE 6,7: End of code ("z_" of this word).
                 ; If there's no CFA this is the same as xt_ since we have no code yet,
                 ; otherwise we add three bytes for the subroutine call we'll compile below
+                clc
                 lda 3,x
                 beq +                   ; leave A=0
                 lda #3
+                adc tmpdsp              ; add PFA size, assume no carry
 +
-                clc
                 adc tmptos              ; add LSB of xt_
                 sta (tmp1),y
                 iny
@@ -1396,6 +1377,8 @@ z_decimal:      rts
 xt_defer:
 w_defer:
                 ; we want CREATE but with DODEFER as the CFA
+                lda #2
+                sta tmpdsp      ; 2 byte PFA
                 lda #<dodefer   ; LSB
                 ldy #>dodefer   ; MSB
                 jsr create_common
@@ -1406,7 +1389,6 @@ w_defer:
                 lda #<defer_error
                 ldy #>defer_error
                 jsr cmpl_word
-                jsr adjust_z    ; adjust header by two to correct length
 
 z_defer:        rts
 
@@ -3481,6 +3463,8 @@ w_marker:
 
                 ; we want CREATE but with marker_runtime as the CFA
                 ; we'll redirect via domarker from the "known CFA routines" block
+                lda #4 + marker_end_offset - marker_start_offset
+                sta tmpdsp              ; PFA size in bytes
                 lda #<domarker
                 ldy #>domarker
                 jsr create_common
@@ -4165,6 +4149,8 @@ z_paren:        rts
         ; is actually perfectly legal (see for example
         ; http://forth-standard.org/standard/usage#subsubsection.3.4.1.1).
         ; Otherwise, PARSE-NAME chokes on tabs.
+        ;
+        ; Uses tmp1, tmp2
         ; """
 
 xt_parse_name:
@@ -7027,9 +7013,6 @@ w_variable:
                 lda #0
                 jsr cmpl_a
                 jsr cmpl_a
-
-                ; Now we need to adjust the length of the complete word by two bytes
-                jsr adjust_z
 
 z_variable:     rts
 

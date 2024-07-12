@@ -288,7 +288,7 @@ w_see:
                 lda (0, x)
                 sta 0,x                 ; stash status flag byte
                 stz 1,x                 ; placeholder for synthetic flags
-
+                                        ; ( nt xt flags )
                 ; collect synthetic flags in reverse order for template
                 and #ST                 ; calculate ST flag
                 cmp #ST
@@ -299,6 +299,11 @@ w_see:
 
                 jsr w_over              ; grab a copy of XT for HC check
                 jsr has_cfa             ; C=1 when has CFA
+                lda #0
+                bcc +
+                lda #3
++
+                sta tmpdsp              ; stash 0 (no CFA) or 3 (has CFA)
                 rol 1,x                 ; add to synthetic flags
 
                 jsr w_over              ; grab a copy of XT for UF check
@@ -306,7 +311,7 @@ w_see:
                 rol 1,x                 ; add to synthetic flags
 
                 lda #N_FLAGS            ; count down status flags
-                sta $ff, x              ; use byte past TOS since loop has no stack effect
+                sta $ff, x              ; use tmp byte past TOS since loop has no stack effect
 
                 ; use a high-bit terminated template string to show flag names
                 ; and insert flag values at placeholders marked by ascii zeros
@@ -355,21 +360,39 @@ _emit:
                 lda #str_see_size
                 jsr print_string_no_lf
 
-                jsr w_swap             ; ( xt nt )
-                jsr w_wordsize         ; ( xt u )
-                jsr w_dup              ; ( xt u u ) for DUMP and DISASM
+                jsr w_swap              ; ( xt nt )
+                jsr w_wordsize          ; ( xt u )
+                jsr w_dup               ; ( xt u u ) for DUMP and DISASM
                 jsr w_decimal
-                jsr w_u_dot            ; ( xt u )
-                jsr w_hex
+                jsr w_u_dot             ; ( xt u )
+                lda tmpdsp              ; is it a CFA word?
+                beq +
+                lda #str_see_cfapfa
+                jsr print_string_no_lf
+                dex
+                dex
+                sec
+                lda 2,x
+                sbc tmpdsp
+                sta 0,x
+                stz 1,x
+                jsr w_u_dot
++
                 jsr w_cr
 
                 ; Dump hex and disassemble
 .if "disassembler" in TALI_OPTIONAL_WORDS
-                jsr w_two_dup          ; ( xt u xt u )
+                jsr w_two_dup           ; ( xt u xt u )
 .endif
-                jsr w_dump
+                jsr w_hex
+                jsr w_dump              ; ( xt u )
                 jsr w_cr
 .if "disassembler" in TALI_OPTIONAL_WORDS
+                lda tmpdsp
+                beq +
+                sta 0,x                 ; for CFA words, just show three bytes
+                stz 1,x
++
                 jsr w_disasm
 .endif
                 pla

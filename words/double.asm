@@ -258,20 +258,21 @@ z_m_star_slash: rts
 xt_two_constant:
                 jsr underflow_2
 w_two_constant:
-                jsr w_create
-
-                jsr w_swap              ; swap double and store
-                jsr w_comma
-                jsr w_comma
+                lda #4
+                sta tmpdsp              ; PFA size 4
+                jsr create_dovar
+                ; double appears on stack as ( lo hi ), i.e. NUXI in memory
+;TODO not sure why we swap to a XINU order for the PFA as opposed to
+; sticking with NUXI by just omitting the two w_swap calls here?
+                jsr w_swap              ; ( hi lo )
+                jsr w_comma             ; store lo in PFA
+                jsr w_comma             ; store hi in PFA
 
                 jsr does_runtime        ; does> turns into these two routines.
                 jsr dodoes
 
-                jsr w_dup
-                jsr w_fetch
+                jsr w_two_fetch
                 jsr w_swap
-                jsr w_cell_plus
-                jsr w_fetch
 
 z_two_constant: rts
 
@@ -310,7 +311,9 @@ z_two_literal:  rts
         ; """
 xt_two_variable:
                 ; We just let CREATE and ALLOT do the heavy lifting
-                jsr w_create
+                lda #4
+                sta tmpdsp              ; PFA size 4
+                jsr create_dovar
 w_two_variable:
                 dex
                 dex
