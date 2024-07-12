@@ -259,7 +259,7 @@ OpBRA   = $80
 
 ; DICTIONARY FLAGS
 ; Bits 5-7 are currently unused.
-;TODO COMPILE, assumes bit7 is usually 0.
+
 N_FLAGS = 4
 ; This list should match s_see_flags in strings.asm
 CO = 1  ; Compile Only
