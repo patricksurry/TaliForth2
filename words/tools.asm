@@ -368,7 +368,7 @@ _emit:
                 lda tmpdsp              ; is it a CFA word?
                 beq +
                 lda #str_see_cfapfa
-                jsr print_string_no_lf
+                jsr print_string_no_lf  ; if so print CFA: 3 PFA: u-3
                 dex
                 dex
                 sec
@@ -376,7 +376,7 @@ _emit:
                 sbc tmpdsp
                 sta 0,x
                 stz 1,x
-                jsr w_u_dot
+                jsr w_u_dot             ; show PFA size
 +
                 jsr w_cr
 

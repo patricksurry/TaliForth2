@@ -1052,7 +1052,7 @@ w_constant:
                 jsr create_common
 
                 ; Now we save the constant number itself in the next cell
-                jsr w_comma            ; drop through to adjust_z
+                jsr w_comma
 z_value:
 z_constant:     rts
 
@@ -5979,6 +5979,7 @@ has_cfa:
 
 _unknown:
                 ; It's not a known static CFA.  Perhaps an indirect call to dodoes?
+                ; See dodoes commentary for how this works
                 lda (0, x)              ; fetch byte @ addr
                 cmp #OpJSR
                 bne _not_cfa           ; not a JSR
