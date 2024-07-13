@@ -268,6 +268,10 @@ _not_uf:        clc                     ; C=0 means it isn't a UF check
 ; We have have various utility routines here for compiling a word in Y/A
 ; and a single byte in A.
 
+; TODO for all of these we could potentially avoid jmp (and NN) and
+; use BRA instaed.  jump_later is a bit harder since we need to remember NN state
+; in case something else changed it
+
 cmpl_jump_later:
     ; compile a jump to be filled in later with dummy address <MSB=Y/LSB=??>
     ; leaving address of the JMP target TOS

@@ -5028,10 +5028,15 @@ w_s_quote:
                 stz tmp2+1
 
 s_quote_start:
-                ; Put a jmp past the string data to be filled in later.
-                jsr cmpl_jump_later
-                jsr w_here             ; the start of the string
-                ; ( jmp-target addr )
+                ; write the string to unallocated space beyond PAD
+                ; by temporarily incrementing cp by $200
+                ;TODO is possible OoM worse than losing space for every interactive string?
+
+                inc cp+1
+                inc cp+1
+
+                jsr w_here              ; the start of the string
+                ; ( addr )
 
 _savechars_loop:
                 ; Start saving the string into the dictionary up to the
@@ -5235,32 +5240,34 @@ _found_string_end:
                 bne +
                 inc toin+1
 +
-                ; We currently have ( jmp-target addr )
-                ; We need to calculate the length of string
-                ; and update the jump target.
-
-                jsr w_here
-                jsr w_rot
-                jsr w_store    ; Update the jmp target
+                ; We currently have ( addr )
+                ; and need to calculate the length of string
 
                 jsr w_here
                 jsr w_over
                 jsr w_minus    ; HERE - addr gives string length
 
+                ; ( addr u )
+
+                ; Now reset CP to $200 before addr compiled memory
+                lda 2,x
+                sta cp
+                lda 3,x
+                dea
+                dea
+                sta cp+1
+
                 ; What happens next depends on the state (which is bad, but
                 ; that's the way it works at the moment). If we are
-                ; interpreting, we save the string to a transient buffer
-                ; and return that address (used for file calls, see
+                ; interpreting (state=0), we're done since we've saved the string
+                ; to a transient buffer (used for file calls, see
                 ; https://forth-standard.org/standard/file/Sq ). If we're
-                ; compiling, we just need SLITERAL
+                ; compiling, we just call SLITERAL
                 lda state
                 ora state+1             ; paranoid
                 beq _done
 
-                ; Jump into the middle of the sliteral word, after the
-                ; string data has been compiled into the dictionary,
-                ; because we've already done that step.
-                jsr cmpl_sliteral         ; ( addr u -- )
+                jsr w_sliteral         ; ( addr u -- )
 
 _done:
 z_s_quote:      rts

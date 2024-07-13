@@ -106,115 +106,114 @@ xt_dump:
                 jsr underflow_2
 w_dump:
 _row:
-                ; start counter for 16 numbers per row
+                ; how many characters to print this row?
                 ldy #16
+                lda 1,x
+                bne +
 
-                ; We use TMP2 as the index for the ASCII characters
-                ; that we print at the and of the hex block. We
-                ; start saving them at HERE (CP)
-                stz tmp2
+                lda 0,x
+                beq _done
 
+                cmp #16
+                bcs +
+                tay
++
                 jsr w_cr
 
                 ; print address number
+                ; and store in TMP2 as the base address for the row
                 lda 3,x
+                sta tmp2+1
                 jsr byte_to_ascii
                 lda 2,x
+                sta tmp2
                 jsr byte_to_ascii
 
                 jsr w_space
                 jsr w_space
+
+                ; temporarily trash addr for loop counter
+                sty 2,x         ; temporary storage for loop counter
+                stz 3,x         ; flag for pass = 0 (bytes) or -1 (ascii)
+_pass:
+                ldy #0
 _loop:
-                ; if there are zero bytes left to display, we're done
-                lda 0,x
-                ora 1,x
-                beq _all_printed
-
                 ; dump the contents
-                lda (2,x)
-                pha                     ; byte_to_ascii destroys A
+                lda (tmp2),y
+                bit 3,x
+                bmi _ascii
+
                 jsr byte_to_ascii
                 jsr w_space
-                pla
-
+                bra _nextbyte
+_ascii:
                 ; Handle ASCII printing
                 jsr is_printable
-                bcs _printable
+                bcs +
                 lda #'.'                 ; Print dot if not printable
-_printable:
-                phy                     ; save counter
-                ldy tmp2
-                sta (cp),y
-                inc tmp2
-                ply
-
++
+                jsr emit_a
+_nextbyte:
                 ; extra space after eight bytes
-                cpy #9
-                bne _next_char
-                jsr w_space
-
-_next_char:
-                inc 2,x
-                bne _counter
-                inc 3,x
-
-_counter:
-                ; loop counter
-                lda 0,x
+                cpy #7
                 bne +
+                jsr w_space
++
+                iny
+                tya
+                cmp 2,x
+                bne _loop
+
+                lda 3,x
+                bmi +                   ; done both passes?
+                jsr nextpass
+                bra _pass
++
+                ; Done with one line, increment address and decrement count
+                sec
+                lda 0,x
+                sbc 2,x
+                sta 0,x
+                bcs +
                 dec 1,x
 +
-                dec 0,x
-                dey
-                bne _loop               ; next byte
-
-                ; Done with one line, print the ASCII version of these
-                ; characters
-                jsr w_space
-                jsr dump_print_ascii
-
+                clc
+                lda tmp2+1
+                sta 3,x
+                lda tmp2
+                adc 2,x
+                sta 2,x
+                bcc +
+                inc 3,x
++
                 bra _row                ; new row
 
-_all_printed:
-                ; See if there are any ASCII characters in the buffer
-                ; left to print
-                lda tmp2
-                beq _done
-
-                ; In theory, we could try to make the ASCII part line
-                ; up with the line before it. But that is a hassle (we
-                ; use three bytes for each missed hex entry, and
-                ; then there is the gap after eight entries) and it
-                ; makes it harder to read. We settle for one extra
-                ; space instead for the moment
-                jsr w_space
-                jsr dump_print_ascii
 _done:
-                jsr w_two_drop         ; one byte less than 4x INX
+                jsr w_cr
+                inx
+                inx
+                inx
+                inx
+
 z_dump:         rts
 
 
-dump_print_ascii:
-                ; Print the ASCII characters that we have saved from
-                ; HERE (CP) to HERE plus whatever is in TMP2. This routine
-                ; is not compiled (DUMP is probably never compiled anyway)
-                ; but we keep it inside the scope of DUMP.
-                ldy #0
-_ascii_loop:
-                lda (cp),y
-                jsr emit_a
-                iny
+nextpass:
+                dec 3,x                 ; set flag to -1 for second pass
 
-                ; extra space after eight chars
                 cpy #8
-                bne +
+                bcs _fill
                 jsr w_space
+_fill:
+                cpy #16
+                beq +
+                jsr w_space
+                jsr w_space
+                jsr w_space
+                iny
+                bra _fill
 +
-                dec tmp2
-                bne _ascii_loop
-
-                rts
-
+                jmp w_space             ; extra space and then return for next pass
 
 
 ; ## QUESTION ( addr -- ) "Print content of a variable"

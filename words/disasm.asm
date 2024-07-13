@@ -40,7 +40,6 @@ z_disasm:       rts
 
 
 disassembler:
-                stz scratch+5   ; flag indicating whether we're arriving at sliteral (vs 2literal)
                 jsr w_cr       ; ( addr u )
 _byte_loop:
                 ; Print address at start of the line. Note we use whatever
@@ -229,52 +228,6 @@ _print_mnemonic:
                 bcs _printing_done
 
 _not_jsr:
-                ; See if the instruction is a jump (instruction still in A)
-                ; (Strings start with a jump over the data.)
-                cmp #OpJMP
-                bne _not_jmp
-
-                ; We have a branch.  See if it's a string by looking for
-                ; a JSR sliteral_runtime at the jump target address.
-                ; The target address is in scratch+1 and scratch+2
-                ; Use scratch+3 and scratch+4 here as we need to move
-                ; the pointer.
-                lda scratch+1   ; Copy the pointer.
-                sta scratch+3
-                lda scratch+2
-                sta scratch+4
-
-                ; Get the first byte at the jmp target address.
-                lda (scratch+3)
-
-                cmp #OpJSR          ; check for JSR
-                bne _printing_done
-                ; Next byte
-                inc scratch+3
-                bne +
-                inc scratch+4
-+
-                ; Check for string literal runtime
-                lda (scratch+3)
-
-                cmp #<sliteral_runtime
-                bne _printing_done
-                ; Next byte
-                inc scratch+3
-                bne +
-                inc scratch+4
-+
-                lda (scratch+3)
-
-                cmp #>sliteral_runtime
-                bne _printing_done
-
-                ; It's a string literal jump.
-                dec scratch+5                   ; flag for next go round
-                jsr disasm_sliteral_jump
-                bra _printing_done
-
-_not_jmp:
                 ; is it a native branch instruction with one byte relative addressing?
                 ; opcodes are bra: $80 and bxx: %xxx1 0000
                 ; if so we'll display the branch target address
@@ -342,47 +295,6 @@ _done:
 
 
 ; Handlers for various special disassembled instructions:
-; String literal handler (both for inline strings and sliteral)
-disasm_sliteral_jump:
-                ; If we get here, we are at the jump for a constant string.
-                ; Strings are compiled into the dictionary like so:
-                ;           jmp a
-                ;           <string data bytes>
-                ;  a -->    jsr sliteral_runtime
-                ;           <string address>
-                ;           <string length>
-                ;
-                ; We have ( addr n ) on the stack where addr is the last
-                ; byte of the address a in the above jmp instruction.
-                ; Address a is in scratch+1 scratch+2.
-
-                ; Determine the distance of the jump so we end on the byte
-                ; just before the JSR (sets us up for SLITERAL on next loop)
-                jsr w_swap
-                dex
-                dex
-                lda scratch+1
-                sta 0,x
-                lda scratch+2
-                sta 1,x
-                jsr w_swap
-                jsr w_minus
-                jsr w_one_minus
-                ; ( n jump_distance )
-                ; Subtract the jump distance from the bytes left.
-                jsr w_minus
-                ; ( new_n )
-                ; Move to one byte before the target address
-                dex
-                dex
-                lda scratch+1
-                sta 0,x
-                lda scratch+2
-                sta 1,x
-                jsr w_one_minus
-                jsr w_swap ; ( new_addr new_n )
-                rts
-
 
 ; JSR handler
 disasm_jsr:
@@ -462,11 +374,7 @@ _next:          dey
                 rts
 
 _found_handler:
-                lda scratch+5               ; are we expecting sliteral?
-                beq +
-                stz scratch+5               ; yes, skip 2literal and match again
-                bra _next
-+
+                sty scratch+5               ; store the offset for later
                 lda _special_handlers+3,y   ; payload + prefix
                 pha                         ; stash a copy for payload later
                 lsr
@@ -474,16 +382,17 @@ _found_handler:
                 beq _no_prefix
                 clc
                 adc #32
-                jsr emit_a
+                jsr emit_a                  ; print the char stored as (ch - 32) << 2
 _no_prefix:
                 lda _special_handlers+2,y   ; string index
                 jsr print_string_no_lf
                 pla
                 and #3                      ; payload is 0, 1 or 2 words
                 beq _done
-                cmp #3                      ; but 3 means a double-word
+                cmp #3                      ; where 3 means a double-word
                 bne _show_payload
-                jmp _print_2literal
+                jsr _print_2literal
+                bra _done
 
 _show_payload:
                 pha
@@ -491,6 +400,47 @@ _show_payload:
                 pla
                 dea
                 bne _show_payload
+
+                lda scratch+5
+                cmp #_sliteral_handler - _special_handlers
+                bne _done
+
+                ; for sliteral we want to skip past the string data
+                ; we have ( addr n ) on the stack where addr points
+                ; to the last byte of the string length u
+                ; we want to finish with ( addr+u n-u )
+
+                jsr w_over
+                jsr w_dup
+                jsr w_one_minus
+                jsr w_fetch         ; ( addr n addr u )
+                jsr w_swap
+                jsr w_one_plus      ; ( addr n u saddr )
+                jsr w_over          ; ( addr n u saddr u )
+                stz scratch+5
+                lda #16
+                ldy 1,x
+                bne _big
+                cmp 0,x             ; more than 16 characters?
+                bcs +
+_big:           stz 1,x             ; only print first 16
+                sta 0,x
+                dec scratch+5
++
+                jsr w_type          ; print (start of) string
+                lda scratch+5       ; maybe print ellipses
+                bpl +
+                lda #'.'
+                jsr emit_a
+                jsr emit_a
+                jsr emit_a
++
+                ; ( addr n u )
+                jsr w_rot           ; ( n u addr )
+                jsr w_over          ; ( n u addr u )
+                jsr w_plus          ; ( n u addr+u )
+                jsr w_not_rot       ; ( addr+u n u )
+                jsr w_minus         ; ( addr+u n-u )
 
 _done:          sec
                 rts
@@ -514,7 +464,6 @@ _print_2literal:
                 jsr w_one_plus
                 jsr w_dup
                 jsr w_two_fetch
-                jsr w_swap             ; 2! / 2@ put MSW first; but 2literal writes LSW first
                 jsr w_d_dot
                 clc
                 lda 0,x
@@ -534,6 +483,7 @@ _print_2literal:
                 rts
 
 ; Table of special handlers with address, strings index, payload in words + prefix
+; payload is stored as 0, 1 or 2 words with 3 meaning a double-word (i.e. $1234 vs $34, $12)
 _special_handlers:
     .word underflow_1
         .byte str_disasm_sdc, 0 + ('1'-32)*4
@@ -546,10 +496,11 @@ _special_handlers:
 
     .word literal_runtime
         .byte str_disasm_lit, 1
+_sliteral_handler:
     .word sliteral_runtime
-        .byte str_disasm_lit, 2 + ('S'-32)*4
-    .word sliteral_runtime                      ; 2literal and sliteral use the same runtime
-        .byte str_disasm_lit, 3 + ('2'-32)*4    ; list is searched in reverse, put 2literal first
+        .byte str_disasm_lit, 1 + ('S'-32)*4
+    .word two_literal_runtime
+        .byte str_disasm_lit, 3 + ('2'-32)*4
     .word zero_branch_runtime
         .byte str_disasm_0bra, 1
     .word loop_runtime
