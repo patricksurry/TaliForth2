@@ -201,19 +201,30 @@ z_dump:         rts
 nextpass:
                 dec 3,x                 ; set flag to -1 for second pass
 
-                cpy #8
-                bcs _fill
-                jsr w_space
-_fill:
-                cpy #16
-                beq +
-                jsr w_space
-                jsr w_space
-                jsr w_space
-                iny
-                bra _fill
+                ; add spaces for alignment
+                ; we want 1 + 3*(16-Y) + (1 if Y<8)
+
+                ; 16-A = 16 + (255-A) + 1 - 256
+
+                tya                     ; 16-A = 16 + (255-A) + 1 - 256
+                eor #$ff
+                sec
+                adc #16
+
+                sta tmpdsp
+                asl                     ; 2*(16-Y), leaving C=0
+                adc tmpdsp              ; 3*(16-Y)
+
+                cpy #8                  ; + 1 if Y < 8
+                bcs +
+                ina
 +
-                jmp w_space             ; extra space and then return for next pass
+                tay
+-
+                jsr w_space
+                dey
+                bpl -                   ; Y...0 inclusive
+                rts
 
 
 ; ## QUESTION ( addr -- ) "Print content of a variable"
@@ -362,7 +373,6 @@ _emit:
                 jsr w_two_dup          ; ( xt u xt u )
 .endif
                 jsr w_dump
-                jsr w_cr
 .if "disassembler" in TALI_OPTIONAL_WORDS
                 jsr w_disasm
 .endif

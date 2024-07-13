@@ -417,23 +417,23 @@ _show_payload:
                 jsr w_swap
                 jsr w_one_plus      ; ( addr n u saddr )
                 jsr w_over          ; ( addr n u saddr u )
-                stz scratch+5
-                lda #16
-                ldy 1,x
+                lda #16             ; show max of 16 characters
+                ldy 1,x             ; Y<>0 will flag truncated string
                 bne _big
                 cmp 0,x             ; more than 16 characters?
                 bcs +
 _big:           stz 1,x             ; only print first 16
                 sta 0,x
-                dec scratch+5
+                ldy #3              ; print trailing ...
 +
                 jsr w_type          ; print (start of) string
-                lda scratch+5       ; maybe print ellipses
-                bpl +
+                tya
+                beq +
                 lda #'.'
+_ellipses
                 jsr emit_a
-                jsr emit_a
-                jsr emit_a
+                dey
+                bne _ellipses
 +
                 ; ( addr n u )
                 jsr w_rot           ; ( n u addr )

@@ -598,7 +598,7 @@ sliteral_runtime:
                 sta 0,x         ; LSB of u
 
                 ; we want to continue past the string, i.e. NOS+TOS
-                clc
+                clc             ; A still has LSB of u
                 adc 2,x         ; LSB of continuation address
                 sta tmp1
                 lda 1,x
