@@ -2751,9 +2751,6 @@ T{ 2 -> 5 3 - }T  ok
   ok
 T{ 36 constant max-base -> }T \ ANS standard says 2 - 36  ok
 T{ base @  constant orig-base -> }T  ok
-\ T{ s" 0123456789" ( addr u ) drop  constant digit_numeral -> }T  ok
-\ T{ s" abcdefghijklmnopqrstuvwxyz" ( addr u ) drop  constant digit_lower -> }T  ok
-\ T{ s" ABCDEFGHIJKLMNOPQRSTUVWXYZ" ( addr u ) drop  constant digit_upper -> }T  ok
 T{ : digit_numeral s" 0123456789" ( addr u ) drop ; -> }T  ok
 T{ : digit_lower s" abcdefghijklmnopqrstuvwxyz" ( addr u ) drop ; -> }T  ok
 T{ : digit_upper s" ABCDEFGHIJKLMNOPQRSTUVWXYZ" ( addr u ) drop ; -> }T  ok
@@ -2762,7 +2759,6 @@ T{ : digit_upper s" ABCDEFGHIJKLMNOPQRSTUVWXYZ" ( addr u ) drop ; -> }T  ok
 \ "/" and ":" are before and after ASCII numbers  ok
 \ "@" and "[" are before and after upper case ASCII letters  ok
 \ "`" and "{" are before and after lower case ASCII letters  ok
-\ T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T  ok
 T{ : digit_bad s" /:@[`{"  ( addr u )  drop ; -> }T  ok
   ok
 : digit_numeral ( -- f )  compiled
@@ -3559,4 +3555,4 @@ char "       ' word          cycle_test "txt" drop CYCLES:    620 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     48 ok
   ok
-bye c65: PC=f016 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=143304862
+bye c65: PC=f016 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=143226251
