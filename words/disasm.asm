@@ -104,22 +104,16 @@ _byte_loop:
                 bpl _no_operand         ; bit 7 clear, single-byte instruction
 
                 ; We have an operand. Prepare the Data Stack
-                jsr w_zero             ; ( addr u 0 ) ZERO does not use Y
 
                 ; Because of the glory of a little endian CPU, we can start
                 ; with the next byte regardless if this is a one or two byte
                 ; operand, because we'll need the LSB one way or the other.
                 ; We have a copy of the opcode on the stack, so we can now move
                 ; to the next byte
-                inc 4,x
-                bne +
-                inc 5,x                 ; ( addr+1 u 0 )
-+
-                lda 2,x
-                bne +
-                dec 3,x
-+
-                dec 2,x                 ; ( addr+1 u-1 0 )
+
+                jsr w_one
+                jsr w_slash_string
+                jsr w_zero             ; ( addr+1 u-1 0 ) ZERO does not use Y
 
                 lda (4,x)
                 sta 0,x                 ; LSB of operand ( addr+1 u-1 LSB )
@@ -134,15 +128,10 @@ _byte_loop:
 
                 ; We have a three-byte instruction, so we need to get the MSB
                 ; of the operand. Move to the next byte
-                inc 4,x
-                bne +
-                inc 5,x                 ; ( addr+2 u-1 LSB )
-+
-                lda 2,x
-                bne +
-                dec 3,x
-+
-                dec 2,x                 ; ( addr+2 u-2 LSB )
+                jsr w_not_rot           ; ( LSB addr u )
+                jsr w_one
+                jsr w_slash_string
+                jsr w_rot               ; ( addr+2 u-2 LSB )
 
                 lda (4,x)
                 sta 1,x                 ; MSB of operand ( addr+2 u-2 opr )
@@ -157,13 +146,10 @@ _print_operand:
                 ; u-n opr). We want the output to be nicely formatted in
                 ; columns, so we use U.R. The maximal width of the number in
                 ; decimal on an 16-bit addressed machine is five characters
-                dex
-                dex
                 lda #5
-                sta 0,x
-                stz 1,x                 ; ( addr+n u-n opr 5 )
+                jsr push_a_tos               ; ( addr+n u-n opr 5 )
 
-                jsr w_u_dot_r          ; U.R ( addr+n u-n )
+                jsr w_u_dot_r           ; U.R ( addr+n u-n )
 
                 bra _print_mnemonic
 
@@ -172,13 +158,9 @@ _no_operand:
                 ; the lengths byte in Y and ( addr u ). Since we want to have
                 ; a nicely formatted output, we need to indent the mnemonic by
                 ; five spaces.
-                dex
-                dex
                 lda #5
-                sta 0,x
-                stz 1,x                 ; ( addr u 5 )
-
-                jsr w_spaces           ; ( addr u )
+                jsr push_a_tos               ; ( addr u 5 )
+                jsr w_spaces            ; ( addr u )
 
                 ; fall through to _print_mnemonic
 
@@ -212,11 +194,8 @@ _print_mnemonic:
                 bne _not_jsr
 
                 ; It's a JSR.  Print 5 spaces as an offset.
-                dex
-                dex
                 lda #5
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 jsr w_spaces
 
                 jsr disasm_special
@@ -242,11 +221,8 @@ _is_rel:
                 ; treat opr as signed byte and add to addr following operand: (addr+1) + 1
                 ; scratch+1 contains the operand (offset), stack has (addr+1 u-1)
                 ldy #'v'            ; we'll indicate branch forward or back with v or ^
-                dex
-                dex
-                stz 1,x
                 lda scratch+1
-                sta 0,x
+                jsr push_a_tos
                 bpl +
                 dec 1,x             ; for negative offsets extend the sign bit so add works out
                 ldy #'^'            ; it's a backward branch
@@ -259,11 +235,8 @@ _is_rel:
 
                 phy                 ; save the direction indicator
 
-                dex
-                dex
                 lda #9
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 jsr w_u_dot_r      ; print the destination with 5 leading spaces
 
                 lda #AscSP          ; print space and branch direction indicator
@@ -275,11 +248,8 @@ _printing_done:
                 jsr w_cr
 
                 ; Housekeeping: Next byte
-                inc 2,x
-                bne +
-                inc 3,x                 ; ( addr+1 u )
-+
-                jsr w_one_minus        ; ( addr+1 u-1 )
+                jsr w_one
+                jsr w_slash_string      ; ( addr u -- addr+1 u-1 )
 
                 lda 0,x                 ; All done?
                 ora 1,x
@@ -407,40 +377,45 @@ _show_payload:
 
                 ; for sliteral we want to skip past the string data
                 ; we have ( addr n ) on the stack where addr points
-                ; to the last byte of the string length u
+                ; to the last byte of the string length u.
                 ; we want to finish with ( addr+u n-u )
+                ; and print at least a snippet of the string
+                ; which is at addr+1
 
                 jsr w_over
-                jsr w_dup
                 jsr w_one_minus
-                jsr w_fetch         ; ( addr n addr u )
-                jsr w_swap
-                jsr w_one_plus      ; ( addr n u saddr )
-                jsr w_over          ; ( addr n u saddr u )
-                lda #16             ; show max of 16 characters
-                ldy 1,x             ; Y<>0 will flag truncated string
-                bne _big
-                cmp 0,x             ; more than 16 characters?
-                bcs +
-_big:           stz 1,x             ; only print first 16
-                sta 0,x
-                ldy #3              ; print trailing ...
+                jsr w_fetch         ; ( addr n u )
+
+                ; detour to show snippet of string up to 16 chr
+                lda 1,x
+                bne _truncate
+                lda 0,x
+                cmp #16
+                bcc +               ; length < 16?
+_truncate:
+                lda #18             ; extra chars for ellipses
 +
-                jsr w_type          ; print (start of) string
-                tya
-                beq +
+                sta tmpdsp
+
+                lda 4,x             ; tmp1 points 1 before string
+                sta tmp1
+                lda 5,x
+                sta tmp1+1
+
+                ldy #1
+_snippet:
+                lda (tmp1),y
+                cpy #16
+                bcc +
                 lda #'.'
-_ellipses
-                jsr emit_a
-                dey
-                bne _ellipses
 +
-                ; ( addr n u )
-                jsr w_rot           ; ( n u addr )
-                jsr w_over          ; ( n u addr u )
-                jsr w_plus          ; ( n u addr+u )
-                jsr w_not_rot       ; ( addr+u n u )
-                jsr w_minus         ; ( addr+u n-u )
+                jsr emit_a
+                iny
+                dec tmpdsp
+                bne _snippet
+
+                ; ( addr n u -- addr+u n-u )
+                jsr w_slash_string
 
 _done:          sec
                 rts
@@ -448,39 +423,21 @@ _done:          sec
 _print_literal:
                 ; ( addr u ) address of last byte of JSR and bytes left on the stack.
                 ; We need to print the value just after the address and move along two bytes.
-                jsr w_swap ; switch to (u addr)
-                jsr w_one_plus
-
-                jsr w_dup
-                jsr w_question ; Print the value at the address
-                ; Advance one more byte to skip over the constant
-                jsr w_one_plus
-                jsr w_swap ; (addr+2 u)
-                jsr w_one_minus
-                jmp w_one_minus ; (addr+2 u-2)
+                jsr w_over
+                jsr w_one_plus              ; ( addr u addr+1 )
+                jsr w_question              ; Print the value at the address
+                jsr w_two
+                jmp w_slash_string          ; leaving (addr+2 u-2)
 
 _print_2literal:
-                jsr w_swap
+                jsr w_over                  ; ( addr u addr+1 )
                 jsr w_one_plus
-                jsr w_dup
                 jsr w_two_fetch
-                jsr w_d_dot
-                clc
-                lda 0,x
-                adc #3
-                sta 0,x
-                bcc +
-                inc 1,x
-+
-                jsr w_swap ; ( addr+4 u )
-                sec
-                lda 0,x
-                sbc #4
-                sta 0,x
-                bcs +
-                dec 1,x
-+
-                rts
+                jsr w_d_dot                 ; fetch and print double word
+                lda #4
+                jsr push_a_tos
+                jmp w_slash_string          ; ( addr+4 u-4 )
+
 
 ; Table of special handlers with address, strings index, payload in words + prefix
 ; payload is stored as 0, 1 or 2 words with 3 meaning a double-word (i.e. $1234 vs $34, $12)
@@ -515,3 +472,10 @@ _end_handlers:
 
 ; used to calculate size of assembled disassembler code
 disassembler_end:
+
+push_a_tos:  ; ( -- A )
+                dex
+                dex
+                sta 0,x
+                stz 1,x
+                rts

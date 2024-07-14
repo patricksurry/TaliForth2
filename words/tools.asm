@@ -99,97 +99,102 @@ z_dot_s:        rts
         ; DUMP's exact output is defined as "implementation dependent".
         ; This is in assembler because it is
         ; useful for testing and development, so we want to have it work
-        ; as soon as possible. Uses TMP2
+        ; as soon as possible. Uses tmp1, tmp2
         ; """
 
 xt_dump:
                 jsr underflow_2
 w_dump:
 _row:
-                ; how many characters to print this row?
-                ldy #16
-                lda 1,x
+                ; track current address in tmp2
+                lda 3,x
+                sta tmp2+1
+                lda 2,x
+                sta tmp2
+
+                jsr w_cr
+
+                ; set Y to number of characters for this row
+                ldy #16                 ; max 16
+                lda 1,x                 ; if u > 256 keep 16
                 bne +
 
-                lda 0,x
+                lda 0,x                 ; if u = 0 we're done
                 beq _done
 
-                cmp #16
+                cmp #16                 ; if u < 16 do what's left
                 bcs +
                 tay
 +
-                jsr w_cr
+                sty tmp1                ; temporary storage for loop counter
+                lda #$40                ; bit 6 set on first pass and bit 7 on second
+                sta tmp1+1              ; so we can use bit tmp1+1 to check N flag
 
-                ; print address number
-                ; and store in TMP2 as the base address for the row
-                lda 3,x
-                sta tmp2+1
+                ; print current address for the row
+                ldy #1
+-
+                lda tmp2,y
                 jsr byte_to_ascii
-                lda 2,x
-                sta tmp2
-                jsr byte_to_ascii
+                dey
+                bpl -
 
                 jsr w_space
-                jsr w_space
-
-                ; temporarily trash addr for loop counter
-                sty 2,x         ; temporary storage for loop counter
-                stz 3,x         ; flag for pass = 0 (bytes) or -1 (ascii)
-_pass:
+_pass:                                  ; loop once for bytes, then for ascii
                 ldy #0
-_loop:
+_bytes:                                 ; loop over each byte in the row
+                tya
+                and #7
+                bne +
+                jsr w_space             ; extra space before bytes 0 and 8
++
                 ; dump the contents
                 lda (tmp2),y
-                bit 3,x
-                bmi _ascii
+                bit tmp1+1              ; which pass are we on?
+                bmi _ascii              ; bit 7 set on second pass
 
-                jsr byte_to_ascii
+                jsr byte_to_ascii       ; show byte value
                 jsr w_space
                 bra _nextbyte
 _ascii:
-                ; Handle ASCII printing
-                jsr is_printable
+                jsr is_printable        ; show ascii char
                 bcs +
-                lda #'.'                 ; Print dot if not printable
+                lda #'.'                ; use dot if not printable
 +
                 jsr emit_a
 _nextbyte:
-                ; extra space after eight bytes
-                cpy #7
-                bne +
-                jsr w_space
-+
                 iny
-                tya
-                cmp 2,x
-                bne _loop
+                cpy tmp1
+                bne _bytes
 
-                lda 3,x
-                bmi +                   ; done both passes?
-                jsr nextpass
+                asl tmp1+1              ; $40 -> $80 -> 0
+                beq +                   ; done both passes?
+
+                ; add spaces to align partial lines
+                ; after writing Y bytes, we need to add padding of
+                ; of 3*(16-Y) + (1 if Y<9)
+                dey                     ; Y-1 is 0...15
+                tya
+                eor #$f                 ; 15-(Y-1) is 16-Y
+                sta tmpdsp
+                asl a                   ; A is 2*(16-Y)
+                ; y < 9 when 16-y > 7 and when 16-y >= 8
+                ; so with A=2*(16-y), cmp #2*8 sets C=1 when true
+                cmp #16
+                adc tmpdsp              ; 3*(16-Y) + 1 if Y<9
+
+                jsr push_a_tos
+                jsr w_spaces
+
                 bra _pass
 +
-                ; Done with one line, increment address and decrement count
-                sec
-                lda 0,x
-                sbc 2,x
-                sta 0,x
-                bcs +
-                dec 1,x
-+
-                clc
-                lda tmp2+1
-                sta 3,x
-                lda tmp2
-                adc 2,x
-                sta 2,x
-                bcc +
-                inc 3,x
-+
+                ; done this row, increment address and decrement count
+                lda tmp1
+                jsr push_a_tos
+                jsr w_slash_string      ; ( addr n k -- addr+k n-k )
+
                 bra _row                ; new row
 
 _done:
-                jsr w_cr
                 inx
                 inx
                 inx
@@ -197,34 +202,6 @@ _done:
 
 z_dump:         rts
 
-
-nextpass:
-                dec 3,x                 ; set flag to -1 for second pass
-
-                ; add spaces for alignment
-                ; we want 1 + 3*(16-Y) + (1 if Y<8)
-
-                ; 16-A = 16 + (255-A) + 1 - 256
-
-                tya                     ; 16-A = 16 + (255-A) + 1 - 256
-                eor #$ff
-                sec
-                adc #16
-
-                sta tmpdsp
-                asl                     ; 2*(16-Y), leaving C=0
-                adc tmpdsp              ; 3*(16-Y)
-
-                cpy #8                  ; + 1 if Y < 8
-                bcs +
-                ina
-+
-                tay
--
-                jsr w_space
-                dey
-                bpl -                   ; Y...0 inclusive
-                rts
 
 
 ; ## QUESTION ( addr -- ) "Print content of a variable"

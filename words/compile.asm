@@ -242,7 +242,7 @@ has_uf_check:
                 bcs _not_uf             ; LSB is too big
 
                 sec                     ; C=1 means it is an UF check
-                .byte $24               ; bit zp opcode masks the clc, with no effect on carry
+                .byte OpBITzp           ; mask the clc, with no effect on carry
 _not_uf:        clc                     ; C=0 means it isn't a UF check
                 inx                     ; clean up stack
                 inx

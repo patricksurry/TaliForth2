@@ -256,6 +256,8 @@ OpBNE   = $D0
 OpBEQ   = $F0
 OpRTS   = $60
 OpBRA   = $80
+OpBITzp = $24   ; used to save a branch occasionally
+
 
 ; DICTIONARY FLAGS
 ; The first two bits (7, 6) are currently unused.  COMPILE, assumes bit7 is usually 0.
