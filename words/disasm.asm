@@ -470,12 +470,17 @@ _sliteral_handler:
         .byte str_disasm_do, 1 + ('?'-32)*4
 _end_handlers:
 
-; used to calculate size of assembled disassembler code
-disassembler_end:
 
+; Push the accumalator to TOS
+; This only saves a byte but improves readability
+; This routine is also used as a template by the assembler "push-a" word
 push_a_tos:  ; ( -- A )
                 dex
                 dex
                 sta 0,x
                 stz 1,x
+z_push_a_tos:
                 rts
+
+; used to calculate size of assembled disassembler code
+disassembler_end:
