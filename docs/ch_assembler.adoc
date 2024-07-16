@@ -129,12 +129,12 @@ Looking at our new word with `see` gives us (addresses may vary):
         0826  A9 01 CA CA 95 00 74 01  20 B5 D8 20 21 D9 A9 20  ......t.  .. !..
         0836  20 86 86   ..
 
-        826      1 lda.#
-        828        dex
+        826      1 lda.#   <1>
+        828        dex     <2>
         829        dex
         82A      0 sta.zx
         82C      1 stz.zx
-        82E   D8B5 jsr     1 STACK DEPTH CHECK
+        82E   D8B5 jsr     1 STACK DEPTH CHECK  <3>
         831   D921 jsr
         834     20 lda.#
         836   8686 jsr
