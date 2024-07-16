@@ -111,16 +111,53 @@ dodefer:
 
                 jmp (tmp2)      ; This is actually a jump to the new target
 
-defer_error:
-                ; """Error routine for undefined DEFER: Complain and abort"""
-                lda #err_defer
-                jmp error
 
 dodoes:
         ; """Execute the runtime portion of DOES>. See DOES> and
         ; docs/create-does.txt for details and
         ; http://www.bradrodriguez.com/papers/moving3.htm
         ; """
+                ; typically called like
+                ;       : foo CREATE 0 , DOES> forth code ;
+                ;
+                ; which makes a defining word `foo` like
+                ;
+                ; xt_foo:
+                ;    jsr w_create
+                ;    jsr w_zero                 ; initialize PFA with 0
+                ;    jsr w_comma
+                ;    jsr does_runtime           ; point CFA to _doit and return
+                ; _doit:
+                ;    jsr dodoes
+                ; _action:
+                ;    <compiled forth code>
+                ;    rts
+                ;
+                ; so defining `foo someword` will first create something like:
+                ;
+                ; someword:
+                ;       jsr dovar       ; code field area (CFA)
+                ;       .word 0         ; parameter field area (PFA)
+                ;
+                ; and then does_runtime will convert it into:
+                ;
+                ; xt_someword:
+                ;       jsr _doit
+                ;       .word 0         ; PFA
+                ;
+                ; so finally invoking `someword` from some caller will
+                ; do `jsr xt_someword` followed by `jsr _doit` which in turn
+                ; triggers `jsr dodoes`, resulting in a return stack like:
+                ;
+                ;       (R: caller-1 PFA-1 _action-1 )
+                ;
+                ; our job here is to put the PFA address on the data stack
+                ; and jump to _action, eventually returning to caller, ie.
+                ;
+                ;       (R: caller-1 PFA-1 _action-1 -- caller-1 )
+                ;       ( -- PFA )
+                ;       jmp _action
+
                 ; Assumes the address of the CFA of the original defining word
                 ; (say, CONSTANT) is on the top of the Return Stack. Save it
                 ; for a later jump, adding one byte because of the way the

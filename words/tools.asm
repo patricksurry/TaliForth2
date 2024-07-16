@@ -289,7 +289,8 @@ w_see:
                 sta 0,x                 ; stash status flag byte
                 stz 1,x                 ; placeholder for synthetic flags
 
-                ; calculate synthetic flags in reverse order to template
+                                        ; ( nt xt flags )
+                ; collect synthetic flags in reverse order for template
                 and #ST                 ; calculate ST flag
                 cmp #ST
                 beq +                   ; C=1 when ST set
@@ -321,7 +322,8 @@ _loop:
 +
                 bne _emit               ; flag placeholder?
 
-                jsr w_space             ; print <space>, <flag>, <space>
+                ; for each flag, print "<space><flag><space>"
+                jsr w_space             ; no stack effect
 
                 dec tmptos
                 bmi _synthetic          ; more core status flags?
@@ -350,21 +352,39 @@ _emit:
                 lda #str_see_size
                 jsr print_string_no_lf
 
-                jsr w_swap             ; ( xt nt )
-                jsr w_wordsize         ; ( xt u )
-                jsr w_dup              ; ( xt u u ) for DUMP and DISASM
+                jsr w_swap              ; ( xt nt )
+                jsr w_wordsize          ; ( xt u )
+                jsr w_dup               ; ( xt u u ) for DUMP and DISASM
                 jsr w_decimal
-                jsr w_u_dot            ; ( xt u )
-                jsr w_hex
+                jsr w_u_dot             ; ( xt u )
+                lda tmpdsp              ; is it a CFA word?
+                beq +
+                lda #str_see_cfapfa
+                jsr print_string_no_lf  ; if so print CFA: 3 PFA: u-3
+                dex
+                dex
+                sec
+                lda 2,x
+                sbc tmpdsp
+                sta 0,x
+                stz 1,x
+                jsr w_u_dot             ; show PFA size
++
                 jsr w_cr
 
                 ; Dump hex and disassemble
 .if "disassembler" in TALI_OPTIONAL_WORDS
-                jsr w_two_dup          ; ( xt u xt u )
+                jsr w_two_dup           ; ( xt u xt u )
 .endif
+                jsr w_hex
                 jsr w_dump
                 jsr w_cr
 .if "disassembler" in TALI_OPTIONAL_WORDS
+                lda tmpdsp
+                beq +
+                sta 0,x                 ; for CFA words, just show three bytes
+                stz 1,x
++
                 jsr w_disasm
 .endif
                 pla

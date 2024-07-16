@@ -258,7 +258,9 @@ z_m_star_slash: rts
 xt_two_constant:
                 jsr underflow_2
 w_two_constant:
-                jsr w_create
+                lda #4
+                sta tmpdsp              ; PFA size 4
+                jsr create_dovar
                 jsr w_swap
                 jsr w_comma
                 jsr w_comma
@@ -308,14 +310,16 @@ z_two_literal:  rts
         ; CREATE 2 CELLS ALLOT  or just  CREATE 0 , 0 ,
         ; """
 xt_two_variable:
-                ; We just let CREATE and ALLOT do the heavy lifting
-                jsr w_create
 w_two_variable:
+                ; We just let CREATE and ALLOT do the heavy lifting
                 dex
                 dex
                 lda #4
                 sta 0,x
                 stz 1,x
+
+                sta tmpdsp              ; PFA size 4
+                jsr create_dovar
 
                 jsr w_allot
 
