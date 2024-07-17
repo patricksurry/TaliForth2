@@ -207,74 +207,68 @@ w_m_star_slash:
                 ; DDUP XOR SWAP ABS >R SWAP ABS >R OVER XOR ROT ROT DABS
                 ; ( n1^n2^dhi |d1| ) (R: |n2| |n1| )
 
+                ; we'll do something slightly different to avoid R:
                 ; first step is calculating |d1| |n1| |n2| along with the sign bit from dhi^n1^n2
-                ; we'll leave |d1| on the stack and keep |n1|, |n2|, sign in scratch
 
                 lda 1,x
                 eor 3,x
                 eor 5,x
-                sta scratch+4
+                pha                     ; stash the sign bit on the stack
 
-                ldy #$fc                ; -4..0
--
-                tya
-                lsr
-                bcs +
-                jsr w_abs
-+
-                lda 0,x                 ; stash |n2| then |n1| in scratch
-                sta scratch+4,y
-                inx
-                iny
-                bne -
-
-                jsr w_dabs              ; ( |d1| )  scratch: |n2| |n1| sgn
+                jsr w_abs               ; ( d1 n1 |n2| )
+                jsr w_swap
+                jsr w_abs               ; ( d1 |n2| |n1| )
+                jsr w_two_swap
+                jsr w_dabs              ; ( |n2| |n1| |d1| )
 
                 ; SWAP R@ UM* ROT R> UM* ROT 0 D+ R@ UM/MOD ROT ROT R> UM/MOD
+                ; but we have |n2| and |n1| on the data stack instead of R:
                 jsr w_swap
-                dex                     ; recover |n1| beyond end of stack
-                dex
-
-                jsr w_um_star           ; ( n1^n2^dhi |dhi| |dlo*n1| ) (R: |n2| |n1| ) uses tmp1-3
-                jsr w_rot
                 dex
                 dex
-                lda scratch+2
-                sta 0,x                 ; fetch |n1|
-                lda scratch+3
+                lda 6,x                 ; pick |n1|
+                sta 0,x
+                lda 7,x
                 sta 1,x
 
-                jsr w_um_star           ; ( n1^n2^dhi |dlo*n1| |dhi*n1| ) (R: |n2| )
+                jsr w_um_star           ; ( |n2| |n1| |dhi| d|dlo*n1| ) uses tmp1-3
+                jsr w_two_swap          ; ( |n2| d|dhlo*n1| |n1| |dhi| )
+                jsr w_um_star           ; ( |n2| d|dlo*n1| d|dhi*n1| )
                 jsr w_rot
 
                 jsr w_zero
-                jsr w_d_plus            ; ( n1^n2^dhi |t1| ) (R: |n2| )
+                jsr w_d_plus            ; ( |n2| t|uvw| )
 
-                lda #2                  ; two step division loop
-                sta scratch+5
--
+                dex                     ; pick |n2| from under the triple result
                 dex
-                dex
-                lda scratch
-                sta 0,x                 ; fetch |n2| leaving ( |t1| |n2| )
-                lda scratch+1
-                sta 1,x
+                lda 8,x
+                sta 0,x
+                lda 9,x
+                sta 1,x                 ; ( |n2| |uvw| |n2| )
 
-                jsr w_um_slash_mod      ; do the division in two steps (uses tmp1, tmptos)
-                dec scratch+5
-                beq +
-                jsr w_not_rot
-                bra -
+                ; do the triple division in two double steps (uses tmpdsp)
+                jsr w_um_slash_mod      ; ( |n2| |w| r qhi )
+                lda 0,x                 ; swap qhi with |n2|
+                ldy 6,x
+                sty 0,x
+                sta 6,x
+
+                lda 1,x                 ; leaving ( qhi |w| r |n2| )
+                ldy 7,x
+                sty 1,x
+                sta 7,x
+
+                jsr w_um_slash_mod      ; ( qhi r' qlo )
 +
                 ; SWAP DROP SWAP ROT 0< if dnegate then ;
                 ; equivalent to NIP SWAP sgn if dnegate then ;
                 jsr w_nip
-                jsr w_swap              ; ( ud2 )
+                jsr w_swap              ; ( |qd| )
 
-                lda scratch+4           ; check sign bit
-                bpl z_m_star_slash      ; ... 0< if ...
+                pla                     ; check and apply sign if needed
+                bpl +                   ; ... 0< if ...
                 jsr w_dnegate
-
++
 z_m_star_slash: rts
 
 

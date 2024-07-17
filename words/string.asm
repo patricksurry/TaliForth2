@@ -522,7 +522,7 @@ z_slash_string: rts
 
 
 
-; ## SLITERAL ( addr u -- )( -- addr u ) "Compile a string for runtime"
+; ## SLITERAL (C: addr u -- )( -- addr u ) "Compile a string for runtime"
 ; ## "sliteral" auto  ANS string
         ; """https://forth-standard.org/standard/string/SLITERAL
         ; Add the runtime for an existing string.
@@ -543,31 +543,31 @@ w_sliteral:
 
                 jsr cmpl_jump_later
                 jsr w_to_r
-                ; ( addr u  R: jmp-target )
+                ; ( addr u ) (R: jmp-target )
                 jsr w_here
                 jsr w_swap
-                ; ( addr addr' u )
+                ; ( addr addr' u ) (R: jmp-target )
                 jsr w_dup
                 jsr w_allot            ; reserve u bytes for string
                 jsr w_here
-                ; ( addr addr' u addr'+u )
+                ; ( addr addr' u addr'+u ) (R: jmp-target )
                 jsr w_r_from
                 jsr w_store            ; point jmp past string
-                ; we'll just pretend to push addr' u to return stack
-;                jsr w_two_dup
-;                jsr w_two_to_r
-                ; ( addr addr' u  R: addr' u )
+                ; ( addr addr' u )
+                ; we want to reuse addr' u but sneakily rely on move
+                ; just dropping its args without modifying them
                 jsr w_move             ; copy u bytes from addr -> addr'
+                ; restore addr' u
+                ; fa fb fc fd fe ff 00
+                ;   u   addr' addr
+                ldy #4
+-
+                lda $fd,x
+                sta $ff,x
                 dex
-                dex
-                dex
-                dex
-                dex
-                dex
-                jsr w_rot
-                inx
-                inx
- ;               jsr w_two_r_from
+                dey
+                bne -
+
                 ; Stack is now ( addr' u ) with the new string location
 
 cmpl_sliteral:
