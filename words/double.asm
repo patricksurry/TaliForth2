@@ -193,7 +193,7 @@ w_d_dot_r:
 z_d_dot_r:      rts
 
 
-; ## M_STAR_SLASH ( d1 n1 n2 -- d2 ) "Multiply d1 by n1 and divide by n2.  Note n2 may be negative."
+; ## M_STAR_SLASH ( d1 n1 n2 -- d2 ) "Multiply d1 by n1 and divides the triple-precision product by n2.  All values are signed."
 ; ## "m*/"  auto  ANS double
         ; """https://forth-standard.org/standard/double/MTimesDiv"""
         ; From All About FORTH, MVP-Forth, public domain,
@@ -205,43 +205,73 @@ xt_m_star_slash:
                 jsr underflow_4
 w_m_star_slash:
                 ; DDUP XOR SWAP ABS >R SWAP ABS >R OVER XOR ROT ROT DABS
-                jsr w_two_dup
-                jsr w_xor
-                jsr w_swap
+                ; ( n1^n2^dhi |d1| ) (R: |n2| |n1| )
+
+                ; first step is calculating |d1| |n1| |n2| along with the sign bit from dhi^n1^n2
+                ; we'll leave |d1| on the stack and keep |n1|, |n2|, sign in scratch
+
+                lda 1,x
+                eor 3,x
+                eor 5,x
+                sta scratch+4
+
+                ldy #$fc                ; -4..0
+-
+                tya
+                lsr
+                bcs +
                 jsr w_abs
-                jsr w_to_r
-                jsr w_swap
-                jsr w_abs
-                jsr w_to_r
-                jsr w_over
-                jsr w_xor
-                jsr w_not_rot          ; rot rot
-                jsr w_dabs
++
+                lda 0,x                 ; stash |n2| then |n1| in scratch
+                sta scratch+4,y
+                inx
+                iny
+                bne -
+
+                jsr w_dabs              ; ( |d1| )  scratch: |n2| |n1| sgn
 
                 ; SWAP R@ UM* ROT R> UM* ROT 0 D+ R@ UM/MOD ROT ROT R> UM/MOD
                 jsr w_swap
-                jsr w_r_fetch
-                jsr w_um_star
-                jsr w_rot
-                jsr w_r_from
-                jsr w_um_star
-                jsr w_rot
-                jsr w_zero
-                jsr w_d_plus
-                jsr w_r_fetch
-                jsr w_um_slash_mod
-                jsr w_not_rot          ; rot rot
-                jsr w_r_from
-                jsr w_um_slash_mod
+                dex                     ; recover |n1| beyond end of stack
+                dex
 
-                ; SWAP DROP SWAP ROT 0< if dnegate then ;
-                jsr w_swap
-                jsr w_drop
-                jsr w_swap
+                jsr w_um_star           ; ( n1^n2^dhi |dhi| |dlo*n1| ) (R: |n2| |n1| ) uses tmp1-3
                 jsr w_rot
-                inx                     ; drop TOS
-                inx
-                lda $fe,x               ; but keep MSB
+                dex
+                dex
+                lda scratch+2
+                sta 0,x                 ; fetch |n1|
+                lda scratch+3
+                sta 1,x
+
+                jsr w_um_star           ; ( n1^n2^dhi |dlo*n1| |dhi*n1| ) (R: |n2| )
+                jsr w_rot
+
+                jsr w_zero
+                jsr w_d_plus            ; ( n1^n2^dhi |t1| ) (R: |n2| )
+
+                lda #2                  ; two step division loop
+                sta scratch+5
+-
+                dex
+                dex
+                lda scratch
+                sta 0,x                 ; fetch |n2| leaving ( |t1| |n2| )
+                lda scratch+1
+                sta 1,x
+
+                jsr w_um_slash_mod      ; do the division in two steps (uses tmp1, tmptos)
+                dec scratch+5
+                beq +
+                jsr w_not_rot
+                bra -
++
+                ; SWAP DROP SWAP ROT 0< if dnegate then ;
+                ; equivalent to NIP SWAP sgn if dnegate then ;
+                jsr w_nip
+                jsr w_swap              ; ( ud2 )
+
+                lda scratch+4           ; check sign bit
                 bpl z_m_star_slash      ; ... 0< if ...
                 jsr w_dnegate
 

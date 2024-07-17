@@ -1803,7 +1803,7 @@ z_dot_quote:    rts
 
 
 
-; ## DOT_R ( n u -- ) "Print NOS as unsigned number with TOS with"
+; ## DOT_R ( n u -- ) "Print NOS as unsigned number with TOS width"
 ; ## ".r"  tested  ANS core ext
         ; """https://forth-standard.org/standard/core/DotR
         ;
@@ -1814,10 +1814,10 @@ z_dot_quote:    rts
 xt_dot_r:
                 jsr underflow_2
 w_dot_r:
-                jsr w_to_r
+                jsr w_to_r              ; ( n ) (R: u )
                 jsr w_dup
                 jsr w_abs
-                jsr w_zero
+                jsr w_zero              ; ( n |n| 0 ) (R: u )
                 jsr w_less_number_sign
                 jsr w_number_sign_s
                 jsr w_rot
@@ -2514,11 +2514,12 @@ w_fm_slash_mod:
                 bpl _check_d
 
                 inc tmp2        ; set flag to negative for n1
-                jsr w_negate   ; NEGATE
-                jsr w_to_r     ; >R
-                jsr w_dnegate  ; DNEGATE
-                jsr w_r_from   ; R>
-
+                jsr w_negate    ; NEGATE
+                inx
+                inx             ; pretend to push to stack
+                jsr w_dnegate   ; DNEGATE
+                dex
+                dex
 _check_d:
                 ; If d is negative, add n1 to high cell of d
                 lda 3,x         ; MSB of high word of d
@@ -5507,20 +5508,25 @@ w_slash_mod:
 
 slashmod_common:
                 pha
-                jsr w_to_r             ; >R
-                jsr w_s_to_d           ; S>D
-                jsr w_r_from           ; R>
-                jsr w_sm_slash_rem     ; SM/REM
+                ; rather than >R S>D R> we'll do ( n1 n2 -- d1 n2 ) inline
 
-                ; Get the flag back from the 65c02's stack. Zero is SLASH,
-                ; $FF is SLASH MOD
+                lda 0,x                 ; dup but drop leaving ( n1 -- ) with [ ? n2 ] in the wings
+                sta $fe,x
+                lda 1,x
+                sta $ff,x
+                inx
+                inx
+                jsr w_s_to_d            ; sign extend and then recover n2
+                dex
+                dex
+
+                jsr w_sm_slash_rem      ; SM/REM leaving ( rem quo )
+
+                ; Check flag with SLASH=0, SLASH_MOD=$ff
                 pla
                 bne _done
 
-                ; The following code is for SLASH only
-                jsr w_swap
-                inx             ; DROP
-                inx
+                jsr w_nip               ; SLASH discards the remainer
 _done:
 z_slash_mod:
 z_slash:        rts
@@ -5729,9 +5735,11 @@ z_star_slash:
 xt_star_slash_mod:
                 jsr underflow_3
 w_star_slash_mod:
-                jsr w_to_r
-                jsr w_m_star
-                jsr w_r_from
+                inx                     ; pretend to push to stack
+                inx
+                jsr w_m_star            ; doesn't use further stack space
+                dex
+                dex
                 jsr w_sm_slash_rem
 
 z_star_slash_mod:
@@ -6760,7 +6768,7 @@ z_u_less_than:    rts
         ; Forth code, modified by Garth Wilson, see
         ; http://6502.org/source/integers/ummodfix/ummodfix.htm
         ;
-        ; This uses tmp1, tmp1+1, and tmptos
+        ; This uses tmpdsp but otherwise works in place
         ; """
 
 xt_um_slash_mod:
@@ -6774,51 +6782,131 @@ w_um_slash_mod:
                 lda #err_divzero
                 jmp error
 
+                ; note we don't check for the overflow condition that occurs
+                ; when the divisor is less than the high word of the dividend,
+                ; ie. when the quotient would be more than 16 bits
+
+                ; During the main part of the routine we have the following
+                ; stack layout.  We're essentially doing binary long division
+                ; (see https://en.wikipedia.org/wiki/Binary_number#Division).
+                ; At each step we check whether the divisor fits into the
+                ; top word of the dividend, while rolling the dividend left one bit,
+                ; and rolling our result bits in from the right.
+                ; Eventually we're left with the remainder TOS and quotient NOS:
+                ;
+                ;       +-----------+-----------+-----------+
+                ;       |    TOS    |    NOS    |    3OS    |
+                ;       | 0,x | 1,x | 2,x | 3,x | 4,x | 5,x |
+                ;       +-----+-----+-----+-----+-----+-----+
+                ;       |  divisor  |       dividend        |
+                ;       | ulo   uhi | ud2   ud3   ud0   ud1 |
+                ;       +-----------+-----------+-----------+
+                ;                   | remainder | quotient  |
+                ;                   | rlo   rhi | qlo   qhi |
+                ;                   +-----------+-----------+
+                ;
+                ; Finally we do DROP, SWAP leaving the desired result:
+                ;
+                ;       +-----------+-----------+
+                ;       |    TOS    |    NOS    |
+                ;       | 0,x | 1,x | 2,x | 3,x |
+                ;       +-----+-----+-----+-----+
+                ;       | quotient  | remainder |
+                ;       | qlo   qhi | rlo   rhi |
+                ;       +-----------+-----------+
+
 _not_zero:
                 ; We loop 17 times
-                lda #17
-                sta tmptos
+                ldy #17
+
+                ; because we're often dividing a word that's been
+                ; extended to a double via S>D, it's worth doing a
+                ; fast pre-loop until we see a non-zero high dividend
+
+                lda 2,x                 ; is high part of dividend zero?
+                ora 3,x
+                bne _loop               ; nope, carry on...
+
+_while_zero:    rol 4,x                 ; roll the bottom word
+                rol 5,x
+                dey
+                beq _done
+                bcc _while_zero         ; until we get a high bit
+
+                rol 2,x                 ; enter the bit into the high part
+                bra _maybe              ; start the real work
 
 _loop:
                 ; rotate low cell of dividend one bit left (LSB)
+                ; entering the last result bit from the carry
+                ; NB. the arbitrary bit on pass one is discarded on step 17
                 rol 4,x
                 rol 5,x
 
                 ; loop control
-                dec tmptos
+                dey
                 beq _done
 
                 ; rotate high cell of dividend one bit left (MSB)
                 rol 2,x
                 rol 3,x
 
-                stz tmp1        ; store the bit we got from hi cell (MSB)
-                rol tmp1
+                ; Garth's original routine explicitly stores
+                ; the carry (bit 17) in a temp and uses an
+                ; extended version of the _maybe branch here.
+                ; While that saves some code, this routine is
+                ; so heavily used that it seems worth unfolding
+                ; the C=0 and C=1 for speed and avoid the temp storage
 
-                ; subtract dividend hi cell minus divisor
-                sec
+                bcc _maybe      ; hi bit set?
+
+                ; bit 17 aka carry is set, so divisor will definitely go
                 lda 2,x
                 sbc 0,x
-                sta tmp1+1
+                sta 2,x
+
                 lda 3,x
                 sbc 1,x
+                sta 3,x
 
-                tay
-                lda tmp1
-                sbc #0
-                bcc _loop
-
-                ; make result new dividend high cell
-                lda tmp1+1
-                sta 2,x
-                sty 3,x         ; used as temp storage
-
+                sec             ; result bit is 1
                 bra _loop
+
+_maybe:
+                ; otherwise we need to check if divisor "goes", i.e.
+                ; is no larger than the high word of dividend, by actually
+                ; doing the subtraction and checking the resulting carry
+
+                ; start with the MSB so we can short-circuit early
+
+                sec
+                lda 3,x         ; check if we need borrow on MSB
+                sbc 1,x
+                bcc _loop       ; if we do, divisor won't go, result bit is C=0
+
+                ina
+                sta tmpdsp      ; stash msb+1 to simplify upcoming borrow test
+
+                lda 2,x         ; find difference of LSB
+                sbc 0,x         ; note carry is already set
+                bcs _ok         ; if C=1, we're good to go
+
+                dec tmpdsp      ; need to borrow from the MSB
+                beq _loop       ; failing if it was 0 (ie. msb+1 was 1), leaving C=0
+
+                sec             ; otherwise we're good, so ensure C=1
+_ok:
+                sta 2,x         ; update the LSB of dividend
+                lda tmpdsp      ; recover stashed MSB
+                dea             ; undo our +1 adjustment
+                sta 3,x         ; update MSB of dividend
+
+                bra _loop       ; continue with result bit C=1
 _done:
-                inx
+                inx             ; drop the divisor
                 inx
 
-                jsr w_swap
+                jsr w_swap      ; swap to return ( rem quo )
 
 z_um_slash_mod: rts
 
@@ -7024,12 +7112,18 @@ z_while:        rts
 xt_within:
                 jsr underflow_3
 w_within:
-                jsr w_over
-                jsr w_minus
-                jsr w_to_r
-                jsr w_minus
-                jsr w_r_from
-                jsr w_u_less_than
+                jsr w_over              ; ( n1 n2 n3 n2 )
+                jsr w_minus             ; ( n1 n2 n3-n2 )
+                inx                     ; pretend to push n3-n2 to return stack
+                inx
+                jsr w_minus             ; ( n1-n2 ) with ( n2 n3-n2 ) past end of stack
+                dex                     ; nip the overhang leaving ( n1-n2 n3-n2 )
+                dex
+                lda $fe,x
+                sta 0,x
+                lda $ff,x
+                sta 1,x
+                jsr w_u_less_than       ; ( f )
 
 z_within:       rts
 

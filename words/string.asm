@@ -553,11 +553,21 @@ w_sliteral:
                 ; ( addr addr' u addr'+u )
                 jsr w_r_from
                 jsr w_store            ; point jmp past string
-                jsr w_two_dup
-                jsr w_two_to_r
+                ; we'll just pretend to push addr' u to return stack
+;                jsr w_two_dup
+;                jsr w_two_to_r
                 ; ( addr addr' u  R: addr' u )
                 jsr w_move             ; copy u bytes from addr -> addr'
-                jsr w_two_r_from
+                dex
+                dex
+                dex
+                dex
+                dex
+                dex
+                jsr w_rot
+                inx
+                inx
+ ;               jsr w_two_r_from
                 ; Stack is now ( addr' u ) with the new string location
 
 cmpl_sliteral:
