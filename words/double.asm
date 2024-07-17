@@ -193,7 +193,7 @@ w_d_dot_r:
 z_d_dot_r:      rts
 
 
-; ## M_STAR_SLASH ( d1 n1 n2 -- d2 ) "Multiply d1 by n1 and divides the triple-precision product by n2.  All values are signed."
+; ## M_STAR_SLASH ( d1 n1 n2 -- d2 ) "Multiply d1 by n1 and divide the triple result by n2.  All values are signed."
 ; ## "m*/"  auto  ANS double
         ; """https://forth-standard.org/standard/double/MTimesDiv"""
         ; From All About FORTH, MVP-Forth, public domain,
@@ -205,10 +205,9 @@ xt_m_star_slash:
                 jsr underflow_4
 w_m_star_slash:
                 ; DDUP XOR SWAP ABS >R SWAP ABS >R OVER XOR ROT ROT DABS
-                ; ( n1^n2^dhi |d1| ) (R: |n2| |n1| )
-
-                ; we'll do something slightly different to avoid R:
-                ; first step is calculating |d1| |n1| |n2| along with the sign bit from dhi^n1^n2
+                ; this looks like ( n1^n2^dhi |d1| ) (R: |n2| |n1| )
+                ; but we'll do something slightly different to avoid R:
+                ; we want |d1| |n1| |n2| along with the sign bit from dhi^n1^n2
 
                 lda 1,x
                 eor 3,x
@@ -221,8 +220,9 @@ w_m_star_slash:
                 jsr w_two_swap
                 jsr w_dabs              ; ( |n2| |n1| |d1| )
 
+                ; we want something akin to
                 ; SWAP R@ UM* ROT R> UM* ROT 0 D+ R@ UM/MOD ROT ROT R> UM/MOD
-                ; but we have |n2| and |n1| on the data stack instead of R:
+                ; but we have |n2| and |n1| on the data stack
                 jsr w_swap
                 dex
                 dex
@@ -260,8 +260,11 @@ w_m_star_slash:
 
                 jsr w_um_slash_mod      ; ( qhi r' qlo )
 +
+                ; finally we want
                 ; SWAP DROP SWAP ROT 0< if dnegate then ;
-                ; equivalent to NIP SWAP sgn if dnegate then ;
+                ; which just ditches the last remainder and gets
+                ; the double result in the right order,
+                ; something like NIP SWAP sgn if DNEGATE then ;
                 jsr w_nip
                 jsr w_swap              ; ( |qd| )
 
