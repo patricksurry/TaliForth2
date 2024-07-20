@@ -2230,7 +2230,7 @@ dump
 0D6B  0A 61 20 0A 7A 7A 7A 20  0A 2E 20 0A 71 20 0A 3F  .a .zzz  .. .q .?
 0D7B  0A 51 20  .Q  ok
 T{ s\" \na \nzzz \n. \nq \n?\nQ " compare -> 0 }T Data stack underflow
-Return stack: 71 A0 E3 87 5D D8 9A 80
+Return stack: 71 A0 E3 87 5B D8 9A 80
   ok
   ok
 \ Test --- p --- print one line, no line number  ok
@@ -2349,6 +2349,15 @@ hex  ok
 : 12 12 ;  ok
 : 1122 1122 ;  ok
 : 3 3 ;  ok
+  ok
+\ Test that words with assembler direct JMP are marked NN  ok
+\ see https://github.com/SamCoVT/TaliForth2/issues/113  ok
+: aword dup drop ;  ok
+: cword [ ' aword jmp ] ;  ok
+: dword [ ' aword ] jmp ;  ok
+  ok
+T{ capture-output see cword restore-output s"  NN 1 " search -rot 2drop -> true }T  ok
+T{ capture-output see cword restore-output s"  NN 1 " search -rot 2drop -> true }T  ok
   ok
 \ --------------------------------------------------------------------------  ok
   ok
@@ -3012,6 +3021,8 @@ T{ blkbuffer 32 capture-output dump restore-output s\" \n0400  00 01 02 03 04 05
 : see-/mod-output s\" \n nt: ****  xt: **** \n flags: CO 0 IM 0 AN 0 NN 0 HC 0 | UF 1 ST 0 \n size (decimal): 26 \n \n ****  20 ** ** A9 FF 48 20 **  ** 20 ** ** 20 ** ** 20   .**.H * * ** ** \n ****  ** ** 68 D0 05 20 ** **  E8 E8  **h..  .*..\n \n ****   **** jsr     2 STACK DEPTH CHECK\n ****     FF lda.#\n ****        pha\n ****   **** jsr     >r\n ****   **** jsr     s>d\n ****   **** jsr     r>\n ****   **** jsr     sm/rem\n ****        pla\n ****      5 bne     **** v\n ****   **** jsr     swap\n ****        inx\n ****        inx\n"  compiled
 ;  ok
   ok
+\ these tests are a little fiddly since the width of some fields can vary based on the base  ok
+\ and the starting offset.  HEX is better, but with DECIMAL in disasm it can be sensitive.  ok
 \ to debug, add 2DUP DUMP after restore-output and after see-/mod and compare in results.txt  ok
 T{ capture-output see /mod restore-output see-/mod-output char * compare-masked -> 0 }T  ok
   ok
@@ -3040,86 +3051,8 @@ nc-limit !  ok
   ok
 T{  ok
     ' disasm-test dup int>name wordsize  ok
-    capture-output disasm restore-output 2dup dump 
-0D6B  0A 31 33 36 36 34 20 20  33 35 33 36 35 20 6A 73  .13664   35365 js
-0D7B  72 20 20 20 20 20 4C 49  54 45 52 41 4C 20 31 30  r     LI TERAL 10
-0D8B  20 0A 31 33 36 36 39 20  20 34 30 35 31 33 20 6A   .13669   40513 j
-0D9B  73 72 20 20 20 20 20 30  0A 31 33 36 37 32 20 20  sr     0 .13672  
-0DAB  33 34 31 37 38 20 6A 73  72 20 20 20 20 20 44 4F  34178 js r     DO
-0DBB  20 0A 31 33 36 37 35 20  20 34 31 35 31 37 20 6A   .13675   41517 j
-0DCB  73 72 20 20 20 20 20 32  4C 49 54 45 52 41 4C 20  sr     2 LITERAL 
-0DDB  33 30 35 34 31 39 38 39  36 20 0A 31 33 36 38 32  30541989 6 .13682
-0DEB  20 20 33 37 37 38 32 20  6A 73 72 20 20 20 20 20    37782  jsr     
-0DFB  32 64 72 6F 70 0A 31 33  36 38 35 20 20 31 33 36  2drop.13 685  136
-0E0B  39 34 20 6A 6D 70 0A 31  33 36 39 34 20 20 34 31  94 jmp.1 3694  41
-0E1B  35 31 37 20 6A 73 72 20  20 20 20 20 53 4C 49 54  517 jsr      SLIT
-0E2B  45 52 41 4C 20 31 33 36  38 38 20 36 20 0A 31 33  ERAL 136 88 6 .13
-0E3B  37 30 31 20 20 33 37 37  38 32 20 6A 73 72 20 20  701  377 82 jsr  
-0E4B  20 20 20 32 64 72 6F 70  0A 31 33 37 30 34 20 20     2drop .13704  
-0E5B  33 35 30 39 36 20 6A 73  72 20 20 20 20 20 69 0A  35096 js r     i.
-0E6B  31 33 37 30 37 20 20 34  30 34 31 31 20 6A 73 72  13707  4 0411 jsr
-0E7B  20 20 20 20 20 31 0A 31  33 37 31 30 20 20 33 33       1.1 3710  33
-0E8B  34 32 34 20 6A 73 72 20  20 20 20 20 61 6E 64 0A  424 jsr      and.
-0E9B  31 33 37 31 33 20 20 33  38 39 38 31 20 6A 73 72  13713  3 8981 jsr
-0EAB  20 20 20 20 20 30 42 52  41 4E 43 48 20 31 33 37       0BR ANCH 137
-0EBB  32 31 20 0A 31 33 37 31  38 20 20 31 33 37 32 36  21 .1371 8  13726
-0ECB  20 6A 6D 70 0A 31 33 37  32 31 20 20 33 35 35 31   jmp.137 21  3551
-0EDB  37 20 6A 73 72 20 20 20  20 20 4C 4F 4F 50 20 31  7 jsr      LOOP 1
-0EEB  33 36 37 35 20 0A 31 33  37 32 36 20 20 33 38 33  3675 .13 726  383
-0EFB  33 36 20 6A 73 72 20 20  20 20 20 75 6E 6C 6F 6F  36 jsr      unloo
-0F0B  70 0A 31 33 37 32 39 20  20 34 30 35 31 33 20 6A  p.13729   40513 j
-0F1B  73 72 20 20 20 20 20 30  0A 31 33 37 33 32 20 20  sr     0 .13732  
-0F2B  34 30 35 31 33 20 6A 73  72 20 20 20 20 20 30 0A  40513 js r     0.
-0F3B  31 33 37 33 35 20 20 33  34 31 35 34 20 6A 73 72  13735  3 4154 jsr
-0F4B  20 20 20 20 20 3F 44 4F  20 31 33 37 35 36 20 0A       ?DO  13756 .
-0F5B  31 33 37 34 30 20 20 33  34 31 37 38 20 6A 73 72  13740  3 4178 jsr
-0F6B  20 20 20 20 20 44 4F 20  0A 31 33 37 34 33 20 20       DO  .13743  
-0F7B  33 35 33 36 35 20 6A 73  72 20 20 20 20 20 4C 49  35365 js r     LI
-0F8B  54 45 52 41 4C 20 2D 31  20 0A 31 33 37 34 38 20  TERAL -1  .13748 
-0F9B  20 33 35 35 34 32 20 6A  73 72 20 20 20 20 20 2B   35542 j sr     +
-0FAB  4C 4F 4F 50 20 31 33 37  34 33 20 0A 31 33 37 35  LOOP 137 43 .1375
-0FBB  33 20 20 33 38 33 33 36  20 6A 73 72 20 20 20 20  3  38336  jsr    
-0FCB  20 75 6E 6C 6F 6F 70 0A    unloop.  ok
-    disasm-test-output 2dup dump char * compare-masked -> 0 }T 
-35DA  0A 2A 2A 2A 2A 2A 20 20  2A 2A 2A 2A 2A 20 6A 73  .*****   ***** js
-35EA  72 20 20 20 20 20 4C 49  54 45 52 41 4C 20 31 30  r     LI TERAL 10
-35FA  20 0A 2A 2A 2A 2A 2A 20  20 2A 2A 2A 2A 2A 20 6A   .*****   ***** j
-360A  73 72 20 20 20 20 20 30  0A 2A 2A 2A 2A 2A 20 20  sr     0 .*****  
-361A  2A 2A 2A 2A 2A 20 6A 73  72 20 20 20 20 20 44 4F  ***** js r     DO
-362A  20 0A 2A 2A 2A 2A 2A 20  20 2A 2A 2A 2A 2A 20 6A   .*****   ***** j
-363A  73 72 20 20 20 20 20 32  4C 49 54 45 52 41 4C 20  sr     2 LITERAL 
-364A  33 30 35 34 31 39 38 39  36 20 0A 2A 2A 2A 2A 2A  30541989 6 .*****
-365A  20 20 2A 2A 2A 2A 2A 20  6A 73 72 20 20 20 20 20    *****  jsr     
-366A  32 64 72 6F 70 0A 2A 2A  2A 2A 2A 20 20 2A 2A 2A  2drop.** ***  ***
-367A  2A 2A 20 6A 6D 70 0A 2A  2A 2A 2A 2A 20 20 2A 2A  ** jmp.* ****  **
-368A  2A 2A 2A 20 6A 73 72 20  20 20 20 20 53 4C 49 54  *** jsr      SLIT
-369A  45 52 41 4C 20 2A 2A 2A  2A 2A 20 36 20 0A 2A 2A  ERAL *** ** 6 .**
-36AA  2A 2A 2A 20 20 2A 2A 2A  2A 2A 20 6A 73 72 20 20  ***  *** ** jsr  
-36BA  20 20 20 32 64 72 6F 70  0A 2A 2A 2A 2A 2A 20 20     2drop .*****  
-36CA  2A 2A 2A 2A 2A 20 6A 73  72 20 20 20 20 20 69 0A  ***** js r     i.
-36DA  2A 2A 2A 2A 2A 20 20 2A  2A 2A 2A 2A 20 6A 73 72  *****  * **** jsr
-36EA  20 20 20 20 20 31 0A 2A  2A 2A 2A 2A 20 20 2A 2A       1.* ****  **
-36FA  2A 2A 2A 20 6A 73 72 20  20 20 20 20 61 6E 64 0A  *** jsr      and.
-370A  2A 2A 2A 2A 2A 20 20 2A  2A 2A 2A 2A 20 6A 73 72  *****  * **** jsr
-371A  20 20 20 20 20 30 42 52  41 4E 43 48 20 2A 2A 2A       0BR ANCH ***
-372A  2A 2A 20 0A 2A 2A 2A 2A  2A 20 20 2A 2A 2A 2A 2A  ** .**** *  *****
-373A  20 6A 6D 70 0A 2A 2A 2A  2A 2A 20 20 2A 2A 2A 2A   jmp.*** **  ****
-374A  2A 20 6A 73 72 20 20 20  20 20 4C 4F 4F 50 20 2A  * jsr      LOOP *
-375A  2A 2A 2A 2A 20 0A 2A 2A  2A 2A 2A 20 20 2A 2A 2A  **** .** ***  ***
-376A  2A 2A 20 6A 73 72 20 20  20 20 20 75 6E 6C 6F 6F  ** jsr      unloo
-377A  70 0A 2A 2A 2A 2A 2A 20  20 2A 2A 2A 2A 2A 20 6A  p.*****   ***** j
-378A  73 72 20 20 20 20 20 30  0A 2A 2A 2A 2A 2A 20 20  sr     0 .*****  
-379A  2A 2A 2A 2A 2A 20 6A 73  72 20 20 20 20 20 30 0A  ***** js r     0.
-37AA  2A 2A 2A 2A 2A 20 20 2A  2A 2A 2A 2A 20 6A 73 72  *****  * **** jsr
-37BA  20 20 20 20 20 3F 44 4F  20 2A 2A 2A 2A 2A 20 0A       ?DO  ***** .
-37CA  2A 2A 2A 2A 2A 20 20 2A  2A 2A 2A 2A 20 6A 73 72  *****  * **** jsr
-37DA  20 20 20 20 20 44 4F 20  0A 2A 2A 2A 2A 2A 20 20       DO  .*****  
-37EA  2A 2A 2A 2A 2A 20 6A 73  72 20 20 20 20 20 4C 49  ***** js r     LI
-37FA  54 45 52 41 4C 20 2D 31  20 0A 2A 2A 2A 2A 2A 20  TERAL -1  .***** 
-380A  20 2A 2A 2A 2A 2A 20 6A  73 72 20 20 20 20 20 2B   ***** j sr     +
-381A  4C 4F 4F 50 20 2A 2A 2A  2A 2A 20 0A 2A 2A 2A 2A  LOOP *** ** .****
-382A  2A 20 20 2A 2A 2A 2A 2A  20 6A 73 72 20 20 20 20  *  *****  jsr    
-383A  20 75 6E 6C 6F 6F 70 0A    unloop.  ok
+    capture-output disasm restore-output  ok
+    disasm-test-output char * compare-masked -> 0 }T  ok
   ok
  ( Running test 'block' from file 'block.fs' )  ok
 \ ------------------------------------------------------------------------  ok
@@ -3159,7 +3092,7 @@ T{ s"           " ramdrive 10 compare -> 0 }T  ok
  7 * ( 7 ) variable blkinscreenA 
  8 * ( 8 ) blk @ blkinscreenA ! 
  9 * \ ( 9 ) 20 testvalue +! \ Shouldn't run 
-10 * ( 10 ) \ Test comments in blocks 1 testvalue +!  
+10 * ( 10 ) \ Test comments in blocks 1 testvalue +! 
 11 * ( 11 ) 1 testvalue +! \ This shoud be ignored 1 testvalue +! 
 12 * ( 12 )                                                         \
 13 *  ( 13 ) 1 testvalue +! 
@@ -3196,13 +3129,13 @@ T{ testvalue @    -> 7 }T  ok
   ok
 3 enter-screen 
  0 * ( Test screen 2 ) 
- 1 * ( 1 )  
- 2 * ( 2 )  
+ 1 * ( 1 ) 
+ 2 * ( 2 ) 
  3 * ( 3 ) shouldbe19 @ 7 + shouldbe19 ! 
- 4 * ( 4 )  
- 5 * ( 5 )  
- 6 * ( 6 )  
- 7 * ( 7 )  
+ 4 * ( 4 ) 
+ 5 * ( 5 ) 
+ 6 * ( 6 ) 
+ 7 * ( 7 ) 
  8 * ( 8 ) 
  9 * ( 9 ) 
 10 * ( 10 ) 
@@ -3242,6 +3175,19 @@ T{ blkinscreenB @ -> 2  }T \ Note: blkinscreen3 is a variable.  ok
 T{ blkinscreenC   -> 3  }T \ Note: blkinscreen4 is a constant.  ok
 T{ blkinscreenD   -> 2  }T \ Note: blkinscreen5 is a constant.  ok
 T{ shouldbe19 @   -> 19 }T  ok
+  ok
+:noname  compiled
+    block-c65-init if  compiled
+        ." testing c65 block read/write"  compiled
+        $c000 1 block-write     \ write a block from ROM  compiled
+        $400 1 block-read       \ read it back to block buffer  compiled
+        $c000 $400 $400 $400 compare    \ unchanged?  compiled
+    else  compiled
+        ." no c65 block device"  compiled
+        0                       \ pass the null test  compiled
+    then  compiled
+;  ok
+T{ execute -> 0 }T testing c65 block read/write ok
   ok
 \ Release all of the memory used.  ok
 block_tests  ok
@@ -3497,12 +3443,12 @@ here 5       ' blank         cycle_test            CYCLES:    327 ok
 5            ' chars         cycle_test drop       CYCLES:     28 ok
 pad here 5   ' cmove         cycle_test            CYCLES:    188 ok
 pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
-             ' :             cycle_test wrd ;      CYCLES:  15672 ok
+             ' :             cycle_test wrd ;      CYCLES:  15677 ok
              ' :noname       cycle_test ; drop     CYCLES:     50 ok
 5            ' ,             cycle_test            CYCLES:    101 ok
 ' aword      ' compile,      cycle_test            CYCLES:    878 ok
 : bword ;    ' compile-only  cycle_test            CYCLES:     72 ok
-5            ' constant      cycle_test mycnst     CYCLES:  16440 ok
+5            ' constant      cycle_test mycnst     CYCLES:  16449 ok
 here         ' count         cycle_test 2drop      CYCLES:     59 ok
 \ skipping     cr  ok
 \ skipping     create  ok
@@ -3551,7 +3497,7 @@ nc-limit !  ok
 5 5          ' =             cycle_test drop       CYCLES:     66 ok
 here 5       ' erase         cycle_test            CYCLES:    325 ok
 here 5 5     ' fill          cycle_test            CYCLES:    309 ok
-s" 5"        ' evaluate      cycle_test drop       CYCLES:  17603 ok
+s" 5"        ' evaluate      cycle_test drop       CYCLES:  17607 ok
 5 ' drop     ' execute       cycle_test            CYCLES:     84 ok
 \ skipping     exit  ok
              ' false         cycle_test drop       CYCLES:     24 ok
@@ -3586,7 +3532,7 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:   1020 ok
 \ skipping     +loop  ok
 5 5          ' lshift        cycle_test drop       CYCLES:    126 ok
 5 5          ' m*            cycle_test 2drop      CYCLES:    588 ok
-             ' marker        cycle_test marka      CYCLES:  18445 ok
+             ' marker        cycle_test marka      CYCLES:  18449 ok
              ' marka         cycle_test            CYCLES:    781 ok
 5 5          ' max           cycle_test drop       CYCLES:     69 ok
 5 5          ' min           cycle_test drop       CYCLES:     54 ok
@@ -3670,7 +3616,7 @@ here         ' 2@            cycle_test 2drop      CYCLES:     88 ok
 5. here      ' 2!            cycle_test            CYCLES:     99 ok
 5 5 5 5      ' 2swap         cycle_test 4drop      CYCLES:     92 ok
 \ skipping     2>r  ok
-             ' 2variable     cycle_test eword      CYCLES:  17230 ok
+             ' 2variable     cycle_test eword      CYCLES:  17234 ok
              ' eword         cycle_test drop       CYCLES:     45 ok
 s" *"        ' type          cycle_test           *CYCLES:    123 ok
 5            ' u.            cycle_test          5 CYCLES:   1842 ok
@@ -3681,10 +3627,10 @@ s" *"        ' type          cycle_test           *CYCLES:    123 ok
 5 5          ' um*           cycle_test 2drop      CYCLES:    476 ok
 \ skipping     unloop  ok
              ' unused        cycle_test drop       CYCLES:     36 ok
-5            ' value         cycle_test fword      CYCLES:  17446 ok
+5            ' value         cycle_test fword      CYCLES:  17450 ok
              ' fword         cycle_test drop       CYCLES:     58 ok
 5            ' to            cycle_test fword      CYCLES:   1136 ok
-             ' variable      cycle_test gword      CYCLES:  17275 ok
+             ' variable      cycle_test gword      CYCLES:  17279 ok
              ' gword         cycle_test drop       CYCLES:     45 ok
 char "       ' word          cycle_test "txt" drop CYCLES:    620 ok
 \ skipping     words  ok
@@ -3697,4 +3643,4 @@ char "       ' word          cycle_test "txt" drop CYCLES:    620 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     48 ok
   ok
-bye c65: PC=f016 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=151896407
+bye c65: PC=f016 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=153195667

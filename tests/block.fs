@@ -35,7 +35,7 @@ T{ s"           " ramdrive 10 compare -> 0 }T
 ( 7 ) variable blkinscreenA
 ( 8 ) blk @ blkinscreenA !
 \ ( 9 ) 20 testvalue +! \ Shouldn't run
-( 10 ) \ Test comments in blocks 1 testvalue +! 
+( 10 ) \ Test comments in blocks 1 testvalue +!
 ( 11 ) 1 testvalue +! \ This shoud be ignored 1 testvalue +!
 ( 12 )                                                         \ ( 13 ) 1 testvalue +!
 ( 14 ) \ The above has a backslash as the very last character
@@ -70,13 +70,13 @@ T{ testvalue @    -> 7 }T
 
 3 enter-screen
 ( Test screen 2 )
-( 1 ) 
-( 2 ) 
+( 1 )
+( 2 )
 ( 3 ) shouldbe19 @ 7 + shouldbe19 !
-( 4 ) 
-( 5 ) 
-( 6 ) 
-( 7 ) 
+( 4 )
+( 5 )
+( 6 )
+( 7 )
 ( 8 )
 ( 9 )
 ( 10 )
@@ -97,6 +97,19 @@ T{ blkinscreenB @ -> 2  }T \ Note: blkinscreen3 is a variable.
 T{ blkinscreenC   -> 3  }T \ Note: blkinscreen4 is a constant.
 T{ blkinscreenD   -> 2  }T \ Note: blkinscreen5 is a constant.
 T{ shouldbe19 @   -> 19 }T
+
+:noname
+    block-c65-init if
+        ." testing c65 block read/write"
+        $c000 1 block-write     \ write a block from ROM
+        $400 1 block-read       \ read it back to block buffer
+        $c000 $400 $400 $400 compare    \ unchanged?
+    else
+        ." no c65 block device"
+        0                       \ pass the null test
+    then
+;
+T{ execute -> 0 }T
 
 \ Release all of the memory used.
 block_tests

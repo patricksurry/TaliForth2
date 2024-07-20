@@ -141,5 +141,5 @@ nc-limit !
 
 T{
     ' disasm-test dup int>name wordsize
-    capture-output disasm restore-output 2dup dump
-    disasm-test-output 2dup dump char * compare-masked -> 0 }T
+    capture-output disasm restore-output
+    disasm-test-output char * compare-masked -> 0 }T
