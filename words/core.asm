@@ -4501,22 +4501,18 @@ z_plus:         rts
 xt_plus_store:
                 jsr underflow_2
 w_plus_store:
-                ; move address to tmp1 so we can work with it
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
-
-                ldy #0          ; LSB
-                lda (tmp1),y
                 clc
+                lda (0,x)
                 adc 2,x
-                sta (tmp1),y
+                sta (0,x)
 
-                iny             ; MSB
-                lda (tmp1),y
+                inc 0,x
+                bne +
+                inc 1,x
++
+                lda (0,x)
                 adc 3,x
-                sta (tmp1),y
+                sta (0,x)
 
                 inx
                 inx
@@ -4723,63 +4719,40 @@ z_r_from:       jmp (tmp1)
 xt_recurse:
 w_recurse:
                 ; The whole routine amounts to compiling a reference to
-                ; the word that is being compiled. First, we save the JSR
-                ; instruction
-                ldy #0
+                ; the word that is being compiled.
 
-                lda #OpJSR
-                sta (cp),y
-                iny
+                ; We just need the LSB and MSB of the xt of the word
+                ; we are currently working on.
+                ; WORKWORD has either the nt (: started the word)
+                ; or the xt (:NONAME started the word).
+                ; Bit 6 in status tells us.
 
-                ; Next, we save the LSB and MSB of the xt of the word
-                ; we are currently working on. We first need to see if
-                ; WORKWORD has the nt (: started the word) or the
-                ; xt (:NONAME started the word). Bit 6 in status tells us.
+                lda workword            ; we need workword either way
+                ldy workword+1
+
                 bit status
-                bvs _nt_in_workword
+                bvc _compile            ; if it's a :NONAME word, we're good
 
-                ; This is a special :NONAME word. Just copy the xt
-                ; from WORKWORD into the dictionary.
-                lda workword
-                sta (cp),y
-                iny
-                lda workword+1
-                sta (cp),y
-                iny
-                bra _update_cp
-
-_nt_in_workword:
                 ; This is a regular : word, so the xt is four bytes down
                 ; from the nt which we saved in WORKWORD. We could probably
                 ; use NAME>INT here but this is going to be faster, and
                 ; fast counts with recursion
-                lda workword            ; LSB
                 clc
                 adc #4
-                sta tmp1
-                lda workword+1          ; MSB
-                adc #0
-                sta tmp1+1
-
-                lda (tmp1)
-                sta (cp),y
-                phy
-                ldy #1
-                lda (tmp1),y
-                ply
-                iny
-                sta (cp),y
-                iny
-
-_update_cp:
+                sta tmp1                ; LSB
                 tya
-                clc
-                adc cp
-                sta cp
-                bcc _done
-                inc cp+1
-_done:
-z_recurse:      rts
+                adc #0
+                sta tmp1+1              ; MSB
+
+                ldy #1
+                lda (tmp1),y            ; MSB
+                tay
+                lda (tmp1)              ; LSB
+
+_compile:
+                jmp cmpl_subroutine     ; generate JSR Y/A
+
+z_recurse:
 
 
 
@@ -4943,7 +4916,7 @@ w_rshift:
                 and #%00001111
                 beq _done               ; if 0 shifts, quit
 
-                tay
+                tay                     ; we could optimize y >= 8 but prob not worth it
 _loop:
                 lsr 3,x
                 ror 2,x
@@ -4983,6 +4956,7 @@ w_s_backslash_quote:
 z_s_backslash_quote:
                 rts
 
+;TODO cf DIGIT?
 
 ; This is a helper function for s_backslash_quote to convert a character
 ; from ASCII to the corresponding hex value, eg 'F'->15
