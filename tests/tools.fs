@@ -163,7 +163,10 @@ size (decimal): 26 \n
 
 \ these tests are a little fiddly since the width of some fields can vary based on the base
 \ and the starting offset.  HEX is better, but with DECIMAL in disasm it can be sensitive.
-\ to debug, add 2DUP DUMP after restore-output and after see-/mod and compare in results.txt
+\ our simple compare-glob does a minimal match on * but is enough to identify a non-blank
+\ number field delimited by whitespace.  For fixed width fields like hex bytes, it's better to
+\ wildcard individual characters, e.g. ?? matches exactly two arbitrary characters.
+\ To debug, add 2DUP DUMP after both restore-output and see-/mod and compare in results.txt.
 T{ capture-output see /mod restore-output see-/mod-output  compare-glob -> 0 }T
 
 \ CASE has CO+IM+NN flags
