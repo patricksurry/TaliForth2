@@ -30,81 +30,170 @@ T{ blkbuffer 32 capture-output dump restore-output s\" \n0400  00 01 02 03 04 05
 
 
 
-\ compare two strings ignoring masked characters from the second string
-\ for example 'abcdEf' would compare equal to 'abcd*f' using * as the mask
-\ returns 0 if the strings match, -1 if their lengths differ,
-\ and otherwise the 1-based index of first mismatch
+\ Split a string containing the glob characters * and ?
+\ One * or multiple ? at the start of the string are discarded
+\ and flagged, with the remainder of the string split at the next
+\ glob character, leaving an initial glob-free prefix and the remainder
 
-: compare-masked ( addr1 n1 addr2 n2 ch -- 0 | <>0 )
-    >r rot over <> if
-        2drop drop r> drop -1 exit
+: cleave-glob ( addr n -- addr1 n1 addr2 n2 f )
+  \ f = 0 if string doesn't start with * or ?
+  \   = -1 if string starts with *
+  \   = n if string starts with n ?s
+  \ addr2 n2 is the prefix discarding initial glob chars, splitting before the next glob char
+  \ addr1 n1 is the remaining string
+
+  \ empty string?
+  dup 0= if
+    2dup 0 exit
+  then
+  0 >r
+  over c@ case
+    [char] * of 1 /string r> 1- >r endof
+    \ TODO bug if string ends with ?
+    [char] ? of begin r> 1+ >r 1 /string ( ?0 ) over c@ [char] ? = while repeat endof
+  endcase
+  ( addr n ) ( R: f )
+  2dup 0 -rot bounds ?do
+    i c@ dup [char] ? = swap [char] * = or if
+      leave
     then
-    \ ( addr1 addr2 n ) (R: ch )
-    0 do
-        \ ( addr1 addr2 )
-        over i + c@ over i + c@
-        dup r@ <> -rot <> and if
-            2drop r> drop i 1+ unloop exit
-        then
-    loop
-    2drop r> drop 0
+    1+
+  loop
+  ( addr n k ) ( R: f )
+  swap over - ( addr k n-k )
+  >r 2dup + r> ( addr k addr+k n-k )
+  2swap r>
+  ( addr+k n-k addr k f )
 ;
 
+: starts-with ( 2tgt 2pfx -- 2tgt true|false )
+  \ is target too short?
+  2 pick over < if
+    2drop false exit
+  then
+  2over drop over ( 2tgt 2pfx 2tgt[:#pfx] )
+  compare 0=
+;
+
+
+\ compare a target string with a simplistic glob pattern to aid unit testsing
+\ the glob character ? matches exactly one character in the target string
+\ the glob character * is the minimal match of 0+ characters before the next pattern character
+\ for example "banana" matches "b??ana" and "banan?" and "*nana" but not "b*na" (* is always minimal)
+\ as a special case, * will also match the remainder of a string, so "b*" will also match
+
+: compare-glob ( 2tgt 2pat -- 0 | <>0 )
+  \ stash the target and get the next chunk of pattern to match
+  2swap 2>r cleave-glob ( 2pat 2pfx f ) ( R: 2tgt )
+
+  dup 0> if
+    \ f > 0 means pattern started with ?s to skip
+    2r> rot /string dup 0< if
+      \ string ran out ?
+      2drop 2drop 2drop -1 exit
+    then
+    \ remainder of pattern needs to match start of target
+    0 >r
+    ( 2pat 2pfx 2tgt[k:] ) ( R: 0 )
+  else
+    2r> rot >r
+    ( 2pat 2pfx 2tgt ) ( R: 0|-1 )
+  then
+
+  \ fetch the flag and stash the prefix length
+  2swap r> over >r
+  ( 2pat 2tgt 2pfx 0|-1 ) ( R: #pfx )
+  if
+    \ flag -1 means '*' so we can match anywhere
+    \ special case: trailing '*' matches rest of string
+    4 pick over or 0= if  \ #pfx and #pat both zero?
+      \ drop 2pfx and replace #pfx with #tgt on RS, returning true
+      2drop r> drop dup >r true
+    else
+      search
+    then
+  else
+    \ flag 0 means we must match at the start
+    starts-with
+  then
+
+  ( 2pat 2match ?matched ) ( R: #pfx )
+  r> swap
+  0= if
+    \ failed
+    drop 2drop 2drop -2 exit
+  then
+
+  \ drop the length of the matched prefix from the remaining target
+  /string 2swap
+  ( 2tgt' 2pat' )
+
+  \ if pattern is empty, we're done one way or another
+  ?dup 0= if
+    \ just return tgt length, so 0 means success
+    drop nip exit
+  then
+
+  \ otherwise keep going with the reduced target and pattern
+  recurse
+;
+
+
 : see-/mod-output s\" \n
-nt: ****  xt: **** \n
+nt: *  xt: * \n
 flags: CO 0 IM 0 AN 0 NN 0 HC 0 | UF 1 ST 0 \n
 size (decimal): 26 \n
 \n
-****  20 ** ** A9 FF 48 20 **  ** 20 ** ** 20 ** ** 20   .**.H * * ** ** \n
-****  ** ** 68 D0 05 20 ** **  E8 E8  **h..  .*..\n
+*  20 ?? ?? A9 FF 48 20 ??  ?? 20 ?? ?? 20 ?? ?? 20   .??.H ? ? ?? ?? \n
+*  ?? ?? 68 D0 05 20 ?? ??  E8 E8  ??h..  .?..\n
 \n
-****   **** jsr     2 STACK DEPTH CHECK\n
-****     FF lda.#\n
-****        pha\n
-****   **** jsr     >r\n
-****   **** jsr     s>d\n
-****   **** jsr     r>\n
-****   **** jsr     sm/rem\n
-****        pla\n
-****      5 bne     **** v\n
-****   **** jsr     swap\n
-****        inx\n
-****        inx\n"
+*   * jsr     2 STACK DEPTH CHECK\n
+*     FF lda.#\n
+*        pha\n
+*   * jsr     >r\n
+*   * jsr     s>d\n
+*   * jsr     r>\n
+*   * jsr     sm/rem\n
+*        pla\n
+*      5 bne     * v\n
+*   * jsr     swap\n
+*        inx\n
+*        inx\n"
 ;
 
 \ these tests are a little fiddly since the width of some fields can vary based on the base
 \ and the starting offset.  HEX is better, but with DECIMAL in disasm it can be sensitive.
 \ to debug, add 2DUP DUMP after restore-output and after see-/mod and compare in results.txt
-T{ capture-output see /mod restore-output see-/mod-output char * compare-masked -> 0 }T
+T{ capture-output see /mod restore-output see-/mod-output  compare-glob -> 0 }T
 
 \ CASE has CO+IM+NN flags
 
 : see-case-output s\" \n
-nt: ****  xt: **** \n
+nt: *  xt: * \n
 flags: CO 1 IM 1 AN 0 NN 1 HC 0 | UF 0 ST 0 \n
 size (decimal): 6 \n
 \n
-****  CA CA 74 00 74 01  ..t.t.\n
+*  CA CA 74 00 74 01  ..t.t.\n
 \n
-****        dex\n
-****        dex\n
-****      0 stz.zx\n
-****      1 stz.zx\n"
+*        dex\n
+*        dex\n
+*      0 stz.zx\n
+*      1 stz.zx\n"
 ;
-T{ capture-output see case restore-output see-case-output char * compare-masked -> 0 }T
+T{ capture-output see case restore-output see-case-output  compare-glob -> 0 }T
 
 \ EXIT has AN flag
 
 : see-exit-output s\" \n
-nt: ****  xt: **** \n
+nt: *  xt: * \n
 flags: CO 1 IM 0 AN 1 NN 0 HC 0 | UF 0 ST 0 \n
 size (decimal): 1 \n
 \n
-****  60  `\n
+*  60  `\n
 \n
-****        rts\n"
+*        rts\n"
 ;
-T{ capture-output see exit restore-output see-exit-output char * compare-masked -> 0 }T
+T{ capture-output see exit restore-output see-exit-output  compare-glob -> 0 }T
 
 nc-limit @
 0 nc-limit !
@@ -115,31 +204,31 @@ nc-limit @
 nc-limit !
 
 : disasm-test-output s\" \n
-*****  ***** jsr     LITERAL 10 \n
-*****  ***** jsr     0\n
-*****  ***** jsr     DO \n
-*****  ***** jsr     2LITERAL 305419896 \n
-*****  ***** jsr     2drop\n
-*****  ***** jmp\n
-*****  ***** jsr     SLITERAL ***** 6 \n
-*****  ***** jsr     2drop\n
-*****  ***** jsr     i\n
-*****  ***** jsr     1\n
-*****  ***** jsr     and\n
-*****  ***** jsr     0BRANCH ***** \n
-*****  ***** jmp\n
-*****  ***** jsr     LOOP ***** \n
-*****  ***** jsr     unloop\n
-*****  ***** jsr     0\n
-*****  ***** jsr     0\n
-*****  ***** jsr     ?DO ***** \n
-*****  ***** jsr     DO \n
-*****  ***** jsr     LITERAL -1 \n
-*****  ***** jsr     +LOOP ***** \n
-*****  ***** jsr     unloop\n"
+*  * jsr     LITERAL 10 \n
+*  * jsr     0\n
+*  * jsr     DO \n
+*  * jsr     2LITERAL 305419896 \n
+*  * jsr     2drop\n
+*  * jmp\n
+*  * jsr     SLITERAL * 6 \n
+*  * jsr     2drop\n
+*  * jsr     i\n
+*  * jsr     1\n
+*  * jsr     and\n
+*  * jsr     0BRANCH * \n
+*  * jmp\n
+*  * jsr     LOOP * \n
+*  * jsr     unloop\n
+*  * jsr     0\n
+*  * jsr     0\n
+*  * jsr     ?DO * \n
+*  * jsr     DO \n
+*  * jsr     LITERAL -1 \n
+*  * jsr     +LOOP * \n
+*  * jsr     unloop\n"
 ;
 
 T{
     ' disasm-test dup int>name wordsize
     capture-output disasm restore-output
-    disasm-test-output char * compare-masked -> 0 }T
+    disasm-test-output  compare-glob -> 0 }T
