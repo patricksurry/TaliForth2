@@ -23,7 +23,7 @@
 
 
 ; ## DISASM ( addr u -- ) "Disassemble a block of memory"
-; ## "disasm"  tested  Tali Forth
+; ## "disasm"  auto  Tali Forth
         ; """Convert a segment of memory to assembler output. This
         ; word is vectored so people can add their own disassembler.
         ; Natively, this produces Simpler Assembly Notation (SAN)

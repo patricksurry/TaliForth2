@@ -154,9 +154,21 @@ T{ -1. dnegate -> 1. }T
 T{ max-2int dnegate -> min-2int swap 1+ swap }T
 T{ min-2int swap 1+ swap dnegate -> max-2int }T
 
-T{  5.  7  11 m*/ -> 3. }T
-T{ -5. -7  11 m*/ -> 3. }T
-T{ -5.  7 -11 m*/ -> 3. }T
+T{       5.       7             11 m*/ ->  3. }T
+T{       5.      -7             11 m*/ -> -3. }T
+T{      -5.       7             11 m*/ -> -3. }T
+T{      -5.      -7             11 m*/ ->  3. }T
+T{ max-2int       8             16 m*/ -> hi-2int }T
+T{ max-2int      -8             16 m*/ -> hi-2int dnegate }T
+T{ min-2int       8             16 m*/ -> lo-2int }T
+T{ min-2int      -8             16 m*/ -> lo-2int dnegate }T
+
+T{ max-2int max-int        max-int m*/ -> max-2int }T
+T{ max-2int max-int 2/     max-int m*/ -> max-int 1- hi-2int nip }T
+T{ min-2int lo-2int nip dup negate m*/ -> min-2int }T
+T{ min-2int lo-2int nip 1- max-int m*/ -> min-int 3 + hi-2int nip 2 + }T
+T{ max-2int lo-2int nip dup negate m*/ -> max-2int dnegate }T
+T{ min-2int max-int            dup m*/ -> min-2int }T
 
 ( TODO M+ not implemented yet )
 ( TODO 2ROT not implemented yet )
