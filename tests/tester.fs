@@ -1,6 +1,6 @@
 \ From: John Hayes S1I
 \ Subject: tester.fr
-\ Date: Mon, 27 Nov 95 13:10:09 PST  
+\ Date: Mon, 27 Nov 95 13:10:09 PST
 
 \ Modified by SamCo 2018-05 for testing Tali Forth 2.
 \ The main change is lowercasing all of the words as Tali
@@ -24,27 +24,27 @@ create actual-results  20 cells allot
 
 
 \ Empty stack: handles underflowed stack too
-: empty-stack ( ... -- ) 
-   depth ?dup if 
-      dup 0< if 
-         negate 0 do 0 loop 
-      else 
-         0 do drop loop 
-      then 
+: empty-stack ( ... -- )
+   depth ?dup if
+      dup 0< if
+         negate 0 do 0 loop
+      else
+         0 do drop loop
+      then
    then ;
 
-\ Print the previous test's actual results. Added by SamCo 2018-05 
-: show-results ( -- ) 
+\ Print the previous test's actual results. Added by SamCo 2018-05
+: show-results ( -- )
    s"  ACTUAL RESULT: { " type
    actual-depth @ 0 ?do
-      actual-results 
+      actual-results
       actual-depth @ i - 1- \ Print them in reverse order to match test.
       cells + @ .
    loop
    s" }" type ;
 
 \ Display an error message followed by the line that had the error
-: error  \ ( C-ADDR U -- ) 
+: error  \ ( C-ADDR U -- )
    type source type \ display line corresponding to error
    empty-stack      \ throw away every thing else
    show-results ;   \ added by SamCo to show what actually happened
@@ -53,22 +53,22 @@ create actual-results  20 cells allot
 : T{  ( -- ) ;
 
 \ Record depth and content of stack
-: ->  ( ... -- ) 
+: ->  ( ... -- )
    depth dup actual-depth !  \ record depth
    ?dup if                   \ if there is something on stack ...
-      0 do 
-         actual-results i cells + ! 
+      0 do
+         actual-results i cells + !
       loop                   \ ... save it
    then ;
 
 \ Compare stack (expected) contents with saved (actual) contents
-: }T  ( ... -- ) 
+: }T  ( ... -- )
    depth actual-depth @ = if     \ if depths match
       depth ?dup if              \ if there is something on the stack
          0 do                    \ for each stack item
             actual-results i cells + @  \ compare actual with expected
-            <> if 
-               s" INCORRECT RESULT: " error leave 
+            <> if
+               s" INCORRECT RESULT: " error leave
             then
          loop
       then
@@ -77,8 +77,21 @@ create actual-results  20 cells allot
    then ;
 
 \ Talking comment
-: testing ( -- ) 
-   source verbose @ if 
+: testing ( -- )
+   source verbose @ if
       dup >r type cr r> >in !
    else >in ! drop
    then ;
+
+\ helper words to capture output to a buffer
+
+output @ constant 'emit-a
+$fe constant 'bufp
+
+\ assembly routine to capture output to pointer at 'bufp
+\ sta (bufp) / inc bufp / bne +2 / inc bufp+1 / rts
+create 'capture-a  $92 c, 'bufp c, $e6 c, 'bufp c, $d0 c, $2 c, $e6 c, 'bufp 1+ c, $60 c,
+create output-buffer  2048 allot  \ enough for WORDS output
+: capture-output ( -- )  'capture-a output !  output-buffer 'bufp !  ;
+: restore-output ( -- addr n )  'emit-a output !  output-buffer  'bufp @ over - ;
+

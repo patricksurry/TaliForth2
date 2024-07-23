@@ -1,5 +1,5 @@
 c65: reading ../taliforth-c65.bin to $8000:$ffff
-c65: PC=f015 A=00 X=00 Y=00 S=fd FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=0
+c65: PC=f016 A=00 X=00 Y=00 S=fd FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=0
 Tali Forth 2 default kernel for c65 (01. Jun 2024)
 
 
@@ -10,7 +10,7 @@ Tali Forth 2 comes with absolutely NO WARRANTY
 Type 'bye' to exit
 \ From: John Hayes S1I  ok
 \ Subject: tester.fr  ok
-\ Date: Mon, 27 Nov 95 13:10:09 PST    ok
+\ Date: Mon, 27 Nov 95 13:10:09 PST  ok
   ok
 \ Modified by SamCo 2018-05 for testing Tali Forth 2.  ok
 \ The main change is lowercasing all of the words as Tali  ok
@@ -34,27 +34,27 @@ create actual-results  20 cells allot  ok
   ok
   ok
 \ Empty stack: handles underflowed stack too  ok
-: empty-stack ( ... -- )   compiled
-   depth ?dup if   compiled
-      dup 0< if   compiled
-         negate 0 do 0 loop   compiled
-      else   compiled
-         0 do drop loop   compiled
-      then   compiled
+: empty-stack ( ... -- )  compiled
+   depth ?dup if  compiled
+      dup 0< if  compiled
+         negate 0 do 0 loop  compiled
+      else  compiled
+         0 do drop loop  compiled
+      then  compiled
    then ;  ok
   ok
-\ Print the previous test's actual results. Added by SamCo 2018-05   ok
-: show-results ( -- )   compiled
+\ Print the previous test's actual results. Added by SamCo 2018-05  ok
+: show-results ( -- )  compiled
    s"  ACTUAL RESULT: { " type  compiled
    actual-depth @ 0 ?do  compiled
-      actual-results   compiled
+      actual-results  compiled
       actual-depth @ i - 1- \ Print them in reverse order to match test.  compiled
       cells + @ .  compiled
    loop  compiled
    s" }" type ;  ok
   ok
 \ Display an error message followed by the line that had the error  ok
-: error  \ ( C-ADDR U -- )   compiled
+: error  \ ( C-ADDR U -- )  compiled
    type source type \ display line corresponding to error  compiled
    empty-stack      \ throw away every thing else  compiled
    show-results ;   \ added by SamCo to show what actually happened  ok
@@ -63,22 +63,22 @@ create actual-results  20 cells allot  ok
 : T{  ( -- ) ;  ok
   ok
 \ Record depth and content of stack  ok
-: ->  ( ... -- )   compiled
+: ->  ( ... -- )  compiled
    depth dup actual-depth !  \ record depth  compiled
    ?dup if                   \ if there is something on stack ...  compiled
-      0 do   compiled
-         actual-results i cells + !   compiled
+      0 do  compiled
+         actual-results i cells + !  compiled
       loop                   \ ... save it  compiled
    then ;  ok
   ok
 \ Compare stack (expected) contents with saved (actual) contents  ok
-: }T  ( ... -- )   compiled
+: }T  ( ... -- )  compiled
    depth actual-depth @ = if     \ if depths match  compiled
       depth ?dup if              \ if there is something on the stack  compiled
          0 do                    \ for each stack item  compiled
             actual-results i cells + @  \ compare actual with expected  compiled
-            <> if   compiled
-               s" INCORRECT RESULT: " error leave   compiled
+            <> if  compiled
+               s" INCORRECT RESULT: " error leave  compiled
             then  compiled
          loop  compiled
       then  compiled
@@ -87,11 +87,24 @@ create actual-results  20 cells allot  ok
    then ;  ok
   ok
 \ Talking comment  ok
-: testing ( -- )   compiled
-   source verbose @ if   compiled
+: testing ( -- )  compiled
+   source verbose @ if  compiled
       dup >r type cr r> >in !  compiled
    else >in ! drop  compiled
    then ;  ok
+  ok
+\ helper words to capture output to a buffer  ok
+  ok
+output @ constant 'emit-a  ok
+$fe constant 'bufp  ok
+  ok
+\ assembly routine to capture output to pointer at 'bufp  ok
+\ sta (bufp) / inc bufp / bne +2 / inc bufp+1 / rts  ok
+create 'capture-a  $92 c, 'bufp c, $e6 c, 'bufp c, $d0 c, $2 c, $e6 c, 'bufp 1+ c, $60 c,  ok
+create output-buffer  2048 allot  \ enough for WORDS output  ok
+: capture-output ( -- )  'capture-a output !  output-buffer 'bufp !  ;  ok
+: restore-output ( -- addr n )  'emit-a output !  output-buffer  'bufp @ over - ;  ok
+  ok
   ok
  ( Running test 'core_a' from file 'core_a.fs' )  ok
 \ From: John Hayes S1I  ok
@@ -868,11 +881,11 @@ create result  ok
 92 c, ( \\ )  ok
   ok
 T{ result here result - 2dup dump ( Make a string out of result ) 
-0FC1  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
-0FD1   ok
+30F3  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
+3103   ok
    s\" \a\b\e\f\l\m\n\q\r\t\v\z\"\x41\\" 2dup dump compare -> 0 }T 
-0FD4  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
-0FE4   ok
+3106  07 08 1B 0C 0A 0D 0A 0A  22 0D 09 0B 00 22 41 5C  ........ "...."A\
+3116   ok
 hex  ok
   ok
 \ ------------------------------------------------------------------------  ok
@@ -1312,9 +1325,9 @@ T{ gp7-1 -> <true> }T  ok
   compiled
    max-base a do  compiled
       i 0 <# #s #>  compiled
-      2dup type cr ( TODO TEST )  compiled
+      2dup type cr  compiled
       1 = swap c@ 41 i a - + = and and  compiled
-      .s cr ( TODO TEST )  compiled
+      .s cr   compiled
    loop  compiled
   compiled
    r> base ! ;  ok
@@ -1921,14 +1934,14 @@ dbl2 d>ascii 2constant "dbl2"  ok
 ;  ok
 doubleoutput 
 you should see lines duplicated:
-     -2088648478
-     -2088648478 
-        -2088648478
-        -2088648478
-     1984383624
-     1984383624 
-          1984383624
-          1984383624
+     2088648478
+     2088648478 
+        2088648478
+        2088648478
+     -1984383624
+     -1984383624 
+          -1984383624
+          -1984383624
  ok
 \ T{ doubleoutput -> }T  ok
   ok
@@ -1958,9 +1971,21 @@ T{ -1. dnegate -> 1. }T  ok
 T{ max-2int dnegate -> min-2int swap 1+ swap }T  ok
 T{ min-2int swap 1+ swap dnegate -> max-2int }T  ok
   ok
-T{  5.  7  11 m*/ -> 3. }T  ok
-T{ -5. -7  11 m*/ -> 3. }T  ok
-T{ -5.  7 -11 m*/ -> 3. }T  ok
+T{       5.       7             11 m*/ ->  3. }T  ok
+T{       5.      -7             11 m*/ -> -3. }T  ok
+T{      -5.       7             11 m*/ -> -3. }T  ok
+T{      -5.      -7             11 m*/ ->  3. }T  ok
+T{ max-2int       8             16 m*/ -> hi-2int }T  ok
+T{ max-2int      -8             16 m*/ -> hi-2int dnegate }T  ok
+T{ min-2int       8             16 m*/ -> lo-2int }T  ok
+T{ min-2int      -8             16 m*/ -> lo-2int dnegate }T  ok
+  ok
+T{ max-2int max-int        max-int m*/ -> max-2int }T  ok
+T{ max-2int max-int 2/     max-int m*/ -> max-int 1- hi-2int nip }T  ok
+T{ min-2int lo-2int nip dup negate m*/ -> min-2int }T  ok
+T{ min-2int lo-2int nip 1- max-int m*/ -> min-int 3 + hi-2int nip 2 + }T  ok
+T{ max-2int lo-2int nip dup negate m*/ -> max-2int dnegate }T  ok
+T{ min-2int max-int            dup m*/ -> min-2int }T  ok
   ok
 ( TODO M+ not implemented yet )  ok
 ( TODO 2ROT not implemented yet )  ok
@@ -1972,10 +1997,10 @@ double_tests  ok
   ok
  ( Running test 'facility' from file 'facility.fs' )  ok
 \ ------------------------------------------------------------------------  ok
-testing facility words: at-xy page   ok
+testing facility words: at-xy page  ok
   ok
-( TODO AT-XY test missing )  ok
-( TODO PAGE test missing )  ok
+T{ capture-output 13 21 at-xy restore-output s\" \e[22;14H" compare -> 0 }T  ok
+T{ capture-output page restore-output s\" \e[2J\e[1;1H" compare -> 0 }T  ok
   ok
  ( Running test 'ed' from file 'ed.fs' )  ok
 \ ------------------------------------------------------------------------  ok
@@ -2167,50 +2192,16 @@ T{ 10000 10  s\" uuuu\nzzzz\n" compare -> 10000 10 0 }T  ok
 \ === OUTPUT TESTS ===  ok
   ok
 \ These involve redirecting output and have the potential to crash the system.  ok
-\ They also assume that the assembler is working as well as the wordlist  ok
-\ functions. Note that the tests have to be defined as part of a word to work  ok
-\ correctly. Based on code by Sam Colwell, see  ok
-\ https://github.com/scotws/TaliForth2/issues/159 for a discussion of how this  ok
-\ works  ok
-  ok
-assembler-wordlist >order  ok
-assembler-wordlist set-current  ok
-  ok
-variable 'old-output  ok
-variable #saved-output  ok
-create 'saved-output  1000 allot  ok
-  ok
-\ Retrieves the output string we saved after redirection  ok
-: saved-string ( -- addr u )  'saved-output #saved-output @ ;  ok
-  ok
-\ We write our own output routine to replace the built-in one. Uses the  ok
-\ assembler macro push-a.  ok
-\ Care must be taken that no registers or Tali temp variables are modified  ok
-\ by this routine.  ok
-: save-output ( c -- )   compiled
-   [ push-a ]  \ "dex dex  sta 0,x  stz 1,x" - push A to TOS  compiled
-   [ phy pha ] \ Save Y and A.  compiled
-   saved-string + c!  \ Save the character.  compiled
-   \ Increment the string length.  compiled
-   \ Can't use !+ as it uses a Tali temp variable (tmp1)  compiled
-   #saved-output @ 1+   #saved-output !  compiled
-   [ pla ply ] \ Restore A and Y.  compiled
-;  ok
-  ok
-: redirect-output ( -- )  compiled
-   output @  'old-output !     \ save the original vector  compiled
-   ['] save-output  output !   \ replace vector with our routine  compiled
-   0 #saved-output ! ;         \ empty the string to start  ok
-  ok
-: restore-output ( -- )  'old-output @  output ! ;   ok
+\ Note that the tests have to be defined as part of a word to work correctly.  ok
+\ Based on code by Sam Colwell, see https://github.com/scotws/TaliForth2/issues/159  ok
   ok
 \ ---- Internal test for output redirection (tests within tests!) ----  ok
   ok
 : internal-output-test  ( -- )  compiled
-   redirect-output ." Redirection works, let's do this! " restore-output ;   ok
+   capture-output ." Redirection works, let's do this! " restore-output ;   ok
   ok
 internal-output-test  ok
-cr .( >>>> )  saved-string type  .( <<<< ) cr 
+cr .( >>>> )  type  .( <<<< ) cr 
 >>>> Redirection works, let's do this! <<<< 
  ok
   ok
@@ -2222,24 +2213,24 @@ cr .( >>>> )  saved-string type  .( <<<< ) cr
 \ boilerplate. When in doubt, use  SAVED-STRING DUMP  to see raw bytes  ok
   ok
 \ Most simple test and setup: Start and end  ok
-redirect-output  ok
-2drop  \ ed: returns ( addr u ), don't need that at the moment  ok
-T{ saved-string s\"  ok\ned: \nq  ok\nrestore-output  " compare -> 0 }T  ok
-\                   A---------A  A-------------------A  <-- This is boilerplate  ok
+T{ capture-output  ok
+2swap 2drop  \ ed: returns ( addr u ), don't need that at the moment  ok
+s\"  ok\ned: \nq  ok\nrestore-output  " compare -> 0 }T  ok
+\  A---------A  A-------------------A  <-- This is boilerplate  ok
   ok
 \ Cut down on noise  ok
 : test-ed ( -- addr u )  compiled
-   redirect-output ed: ( payload executed here ) restore-output  compiled
-   2drop              \ remove ed's output   compiled
-   saved-string  ( addr u )   compiled
+   capture-output ed: ( payload executed here ) restore-output  compiled
+   2swap 2drop              \ remove ed's output leaving captured ( addr n )  compiled
 ;   ok
   ok
 \ Test --- q --- Don't quit if we have unsaved changes  ok
 test-ed  ok
-saved-string dump 
-0F8E  0A 61 20 0A 7A 7A 7A 20  0A 2E 20 0A 71 20 0A 3F  .a .zzz  .. .q .?
-0F9E  0A 51 20  .Q  ok
-T{ s\" \na \nzzz \n. \nq \n?\nQ " compare -> 0 }T  ok
+dump 
+0D6B  0A 61 20 0A 7A 7A 7A 20  0A 2E 20 0A 71 20 0A 3F  .a .zzz  .. .q .?
+0D7B  0A 51 20  .Q  ok
+T{ s\" \na \nzzz \n. \nq \n?\nQ " compare -> 0 }T Data stack underflow
+Return stack: 71 A0 E3 87 5B D8 9A 80
   ok
   ok
 \ Test --- p --- print one line, no line number  ok
@@ -2295,11 +2286,6 @@ T{ s\" \n= \n0 \nq " compare -> 0 }T  ok
 test-ed  ok
 T{ s\" \na \nhhh \niii \njjj \n. \n$= \n3 \nQ " compare -> 0 }T  ok
   ok
-  ok
-  ok
-\ ---- Cleanup from redirection tests ----  ok
-previous  ok
-forth-wordlist set-current  ok
   ok
   ok
 \ === END OF ED TESTS ===  ok
@@ -2363,6 +2349,15 @@ hex  ok
 : 12 12 ;  ok
 : 1122 1122 ;  ok
 : 3 3 ;  ok
+  ok
+\ Test that words with assembler direct JMP are marked NN  ok
+\ see https://github.com/SamCoVT/TaliForth2/issues/113  ok
+: aword dup drop ;  ok
+: cword [ ' aword jmp ] ;  ok
+: dword [ ' aword ] jmp ;  ok
+  ok
+T{ capture-output see cword restore-output s"  NN 1 " search -rot 2drop -> true }T  ok
+T{ capture-output see cword restore-output s"  NN 1 " search -rot 2drop -> true }T  ok
   ok
 \ --------------------------------------------------------------------------  ok
   ok
@@ -2672,7 +2667,7 @@ decimal  ok
 \ Test for OUTPUT not implemented  ok
 \ Test for UF-STRIP not implemented  ok
   ok
-( TODO BELL test missing)  ok
+T{ capture-output BELL restore-output s\" \a" compare -> 0 }T  ok
 ( TODO COMPILE-ONLY test missing)  ok
   ok
 \ Test int>name, latestnt, latestxt, and wordsize  ok
@@ -2976,12 +2971,180 @@ testing tools words: .s ? dump name>string see state words  ok
   ok
 \ Test for BYE not implemented  ok
   ok
-( TODO .S test missing )  ok
-( TODO ? test missing )  ok
-( TODO DUMP test missing )  ok
-( TODO NAME>STRING missing )  ok
-( TODO SEE test missing )  ok
-( TODO WORDS test missing )  ok
+\ TYPE tests  ok
+T{ s" five by five" 2dup capture-output type restore-output compare -> 0 }T  ok
+  ok
+\ .S tests  ok
+T{ capture-output .s restore-output s" <0> " compare -> 0 }T  ok
+T{ 1 2 3 capture-output .s restore-output s" <3> 1 2 3 " compare -> 1 2 3 0 }T  ok
+T{ hex $12345678. capture-output .s restore-output s" <2> 5678 1234 " compare decimal -> $12345678. 0 }T  ok
+  ok
+\ ? tests  ok
+variable life  42 life !  ok
+T{ capture-output life ? restore-output s" 42 " compare -> 0 }T  ok
+  ok
+\ WORDS should print a bunch of output including a common sequence  ok
+T{ capture-output words restore-output nip 1024 2048 within -> true }T  ok
+T{ capture-output words restore-output s" drop dup swap" search -rot 2drop -> true }T  ok
+  ok
+\ DUMP tests  ok
+  ok
+:noname blkbuffer 32 bounds do i i c! loop ; execute  ok
+T{ blkbuffer 0 capture-output dump restore-output s\" \n0400  " compare -> 0 }T  ok
+T{ blkbuffer 3 capture-output dump restore-output s\" \n0400  00 01 02  ..." compare -> 0 }T  ok
+T{ blkbuffer 3 capture-output dump restore-output s\" \n0400  00 01 02  ..." compare -> 0 }T  ok
+T{ blkbuffer 11 capture-output dump restore-output s\" \n0400  00 01 02 03 04 05 06 07  08 09 0A  ........ ..." compare -> 0 }T  ok
+T{ blkbuffer 32 capture-output dump restore-output s\" \n0400  00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F  ........ ........\n0410  10 11 12 13 14 15 16 17  18 19 1A 1B 1C 1D 1E 1F  ........ ........\n0420  " compare -> 0 }T  ok
+  ok
+  ok
+  ok
+\ Split a string containing the glob characters * and ?  ok
+\ One * or multiple ? at the start of the string are discarded  ok
+\ and flagged, with the remainder of the string split at the next  ok
+\ glob character, leaving an initial glob-free prefix and the remainder  ok
+  ok
+: cleave-glob ( addr n -- addr1 n1 addr2 n2 f )  compiled
+  \ f = 0 if string doesn't start with * or ?  compiled
+  \   = -1 if string starts with *  compiled
+  \   = n if string starts with n ?s  compiled
+  \ addr2 n2 is the prefix discarding initial glob chars, splitting before the next glob char  compiled
+  \ addr1 n1 is the remaining string  compiled
+  compiled
+  \ empty string?  compiled
+  dup 0= if  compiled
+    2dup 0 exit  compiled
+  then  compiled
+  0 >r  compiled
+  over c@ case  compiled
+    [char] * of 1 /string r> 1- >r endof  compiled
+    \ TODO bug if string ends with ?  compiled
+    [char] ? of begin r> 1+ >r 1 /string ( ?0 ) over c@ [char] ? = while repeat endof  compiled
+  endcase  compiled
+  ( addr n ) ( R: f )  compiled
+  2dup 0 -rot bounds ?do  compiled
+    i c@ dup [char] ? = swap [char] * = or if  compiled
+      leave  compiled
+    then  compiled
+    1+  compiled
+  loop  compiled
+  ( addr n k ) ( R: f )  compiled
+  swap over - ( addr k n-k )  compiled
+  >r 2dup + r> ( addr k addr+k n-k )  compiled
+  2swap r>  compiled
+  ( addr+k n-k addr k f )  compiled
+;  ok
+  ok
+: starts-with ( 2tgt 2pfx -- 2tgt true|false )  compiled
+  \ is target too short?  compiled
+  2 pick over < if  compiled
+    2drop false exit  compiled
+  then  compiled
+  2over drop over ( 2tgt 2pfx 2tgt[:#pfx] )  compiled
+  compare 0=  compiled
+;  ok
+  ok
+  ok
+\ compare a target string with a simplistic glob pattern to aid unit testsing  ok
+\ the glob character ? matches exactly one character in the target string  ok
+\ the glob character * is the minimal match of 0+ characters before the next pattern character  ok
+\ for example "banana" matches "b??ana" and "banan?" and "*nana" but not "b*na" (* is always minimal)  ok
+\ as a special case, * will also match the remainder of a string, so "b*" will also match  ok
+  ok
+: compare-glob ( 2tgt 2pat -- 0 | <>0 )  compiled
+  \ stash the target and get the next chunk of pattern to match  compiled
+  2swap 2>r cleave-glob ( 2pat 2pfx f ) ( R: 2tgt )  compiled
+  compiled
+  dup 0> if  compiled
+    \ f > 0 means pattern started with ?s to skip  compiled
+    2r> rot /string dup 0< if  compiled
+      \ string ran out ?  compiled
+      2drop 2drop 2drop -1 exit  compiled
+    then  compiled
+    \ remainder of pattern needs to match start of target  compiled
+    0 >r  compiled
+    ( 2pat 2pfx 2tgt[k:] ) ( R: 0 )  compiled
+  else  compiled
+    2r> rot >r  compiled
+    ( 2pat 2pfx 2tgt ) ( R: 0|-1 )  compiled
+  then  compiled
+  compiled
+  \ fetch the flag and stash the prefix length  compiled
+  2swap r> over >r  compiled
+  ( 2pat 2tgt 2pfx 0|-1 ) ( R: #pfx )  compiled
+  if  compiled
+    \ flag -1 means '*' so we can match anywhere  compiled
+    \ special case: trailing '*' matches rest of string  compiled
+    4 pick over or 0= if  \ #pfx and #pat both zero?  compiled
+      \ drop 2pfx and replace #pfx with #tgt on RS, returning true  compiled
+      2drop r> drop dup >r true  compiled
+    else  compiled
+      search  compiled
+    then  compiled
+  else  compiled
+    \ flag 0 means we must match at the start  compiled
+    starts-with  compiled
+  then  compiled
+  compiled
+  ( 2pat 2match ?matched ) ( R: #pfx )  compiled
+  r> swap  compiled
+  0= if  compiled
+    \ failed  compiled
+    drop 2drop 2drop -2 exit  compiled
+  then  compiled
+  compiled
+  \ drop the length of the matched prefix from the remaining target  compiled
+  /string 2swap  compiled
+  ( 2tgt' 2pat' )  compiled
+  compiled
+  \ if pattern is empty, we're done one way or another  compiled
+  ?dup 0= if  compiled
+    \ just return tgt length, so 0 means success  compiled
+    drop nip exit  compiled
+  then  compiled
+  compiled
+  \ otherwise keep going with the reduced target and pattern  compiled
+  recurse  compiled
+;  ok
+  ok
+  ok
+: see-/mod-output s\" \n nt: *  xt: * \n flags: CO 0 IM 0 AN 0 NN 0 HC 0 | UF 1 ST 0 \n size (decimal): 26 \n \n *  20 ?? ?? A9 FF 48 20 ??  ?? 20 ?? ?? 20 ?? ?? 20   .??.H ? ? ?? ?? \n *  ?? ?? 68 D0 05 20 ?? ??  E8 E8  ??h..  .?..\n \n *  ????? jsr     2 STACK DEPTH CHECK\n *     FF lda.#\n *        pha\n *  ????? jsr     >r\n *  ????? jsr     s>d\n *  ????? jsr     r>\n *  ????? jsr     sm/rem\n *        pla\n *      5 bne     * v\n *  ????? jsr     swap\n *        inx\n *        inx\n"  compiled
+;  ok
+  ok
+\ these tests are a little fiddly since the width of some fields can vary based on the base  ok
+\ and the starting offset.  HEX is better, but with DECIMAL in disasm it can be sensitive.  ok
+\ our simple compare-glob does a minimal match on * but is enough to identify a non-blank  ok
+\ number field delimited by whitespace.  For fixed width fields like hex bytes, it's better to  ok
+\ wildcard individual characters, e.g. ?? matches exactly two arbitrary characters.  ok
+\ To debug, add 2DUP DUMP after both restore-output and see-/mod and compare in results.txt.  ok
+T{ capture-output see /mod restore-output see-/mod-output  compare-glob -> 0 }T  ok
+  ok
+\ CASE has CO+IM+NN flags  ok
+  ok
+: see-case-output s\" \n nt: *  xt: * \n flags: CO 1 IM 1 AN 0 NN 1 HC 0 | UF 0 ST 0 \n size (decimal): 6 \n \n *  CA CA 74 00 74 01  ..t.t.\n \n *        dex\n *        dex\n *      0 stz.zx\n *      1 stz.zx\n"  compiled
+;  ok
+T{ capture-output see case restore-output see-case-output  compare-glob -> 0 }T  ok
+  ok
+\ EXIT has AN flag  ok
+  ok
+: see-exit-output s\" \n nt: *  xt: * \n flags: CO 1 IM 0 AN 1 NN 0 HC 0 | UF 0 ST 0 \n size (decimal): 1 \n \n *  60  `\n \n *        rts\n"  compiled
+;  ok
+T{ capture-output see exit restore-output see-exit-output  compare-glob -> 0 }T  ok
+  ok
+nc-limit @  ok
+0 nc-limit !  ok
+: disasm-test  compiled
+    10 0 do $12345678. 2drop s" banana" 2drop i 1 and if leave then loop  compiled
+    0 0 ?do -1 +loop  compiled
+;  ok
+nc-limit !  ok
+  ok
+: disasm-test-output s\" \n *  ????? jsr     LITERAL 10 \n *  ????? jsr     0\n *  ????? jsr     DO \n *  ????? jsr     2LITERAL 305419896 \n *  ????? jsr     2drop\n *  ????? jmp\n *  ????? jsr     SLITERAL * 6 \n *  ????? jsr     2drop\n *  ????? jsr     i\n *  ????? jsr     1\n *  ????? jsr     and\n *  ????? jsr     0BRANCH * \n *  ????? jmp\n *  ????? jsr     LOOP * \n *  ????? jsr     unloop\n *  ????? jsr     0\n *  ????? jsr     0\n *  ????? jsr     ?DO * \n *  ????? jsr     DO \n *  ????? jsr     LITERAL -1 \n *  ????? jsr     +LOOP * \n *  ????? jsr     unloop\n"  compiled
+;  ok
+  ok
+T{  ok
+    ' disasm-test dup int>name wordsize  ok
+    capture-output disasm restore-output  ok
+    disasm-test-output  compare-glob -> 0 }T  ok
   ok
  ( Running test 'block' from file 'block.fs' )  ok
 \ ------------------------------------------------------------------------  ok
@@ -3021,7 +3184,7 @@ T{ s"           " ramdrive 10 compare -> 0 }T  ok
  7 * ( 7 ) variable blkinscreenA 
  8 * ( 8 ) blk @ blkinscreenA ! 
  9 * \ ( 9 ) 20 testvalue +! \ Shouldn't run 
-10 * ( 10 ) \ Test comments in blocks 1 testvalue +!  
+10 * ( 10 ) \ Test comments in blocks 1 testvalue +! 
 11 * ( 11 ) 1 testvalue +! \ This shoud be ignored 1 testvalue +! 
 12 * ( 12 )                                                         \
 13 *  ( 13 ) 1 testvalue +! 
@@ -3058,13 +3221,13 @@ T{ testvalue @    -> 7 }T  ok
   ok
 3 enter-screen 
  0 * ( Test screen 2 ) 
- 1 * ( 1 )  
- 2 * ( 2 )  
+ 1 * ( 1 ) 
+ 2 * ( 2 ) 
  3 * ( 3 ) shouldbe19 @ 7 + shouldbe19 ! 
- 4 * ( 4 )  
- 5 * ( 5 )  
- 6 * ( 6 )  
- 7 * ( 7 )  
+ 4 * ( 4 ) 
+ 5 * ( 5 ) 
+ 6 * ( 6 ) 
+ 7 * ( 7 ) 
  8 * ( 8 ) 
  9 * ( 9 ) 
 10 * ( 10 ) 
@@ -3104,6 +3267,19 @@ T{ blkinscreenB @ -> 2  }T \ Note: blkinscreen3 is a variable.  ok
 T{ blkinscreenC   -> 3  }T \ Note: blkinscreen4 is a constant.  ok
 T{ blkinscreenD   -> 2  }T \ Note: blkinscreen5 is a constant.  ok
 T{ shouldbe19 @   -> 19 }T  ok
+  ok
+:noname  compiled
+    block-c65-init if  compiled
+        ." testing c65 block read/write"  compiled
+        $c000 1 block-write     \ write a block from ROM  compiled
+        $400 1 block-read       \ read it back to block buffer  compiled
+        $c000 $400 $400 $400 compare    \ unchanged?  compiled
+    else  compiled
+        ." no c65 block device"  compiled
+        0                       \ pass the null test  compiled
+    then  compiled
+;  ok
+T{ execute -> 0 }T testing c65 block read/write ok
   ok
 \ Release all of the memory used.  ok
 block_tests  ok
@@ -3238,6 +3414,12 @@ T{ c"dup" FIND -> xt  @ -1 }T  ok
 T{ c".("  FIND -> xti @  1 }T  ok
 T{ c"x"   FIND -> c"x"   0 }T  ok
   ok
+\ ORDER tests  ok
+  ok
+assembler-wordlist >order assembler-wordlist set-current  ok
+T{ capture-output order restore-output s\" \nAssembler Forth   Assembler \n" compare -> assembler-wordlist 0 }T  ok
+only forth definitions  ok
+T{ capture-output order restore-output s\" \nForth   Forth \n" compare -> 0 0 }T  ok
   ok
 search_tests  ok
   ok
@@ -3321,7 +3503,7 @@ decimal  ok
 \ skipping     quit  ok
 \ skipping     abort"  ok
 5            ' abs           cycle_test drop       CYCLES:     35 ok
-pad 20       ' accept        cycle_test some text  CYCLES:   1307 ok
+pad 20       ' accept        cycle_test some text  CYCLES:   1306 ok
 drop \ accept test complete  ok
              ' align         cycle_test            CYCLES:     12 ok
 5            ' aligned       cycle_test drop       CYCLES:     12 ok
@@ -3353,13 +3535,13 @@ here 5       ' blank         cycle_test            CYCLES:    327 ok
 5            ' chars         cycle_test drop       CYCLES:     28 ok
 pad here 5   ' cmove         cycle_test            CYCLES:    188 ok
 pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
-             ' :             cycle_test wrd ;      CYCLES:  15094 ok
+             ' :             cycle_test wrd ;      CYCLES:  15768 ok
              ' :noname       cycle_test ; drop     CYCLES:     50 ok
 5            ' ,             cycle_test            CYCLES:    101 ok
 ' aword      ' compile,      cycle_test            CYCLES:    889 ok
 : bword ;    ' compile-only  cycle_test            CYCLES:     72 ok
-5            ' constant      cycle_test mycnst     CYCLES:  15866 ok
-here         ' count         cycle_test 2drop      CYCLES:     60 ok
+5            ' constant      cycle_test mycnst     CYCLES:  16540 ok
+here         ' count         cycle_test 2drop      CYCLES:     59 ok
 \ skipping     cr  ok
 \ skipping     create  ok
 5. 5.        ' d-            cycle_test 2drop      CYCLES:     86 ok
@@ -3382,7 +3564,7 @@ nc-limit @  ok
 0 nc-limit !  ok
 : fib2 0 1 rot 0 ?do over + swap loop drop ;  ok
 nc-limit !  ok
-100          ' fib1          cycle_test drop       CYCLES:  14360 ok
+100          ' fib1          cycle_test drop       CYCLES:  14359 ok
 100          ' fib2          cycle_test drop       CYCLES:  24463 ok
 : doword 100 0 do loop ;  ok
              ' doword        cycle_test            CYCLES:   1252 ok
@@ -3407,7 +3589,7 @@ nc-limit !  ok
 5 5          ' =             cycle_test drop       CYCLES:     66 ok
 here 5       ' erase         cycle_test            CYCLES:    325 ok
 here 5 5     ' fill          cycle_test            CYCLES:    309 ok
-s" 5"        ' evaluate      cycle_test drop       CYCLES:  17024 ok
+s" 5"        ' evaluate      cycle_test drop       CYCLES:  17698 ok
 5 ' drop     ' execute       cycle_test            CYCLES:     84 ok
 \ skipping     exit  ok
              ' false         cycle_test drop       CYCLES:     24 ok
@@ -3415,7 +3597,7 @@ here         ' @             cycle_test drop       CYCLES:     59 ok
 \ making counted string for find  ok
 here 5 c, char a c, char w c, char o c,  ok
 char r c, char d c,  ok
-             ' find          cycle_test 2drop      CYCLES:   1275 ok
+             ' find          cycle_test 2drop      CYCLES:   1274 ok
 s" aword"    ' find-name     cycle_test drop       CYCLES:   1020 ok
 5. 5         ' fm/mod        cycle_test 2drop      CYCLES:   1281 ok
 5 5          ' >             cycle_test drop       CYCLES:     81 ok
@@ -3427,7 +3609,7 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:   1020 ok
              ' ifloop        cycle_test            CYCLES:  18134 ok
 : cword ;    ' immediate     cycle_test            CYCLES:     72 ok
              ' input         cycle_test drop       CYCLES:     28 ok
-' dup        ' int>name      cycle_test drop       CYCLES:   2439 ok
+' dup        ' int>name      cycle_test drop       CYCLES:   3404 ok
 5            ' invert        cycle_test drop       CYCLES:     48 ok
 \ skipping     j  ok
              ' key           cycle_test drop       CYCLES:     48 ok
@@ -3442,12 +3624,12 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:   1020 ok
 \ skipping     +loop  ok
 5 5          ' lshift        cycle_test drop       CYCLES:    126 ok
 5 5          ' m*            cycle_test 2drop      CYCLES:    588 ok
-             ' marker        cycle_test marka      CYCLES:  17849 ok
+             ' marker        cycle_test marka      CYCLES:  18539 ok
              ' marka         cycle_test            CYCLES:    781 ok
 5 5          ' max           cycle_test drop       CYCLES:     69 ok
 5 5          ' min           cycle_test drop       CYCLES:     54 ok
 5 5          ' -             cycle_test drop       CYCLES:     58 ok
-s" txt   "   ' -trailing     cycle_test 2drop      CYCLES:    228 ok
+s" txt   "   ' -trailing     cycle_test 2drop      CYCLES:    224 ok
 here s" a"   ' move          cycle_test            CYCLES:    148 ok
 ' + int>name ' name>int      cycle_test drop       CYCLES:     71 ok
 ' + int>name ' name>string   cycle_test 2drop      CYCLES:     61 ok
@@ -3464,7 +3646,7 @@ decimal  ok
              ' nops          cycle_test            CYCLES:     29 ok
 5 5          ' <>            cycle_test drop       CYCLES:     70 ok
 5 5 5        ' -rot          cycle_test 2drop drop CYCLES:     76 ok
-s" 5"        ' number        cycle_test drop       CYCLES:   1539 ok
+s" 5"        ' number        cycle_test drop       CYCLES:   1538 ok
 \ skipping     #  ok
 \ skipping     #>  ok
 \ skipping     #s  ok
@@ -3480,13 +3662,13 @@ s" 5"        ' number        cycle_test drop       CYCLES:   1539 ok
 char "       ' parse         cycle_test " 2drop    CYCLES:    210 ok
 5 0          ' pick          cycle_test 2drop      CYCLES:     42 ok
 5 5          ' +             cycle_test drop       CYCLES:     58 ok
-5 here       ' +!            cycle_test            CYCLES:     86 ok
+5 here       ' +!            cycle_test            CYCLES:     79 ok
 \ skipping     postpone  ok
 myvar        ' ?             cycle_test          5 CYCLES:   2027 ok
 5            ' ?dup          cycle_test 2drop      CYCLES:     58 ok
 \ skipping     r>  ok
 \ skipping     recurse  ok
-             ' refill        cycle_test            CYCLES:    320 ok
+             ' refill        cycle_test            CYCLES:    319 ok
 drop \ refill  ok
 \ skipping     ]  ok
 5 5 5        ' rot           cycle_test 2drop drop CYCLES:     76 ok
@@ -3526,7 +3708,7 @@ here         ' 2@            cycle_test 2drop      CYCLES:     88 ok
 5. here      ' 2!            cycle_test            CYCLES:     99 ok
 5 5 5 5      ' 2swap         cycle_test 4drop      CYCLES:     92 ok
 \ skipping     2>r  ok
-             ' 2variable     cycle_test eword      CYCLES:  16634 ok
+             ' 2variable     cycle_test eword      CYCLES:  17324 ok
              ' eword         cycle_test drop       CYCLES:     45 ok
 s" *"        ' type          cycle_test           *CYCLES:    123 ok
 5            ' u.            cycle_test          5 CYCLES:   1842 ok
@@ -3537,10 +3719,10 @@ s" *"        ' type          cycle_test           *CYCLES:    123 ok
 5 5          ' um*           cycle_test 2drop      CYCLES:    476 ok
 \ skipping     unloop  ok
              ' unused        cycle_test drop       CYCLES:     36 ok
-5            ' value         cycle_test fword      CYCLES:  16850 ok
+5            ' value         cycle_test fword      CYCLES:  17540 ok
              ' fword         cycle_test drop       CYCLES:     58 ok
 5            ' to            cycle_test fword      CYCLES:   1136 ok
-             ' variable      cycle_test gword      CYCLES:  16679 ok
+             ' variable      cycle_test gword      CYCLES:  17369 ok
              ' gword         cycle_test drop       CYCLES:     45 ok
 char "       ' word          cycle_test "txt" drop CYCLES:    620 ok
 \ skipping     words  ok
@@ -3553,4 +3735,4 @@ char "       ' word          cycle_test "txt" drop CYCLES:    620 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     48 ok
   ok
-bye c65: PC=f015 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=143116983
+bye c65: PC=f016 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=155306722
