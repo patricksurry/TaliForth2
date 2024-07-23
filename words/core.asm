@@ -594,11 +594,11 @@ z_and:          rts
 
 
 
-; ## AT_XY ( n m -- ) "Move cursor to position given"
-; ## "at-xy"  tested  ANS facility
+; ## AT_XY ( m n -- ) "Move cursor to position given"
+; ## "at-xy"  auto  ANS facility
         ; """https://forth-standard.org/standard/facility/AT-XY
-        ; On an ANSI compatible terminal, place cursor at row n colum m.
-        ; ANSI code is ESC[<n>;<m>H
+        ; On an ANSI compatible terminal, place cursor at row n column m.
+        ; ANSI code is ESC[<n+1>;<m+1>H
         ;
         ; Do not use U. to print the numbers because the
         ; trailing space will not work with xterm
@@ -4094,7 +4094,7 @@ z_pad:          rts
 
 
 ; ## PAGE ( -- ) "Clear the screen"
-; ## "page"  tested  ANS facility
+; ## "page"  auto  ANS facility
         ; """https://forth-standard.org/standard/facility/PAGE
         ; Clears a page if supported by ANS terminal codes. This is
         ; Clear Screen ("ESC[2J") plus moving the cursor to the top
@@ -4492,22 +4492,18 @@ z_plus:         rts
 xt_plus_store:
                 jsr underflow_2
 w_plus_store:
-                ; move address to tmp1 so we can work with it
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
-
-                ldy #0          ; LSB
-                lda (tmp1),y
                 clc
+                lda (0,x)       ; fetch LSB at addr
                 adc 2,x
-                sta (tmp1),y
+                sta (0,x)
 
-                iny             ; MSB
-                lda (tmp1),y
+                inc 0,x         ; addr++
+                bne +
+                inc 1,x
++
+                lda (0,x)       ; fetch MSB
                 adc 3,x
-                sta (tmp1),y
+                sta (0,x)
 
                 inx
                 inx

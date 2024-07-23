@@ -175,50 +175,16 @@ T{ 10000 10  s\" uuuu\nzzzz\n" compare -> 10000 10 0 }T
 \ === OUTPUT TESTS ===
 
 \ These involve redirecting output and have the potential to crash the system.
-\ They also assume that the assembler is working as well as the wordlist
-\ functions. Note that the tests have to be defined as part of a word to work
-\ correctly. Based on code by Sam Colwell, see
-\ https://github.com/scotws/TaliForth2/issues/159 for a discussion of how this
-\ works
-
-assembler-wordlist >order
-assembler-wordlist set-current
-
-variable 'old-output
-variable #saved-output
-create 'saved-output  1000 allot
-
-\ Retrieves the output string we saved after redirection
-: saved-string ( -- addr u )  'saved-output #saved-output @ ;
-
-\ We write our own output routine to replace the built-in one. Uses the
-\ assembler macro push-a.
-\ Care must be taken that no registers or Tali temp variables are modified
-\ by this routine.
-: save-output ( c -- ) 
-   [ push-a ]  \ "dex dex  sta 0,x  stz 1,x" - push A to TOS
-   [ phy pha ] \ Save Y and A.
-   saved-string + c!  \ Save the character.
-   \ Increment the string length.
-   \ Can't use !+ as it uses a Tali temp variable (tmp1)
-   #saved-output @ 1+   #saved-output !
-   [ pla ply ] \ Restore A and Y.
-;
-
-: redirect-output ( -- )
-   output @  'old-output !     \ save the original vector
-   ['] save-output  output !   \ replace vector with our routine
-   0 #saved-output ! ;         \ empty the string to start
-
-: restore-output ( -- )  'old-output @  output ! ; 
+\ Note that the tests have to be defined as part of a word to work correctly.
+\ Based on code by Sam Colwell, see https://github.com/scotws/TaliForth2/issues/159
 
 \ ---- Internal test for output redirection (tests within tests!) ----
 
 : internal-output-test  ( -- )
-   redirect-output ." Redirection works, let's do this! " restore-output ; 
+   capture-output ." Redirection works, let's do this! " restore-output ; 
 
 internal-output-test
-cr .( >>>> )  saved-string type  .( <<<< ) cr
+cr .( >>>> )  type  .( <<<< ) cr
 
 
 \ ---- Finally the actual redirection tests ----
@@ -228,19 +194,18 @@ cr .( >>>> )  saved-string type  .( <<<< ) cr
 \ boilerplate. When in doubt, use  SAVED-STRING DUMP  to see raw bytes
 
 \ Most simple test and setup: Start and end
-redirect-output
+T{ capture-output
 ed:
 q
 restore-output 
-2drop  \ ed: returns ( addr u ), don't need that at the moment
-T{ saved-string s\"  ok\ned: \nq  ok\nrestore-output  " compare -> 0 }T
-\                   A---------A  A-------------------A  <-- This is boilerplate
+2swap 2drop  \ ed: returns ( addr u ), don't need that at the moment
+s\"  ok\ned: \nq  ok\nrestore-output  " compare -> 0 }T
+\  A---------A  A-------------------A  <-- This is boilerplate
 
 \ Cut down on noise
 : test-ed ( -- addr u )
-   redirect-output ed: ( payload executed here ) restore-output
-   2drop              \ remove ed's output 
-   saved-string  ( addr u ) 
+   capture-output ed: ( payload executed here ) restore-output
+   2swap 2drop              \ remove ed's output leaving captured ( addr n )
 ; 
 
 \ Test --- q --- Don't quit if we have unsaved changes
@@ -250,7 +215,7 @@ zzz
 .
 q
 Q
-saved-string dump
+dump
 T{ s\" \na \nzzz \n. \nq \n?\nQ " compare -> 0 }T
 
 
@@ -373,11 +338,6 @@ $=
 Q
 T{ s\" \na \nhhh \niii \njjj \n. \n$= \n3 \nQ " compare -> 0 }T
 
-
-
-\ ---- Cleanup from redirection tests ----
-previous
-forth-wordlist set-current
 
 
 \ === END OF ED TESTS ===

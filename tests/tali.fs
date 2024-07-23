@@ -104,7 +104,7 @@ decimal
 \ Test for OUTPUT not implemented
 \ Test for UF-STRIP not implemented
 
-( TODO BELL test missing)
+T{ capture-output BELL restore-output s\" \a" compare -> 0 }T
 ( TODO COMPILE-ONLY test missing)
 
 \ Test int>name, latestnt, latestxt, and wordsize

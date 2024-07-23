@@ -14,7 +14,7 @@ z_bye:
 
 
 ; ## DOT_S ( -- ) "Print content of Data Stack"
-; ## ".s"  tested  ANS tools
+; ## ".s"  auto  ANS tools
         ; """https://forth-standard.org/standard/tools/DotS
         ; Print content of Data Stack non-distructively. We follow the format
         ; of Gforth and print the number of elements first in brackets,
@@ -93,7 +93,7 @@ z_dot_s:        rts
 
 
 ; ## DUMP ( addr u -- ) "Display a memory region"
-; ## "dump"  tested  ANS tools
+; ## "dump"  auto  ANS tools
         ; """https://forth-standard.org/standard/tools/DUMP
         ;
         ; DUMP's exact output is defined as "implementation dependent".
@@ -218,7 +218,7 @@ _ascii_loop:
 
 
 ; ## QUESTION ( addr -- ) "Print content of a variable"
-; ## "?"  tested  ANS tools
+; ## "?"  auto  ANS tools
         ; """https://forth-standard.org/standard/tools/q
         ;
         ; Only used interactively. Since humans are so slow, we
@@ -235,7 +235,7 @@ z_question:     rts
 
 
 ; ## SEE ( "name" -- ) "Print information about a Forth word"
-; ## "see" tested  ANS tools
+; ## "see" auto  ANS tools
         ; """https://forth-standard.org/standard/tools/SEE
         ; SEE takes the name of a word and prints its name token (nt),
         ; execution token (xt), size in bytes, flags used, and then dumps the
@@ -395,7 +395,7 @@ z_see:          rts
 
 
 ; ## WORDS ( -- ) "Print known words from Dictionary"
-; ## "words"  tested  ANS tools
+; ## "words"  auto  ANS tools
         ; """https://forth-standard.org/standard/tools/WORDS
         ; This is pretty much only used at the command line so we can
         ; be slow and try to save space.

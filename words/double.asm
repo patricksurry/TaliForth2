@@ -239,9 +239,9 @@ w_m_star_slash:
                 jsr w_drop
                 jsr w_swap
                 jsr w_rot
-                inx                     ; drop TOS
+                inx                     ; pre-drop TOS
                 inx
-                lda $fe,x               ; but keep MSB
+                lda $ff,x               ; and check sign bit MSB
                 bpl z_m_star_slash      ; ... 0< if ...
                 jsr w_dnegate
 
