@@ -184,27 +184,27 @@ z_only:         rts
 xt_order:
 w_order:
                 jsr w_cr
-                jsr w_get_order        ; ( wid_n ... wid_1 n )
+                jsr w_get_order         ; ( wid_n ... wid_1 n )
+
+                inx                     ; pre-drop n
+                inx
 
                 ; Paranoid: Check if there are no wordlists, a rather
                 ; pathological case. this would mean ( 0 ) on the stack. In
                 ; that case, we just drop n and run
-                lda 0,x                 ; assumes no more than 255 wordlists
-                beq _drop_done
+                lda $fe,x                 ; assumes no more than 255 wordlists
+                beq _done
 
-                ; We arrive here with the LSB of TOS in A, the number of WIDs
-                ; on the stack
-                tay
+                ; ( wid_n ... wid_1 ) with A=n
+                sta tmpdsp
 _loop:
+                lda 0,x                 ; fetch wid to A and drop it
                 inx
-                inx                     ; DROP, now ( wid_n ... wid_1 )
-                lda 0,x
+                inx
 
-                phy
                 jsr order_print_wid_string   ; internal helper function
-                ply
 
-                dey
+                dec tmpdsp
                 bne _loop
 
                 ; We've printed the wordlists, now we add the current wordlist.
@@ -216,10 +216,7 @@ _loop:
                 lda 0,x
                 jsr order_print_wid_string
                 jsr w_cr
-
-_drop_done:
-                inx
-                inx
+_done:
 z_order:
                 rts
 
@@ -259,10 +256,10 @@ _output_string:
 _wid_data:
         ; Table of string numbers (see strings.asm) indexed by the WID if
         ; less than 4.
-        .byte str_wid_forth            ; WID 0: "Forth"
-        .byte str_wid_editor           ; WID 1: "Editor"
-        .byte str_wid_assembler        ; WID 2: "Assembler"
-        .byte str_wid_root             ; WID 3: "Root"
+        .byte str_wid_forth            ; WID 0: "Forth "
+        .byte str_wid_editor           ; WID 1: "Editor "
+        .byte str_wid_assembler        ; WID 2: "Assembler "
+        .byte str_wid_root             ; WID 3: "Root "
 
 
 
@@ -485,7 +482,7 @@ z_set_order:    rts
 
 
 ; ## TO_ORDER ( wid -- ) "Add wordlist at beginning of search order"
-; ## ">order"  tested  Gforth search
+; ## ">order"  auto  Gforth search
         ; """https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Word-Lists.html"""
 
 xt_to_order:

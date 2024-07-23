@@ -21,6 +21,7 @@ import subprocess
 
 TESTER = 'tester.fs'
 RESULTS = 'results.txt'
+BLOCK_FILE = 'blocks.bin'
 C65_LOCATION = '../c65/c65'
 TALIFORTH_LOCATION = '../taliforth-c65.bin'
 TALI_ERRORS = ['Undefined word',
@@ -90,7 +91,10 @@ for test in args.tests:
 # Have Tali2 quit at the end of all the tests.
 test_string = test_string + "\nbye\n"
 
-process = subprocess.Popen([C65_LOCATION, '-r', TALIFORTH_LOCATION], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+# Create an empty block file
+open(BLOCK_FILE, 'wb').close()
+
+process = subprocess.Popen([C65_LOCATION, '-r', TALIFORTH_LOCATION, '-b', BLOCK_FILE], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 (raw, err) = process.communicate(test_string.encode('ascii'))
 out = raw.decode('ascii', 'ignore')
 
