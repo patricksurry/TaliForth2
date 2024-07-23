@@ -22,11 +22,17 @@ T{ capture-output words restore-output s" drop dup swap" search -rot 2drop -> tr
 \ DUMP tests
 
 :noname blkbuffer 32 bounds do i i c! loop ; execute
-T{ blkbuffer 0 capture-output dump restore-output s\" \n0400  " compare -> 0 }T
-T{ blkbuffer 3 capture-output dump restore-output s\" \n0400  00 01 02  ..." compare -> 0 }T
-T{ blkbuffer 3 capture-output dump restore-output s\" \n0400  00 01 02  ..." compare -> 0 }T
-T{ blkbuffer 11 capture-output dump restore-output s\" \n0400  00 01 02 03 04 05 06 07  08 09 0A  ........ ..." compare -> 0 }T
-T{ blkbuffer 32 capture-output dump restore-output s\" \n0400  00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F  ........ ........\n0410  10 11 12 13 14 15 16 17  18 19 1A 1B 1C 1D 1E 1F  ........ ........\n0420  " compare -> 0 }T
+T{ blkbuffer 0 capture-output dump restore-output s\" \n" compare -> 0 }T
+T{ blkbuffer 3 capture-output dump restore-output s\" \n
+0400  00 01 02                                          ...\n"
+compare -> 0 }T
+T{ blkbuffer 11 capture-output dump restore-output s\" \n
+0400  00 01 02 03 04 05 06 07  08 09 0A                 ........ ...\n"
+compare -> 0 }T
+T{ blkbuffer 32 capture-output dump restore-output s\" \n
+0400  00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F  ........ ........\n
+0410  10 11 12 13 14 15 16 17  18 19 1A 1B 1C 1D 1E 1F  ........ ........\n
+" compare -> 0 }T
 
 
 
@@ -144,8 +150,8 @@ nt: *  xt: * \n
 flags: CO 0 IM 0 AN 0 NN 0 HC 0 | UF 1 ST 0 \n
 size (decimal): 26 \n
 \n
-*  20 ?? ?? A9 FF 48 20 ??  ?? 20 ?? ?? 20 ?? ?? 20   .??.H ? ? ?? ?? \n
-*  ?? ?? 68 D0 05 20 ?? ??  E8 E8  ??h..  .?..\n
+*  20 ?? ?? A9 FF 48 20 ??  ?? 20 ?? ?? 20 ?? ?? 20   ??..H ? ? ?? ?? \n
+*  ?? ?? 68 D0 05 20 ?? ??  E8 E8                    ??h.. ?? ..\n
 \n
 *  ????? jsr     2 STACK DEPTH CHECK\n
 *     FF lda.#\n
@@ -176,7 +182,7 @@ nt: *  xt: * \n
 flags: CO 1 IM 1 AN 0 NN 1 HC 0 | UF 0 ST 0 \n
 size (decimal): 6 \n
 \n
-*  CA CA 74 00 74 01  ..t.t.\n
+*  CA CA 74 00 74 01                                 ..t.t.\n
 \n
 *        dex\n
 *        dex\n
@@ -192,7 +198,7 @@ nt: *  xt: * \n
 flags: CO 1 IM 0 AN 1 NN 0 HC 0 | UF 0 ST 0 \n
 size (decimal): 1 \n
 \n
-*  60  `\n
+*  60                                                `\n
 \n
 *        rts\n"
 ;
@@ -212,8 +218,7 @@ nc-limit !
 *  ????? jsr     DO \n
 *  ????? jsr     2LITERAL 305419896 \n
 *  ????? jsr     2drop\n
-*  ????? jmp\n
-*  ????? jsr     SLITERAL * 6 \n
+*  ????? jsr     SLITERAL 6 banana\n
 *  ????? jsr     2drop\n
 *  ????? jsr     i\n
 *  ????? jsr     1\n
