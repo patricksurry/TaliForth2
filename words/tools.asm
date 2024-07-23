@@ -288,7 +288,13 @@ w_see:
                 lda (0, x)
                 sta 0,x                 ; stash status flag byte
                 stz 1,x                 ; placeholder for synthetic flags
-
+                tay
+                and #HC                 ; detour to check if word has CFA
+                beq +
+                lda #3
++
+                sta tmpdsp              ; store 3 if word has HC, 0 otherwise
+                tya
                                         ; ( nt xt flags )
                 ; collect synthetic flags in reverse order for template
                 and #ST                 ; calculate ST flag

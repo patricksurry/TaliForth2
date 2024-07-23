@@ -167,7 +167,7 @@ size (decimal): 26 \n
 \ number field delimited by whitespace.  For fixed width fields like hex bytes, it's better to
 \ wildcard individual characters, e.g. ?? matches exactly two arbitrary characters.
 \ To debug, add 2DUP DUMP after both restore-output and see-/mod and compare in results.txt.
-T{ capture-output see /mod restore-output see-/mod-output  compare-glob -> 0 }T
+T{ capture-output see /mod restore-output see-/mod-output compare-glob -> 0 }T
 
 \ CASE has CO+IM+NN flags
 
@@ -183,7 +183,7 @@ size (decimal): 6 \n
 *      0 stz.zx\n
 *      1 stz.zx\n"
 ;
-T{ capture-output see case restore-output see-case-output  compare-glob -> 0 }T
+T{ capture-output see case restore-output see-case-output compare-glob -> 0 }T
 
 \ EXIT has AN flag
 
@@ -196,7 +196,20 @@ size (decimal): 1 \n
 \n
 *        rts\n"
 ;
-T{ capture-output see exit restore-output see-exit-output  compare-glob -> 0 }T
+T{ capture-output see exit restore-output see-exit-output compare-glob -> 0 }T
+
+\ the test variable life (above) has HC flag
+
+: see-life-output s\" \n
+nt: *  xt: * \n
+flags: CO 0 IM 0 AN 0 NN 1 HC 1 | UF 0 ST 0 \n
+size (decimal): 5 as CFA: 3 PFA: 2 \n
+\n
+*  20 ?? ?? 2A 00   ??*.\n
+\n
+*  ????? jsr     \n"
+;
+T{ capture-output see life restore-output see-life-output compare-glob -> 0 }T
 
 nc-limit @
 0 nc-limit !
