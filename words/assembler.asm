@@ -439,8 +439,9 @@ xt_asm_iny:     ; iny \ INY
 z_asm_iny:
 
 xt_asm_jmp:     ; jmp \ JMP nnnn
-                lda #$4C
-                jmp asm_common
+                ; this is a special case since we want direct jump (only)
+                ; to set the NN flag
+                jmp cmpl_jump_tos
 z_asm_jmp:
 
 xt_asm_jmp_i:   ; jmp.i \ JMP (nnnn)

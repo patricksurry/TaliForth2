@@ -28,10 +28,10 @@ z_always_native:
 
 
 ; ## BELL ( -- ) "Emit ASCII BELL"
-; ## "bell"  tested  Tali Forth
+; ## "bell"  auto  Tali Forth
 xt_bell:
 w_bell:
-                lda #7          ; ASCII value for BELl
+                lda #7          ; ASCII value for BELL (aka ctrl-G)
                 jsr emit_a
 
 z_bell:         rts
