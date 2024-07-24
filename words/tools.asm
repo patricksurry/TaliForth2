@@ -288,13 +288,8 @@ w_see:
                 lda (0, x)
                 sta 0,x                 ; stash status flag byte
                 stz 1,x                 ; placeholder for synthetic flags
-                tay
-                and #HC                 ; detour to check if word has CFA
-                beq +
-                lda #3
-+
-                sta tmpdsp              ; store 3 if word has HC, 0 otherwise
-                tya
+                pha                     ; save a copy of flags for later
+
                                         ; ( nt xt flags )
                 ; collect synthetic flags in reverse order for template
                 and #ST                 ; calculate ST flag
@@ -360,22 +355,26 @@ _emit:
 
                 jsr w_swap              ; ( xt nt )
                 jsr w_wordsize          ; ( xt u )
-                jsr w_dup               ; ( xt u u ) for DUMP and DISASM
+                jsr w_dup               ; ( xt u u )
                 jsr w_decimal
-                jsr w_u_dot             ; ( xt u )
-                lda tmpdsp              ; is it a CFA word?
+
+                ; first show word size, potentially split as CFA/PFA
+                pla                     ; fetch flag byte we saved earlier
+                and #HC                 ; does it have CFA?
+                pha                     ; we'll need to check once more
                 beq +
+
                 lda #str_see_cfapfa
-                jsr print_string_no_lf  ; if so print CFA: 3 PFA: u-3
-                dex
-                dex
+                jsr print_string_no_lf  ; print "CFA: 3  PFA: "
+
                 sec
-                lda 2,x
-                sbc tmpdsp
-                sta 0,x
-                stz 1,x
-                jsr w_u_dot             ; show PFA size
+                lda 0,x                 ; reduce to u-3
+                sbc #3
+                sta 0,x                 ; assume u < 256
 +
+                jsr w_u_dot             ; print u (or u-3 for PFA)
+
+                ; ( xt u )
                 jsr w_cr
 
                 ; Dump hex and disassemble
@@ -386,8 +385,9 @@ _emit:
                 jsr w_dump
                 jsr w_cr
 .if "disassembler" in TALI_OPTIONAL_WORDS
-                lda tmpdsp
+                pla                     ; recover HC flag
                 beq +
+                lda #3
                 sta 0,x                 ; for CFA words, just show three bytes
                 stz 1,x
 +

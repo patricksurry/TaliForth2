@@ -203,7 +203,7 @@ T{ capture-output see exit restore-output see-exit-output compare-glob -> 0 }T
 : see-life-output s\" \n
 nt: *  xt: * \n
 flags: CO 0 IM 0 AN 0 NN 1 HC 1 | UF 0 ST 0 \n
-size (decimal): 5 as CFA: 3 PFA: 2 \n
+size (decimal): CFA 3  PFA 2 \n
 \n
 *  20 ?? ?? 2A 00   ??*.\n
 \n

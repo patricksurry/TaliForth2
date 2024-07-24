@@ -82,7 +82,7 @@ s_wid_root:   .text "Root ", 0       ; Wordlist ID 3, note space at end
 s_see_nt:     .text "nt: ", 0
 s_see_xt:     .text "xt: ", 0
 s_see_size:   .text "size (decimal): ", 0
-s_see_cfapfa: .text "as CFA: 3 PFA: ", 0
+s_see_cfapfa: .text "CFA 3  PFA ", 0
 
 ; this string is referenced directly, not via string table
 ; must match DICTIONARY FLAGS in definitions.asm and calculated flag order in xt_see
