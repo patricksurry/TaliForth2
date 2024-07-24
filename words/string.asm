@@ -550,12 +550,12 @@ w_sliteral:
 
                 jsr w_here
                 jsr w_swap
-                ; ( addr addr' u )      ; .byte < u bytes >
+                ; ( addr addr' u )
 
                 jsr w_dup               ; allocate space for the string
                 jsr w_allot
 
-                jsr w_move              ; copy the string data
+                jsr w_move              ; .text < u bytes >
 
 z_sliteral:     rts
 

@@ -182,15 +182,15 @@ T{ 2 -> 5 3 - }T
 
 T{ 36 constant max-base -> }T \ ANS standard says 2 - 36
 T{ base @  constant orig-base -> }T
-T{ : digit_numeral s" 0123456789" ( addr u ) drop ; -> }T
-T{ : digit_lower s" abcdefghijklmnopqrstuvwxyz" ( addr u ) drop ; -> }T
-T{ : digit_upper s" ABCDEFGHIJKLMNOPQRSTUVWXYZ" ( addr u ) drop ; -> }T
+T{ s" 0123456789" ( addr u ) drop  constant digit_numeral -> }T
+T{ s" abcdefghijklmnopqrstuvwxyz" ( addr u ) drop  constant digit_lower -> }T
+T{ s" ABCDEFGHIJKLMNOPQRSTUVWXYZ" ( addr u ) drop  constant digit_upper -> }T
 
 
 \ "/" and ":" are before and after ASCII numbers
 \ "@" and "[" are before and after upper case ASCII letters
 \ "`" and "{" are before and after lower case ASCII letters
-T{ : digit_bad s" /:@[`{"  ( addr u )  drop ; -> }T
+T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T
 
 : digit_numeral ( -- f )
    true

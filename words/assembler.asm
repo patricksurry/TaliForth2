@@ -1016,7 +1016,7 @@ _done:
 
 xt_asm_push_a:
         ; """push-a puts the content of the 65c02 Accumulator on the Forth
-        ; data stack as the TOS. This is a convenience routine
+        ; data stack as the TOS. This is a convenience routine that
         ; just copies the code for push_a_tos from disasm.asm
         ; """
                 ldy #0
