@@ -6910,6 +6910,60 @@ z_um_slash_mod: rts
 xt_um_star:
                 jsr underflow_2
 w_um_star:
+
+( a b -- d )
+
+stack   in      out
+3,x     A1      D1
+2,x     A0      D0
+1,x     B1      D3      ; D3 cached in ACC
+0,x     B0      D2      ; D2 cached in tmp
+
+We'll calculate A * B by looping over the 16 bits of A (k=0..15)
+and adding B << k to the result whenever the k-th bit is true.
+We use a few tricks to minimize data movement.
+The first trick is that D2/D3 (cached in tmp/ACC) is used as a sliding window
+to represent bits k...k+15.  Whenever we need to add B << k we can
+just add B0/B1 to D2/D3 and then roll the result right one bit.
+The second trick is to store D0/D1 in the same space as A0/A1.
+Each time we use up a bit from A0/A1 we can roll it out and
+roll in the current LSB from D2/D3.  We can be even more clever
+and roll the first 8 bits directly into A0 (without touching A1)
+and the next 8 bits directly into A1 (without touching A0.)
+
+Imagine we're multiplying A = $AA55 times B = $1001
+to get the unsigned 32-bit result $0AA5FA55.
+The stack looks something like this:
+
+B0 = $01 B1 = $10  A0 = $55 A1 = $AA  D2: tmp  D3: acc
+00000001 00010000  01010101 10101010  00000000 00000000
+                          1 * B    += 00000001 00010000
+              1 => 10101010 10101010  00000000 00001000  0 => D3 => D2 => 1 => A0
+                          0 * B    += 00000000 00001000
+              0 => 01010101 10101010  00000000 00000100  0 => D3 => D2 => 0 => A0
+                          1 * B    += 00000001 00010100
+              1 => 10101010 10101010  00000000 00001010  0 => D3 => D2 => 1 => A0
+                          0 * B    += 00000000 00001010
+              0 => 01010101 10101010  00000000 00000101  0 => D3 => D2 => 0 => A0
+                          1 * B    += 00000001 00010101
+              1 => 10101010 10101010  10000000 00001010  0 => D3 => D2 => 1 => A0
+                   dddddaaa aaaaaaaa
+        ( after five steps we've used five bits of A and collected the five
+        least significant bits of the result )
+                ...
+
+B0 = $01 B1 = $10  D0 = $55 D1 = $FA  D2 = $A5 D3 = $0A
+00000001 00010000  01010101 11111010  10100101 00001010
+
+Optimization:
+If both bytes of A or B is 0, the result is 0
+If a whole byte of A is zero we can shift a whole byte at once.
+It's not symmetrical in A and B.  It's faster if A has fewer 1 bits (and more 0 bytes).
+Larger byte is more likely to have more 1s if remaining bits distributed uniformly
+
+
+
+
                 ; to eliminate clc inside the loop, the value at
                 ; tmp1 is reduced by 1 in advance
                 clc
