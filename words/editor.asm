@@ -122,14 +122,12 @@ w_editor_l:
                 ; Print the screen number.
                 ; We're using sliteral, so we need to set up the
                 ; appropriate data structure (see sliteral)
-                bra _after_screen_msg
 
+                jsr sliteral_runtime
+                .word _after_screen_msg-_screen_msg
 _screen_msg:
                 .text "Screen #"
-
 _after_screen_msg:
-                jsr sliteral_runtime
-                .word _screen_msg, _after_screen_msg-_screen_msg
 
                 jsr w_type
 
@@ -195,7 +193,7 @@ _line_loop:
                 inx
                 inx
 
-z_editor_l:            rts
+z_editor_l:     rts
 
 
 
