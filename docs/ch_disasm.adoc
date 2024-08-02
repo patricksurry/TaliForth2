@@ -120,30 +120,29 @@ disassembly, the literal value will be printed and the disassembler will resume
 disassembling from just after the literal value.  Doubles are saved in memory as
 two single cell literal values.
 
-Strings are similar, however they are saved in memory as a jmp over the string
-data, then the string data, then a jsr to the string handling routine, and
-finally the address and length of the string (similar to how literals are
+Strings are similar, they are saved in memory as a jsr to the string handling routine,
+then the string length and inline string data (similar to how literals are
 handled).  When the disassembler encounters a string, it will print SLITERAL
-followed by the address and length of the string.
+followed by the length of the string and a snippet of the data:
 ----
 : example s" This is a string" ;  ok
 see example
-nt: 866  xt: 875
-flags: CO 0 IM 0 AN 0 NN 1 HC 0 | UF 0 ST 0
-size (decimal): 26
+nt: 827  xt: 836
+flags: CO 0 IM 0 AN 0 NN 0 HC 0 | UF 0 ST 0
+size (decimal): 21
 
-0875  4C 88 08 54 68 69 73 20  69 73 20 61 20 73 74 72  L..This  is a str
-0885  69 6E 67 20 4B A2 78 08  10 00  ing K.x. ..
+0836  20 29 A2 10 00 54 68 69  73 20 69 73 20 61 20 73   )...Thi s is a s
+0846  74 72 69 6E 67                                    tring
 
-875    888 jmp
-888   A24B jsr     SLITERAL 878 10
+836   A229 jsr     SLITERAL 10 This is a strin...
  ok
 ----
 To see the value of the string, you can either look at the memory dump above the
 disassembly or you can `type` the string yourself (note that `see` will always
 give the values in hex while `disasm` will use the current `base`):
 ----
-hex 812 10 type
+hex 836 5 + 10 cr type
+This is a string ok
 ----
 
 ==== Gotchas and known issues

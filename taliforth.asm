@@ -588,7 +588,7 @@ is_printable:
                 bcs _failed
 
                 sec
-                bra _done
+                .byte OpBITzp
 _failed:
                 clc
 _done:

@@ -1016,26 +1016,19 @@ _done:
 
 xt_asm_push_a:
         ; """push-a puts the content of the 65c02 Accumulator on the Forth
-        ; data stack as the TOS. This is a convience routine that encodes the
-        ; instructions  DEX  DEX  STA 0,X  STZ 1,X
+        ; data stack as the TOS. This is a convenience routine that
+        ; just copies the code for push_a_tos from disasm.asm
         ; """
                 ldy #0
 _loop:
-                lda asm_push_a_data,y
-                cmp #$FF
-                beq _done
-
+                lda push_a_tos,y
                 jsr cmpl_a      ; does not change Y
                 iny
-                bra _loop
+                cpy #z_push_a_tos - push_a_tos
+                bne _loop
 _done:
 z_asm_push_a:
                 rts
-asm_push_a_data:
-        ; We can't use 00 as a terminator because STA 0,X assembles to 95 00
-        .byte $CA, $CA, $95, 00, $74, $01
-        .byte $FF               ; terminator
-
 
 
 ; ==========================================================

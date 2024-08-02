@@ -242,7 +242,7 @@ has_uf_check:
                 bcs _not_uf             ; LSB is too big
 
                 sec                     ; C=1 means it is an UF check
-                .byte $24               ; bit zp opcode masks the clc, with no effect on carry
+                .byte OpBITzp           ; mask the clc, with no effect on carry
 _not_uf:        clc                     ; C=0 means it isn't a UF check
                 inx                     ; clean up stack
                 inx
@@ -267,6 +267,10 @@ _not_uf:        clc                     ; C=0 means it isn't a UF check
 ;
 ; We have have various utility routines here for compiling a word in Y/A
 ; and a single byte in A.
+
+; TODO for all of these we could potentially avoid jmp (and NN) and
+; use BRA instaed.  jump_later is a bit harder since we need to remember NN state
+; in case something else changed it
 
 cmpl_jump_later:
     ; compile a jump to be filled in later with dummy address <MSB=Y/LSB=??>
