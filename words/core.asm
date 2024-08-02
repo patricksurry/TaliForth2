@@ -4721,7 +4721,6 @@ _nt_in_workword:
                 lda workword+1          ; MSB
                 adc #0
                 sta tmp1+1
-
                 lda (tmp1)
                 sta (cp),y
                 phy
@@ -4990,10 +4989,44 @@ w_s_quote:
                 stz tmp2+1
 
 s_quote_start:
-                ; Put a jmp past the string data to be filled in later.
-                jsr cmpl_jump_later
-                jsr w_here             ; the start of the string
-                ; ( jmp-target addr )
+                ; S" has undefined interpretation semantics in the CORE word set, but
+                ; the FILE wordset permits it provided "no standard words other than S"
+                ; ... [should overwrite the] interpreted string"
+                ; (see https://forth-standard.org/standard/file/Sq for the details).
+                ; One approach would be to reserve a fixed buffer of at least 80
+                ; bytes somewhere outside the dictionary, like we do for command history
+                ; or the block buffer.  The alternative adopted here is to always
+                ; allocate space for the string in the dictionary.  This means
+                ; that every interactive use of S" allocates space you won't get back
+                ; (without MARKER or the like) but has the big advantage that strings
+                ; stay where you put them and don't get overwritten by other operations.
+
+                ; We will save a bit of space when interpeting by writing the string
+                ; literal directly HERE.  When we're compiling we'll use SLITERAL
+                ; which needs a five byte prologue (jsr sliteral_runtime / .word length)
+                ; so we'll leave space for that.
+
+                lda state               ; check whether we're interpeting (0) or compiling (-1)
+                ora state+1             ; paranoid
+
+                pha                     ; save zero / nonzero for post-processing
+                beq _interpeting        ; just write string directly
+
+                ; we're compiling, so reserve just enough space for SLITERAL to later
+                ; add the prologue before the string data
+
+                clc
+                lda cp
+                adc #5                  ; reserve five bytes for the prologue (see below)
+                sta cp
+                bcc +
+                inc cp+1
++
+_interpeting:
+                ; Now we'll compile the string bytes into the dictionary
+                ; But first remember the address where we started
+
+                jsr w_here              ; ( addr )
 
 _savechars_loop:
                 ; Start saving the string into the dictionary up to the
@@ -5197,32 +5230,40 @@ _found_string_end:
                 bne +
                 inc toin+1
 +
-                ; We currently have ( jmp-target addr )
-                ; We need to calculate the length of string
-                ; and update the jump target.
+                ; Finally we've compiled all the string data into the dictionary
+                ; We still have the start address and need the string length
 
-                jsr w_here
-                jsr w_rot
-                jsr w_store    ; Update the jmp target
-
+                ; ( addr )
                 jsr w_here
                 jsr w_over
                 jsr w_minus    ; HERE - addr gives string length
+                ; ( addr u )
 
                 ; What happens next depends on the state (which is bad, but
                 ; that's the way it works at the moment). If we are
-                ; interpreting, we save the string to a transient buffer
-                ; and return that address (used for file calls, see
-                ; https://forth-standard.org/standard/file/Sq ). If we're
-                ; compiling, we just need SLITERAL
-                lda state
-                ora state+1             ; paranoid
+                ; interpreting (state=0), we're done because we've saved the string
+                ; to a buffer.  (In fact we've over-delivered by compiling the string
+                ; to permanent storage in the dictionary!)
+
+                ; If we're compiling, we need to turn the string into an SLITERAL.
+                ; We'll just rewind the CP to where it was when we started -
+                ; five bytes before the string we've written - and let sliteral
+                ; work its magic.  It'll write the five byte prologue and copy
+                ; the string data onto itself (a no-op) while re-allocating the space.
+
+                pla                     ; fetch the state flag (0 = interpret)
                 beq _done
 
-                ; Jump into the middle of the sliteral word, after the
-                ; string data has been compiled into the dictionary,
-                ; because we've already done that step.
-                jsr cmpl_sliteral         ; ( addr u -- )
+                sec                     ; rewind the CP to addr-5
+                lda 2,x
+                sbc #5
+                sta cp
+                lda 3,x
+                sbc #0
+                sta cp+1
+
+                ; write the prologue, "copy" the string and reallocate the space
+                jsr w_sliteral         ; ( addr u -- )
 
 _done:
 z_s_quote:      rts
