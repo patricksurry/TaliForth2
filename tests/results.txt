@@ -2007,11 +2007,11 @@ T{ capture-output page restore-output s\" \e[2J\e[1;1H" compare -> 0 }T  ok
 testing editor words: ed:  ok
   ok
 decimal  ok
-marker ed-tests   ok
+marker ed-tests  ok
   ok
 \ Use 10000 (decimal) as write area. This may have to be changed if tests crash  ok
 \ to a higher value. Currently, we are already using 7000 (check with HERE).  ok
-\ Note ed tests will usually return with ( 0 0 ) on the stack because of the   ok
+\ Note ed tests will usually return with ( 0 0 ) on the stack because of the  ok
 \ target address  ok
   ok
 \ === SIMPLE TESTS ===  ok
@@ -2076,7 +2076,7 @@ dddd
 q  ok
 T{ 10000 20  s\" aaaa\ncccc\ndddd\nbbbb\n" compare -> 10000 20 0 }T  ok
   ok
-\ Add a line above existing text; want bbbb aaaa   ok
+\ Add a line above existing text; want bbbb aaaa  ok
 ed: 
 a 
 aaaa 
@@ -2175,7 +2175,7 @@ dddd
 q  ok
 T{ 10000 20  s\" tttt\ncccc\ndddd\nssss\n" compare -> 10000 20 0 }T  ok
   ok
-\ Add a line above existing text; want uuuu zzzz   ok
+\ Add a line above existing text; want uuuu zzzz  ok
 ed: 
 a 
 zzzz 
@@ -2198,7 +2198,7 @@ T{ 10000 10  s\" uuuu\nzzzz\n" compare -> 10000 10 0 }T  ok
 \ ---- Internal test for output redirection (tests within tests!) ----  ok
   ok
 : internal-output-test  ( -- )  compiled
-   capture-output ." Redirection works, let's do this! " restore-output ;   ok
+   capture-output ." Redirection works, let's do this! " restore-output ;  ok
   ok
 internal-output-test  ok
 cr .( >>>> )  type  .( <<<< ) cr 
@@ -2215,23 +2215,18 @@ cr .( >>>> )  type  .( <<<< ) cr
 \ Most simple test and setup: Start and end  ok
 T{ capture-output  ok
 2swap 2drop  \ ed: returns ( addr u ), don't need that at the moment  ok
-s\"  ok\ned: \nq  ok\nrestore-output  " compare -> 0 }T  ok
+s\"  ok\ned: \nq  ok\nrestore-output " compare -> 0 }T  ok
 \  A---------A  A-------------------A  <-- This is boilerplate  ok
   ok
 \ Cut down on noise  ok
 : test-ed ( -- addr u )  compiled
    capture-output ed: ( payload executed here ) restore-output  compiled
    2swap 2drop              \ remove ed's output leaving captured ( addr n )  compiled
-;   ok
+;  ok
   ok
 \ Test --- q --- Don't quit if we have unsaved changes  ok
 test-ed  ok
-dump 
-0D57  0A 61 20 0A 7A 7A 7A 20  0A 2E 20 0A 71 20 0A 3F  .a .zzz  .. .q .?
-0D67  0A 51 20                                          .Q 
- ok
-T{ s\" \na \nzzz \n. \nq \n?\nQ " compare -> 0 }T Data stack underflow
-Return stack: AF A0 D6 87 18 D8 9A 80
+T{ s\" \na \nzzz \n. \nq \n?\nQ " compare -> 0 }T  ok
   ok
   ok
 \ Test --- p --- print one line, no line number  ok
@@ -3743,4 +3738,4 @@ char "       ' word          cycle_test "txt" drop CYCLES:    620 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     48 ok
   ok
-bye c65: PC=f016 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=155557357
+bye c65: PC=f016 A=98 X=78 Y=01 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C0> ticks=155542564
