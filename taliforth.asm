@@ -521,20 +521,19 @@ _got_name_token:
 
                 ; Whether interpreting or compiling we'll need to check the
                 ; status byte at nt+1 so let's save it now
+                jsr w_dup
                 jsr w_one_plus
                 lda (0,x)
-                pha
-                jsr w_one_minus
-                jsr w_name_to_int      ; ( nt - xt )
+                inx
+                inx
 
                 ; See if we are in interpret or compile mode, 0 is interpret
-                lda state
+                ldy state
                 bne _compile
 
                 ; We are interpreting, so EXECUTE the xt that is TOS. First,
                 ; though, see if this isn't a compile-only word, which would be
                 ; illegal. The status byte is the second one of the header.
-                pla
                 and #CO                 ; mask everything but Compile Only bit
                 beq _interpret
 
@@ -547,6 +546,7 @@ _interpret:
                 ; skipping EXECUTE completely during RTS. If we were to execute
                 ; xt directly, we have to fool around with the Return Stack
                 ; instead, which is actually slightly slower
+                jsr w_name_to_int      ; ( nt - xt )
                 jsr w_execute
 
                 ; That's quite enough for this word, let's get the next one
@@ -557,12 +557,11 @@ _compile:
                 ; IMMEDIATE word, which would mean we execute it right now even
                 ; during compilation mode. Fortunately, we saved the nt so life
                 ; is easier. The flags are in the second byte of the header
-                pla
                 and #IM                 ; Mask all but IM bit
                 bne _interpret          ; IMMEDIATE word, execute right now
 
                 ; Compile the xt into the Dictionary with COMPILE,
-                jsr w_compile_comma
+                jsr compile_nt_comma
                 bra _loop
 
 _line_done:
