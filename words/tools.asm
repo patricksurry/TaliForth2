@@ -272,7 +272,7 @@ w_see:
                 ; several calculated (synthetic) flag values
                 jsr w_over              ; ( nt xt nt )
                 jsr w_one_plus          ; ( nt xt nt+1 )
-                lda (0, x)
+                lda (0,x)
                 sta 0,x                 ; stash status flag byte
                 stz 1,x                 ; placeholder for synthetic flags
                 pha                     ; save a copy of flags for later

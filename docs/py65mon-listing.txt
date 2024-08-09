@@ -1,7 +1,7 @@
 
 ; 64tass Turbo Assembler Macro V1.59.3120 listing file
 ; 64tass --nostart --list=docs/py65mon-listing.txt --labels=docs/py65mon-labelmap.txt --output taliforth-py65mon.bin platform/platform-py65mon.asm
-; Fri Aug  9 13:18:47 2024
+; Fri Aug  9 13:33:21 2024
 
 ;Offset	;PC	;Hex		;Monitor	;Source
 
@@ -4145,7 +4145,7 @@
 .997f		20 ec 83	jsr $83ec	                jsr w_cr               ; ( nt xt )
 .9982		20 db 8c	jsr $8cdb	                jsr w_over              ; ( nt xt nt )
 .9985		20 bf 8c	jsr $8cbf	                jsr w_one_plus          ; ( nt xt nt+1 )
-.9988		a1 00		lda ($00,x)	                lda (0, x)
+.9988		a1 00		lda ($00,x)	                lda (0,x)
 .998a		95 00		sta $00,x	                sta 0,x                 ; stash status flag byte
 .998c		74 01		stz $01,x	                stz 1,x                 ; placeholder for synthetic flags
 .998e		48		pha		                pha                     ; save a copy of flags for later
