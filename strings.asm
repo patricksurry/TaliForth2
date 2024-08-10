@@ -41,6 +41,8 @@ str_see_xt         = ix
 ix += 1
 str_see_size       = ix
 ix += 1
+str_see_cfapfa     = ix
+ix += 1
 .if "disassembler" in TALI_OPTIONAL_WORDS
 str_disasm_sdc     = ix
 ix += 1
@@ -61,10 +63,9 @@ string_table:
 .if "wordlist" in TALI_OPTIONAL_WORDS
         .word s_wid_forth, s_wid_editor, s_wid_asm, s_wid_root  ; 3-6
 .endif
-        .word s_see_nt, s_see_xt, s_see_size                    ; 7-9
+        .word s_see_nt, s_see_xt, s_see_size, s_see_cfapfa            ; 7-10
 .if "disassembler" in TALI_OPTIONAL_WORDS
-        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra         ; 10-12
-        .word s_disasm_loop, s_disasm_do                        ; 13-14
+        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do ; 11-15
 .endif
 
 ; note .shift is like .text but terminates the string by setting bit 7 of the last character
@@ -84,7 +85,7 @@ s_wid_root:   .shift "Root "       ; Wordlist ID 3, note space at end
 s_see_nt:     .shift "nt: "
 s_see_xt:     .shift "xt: "
 s_see_size:   .shift "size (decimal): "
-
+s_see_cfapfa: .shift "CFA 3  PFA "
 
 ; this string is referenced directly, not via string table
 ; must match DICTIONARY FLAGS in definitions.asm and calculated flag order in xt_see

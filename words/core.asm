@@ -763,7 +763,7 @@ z_bracket_tick: rts
                 ; """
 xt_buffer_colon:
 w_buffer_colon:
-                jsr w_create
+                jsr w_create            ; will report default PFA size of 2 in SEE
                 jsr w_allot
 z_buffer_colon: rts
 
@@ -1045,39 +1045,14 @@ w_value:
 w_constant:
 
             	; Use create but with DOCONST for constants.
+                lda #2
+                sta tmpdsp              ; 2 byte PFA
                 lda #<doconst           ; LSB of DOCONST
                 ldy #>doconst           ; MSB of DOCONST
                 jsr create_common
 
                 ; Now we save the constant number itself in the next cell
-                jsr w_comma            ; drop through to adjust_z
-
-adjust_z:
-                ; Now the length of the complete word (z_word) has increased by
-                ; two. We need to update that number or else words such as SEE
-                ; will ignore the PFA. We use this same routine for VARIABLE,
-                ; VALUE and DEFER
-                jsr w_latestnt         ; gives us ( -- nt )
-
-                ; z_word is six bytes further down
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
-
-                ldy #6
-                lda (tmp1),y
-                clc
-                adc #2
-                sta (tmp1),y
-                iny
-                lda (tmp1),y
-                adc #0                  ; only need carry
-                sta (tmp1),y
-
-                inx
-                inx
-
+                jsr w_comma
 z_value:
 z_constant:     rts
 
@@ -1140,6 +1115,11 @@ xt_create:
 w_create:
                 ; Several routines will use CREATE to build new words.
                 ; They'll pass the CFA in A/Y, with Y=0 indicating no CFA.
+                ; When Y is non-zero, tmpdsp should contain the PFA size
+                ; so we can adjust the word length for SEE.
+                lda #2                  ; 2 byte PFA for variable
+                sta tmpdsp
+create_dovar:
                 ldy #>dovar
                 lda #<dovar
 create_common:
@@ -1265,15 +1245,13 @@ _process_name:
                 lda #HC                 ; otherwise set the HC bit
 +
                 ; Most of the words CREATE'd with DOXXX CFA's must currently be
-                ; called via JSR (i.e. never native) since they are compiled like
+                ; called via JSR (i.e. never native; NN) since they are compiled like
                 ; `jsr doxxx + data` and expect to extract their data and then rts
-                ; to the parent caller.  They could probably support inlining (native)
-                ; if they were instead compiled like `<push address-of-data> + rts + data`
-                ; so there'd only be one instance of data and fewer jsr levels.
+                ; to the parent caller.  (See `dodoes` in taliforth.asm for more detail.)
 
-                ; Many words CREATE'd without a CFA can already be compiled natively
-                ; but not all (e.g. looping constructs with non-relocatable jmp).
-                ; For safety we flag everything as NN here, but ";" will revert if possible.
+                ; Many words CREATE'd without a CFA can safely be compiled natively
+                ; but not all (e.g. looping constructs with non-relocatable jmp).  For
+                ; safety we flag everything as NN here, but ";" will revert when possible.
                 ora #NN
                 sta (tmp1),y
                 iny
@@ -1317,11 +1295,12 @@ _process_name:
                 ; HEADER BYTE 6,7: End of code ("z_" of this word).
                 ; If there's no CFA this is the same as xt_ since we have no code yet,
                 ; otherwise we add three bytes for the subroutine call we'll compile below
+                clc
                 lda 3,x
                 beq +                   ; leave A=0
                 lda #3
+                adc tmpdsp              ; add PFA size, assume no carry
 +
-                clc
                 adc tmptos              ; add LSB of xt_
                 sta (tmp1),y
                 iny
@@ -1414,6 +1393,8 @@ z_decimal:      rts
 xt_defer:
 w_defer:
                 ; we want CREATE but with DODEFER as the CFA
+                lda #2
+                sta tmpdsp      ; 2 byte PFA
                 lda #<dodefer   ; LSB
                 ldy #>dodefer   ; MSB
                 jsr create_common
@@ -1424,10 +1405,14 @@ w_defer:
                 lda #<defer_error
                 ldy #>defer_error
                 jsr cmpl_word
-                jsr adjust_z    ; adjust header by two to correct length
 
 z_defer:        rts
 
+
+defer_error:
+                ; """Error routine for undefined DEFER: Complain and abort"""
+                lda #err_defer
+                jmp error
 
 
 ; ## DEFER_FETCH ( xt1 -- xt2 ) "Get the current XT for a deferred word"
@@ -1734,7 +1719,7 @@ does_runtime:
                 sta (tmp3),y    ; Y is still 1
 
                 ; Since we removed the return address that brought us here, we
-                ; go back to whatever the main routine was. Otherwise, we we
+                ; go back to whatever the main routine was. Otherwise, we
                 ; smash into the subroutine jump to DODOES.
                 rts
 
@@ -3246,11 +3231,11 @@ _noleave:
                 ; reuse TOS
 
                 ; Clean up the loop params by appending unloop
-                lda #<w_unloop
+                lda #<nt_unloop
                 sta 0,x
-                lda #>w_unloop
+                lda #>nt_unloop
                 sta 1,x
-                jsr w_compile_comma
+                jsr compile_nt_comma    ; use the faster entry with the NT
 
                 ; Finally we're left with qdo-skip which either
                 ; points at ?DO's "skip the loop" jmp address,
@@ -3260,7 +3245,7 @@ _noleave:
                 beq +
                 jsr w_here
                 jsr w_swap
-                jmp w_store            ; write here as ?DO jmp target and return
+                jmp w_store             ; write here as ?DO jmp target and return
 
 +               inx                     ; drop the ignored word for DO
                 inx
@@ -3455,16 +3440,20 @@ w_marker:
                 pha
 
                 ; we want CREATE but with marker_runtime as the CFA
+                lda #4 + marker_end_offset - marker_start_offset
+                sta tmpdsp              ; PFA size in bytes
                 lda #<marker_runtime
                 ldy #>marker_runtime
                 jsr create_common
 
-                ; Add original CP as payload
+                ; Write the payload bytes
+
+                ; Add original CP
                 ply                     ; MSB
                 pla                     ; LSB
                 jsr cmpl_word
 
-                ; Add original DP as payload
+                ; Add original DP
                 ply                     ; MSB
                 pla                     ; LSB
                 jsr cmpl_word
@@ -3483,13 +3472,14 @@ z_marker:       rts
 
 
 marker_runtime:
-        ; """Restore Dictionary and memory (DP and CP) to where the were
-        ; when this marker was defined. We arrive here with the return
-        ; address on the Return Stack in the usual 65c02 format
+        ; """Restore Dictionary and memory (DP and CP) along with other
+        ; user state to where they were when marker was defined.
+        ; This is called as a CFA followed by the payload data in the PFA, so
+        ; the return address when we arrive here points to PFA-1
         ; """
 
-                ; Get the address of the string address off the stack and
-                ; increase by one because of the RTS mechanics
+                ; Get the address of the payload off the stack,
+                ; increasing by one because of the RTS mechanics
                 pla
                 sta tmp1        ; LSB of address
                 pla
@@ -4136,6 +4126,8 @@ z_paren:        rts
         ; is actually perfectly legal (see for example
         ; http://forth-standard.org/standard/usage#subsubsection.3.4.1.1).
         ; Otherwise, PARSE-NAME chokes on tabs.
+        ;
+        ; Uses tmp1, tmp2
         ; """
 
 xt_parse_name:
@@ -4521,42 +4513,31 @@ w_postpone:
                 jmp error
 
 +
-                ; keep a copy of nt for later
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
+                ; See if this is an immediate word
+                ; by fetching the status flag at nt+1
+                jsr w_dup
+                jsr w_one_plus
+                lda (0,x)
+                inx
+                inx
 
-                ; We need the xt instead of the nt
-                jsr w_name_to_int              ; ( nt -- xt )
-
-                ; See if this is an immediate word. This is easier
-                ; with nt than with xt. The status byte of the word
-                ; is nt+1
-                inc tmp1
-                bne +
-                inc tmp1+1
-+
-                lda (tmp1)
                 and #IM         ; mask all but Intermediate flag
                 beq _not_immediate
 
                 ; We're immediate, so instead of executing it right now, we
-                ; compile it. xt is TOS, so this is easy. The RTS at the end
-                ; takes us back to the original caller
-                jsr w_compile_comma
+                ; compile it. nt is TOS, so this is easy.
+                jsr compile_nt_comma
                 bra _done
 
 _not_immediate:
                 ; This is not an immediate word, so we enact "deferred
-                ; compilation" by including ' <NAME> COMPILE, which we do by
-                ; compiling the run-time routine of LITERAL, the xt itself, and
-                ; a subroutine jump to COMPILE,
-                jsr w_literal
+                ; compilation" by including ' <NAME> COMPILE-NT, which we do by
+                ; compiling the literal xt, and a subroutine jump to COMPILE-NT,
+                jsr w_literal                   ; ( nt -- )
 
                 ; Last, compile COMPILE,
-                ldy #>w_compile_comma
-                lda #<w_compile_comma
+                ldy #>compile_nt_comma
+                lda #<compile_nt_comma
                 jsr cmpl_subroutine
 _done:
 z_postpone:     rts
@@ -5943,11 +5924,11 @@ z_to:           rts
         ; start of that word's parameter field (PFA). This is defined as the
         ; address that HERE would return right after CREATE.
         ;
-        ; This is a
-        ; difficult word for STC Forths, because most words don't actually
-        ; have a Code Field Area (CFA) to skip. We solve this by having CREATE
-        ; add a flag, "has CFA" (HC), in the header so >BODY know to skip
-        ; the subroutine jumps to DOVAR, DOCONST, or DODOES
+        ; This is a difficult word for STC Forths, because most words
+        ; don't actually have a Code Field Area (CFA) to skip.
+
+        ; We solve this with a header flag in CREATE, "has CFA" (HC),
+        ; so >BODY knows to skip the CFA jsr like DOVAR, DOCONST, or DODOES
         ; """
 
 xt_to_body:
@@ -6994,9 +6975,6 @@ w_variable:
                 lda #0
                 jsr cmpl_a
                 jsr cmpl_a
-
-                ; Now we need to adjust the length of the complete word by two bytes
-                jsr adjust_z
 
 z_variable:     rts
 
