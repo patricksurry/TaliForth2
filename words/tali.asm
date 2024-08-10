@@ -813,7 +813,7 @@ _check_hex:
                 lda #16
                 bra _base_changed
 _check_binary:
-                cmp #'%'
+                cmp #'%'                ; binary?
                 bne _check_char
                 ; Switch temporarily to hexadecimal
                 lda #2

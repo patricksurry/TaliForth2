@@ -1,3 +1,31 @@
+; opcode & 0x1f gives (mostly) the size bits
+; opcode & 0xf gives size, except:
+; 9 is 2 unless bit 4 is 1 (then 3)
+; 0 is 2 unless opcode 20(3) 40(1) 60(1)
+
+0000 0000 00 BRK None 2
+0010 20 JSR a16 3
+0100 40 RTI None 1
+0110 60 RTS None 1
+1000 80 BRA r8 2
+a0 LDY #d8 2
+c0 CPY #d8 2
+e0 CPX #d8 2
+
+2*,2,2,1,
+2,2,2,2,
+1,2+,1,1,
+3,3,3,3,
+
+2,2,2,1,
+2,2,2,2,
+1,3+,1,1,
+3,3,3,3,
+
+asm word header already has the name, just keep a lookup table of headers instead of oc_index
+
+asm words could all just be copies of `jsr asm_common` spaced by 3 each,
+so return adr gives you 3*opcode so we can recover it http://forum.6502.org/viewtopic.php?f=2&t=7983
 
 ; =========================================================
 oc_index_table:
