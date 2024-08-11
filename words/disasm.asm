@@ -80,7 +80,7 @@ _found:
                 lda tmp1
                 pha
 
-                ldy scratch         ; fetch the opcode
+                lda scratch         ; fetch the opcode
                 jsr op_length       ; get length Y = 1,2,3
                 dey
                 beq _no_operand

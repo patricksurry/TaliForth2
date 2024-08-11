@@ -93,7 +93,7 @@ asm_op_common:
                 ; Compile opcode. Note cmpl_a does not use Y
                 tay
                 jsr cmpl_a
-
+                tya
                 jsr op_length           ; get opcode length in Y
 
                 ; One byte means no operand, we're done. Use DEY as CPY #1
@@ -170,39 +170,42 @@ _loop:
 
 
 op_length:
-        ; given an opcode in Y, return its length in Y (stomps A)
-                ; check three special cases that don't fit the pattern
-                cpy #$20
-                beq _three
-                cpy #$40
-                beq _one
-                cpy #$60
-                beq _one
-
-                tya                     ; opcode to A
-                ; otherwise the length is (mostly) determined by low four bits
+        ; given an opcode in A, return its length in Y (stomps A)
+                pha
                 and #$f
-                cmp #9
-                beq _special9
-
-_normal:        tay                     ; just use low four bits as index
-                lda _lengths,y
                 tay
+                lda _lengths,y  ; lookup the length
+                bmi _special    ; $x0 and $x9 are special
+
+                ply             ; discard the opcode
+                tay             ; return the length
                 rts
 
-_lengths:       .byte 2,2,2,1,2,2,2,2, 1,2,1,1,3,3,3,3
+_lengths:       .byte $80,2,2,1,2,2,2,2, 1,$81,1,1,3,3,3,3
 
-_special9:
-                ; for 9 we need to check bit 4
-                tya                     ; check opcode again
+_special:
+                ldy #1          ; guess length 1
+
+                ror             ; test bit 0: C=0 means $x0, C=1 means $x9
+                pla             ; recover the opcode
+                bcs _x9
+
+                ; for $x0 length is two except $20 (3), $40 (1), $60 (1)
+                bit #%10011111  ; is opcode 0/20/40/60 ?
+                bne _two
+                asl             ; test bit 6 by shifting to sign bit
+                bmi _one        ; bit 6 set means $40 or $60
+                ; otherwise we have  A=$40 if op was $20 and $0 otherwise
+                ; shift right twice to reuse bit 4 test
+                lsr
+                lsr
+_x9:
+                ; for $x9, bit 4 set means 3 bytes, clear means 2
                 and #$10
                 beq _two
-_three:         ldy #3
-                rts
-_two:           ldy #2
-                rts
-_one:           ldy #1
-                rts
+_three:         iny
+_two:           iny
+_one:           rts
 
 
 ; ==========================================================
