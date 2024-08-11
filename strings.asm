@@ -33,13 +33,13 @@ ix += 1
 str_wid_root       = ix
 ix += 1
 .endif
-str_see_flags      = ix
-ix += 1
 str_see_nt         = ix
 ix += 1
 str_see_xt         = ix
 ix += 1
 str_see_size       = ix
+ix += 1
+str_see_cfapfa     = ix
 ix += 1
 .if "disassembler" in TALI_OPTIONAL_WORDS
 str_disasm_sdc     = ix
@@ -61,7 +61,7 @@ string_table:
 .if "wordlist" in TALI_OPTIONAL_WORDS
         .word s_wid_forth, s_wid_editor, s_wid_asm, s_wid_root        ; 4-7
 .endif
-        .word s_see_flags, s_see_nt, s_see_xt, s_see_size             ; 8-11
+        .word s_see_nt, s_see_xt, s_see_size, s_see_cfapfa            ; 8-11
 .if "disassembler" in TALI_OPTIONAL_WORDS
         .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do ; 12-16
 .endif
@@ -79,10 +79,14 @@ s_wid_forth:  .text "Forth ", 0      ; Wordlist ID 0, note space at end
 s_wid_root:   .text "Root ", 0       ; Wordlist ID 3, note space at end
 .endif
 
-s_see_flags:  .text "flags (CO AN IM NN HC ST): ", 0       ; must match definitions.asm DICTIONARY FLAGS
 s_see_nt:     .text "nt: ", 0
 s_see_xt:     .text "xt: ", 0
 s_see_size:   .text "size (decimal): ", 0
+s_see_cfapfa: .text "CFA 3  PFA ", 0
+
+; this string is referenced directly, not via string table
+; must match DICTIONARY FLAGS in definitions.asm and calculated flag order in xt_see
+see_flags_template:     .shift "flags: CO",0,"IM",0,"AN",0,"NN",0,"HC",0,"| UF",0,"ST",0
 
 .if "disassembler" in TALI_OPTIONAL_WORDS
 s_disasm_sdc: .text " STACK DEPTH CHECK", 0

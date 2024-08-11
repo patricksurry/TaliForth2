@@ -54,6 +54,15 @@ hex
 : 1122 1122 ;
 : 3 3 ;
 
+\ Test that words with assembler direct JMP are marked NN
+\ see https://github.com/SamCoVT/TaliForth2/issues/113
+: aword dup drop ;
+: cword [ ' aword jmp ] ;
+: dword [ ' aword ] jmp ;
+
+T{ capture-output see cword restore-output s"  NN 1 " search -rot 2drop -> true }T
+T{ capture-output see cword restore-output s"  NN 1 " search -rot 2drop -> true }T
+
 \ --------------------------------------------------------------------------
 
 \ Testing pseudo-instructions

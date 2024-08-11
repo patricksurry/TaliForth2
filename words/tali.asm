@@ -28,10 +28,10 @@ z_always_native:
 
 
 ; ## BELL ( -- ) "Emit ASCII BELL"
-; ## "bell"  tested  Tali Forth
+; ## "bell"  auto  Tali Forth
 xt_bell:
 w_bell:
-                lda #7          ; ASCII value for BELl
+                lda #7          ; ASCII value for BELL (aka ctrl-G)
                 jsr emit_a
 
 z_bell:         rts
@@ -452,7 +452,7 @@ z_input:        rts
 ; ## INPUT_TO_R ( -- ) ( R: -- n n n n ) "Save input state to the Return Stack"
 ; ## "input>r"  tested  Tali Forth
    	; """Save the current input state as defined by insrc, cib, ciblen, and
-        ; toin to the Return Stack. Used by EVALUTE.
+        ; toin to the Return Stack. Used by EVALUATE.
         ;
         ; The naive way of doing
         ; this is to push each two-byte variable to the stack in the form of

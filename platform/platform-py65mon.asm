@@ -5,6 +5,8 @@
         ; No special text encoding (eg. ASCII)
         .enc "none"
 
+TALI_ARCH := "py65mon"
+
 ram_end = $7fff
 
         ; Set the origin for Tali Forth 2 in ROM (or RAM if loading it)
@@ -35,8 +37,8 @@ TALI_OPTION_TERSE := 0
 
 .include "simulator.asm"
 
-; py65mon doesn't have kbhit so we roll our own, using io_kbhit as a one character buffer
-io_bufc = io_kbhit
+; py65mon doesn't have kbhit so we roll our own, using a spare byte in the IO area
+io_bufc = io_putc+1
 
 kernel_getc:
         ; """Get a single character from the keyboard.

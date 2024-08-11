@@ -44,6 +44,17 @@
 ; The inline forms are typically much simpler since they can use
 ; 65c02 jmp and bxx branch opcodes directly.
 
+;TODO does it make sense to have an actual word, like COMPILE-NT, ?
+compile_nt_comma:  ; ( nt -- )
+        ; compile, looks up the nt from the xt which is very slow
+        ; if we already have the nt, we can get things rolling faster
+
+        jsr w_dup                       ; ( nt nt )
+        jsr w_name_to_int               ; ( nt xt )
+        jsr w_dup                       ; ( nt xt xt )
+        jsr w_rot                       ; ( xt xt nt )
+        bra compile_comma_common
+
 
 ; ## COMPILE_COMMA ( xt -- ) "Compile xt"
 ; ## "compile,"  auto  ANS core ext
@@ -63,8 +74,8 @@ xt_compile_comma:
 w_compile_comma:
                 ; See if this is an Always Native (AN) word by checking the
                 ; AN flag. We need nt for this.
-                jsr w_dup              ; keep an unadjusted copy of xt
-                jsr w_dup              ; plus one to convert to nt
+                jsr w_dup               ; keep an unadjusted copy of xt
+                jsr w_dup               ; plus one to convert to nt
                 jsr w_int_to_name
                 ; ( xt xt nt )
 
@@ -73,6 +84,7 @@ w_compile_comma:
                 ora 1,x
                 beq cmpl_as_call        ; No nt so unknown size; must compile as a JSR
 
+compile_comma_common:
                 ; Otherwise investigate the nt
                 jsr w_dup
                 jsr w_one_plus         ; status is at nt+1
@@ -82,8 +94,9 @@ w_compile_comma:
                 inx
                 ; ( xt xt nt )
                 sta tmp3                ; keep copy of status byte
-                and #NN
-                bne cmpl_as_call        ; never native
+                and #AN+NN              ; check if never native (NN)
+                cmp #NN                 ; NN=1, AN=0?  i.e. not ST=AN+AN
+                beq cmpl_as_call
 
                 ; ( xt xt nt )          ; maybe native, let's check
                 jsr w_wordsize
@@ -92,8 +105,9 @@ w_compile_comma:
                 ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHING ---
 
                 lda tmp3
-                and #ST                 ; Check the Stack Thrash flag in status
-                beq _check_uf
+                and #ST                 ; Check the Stack Thrash flag (ST=NN+AN)
+                cmp #ST
+                bne _check_uf
 
 _strip_sz = 10  ; skip the standard 10 byte header which saves return address + 1 to tmp1
 
@@ -155,8 +169,9 @@ _check_limit:
                 ; ( xt xt' u )
 
                 lda tmp3
-                and #AN                 ; check Always Native (AN) bit
-                bne cmpl_inline         ; always natively compile
+                and #AN+NN              ; check Always Native (AN) bit
+                cmp #AN                 ; AN=1, NN=0?  (i.e. not ST=AN+NN)
+                beq cmpl_inline         ; always natively compile
 
 cmpl_by_limit:
                 ; Compile either inline or as subroutine depending on
@@ -183,11 +198,11 @@ cmpl_as_call:
                 lda tmp3
                 and #ST
                 bne +
-                jsr w_drop     ; no stack juggling, use middle (xt or xt')
+                jsr w_drop              ; no stack juggling, use middle (xt or xt')
                 jsr w_nip
                 bra _cmpl
 +
-                jsr w_two_drop ; stack juggling, must use first (xt)
+                jsr w_two_drop          ; stack juggling, must use first (xt)
 _cmpl:
                 ; ( jsr_address -- )
                 lda #OpJSR
@@ -239,7 +254,7 @@ has_uf_check:
                 bcs _not_uf             ; LSB is too big
 
                 sec                     ; C=1 means it is an UF check
-                .byte $24               ; bit zp opcode masks the clc, with no effect on carry
+                .byte OpBITzp           ; mask the clc, with no effect on carry
 _not_uf:        clc                     ; C=0 means it isn't a UF check
                 inx                     ; clean up stack
                 inx
@@ -264,6 +279,10 @@ _not_uf:        clc                     ; C=0 means it isn't a UF check
 ;
 ; We have have various utility routines here for compiling a word in Y/A
 ; and a single byte in A.
+
+; TODO for all of these we could potentially avoid jmp (and NN) and
+; use BRA instaed.  jump_later is a bit harder since we need to remember NN state
+; in case something else changed it
 
 cmpl_jump_later:
     ; compile a jump to be filled in later with dummy address <MSB=Y/LSB=??>

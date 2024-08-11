@@ -128,9 +128,9 @@ T{ gp7-1 -> <true> }T
 
    max-base a do
       i 0 <# #s #>
-      2dup type cr ( TODO TEST )
+      2dup type cr
       1 = swap c@ 41 i a - + = and and
-      .s cr ( TODO TEST )
+      .s cr 
    loop
 
    r> base ! ;

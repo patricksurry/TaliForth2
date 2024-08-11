@@ -104,7 +104,7 @@ decimal
 \ Test for OUTPUT not implemented
 \ Test for UF-STRIP not implemented
 
-( TODO BELL test missing)
+T{ capture-output BELL restore-output s\" \a" compare -> 0 }T
 ( TODO COMPILE-ONLY test missing)
 
 \ Test int>name, latestnt, latestxt, and wordsize
@@ -223,7 +223,7 @@ T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T
 
 : digit_oneoff ( -- f )
    true
-   7 0 ?do
+   6 0 ?do
       digit_bad i + c@
       dup emit
       digit?  ( char 0 )

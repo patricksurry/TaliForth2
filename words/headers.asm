@@ -37,11 +37,21 @@
 
 ;       CO - Compile Only
 ;       IM - Immediate Word
-;       NN - Never Native Compile (must always be called by JSR)
 ;       AN - Always Native Compile (may not be called by JSR)
+;       NN - Never Native Compile (must always be called by JSR)
 ;       HC - Has CFA (words created by CREATE and DOES> only)
-
-; Note there are currently two bits unused.
+;
+;       The NN and AN flags are intrepreted together like this:
+;
+;            NN  AN
+;           +---+---+
+;           | 0 | 0 |  -- : Normal word called by JSR (non-native) or inlined (native)
+;           | 1 | 0 |  NN : Word can only be called by JSR (never native)
+;           | 0 | 1 |  AN : Word can only be inlined (always native)
+;           | 1 | 1 |  ST : Normal word with return stack juggling that
+;           +---+---+       must be removed when inlining (R>, R@, >R etc)
+;
+; Note there are currently three bits unused.
 
 ; By default, all existing words can be natively compiled (compiled inline) or
 ; as a subroutine jump target; the system decides which variant to use based on
@@ -1335,17 +1345,18 @@ nt_thru:
         .word +, xt_thru, z_thru
         .text "thru"
 +
-
-.if "editor" in TALI_OPTIONAL_WORDS
-nt_list:
-        .byte 4, 0
-        .word nt_block_c65_init, xt_list, z_list
-        .text "list"
-
+.if TALI_ARCH == "c65"
 nt_block_c65_init:
         .byte 14, 0
         .word +, xt_block_c65_init, z_block_c65_init
         .text "block-c65-init"
++
+.endif
+.if "editor" in TALI_OPTIONAL_WORDS
+nt_list:
+        .byte 4, 0
+        .word +, xt_list, z_list
+        .text "list"
 +
 .endif
 .endif

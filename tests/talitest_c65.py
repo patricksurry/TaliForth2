@@ -21,6 +21,7 @@ import subprocess
 
 TESTER = 'tester.fs'
 RESULTS = 'results.txt'
+BLOCK_FILE = 'blocks.bin'
 C65_LOCATION = '../c65/c65'
 TALIFORTH_LOCATION = '../taliforth-c65.bin'
 TALI_ERRORS = ['Undefined word',
@@ -90,11 +91,15 @@ for test in args.tests:
 # Have Tali2 quit at the end of all the tests.
 test_string = test_string + "\nbye\n"
 
-process = subprocess.Popen([C65_LOCATION, '-r', TALIFORTH_LOCATION], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-(out, err) = process.communicate(test_string.encode('ascii'))
+# Create an empty block file
+open(BLOCK_FILE, 'wb').close()
+
+process = subprocess.Popen([C65_LOCATION, '-r', TALIFORTH_LOCATION, '-b', BLOCK_FILE], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+(raw, err) = process.communicate(test_string.encode('ascii'))
+out = raw.decode('ascii', 'ignore')
 
 # Log the results
-with open(args.output, 'wb') as fout:
+with open(args.output, 'w') as fout:
     fout.write(out)
 
 # Walk through results and find stuff that went wrong
@@ -103,19 +108,18 @@ print('='*80)
 print('Summary for: ' + ' '.join(args.tests))
 
 # Check to see if we crashed before reading all of the tests.
-if f"bye c65:" not in out.decode('ascii'):
+if f"bye c65:" not in out:
     print("Tali Forth 2 crashed before all tests completed\n")
 else:
     print("Tali Forth 2 ran all tests requested")
 
 # First, stuff that failed due to undefined words
+outlines = out.splitlines()
 undefined = []
 
-with open(args.output, 'r') as rfile:
-
-    for line in rfile:
-        if 'undefined' in line:
-            undefined.append(line)
+for line in outlines:
+    if 'undefined' in line:
+        undefined.append(line)
 
 # We shouldn't have any undefined words at all
 if undefined:
@@ -126,22 +130,20 @@ if undefined:
 # Second, stuff that failed the actual test
 failed = []
 
-with open(args.output, 'r') as rfile:
+for line in outlines:
+    # Skip the message from compiling the test words
+    if 'compiled' in line:
+        continue
 
-    for line in rfile:
-        # Skip the message from compiling the test words
-        if 'compiled' in line:
-            continue
+    if 'INCORRECT RESULT' in line:
+        failed.append(line)
 
-        if 'INCORRECT RESULT' in line:
+    if 'WRONG NUMBER OF RESULTS' in line:
+        failed.append(line)
+
+    for error_str in TALI_ERRORS:
+        if error_str in line:
             failed.append(line)
-
-        if 'WRONG NUMBER OF RESULTS' in line:
-            failed.append(line)
-
-        for error_str in TALI_ERRORS:
-            if error_str in line:
-                failed.append(line)
 
 if failed:
 
