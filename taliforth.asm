@@ -218,7 +218,7 @@ dovar:
 ; =====================================================================
 ; LOW LEVEL HELPER FUNCTIONS
 
-; Push the accumalator to TOS
+; Push the accumulator to TOS
 ; This only saves a byte but improves readability
 ; This routine is also used as a template by the assembler "push-a" word
 push_a_tos:  ; ( -- A )
