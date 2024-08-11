@@ -2,11 +2,11 @@
 testing editor words: ed:
 
 decimal
-marker ed-tests 
+marker ed-tests
 
 \ Use 10000 (decimal) as write area. This may have to be changed if tests crash
 \ to a higher value. Currently, we are already using 7000 (check with HERE).
-\ Note ed tests will usually return with ( 0 0 ) on the stack because of the 
+\ Note ed tests will usually return with ( 0 0 ) on the stack because of the
 \ target address
 
 \ === SIMPLE TESTS ===
@@ -67,7 +67,7 @@ dddd
 q
 T{ 10000 20  s\" aaaa\ncccc\ndddd\nbbbb\n" compare -> 10000 20 0 }T
 
-\ Add a line above existing text; want bbbb aaaa 
+\ Add a line above existing text; want bbbb aaaa
 ed:
 a
 aaaa
@@ -159,7 +159,7 @@ dddd
 q
 T{ 10000 20  s\" tttt\ncccc\ndddd\nssss\n" compare -> 10000 20 0 }T
 
-\ Add a line above existing text; want uuuu zzzz 
+\ Add a line above existing text; want uuuu zzzz
 ed:
 a
 zzzz
@@ -181,7 +181,7 @@ T{ 10000 10  s\" uuuu\nzzzz\n" compare -> 10000 10 0 }T
 \ ---- Internal test for output redirection (tests within tests!) ----
 
 : internal-output-test  ( -- )
-   capture-output ." Redirection works, let's do this! " restore-output ; 
+   capture-output ." Redirection works, let's do this! " restore-output ;
 
 internal-output-test
 cr .( >>>> )  type  .( <<<< ) cr
@@ -197,16 +197,16 @@ cr .( >>>> )  type  .( <<<< ) cr
 T{ capture-output
 ed:
 q
-restore-output 
+restore-output
 2swap 2drop  \ ed: returns ( addr u ), don't need that at the moment
-s\"  ok\ned: \nq  ok\nrestore-output  " compare -> 0 }T
+s\"  ok\ned: \nq  ok\nrestore-output " compare -> 0 }T
 \  A---------A  A-------------------A  <-- This is boilerplate
 
 \ Cut down on noise
 : test-ed ( -- addr u )
    capture-output ed: ( payload executed here ) restore-output
    2swap 2drop              \ remove ed's output leaving captured ( addr n )
-; 
+;
 
 \ Test --- q --- Don't quit if we have unsaved changes
 test-ed
@@ -215,7 +215,6 @@ zzz
 .
 q
 Q
-dump
 T{ s\" \na \nzzz \n. \nq \n?\nQ " compare -> 0 }T
 
 

@@ -37,8 +37,8 @@
 
 ;       CO - Compile Only
 ;       IM - Immediate Word
-;       NN - Never Native Compile (must always be called by JSR)
 ;       AN - Always Native Compile (may not be called by JSR)
+;       NN - Never Native Compile (must always be called by JSR)
 ;       HC - Has CFA (words created by CREATE and DOES> only)
 ;
 ;       The NN and AN flags are intrepreted together like this:
@@ -51,7 +51,7 @@
 ;           | 1 | 1 |  ST : Normal word with return stack juggling that
 ;           +---+---+       must be removed when inlining (R>, R@, >R etc)
 ;
-; Note there are currently two bits unused.
+; Note there are currently three bits unused.
 
 ; By default, all existing words can be natively compiled (compiled inline) or
 ; as a subroutine jump target; the system decides which variant to use based on
