@@ -1568,1069 +1568,233 @@ nt_editor_enter_screen:
 ; underscore replaces any dot present in the SAN mnemonic. The hash sign for
 ; immediate addressing is replaced by an "h" (for example, the label code for
 ; "lda.#" is "xt_adm_lda_h"). All opcodes are immediate.
+
 assembler_dictionary_start:
+
 .if "assembler" in TALI_OPTIONAL_WORDS
-nt_asm_adc_h:
-		.byte 5, IM+NN
-                .word nt_asm_adc_x
-		.word xt_asm_adc_h, z_asm_adc_h
-		.text "adc.#"
-
-nt_asm_adc_x:
-		.byte 5, IM+NN
-                .word nt_asm_adc_y
-		.word xt_asm_adc_x, z_asm_adc_x
-		.text "adc.x"
-
-nt_asm_adc_y:
-		.byte 5, IM+NN
-                .word nt_asm_adc_z
-		.word xt_asm_adc_y, z_asm_adc_y
-		.text "adc.y"
-
-nt_asm_adc_z:
-		.byte 5, IM+NN
-                .word nt_asm_adc_zi
-		.word xt_asm_adc_z, z_asm_adc_z
-		.text "adc.z"
-
-nt_asm_adc_zi:
-		.byte 6, IM+NN
-                .word nt_asm_adc_ziy
-		.word xt_asm_adc_zi, z_asm_adc_zi
-		.text "adc.zi"
-
-nt_asm_adc_ziy:
-		.byte 7, IM+NN
-                .word nt_asm_adc_zx
-		.word xt_asm_adc_ziy, z_asm_adc_ziy
-		.text "adc.ziy"
-
-nt_asm_adc_zx:
-		.byte 6, IM+NN
-                .word nt_asm_adc_zxi
-		.word xt_asm_adc_zx, z_asm_adc_zx
-		.text "adc.zx"
-
-nt_asm_adc_zxi:
-		.byte 7, IM+NN
-                .word nt_asm_and
-		.word xt_asm_adc_zxi, z_asm_adc_zxi
-		.text "adc.zxi"
-
-nt_asm_and:     ; not "and" because of conflicts with Forth word
-		.byte 4, IM+NN
-                .word nt_asm_and_h
-		.word xt_asm_and, z_asm_and
-		.text "and."
-
-nt_asm_and_h:
-		.byte 5, IM+NN
-                .word nt_asm_and_x
-		.word xt_asm_and_h, z_asm_and_h
-		.text "and.#"
-
-nt_asm_and_x:
-		.byte 5, IM+NN
-                .word nt_asm_and_y
-		.word xt_asm_and_x, z_asm_and_x
-		.text "and.x"
-
-nt_asm_and_y:
-		.byte 5, IM+NN
-                .word nt_asm_and_z
-		.word xt_asm_and_y, z_asm_and_y
-		.text "and.y"
-
-nt_asm_and_z:
-		.byte 5, IM+NN
-                .word nt_asm_and_zi
-		.word xt_asm_and_z, z_asm_and_z
-		.text "and.z"
-
-nt_asm_and_zi:
-		.byte 6, IM+NN
-                .word nt_asm_and_ziy
-		.word xt_asm_and_zi, z_asm_and_zi
-		.text "and.zi"
-
-nt_asm_and_ziy:
-		.byte 7, IM+NN
-                .word nt_asm_and_zx
-		.word xt_asm_and_ziy, z_asm_and_ziy
-		.text "and.ziy"
-
-nt_asm_and_zx:
-		.byte 6, IM+NN
-                .word nt_asm_and_zxi
-		.word xt_asm_and_zx, z_asm_and_zx
-		.text "and.zx"
-
-nt_asm_and_zxi:
-		.byte 7, IM+NN
-                .word nt_asm_asl
-		.word xt_asm_and_zxi, z_asm_and_zxi
-		.text "and.zxi"
-
-nt_asm_asl:
-		.byte 3, IM+NN
-                .word nt_asm_asl_a
-		.word xt_asm_asl, z_asm_asl
-		.text "asl"
-
-nt_asm_asl_a:
-		.byte 5, IM+NN
-                .word nt_asm_asl_x
-		.word xt_asm_asl_a, z_asm_asl_a
-		.text "asl.a"
-
-nt_asm_asl_x:
-		.byte 5, IM+NN
-                .word nt_asm_asl_z
-		.word xt_asm_asl_x, z_asm_asl_x
-		.text "asl.x"
-
-nt_asm_asl_z:
-		.byte 5, IM+NN
-                .word nt_asm_asl_zx
-		.word xt_asm_asl_z, z_asm_asl_z
-		.text "asl.z"
-
-nt_asm_asl_zx:
-		.byte 6, IM+NN
-                .word nt_asm_bcc
-		.word xt_asm_asl_zx, z_asm_asl_zx
-		.text "asl.zx"
-
-nt_asm_bcc:
-		.byte 3, IM+NN
-                .word nt_asm_bcs
-		.word xt_asm_bcc, z_asm_bcc
-		.text "bcc"
-
-nt_asm_bcs:
-		.byte 3, IM+NN
-                .word nt_asm_beq
-		.word xt_asm_bcs, z_asm_bcs
-		.text "bcs"
-
-nt_asm_beq:
-		.byte 3, IM+NN
-                .word nt_asm_bit
-		.word xt_asm_beq, z_asm_beq
-		.text "beq"
-
-nt_asm_bit:
-		.byte 3, IM+NN
-                .word nt_asm_bit_h
-		.word xt_asm_bit, z_asm_bit
-		.text "bit"
-
-nt_asm_bit_h:
-		.byte 5, IM+NN
-                .word nt_asm_bit_x
-		.word xt_asm_bit_h, z_asm_bit_h
-		.text "bit.#"
-
-nt_asm_bit_x:
-		.byte 5, IM+NN
-                .word nt_asm_bit_z
-		.word xt_asm_bit_x, z_asm_bit_x
-		.text "bit.x"
-
-nt_asm_bit_z:
-		.byte 5, IM+NN
-                .word nt_asm_bit_zx
-		.word xt_asm_bit_z, z_asm_bit_z
-		.text "bit.z"
-
-nt_asm_bit_zx:
-		.byte 6, IM+NN
-                .word nt_asm_bmi
-		.word xt_asm_bit_zx, z_asm_bit_zx
-		.text "bit.zx"
-
-nt_asm_bmi:
-		.byte 3, IM+NN
-                .word nt_asm_bne
-		.word xt_asm_bmi, z_asm_bmi
-		.text "bmi"
-
-nt_asm_bne:
-		.byte 3, IM+NN
-                .word nt_asm_bpl
-		.word xt_asm_bne, z_asm_bne
-		.text "bne"
-
-nt_asm_bpl:
-		.byte 3, IM+NN
-                .word nt_asm_bra
-		.word xt_asm_bpl, z_asm_bpl
-		.text "bpl"
-
-nt_asm_bra:
-		.byte 3, IM+NN
-                .word nt_asm_brk
-		.word xt_asm_bra, z_asm_bra
-		.text "bra"
-
-nt_asm_brk:
-		.byte 3, IM+NN
-                .word nt_asm_bvc
-		.word xt_asm_brk, z_asm_brk
-		.text "brk"
-
-nt_asm_bvc:
-		.byte 3, IM+NN
-                .word nt_asm_bvs
-		.word xt_asm_bvc, z_asm_bvc
-		.text "bvc"
-
-nt_asm_bvs:
-		.byte 3, IM+NN
-                .word nt_asm_clc
-		.word xt_asm_bvs, z_asm_bvs
-		.text "bvs"
-
-nt_asm_clc:
-		.byte 3, IM+NN
-                .word nt_asm_cld
-		.word xt_asm_clc, z_asm_clc
-		.text "clc"
-
-nt_asm_cld:
-		.byte 3, IM+NN
-                .word nt_asm_cli
-		.word xt_asm_cld, z_asm_cld
-		.text "cld"
-
-nt_asm_cli:
-		.byte 3, IM+NN
-                .word nt_asm_clv
-		.word xt_asm_cli, z_asm_cli
-		.text "cli"
-
-nt_asm_clv:
-		.byte 3, IM+NN
-                .word nt_asm_cmp
-		.word xt_asm_clv, z_asm_clv
-		.text "clv"
-
-nt_asm_cmp:
-		.byte 3, IM+NN
-                .word nt_asm_cmp_h
-		.word xt_asm_cmp, z_asm_cmp
-		.text "cmp"
-
-nt_asm_cmp_h:
-		.byte 5, IM+NN
-                .word nt_asm_cmp_x
-		.word xt_asm_cmp_h, z_asm_cmp_h
-		.text "cmp.#"
-
-nt_asm_cmp_x:
-		.byte 5, IM+NN
-                .word nt_asm_cmp_y
-		.word xt_asm_cmp_x, z_asm_cmp_x
-		.text "cmp.x"
-
-nt_asm_cmp_y:
-		.byte 5, IM+NN
-                .word nt_asm_cmp_z
-		.word xt_asm_cmp_y, z_asm_cmp_y
-		.text "cmp.y"
-
-nt_asm_cmp_z:
-		.byte 5, IM+NN
-                .word nt_asm_cmp_zi
-		.word xt_asm_cmp_z, z_asm_cmp_z
-		.text "cmp.z"
-
-nt_asm_cmp_zi:
-		.byte 6, IM+NN
-                .word nt_asm_cmp_ziy
-		.word xt_asm_cmp_zi, z_asm_cmp_zi
-		.text "cmp.zi"
-
-nt_asm_cmp_ziy:
-		.byte 7, IM+NN
-                .word nt_asm_cmp_zx
-		.word xt_asm_cmp_ziy, z_asm_cmp_ziy
-		.text "cmp.ziy"
-
-nt_asm_cmp_zx:
-		.byte 6, IM+NN
-                .word nt_asm_cmp_zxi
-		.word xt_asm_cmp_zx, z_asm_cmp_zx
-		.text "cmp.zx"
-
-nt_asm_cmp_zxi:
-		.byte 7, IM+NN
-                .word nt_asm_cpx
-		.word xt_asm_cmp_zxi, z_asm_cmp_zxi
-		.text "cmp.zxi"
-
-nt_asm_cpx:
-		.byte 3, IM+NN
-                .word nt_asm_cpx_h
-		.word xt_asm_cpx, z_asm_cpx
-		.text "cpx"
-
-nt_asm_cpx_h:
-		.byte 5, IM+NN
-                .word nt_asm_cpx_z
-		.word xt_asm_cpx_h, z_asm_cpx_h
-		.text "cpx.#"
-
-nt_asm_cpx_z:
-		.byte 5, IM+NN
-                .word nt_asm_cpy
-		.word xt_asm_cpx_z, z_asm_cpx_z
-		.text "cpx.z"
-
-nt_asm_cpy:
-		.byte 3, IM+NN
-                .word nt_asm_cpy_h
-		.word xt_asm_cpy, z_asm_cpy
-		.text "cpy"
-
-nt_asm_cpy_h:
-		.byte 5, IM+NN
-                .word nt_asm_cpy_z
-		.word xt_asm_cpy_h, z_asm_cpy_h
-		.text "cpy.#"
-
-nt_asm_cpy_z:
-		.byte 5, IM+NN
-                .word nt_asm_dec
-		.word xt_asm_cpy_z, z_asm_cpy_z
-		.text "cpy.z"
-
-nt_asm_dec:
-		.byte 3, IM+NN
-                .word nt_asm_dec_a
-		.word xt_asm_dec, z_asm_dec
-		.text "dec"
-
-nt_asm_dec_a:
-		.byte 5, IM+NN
-                .word nt_asm_dec_x
-		.word xt_asm_dec_a, z_asm_dec_a
-		.text "dec.a"
-
-nt_asm_dec_x:
-		.byte 5, IM+NN
-                .word nt_asm_dec_z
-		.word xt_asm_dec_x, z_asm_dec_x
-		.text "dec.x"
-
-nt_asm_dec_z:
-		.byte 5, IM+NN
-                .word nt_asm_dec_zx
-		.word xt_asm_dec_z, z_asm_dec_z
-		.text "dec.z"
-
-nt_asm_dec_zx:
-		.byte 6, IM+NN
-                .word nt_asm_dex
-		.word xt_asm_dec_zx, z_asm_dec_zx
-		.text "dec.zx"
-
-nt_asm_dex:
-		.byte 3, IM+NN
-                .word nt_asm_dey
-		.word xt_asm_dex, z_asm_dex
-		.text "dex"
-
-nt_asm_dey:
-		.byte 3, IM+NN
-                .word nt_asm_eor
-		.word xt_asm_dey, z_asm_dey
-		.text "dey"
-
-nt_asm_eor:
-		.byte 3, IM+NN
-                .word nt_asm_eor_h
-		.word xt_asm_eor, z_asm_eor
-		.text "eor"
-
-nt_asm_eor_h:
-		.byte 5, IM+NN
-                .word nt_asm_eor_x
-		.word xt_asm_eor_h, z_asm_eor_h
-		.text "eor.#"
-
-nt_asm_eor_x:
-		.byte 5, IM+NN
-                .word nt_asm_eor_y
-		.word xt_asm_eor_x, z_asm_eor_x
-		.text "eor.x"
-
-nt_asm_eor_y:
-		.byte 5, IM+NN
-                .word nt_asm_eor_z
-		.word xt_asm_eor_y, z_asm_eor_y
-		.text "eor.y"
-
-nt_asm_eor_z:
-		.byte 5, IM+NN
-                .word nt_asm_eor_zi
-		.word xt_asm_eor_z, z_asm_eor_z
-		.text "eor.z"
-
-nt_asm_eor_zi:
-		.byte 6, IM+NN
-                .word nt_asm_eor_ziy
-		.word xt_asm_eor_zi, z_asm_eor_zi
-		.text "eor.zi"
-
-nt_asm_eor_ziy:
-		.byte 7, IM+NN
-                .word nt_asm_eor_zx
-		.word xt_asm_eor_ziy, z_asm_eor_ziy
-		.text "eor.ziy"
-
-nt_asm_eor_zx:
-		.byte 6, IM+NN
-                .word nt_asm_eor_zxi
-		.word xt_asm_eor_zx, z_asm_eor_zx
-		.text "eor.zx"
-
-nt_asm_eor_zxi:
-		.byte 7, IM+NN
-                .word nt_asm_inc
-		.word xt_asm_eor_zxi, z_asm_eor_zxi
-		.text "eor.zxi"
-
-nt_asm_inc:
-		.byte 3, IM+NN
-                .word nt_asm_inc_a
-		.word xt_asm_inc, z_asm_inc
-		.text "inc"
-
-nt_asm_inc_a:
-		.byte 5, IM+NN
-                .word nt_asm_inc_x
-		.word xt_asm_inc_a, z_asm_inc_a
-		.text "inc.a"
-
-nt_asm_inc_x:
-		.byte 5, IM+NN
-                .word nt_asm_inc_z
-		.word xt_asm_inc_x, z_asm_inc_x
-		.text "inc.x"
-
-nt_asm_inc_z:
-		.byte 5, IM+NN
-                .word nt_asm_inc_zx
-		.word xt_asm_inc_z, z_asm_inc_z
-		.text "inc.z"
-
-nt_asm_inc_zx:
-		.byte 6, IM+NN
-                .word nt_asm_inx
-		.word xt_asm_inc_zx, z_asm_inc_zx
-		.text "inc.zx"
-
-nt_asm_inx:
-		.byte 3, IM+NN
-                .word nt_asm_iny
-		.word xt_asm_inx, z_asm_inx
-		.text "inx"
-
-nt_asm_iny:
-		.byte 3, IM+NN
-                .word nt_asm_jmp
-		.word xt_asm_iny, z_asm_iny
-		.text "iny"
-
-nt_asm_jmp:
-		.byte 3, IM+NN
-                .word nt_asm_jmp_i
-		.word xt_asm_jmp, z_asm_jmp
-		.text "jmp"
-
-nt_asm_jmp_i:
-		.byte 5, IM+NN
-                .word nt_asm_jmp_xi
-		.word xt_asm_jmp_i, z_asm_jmp_i
-		.text "jmp.i"
-
-nt_asm_jmp_xi:
-		.byte 6, IM+NN
-                .word nt_asm_jsr
-		.word xt_asm_jmp_xi, z_asm_jmp_xi
-		.text "jmp.xi"
-
-nt_asm_jsr:
-		.byte 3, IM+NN
-                .word nt_asm_lda
-		.word xt_asm_jsr, z_asm_jsr
-		.text "jsr"
-
-nt_asm_lda:
-		.byte 3, IM+NN
-                .word nt_asm_lda_h
-		.word xt_asm_lda, z_asm_lda
-		.text "lda"
-
-nt_asm_lda_h:
-		.byte 5, IM+NN
-                .word nt_asm_lda_x
-		.word xt_asm_lda_h, z_asm_lda_h
-		.text "lda.#"
-
-nt_asm_lda_x:
-		.byte 5, IM+NN
-                .word nt_asm_lda_y
-		.word xt_asm_lda_x, z_asm_lda_x
-		.text "lda.x"
-
-nt_asm_lda_y:
-		.byte 5, IM+NN
-                .word nt_asm_lda_z
-		.word xt_asm_lda_y, z_asm_lda_y
-		.text "lda.y"
-
-nt_asm_lda_z:
-		.byte 5, IM+NN
-                .word nt_asm_lda_zi
-		.word xt_asm_lda_z, z_asm_lda_z
-		.text "lda.z"
-
-nt_asm_lda_zi:
-		.byte 6, IM+NN
-                .word nt_asm_lda_ziy
-		.word xt_asm_lda_zi, z_asm_lda_zi
-		.text "lda.zi"
-
-nt_asm_lda_ziy:
-		.byte 7, IM+NN
-                .word nt_asm_lda_zx
-		.word xt_asm_lda_ziy, z_asm_lda_ziy
-		.text "lda.ziy"
-
-nt_asm_lda_zx:
-		.byte 6, IM+NN
-                .word nt_asm_lda_zxi
-		.word xt_asm_lda_zx, z_asm_lda_zx
-		.text "lda.zx"
-
-nt_asm_lda_zxi:
-		.byte 7, IM+NN
-                .word nt_asm_ldx
-		.word xt_asm_lda_zxi, z_asm_lda_zxi
-		.text "lda.zxi"
-
-nt_asm_ldx:
-		.byte 3, IM+NN
-                .word nt_asm_ldx_h
-		.word xt_asm_ldx, z_asm_ldx
-		.text "ldx"
-
-nt_asm_ldx_h:
-		.byte 5, IM+NN
-                .word nt_asm_ldx_y
-		.word xt_asm_ldx_h, z_asm_ldx_h
-		.text "ldx.#"
-
-nt_asm_ldx_y:
-		.byte 5, IM+NN
-                .word nt_asm_ldx_z
-		.word xt_asm_ldx_y, z_asm_ldx_y
-		.text "ldx.y"
-
-nt_asm_ldx_z:
-		.byte 5, IM+NN
-                .word nt_asm_ldx_zy
-		.word xt_asm_ldx_z, z_asm_ldx_z
-		.text "ldx.z"
-
-nt_asm_ldx_zy:
-		.byte 6, IM+NN
-                .word nt_asm_ldy
-		.word xt_asm_ldx_zy, z_asm_ldx_zy
-		.text "ldx.zy"
-
-nt_asm_ldy:
-		.byte 3, IM+NN
-                .word nt_asm_ldy_h
-		.word xt_asm_ldy, z_asm_ldy
-		.text "ldy"
-
-nt_asm_ldy_h:
-		.byte 5, IM+NN
-                .word nt_asm_ldy_x
-		.word xt_asm_ldy_h, z_asm_ldy_h
-		.text "ldy.#"
-
-nt_asm_ldy_x:
-		.byte 5, IM+NN
-                .word nt_asm_ldy_z
-		.word xt_asm_ldy_x, z_asm_ldy_x
-		.text "ldy.x"
-
-nt_asm_ldy_z:
-		.byte 5, IM+NN
-                .word nt_asm_ldy_zx
-		.word xt_asm_ldy_z, z_asm_ldy_z
-		.text "ldy.z"
-
-nt_asm_ldy_zx:
-		.byte 6, IM+NN
-                .word nt_asm_lsr
-		.word xt_asm_ldy_zx, z_asm_ldy_zx
-		.text "ldy.zx"
-
-nt_asm_lsr:
-		.byte 3, IM+NN
-                .word nt_asm_lsr_a
-		.word xt_asm_lsr, z_asm_lsr
-		.text "lsr"
-
-nt_asm_lsr_a:
-		.byte 5, IM+NN
-                .word nt_asm_lsr_x
-		.word xt_asm_lsr_a, z_asm_lsr_a
-		.text "lsr.a"
-
-nt_asm_lsr_x:
-		.byte 5, IM+NN
-                .word nt_asm_lsr_z
-		.word xt_asm_lsr_x, z_asm_lsr_x
-		.text "lsr.x"
-
-nt_asm_lsr_z:
-		.byte 5, IM+NN
-                .word nt_asm_lsr_zx
-		.word xt_asm_lsr_z, z_asm_lsr_z
-		.text "lsr.z"
-
-nt_asm_lsr_zx:
-		.byte 6, IM+NN
-                .word nt_asm_nop
-		.word xt_asm_lsr_zx, z_asm_lsr_zx
-		.text "lsr.zx"
-
-nt_asm_nop:
-		.byte 3, IM+NN
-                .word nt_asm_ora
-		.word xt_asm_nop, z_asm_nop
-		.text "nop"
-
-nt_asm_ora:
-		.byte 3, IM+NN
-                .word nt_asm_ora_h
-		.word xt_asm_ora, z_asm_ora
-		.text "ora"
-
-nt_asm_ora_h:
-		.byte 5, IM+NN
-                .word nt_asm_ora_x
-		.word xt_asm_ora_h, z_asm_ora_h
-		.text "ora.#"
-
-nt_asm_ora_x:
-		.byte 5, IM+NN
-                .word nt_asm_ora_y
-		.word xt_asm_ora_x, z_asm_ora_x
-		.text "ora.x"
-
-nt_asm_ora_y:
-		.byte 5, IM+NN
-                .word nt_asm_ora_z
-		.word xt_asm_ora_y, z_asm_ora_y
-		.text "ora.y"
-
-nt_asm_ora_z:
-		.byte 5, IM+NN
-                .word nt_asm_ora_zi
-		.word xt_asm_ora_z, z_asm_ora_z
-		.text "ora.z"
-
-nt_asm_ora_zi:
-		.byte 6, IM+NN
-                .word nt_asm_ora_ziy
-		.word xt_asm_ora_zi, z_asm_ora_zi
-		.text "ora.zi"
-
-nt_asm_ora_ziy:
-		.byte 7, IM+NN
-                .word nt_asm_ora_zx
-		.word xt_asm_ora_ziy, z_asm_ora_ziy
-		.text "ora.ziy"
-
-nt_asm_ora_zx:
-		.byte 6, IM+NN
-                .word nt_asm_ora_zxi
-		.word xt_asm_ora_zx, z_asm_ora_zx
-		.text "ora.zx"
-
-nt_asm_ora_zxi:
-		.byte 7, IM+NN
-                .word nt_asm_pha
-		.word xt_asm_ora_zxi, z_asm_ora_zxi
-		.text "ora.zxi"
-
-nt_asm_pha:
-		.byte 3, IM+NN
-                .word nt_asm_php
-		.word xt_asm_pha, z_asm_pha
-		.text "pha"
-
-nt_asm_php:
-		.byte 3, IM+NN
-                .word nt_asm_phx
-		.word xt_asm_php, z_asm_php
-		.text "php"
-
-nt_asm_phx:
-		.byte 3, IM+NN
-                .word nt_asm_phy
-		.word xt_asm_phx, z_asm_phx
-		.text "phx"
-
-nt_asm_phy:
-		.byte 3, IM+NN
-                .word nt_asm_pla
-		.word xt_asm_phy, z_asm_phy
-		.text "phy"
-
-nt_asm_pla:
-		.byte 3, IM+NN
-                .word nt_asm_plp
-		.word xt_asm_pla, z_asm_pla
-		.text "pla"
-
-nt_asm_plp:
-		.byte 3, IM+NN
-                .word nt_asm_plx
-		.word xt_asm_plp, z_asm_plp
-		.text "plp"
-
-nt_asm_plx:
-		.byte 3, IM+NN
-                .word nt_asm_ply
-		.word xt_asm_plx, z_asm_plx
-		.text "plx"
-
-nt_asm_ply:
-		.byte 3, IM+NN
-                .word nt_asm_rol
-		.word xt_asm_ply, z_asm_ply
-		.text "ply"
-
-nt_asm_rol:
-		.byte 3, IM+NN
-                .word nt_asm_rol_a
-		.word xt_asm_rol, z_asm_rol
-		.text "rol"
-
-nt_asm_rol_a:
-		.byte 5, IM+NN
-                .word nt_asm_rol_x
-		.word xt_asm_rol_a, z_asm_rol_a
-		.text "rol.a"
-
-nt_asm_rol_x:
-		.byte 5, IM+NN
-                .word nt_asm_rol_z
-		.word xt_asm_rol_x, z_asm_rol_x
-		.text "rol.x"
-
-nt_asm_rol_z:
-		.byte 5, IM+NN
-                .word nt_asm_rol_zx
-		.word xt_asm_rol_z, z_asm_rol_z
-		.text "rol.z"
-
-nt_asm_rol_zx:
-		.byte 6, IM+NN
-                .word nt_asm_ror
-		.word xt_asm_rol_zx, z_asm_rol_zx
-		.text "rol.zx"
-
-nt_asm_ror:
-		.byte 3, IM+NN
-                .word nt_asm_ror_a
-		.word xt_asm_ror, z_asm_ror
-		.text "ror"
-
-nt_asm_ror_a:
-		.byte 5, IM+NN
-                .word nt_asm_ror_x
-		.word xt_asm_ror_a, z_asm_ror_a
-		.text "ror.a"
-
-nt_asm_ror_x:
-		.byte 5, IM+NN
-                .word nt_asm_ror_z
-		.word xt_asm_ror_x, z_asm_ror_x
-		.text "ror.x"
-
-nt_asm_ror_z:
-		.byte 5, IM+NN
-                .word nt_asm_ror_zx
-		.word xt_asm_ror_z, z_asm_ror_z
-		.text "ror.z"
-
-nt_asm_ror_zx:
-		.byte 6, IM+NN
-                .word nt_asm_rti
-		.word xt_asm_ror_zx, z_asm_ror_zx
-		.text "ror.zx"
-
-nt_asm_rti:
-		.byte 3, IM+NN
-                .word nt_asm_rts
-		.word xt_asm_rti, z_asm_rti
-		.text "rti"
-
-nt_asm_rts:
-		.byte 3, IM+NN
-                .word nt_asm_sbc
-		.word xt_asm_rts, z_asm_rts
-		.text "rts"
-
-nt_asm_sbc:
-		.byte 3, IM+NN
-                .word nt_asm_sbc_h
-		.word xt_asm_sbc, z_asm_sbc
-		.text "sbc"
-
-nt_asm_sbc_h:
-		.byte 5, IM+NN
-                .word nt_asm_sbc_x
-		.word xt_asm_sbc_h, z_asm_sbc_h
-		.text "sbc.#"
-
-nt_asm_sbc_x:
-		.byte 5, IM+NN
-                .word nt_asm_sbc_y
-		.word xt_asm_sbc_x, z_asm_sbc_x
-		.text "sbc.x"
-
-nt_asm_sbc_y:
-		.byte 5, IM+NN
-                .word nt_asm_sbc_z
-		.word xt_asm_sbc_y, z_asm_sbc_y
-		.text "sbc.y"
-
-nt_asm_sbc_z:
-		.byte 5, IM+NN
-                .word nt_asm_sbc_zi
-		.word xt_asm_sbc_z, z_asm_sbc_z
-		.text "sbc.z"
-
-nt_asm_sbc_zi:
-		.byte 6, IM+NN
-                .word nt_asm_sbc_ziy
-		.word xt_asm_sbc_zi, z_asm_sbc_zi
-		.text "sbc.zi"
-
-nt_asm_sbc_ziy:
-		.byte 7, IM+NN
-                .word nt_asm_sbc_zx
-		.word xt_asm_sbc_ziy, z_asm_sbc_ziy
-		.text "sbc.ziy"
-
-nt_asm_sbc_zx:
-		.byte 6, IM+NN
-                .word nt_asm_sbc_zxi
-		.word xt_asm_sbc_zx, z_asm_sbc_zx
-		.text "sbc.zx"
-
-nt_asm_sbc_zxi:
-		.byte 7, IM+NN
-                .word nt_asm_sec
-		.word xt_asm_sbc_zxi, z_asm_sbc_zxi
-		.text "sbc.zxi"
-
-nt_asm_sec:
-		.byte 3, IM+NN
-                .word nt_asm_sed
-		.word xt_asm_sec, z_asm_sec
-		.text "sec"
-
-nt_asm_sed:
-		.byte 3, IM+NN
-                .word nt_asm_sei
-		.word xt_asm_sed, z_asm_sed
-		.text "sed"
-
-nt_asm_sei:
-		.byte 3, IM+NN
-                .word nt_asm_sta
-		.word xt_asm_sei, z_asm_sei
-		.text "sei"
-
-nt_asm_sta:
-		.byte 3, IM+NN
-                .word nt_asm_sta_x
-		.word xt_asm_sta, z_asm_sta
-		.text "sta"
-
-nt_asm_sta_x:
-		.byte 5, IM+NN
-                .word nt_asm_sta_y
-		.word xt_asm_sta_x, z_asm_sta_x
-		.text "sta.x"
-
-nt_asm_sta_y:
-		.byte 5, IM+NN
-                .word nt_asm_sta_z
-		.word xt_asm_sta_y, z_asm_sta_y
-		.text "sta.y"
-
-nt_asm_sta_z:
-		.byte 5, IM+NN
-                .word nt_asm_sta_zi
-		.word xt_asm_sta_z, z_asm_sta_z
-		.text "sta.z"
-
-nt_asm_sta_zi:
-		.byte 6, IM+NN
-                .word nt_asm_sta_ziy
-		.word xt_asm_sta_zi, z_asm_sta_zi
-		.text "sta.zi"
-
-nt_asm_sta_ziy:
-		.byte 7, IM+NN
-                .word nt_asm_sta_zx
-		.word xt_asm_sta_ziy, z_asm_sta_ziy
-		.text "sta.ziy"
-
-nt_asm_sta_zx:
-		.byte 6, IM+NN
-                .word nt_asm_sta_zxi
-		.word xt_asm_sta_zx, z_asm_sta_zx
-		.text "sta.zx"
-
-nt_asm_sta_zxi:
-		.byte 7, IM+NN
-                .word nt_asm_stx
-		.word xt_asm_sta_zxi, z_asm_sta_zxi
-		.text "sta.zxi"
-
-nt_asm_stx:
-		.byte 3, IM+NN
-                .word nt_asm_stx_z
-		.word xt_asm_stx, z_asm_stx
-		.text "stx"
-
-nt_asm_stx_z:
-		.byte 5, IM+NN
-                .word nt_asm_stx_zy
-		.word xt_asm_stx_z, z_asm_stx_z
-		.text "stx.z"
-
-nt_asm_stx_zy:
-		.byte 6, IM+NN
-                .word nt_asm_sty
-		.word xt_asm_stx_zy, z_asm_stx_zy
-		.text "stx.zy"
-
-nt_asm_sty:
-		.byte 3, IM+NN
-                .word nt_asm_sty_z
-		.word xt_asm_sty, z_asm_sty
-		.text "sty"
-
-nt_asm_sty_z:
-		.byte 5, IM+NN
-                .word nt_asm_sty_zx
-		.word xt_asm_sty_z, z_asm_sty_z
-		.text "sty.z"
-
-nt_asm_sty_zx:
-		.byte 6, IM+NN
-                .word nt_asm_stz
-		.word xt_asm_sty_zx, z_asm_sty_zx
-		.text "sty.zx"
-
-nt_asm_stz:
-		.byte 3, IM+NN
-                .word nt_asm_stz_x
-		.word xt_asm_stz, z_asm_stz
-		.text "stz"
-
-nt_asm_stz_x:
-		.byte 5, IM+NN
-                .word nt_asm_stz_z
-		.word xt_asm_stz_x, z_asm_stz_x
-		.text "stz.x"
-
-nt_asm_stz_z:
-		.byte 5, IM+NN
-                .word nt_asm_stz_zx
-		.word xt_asm_stz_z, z_asm_stz_z
-		.text "stz.z"
-
-nt_asm_stz_zx:
-		.byte 6, IM+NN
-                .word nt_asm_tax
-		.word xt_asm_stz_zx, z_asm_stz_zx
-		.text "stz.zx"
-
-nt_asm_tax:
-		.byte 3, IM+NN
-                .word nt_asm_tay
-		.word xt_asm_tax, z_asm_tax
-		.text "tax"
-
-nt_asm_tay:
-		.byte 3, IM+NN
-                .word nt_asm_trb
-		.word xt_asm_tay, z_asm_tay
-		.text "tay"
-
-nt_asm_trb:
-		.byte 3, IM+NN
-                .word nt_asm_trb_z
-		.word xt_asm_trb, z_asm_trb
-		.text "trb"
-
-nt_asm_trb_z:
-		.byte 5, IM+NN
-                .word nt_asm_tsb
-		.word xt_asm_trb_z, z_asm_trb_z
-		.text "trb.z"
-
-nt_asm_tsb:
-		.byte 3, IM+NN
-                .word nt_asm_tsb_z
-		.word xt_asm_tsb, z_asm_tsb
-		.text "tsb"
-
-nt_asm_tsb_z:
-		.byte 5, IM+NN
-                .word nt_asm_tsx
-		.word xt_asm_tsb_z, z_asm_tsb_z
-		.text "tsb.z"
-
-nt_asm_tsx:
-		.byte 3, IM+NN
-                .word nt_asm_txa
-		.word xt_asm_tsx, z_asm_tsx
-		.text "tsx"
-
-nt_asm_txa:
-		.byte 3, IM+NN
-                .word nt_asm_txs
-		.word xt_asm_txa, z_asm_txa
-		.text "txa"
-
-nt_asm_txs:
-		.byte 3, IM+NN
-                .word nt_asm_tya
-		.word xt_asm_txs, z_asm_txs
-		.text "txs"
-
-nt_asm_tya:
-		.byte 3, IM+NN
-                .word nt_asm_arrow
-		.word xt_asm_tya, z_asm_tya
-		.text "tya"
+
+; TODO add traditional mnemonics
+; TODO merge assembler/disassembler options
+; TODO consider adding/testing  rmbN (typo rbm4/5), smbN, bbrN, bbsN
+; TODO broken test again?
+
+nt_asm_first:
+nt_asm_adc:     .nt_asm $6d, "adc"
+nt_asm_adc_h:   .nt_asm $69, "adc.#"
+nt_asm_adc_x:   .nt_asm $7d, "adc.x"
+nt_asm_adc_y:   .nt_asm $79, "adc.y"
+nt_asm_adc_z:   .nt_asm $65, "adc.z"
+nt_asm_adc_zi:  .nt_asm $72, "adc.zi"
+nt_asm_adc_ziy: .nt_asm $71, "adc.ziy"
+nt_asm_adc_zx:  .nt_asm $75, "adc.zx"
+nt_asm_adc_zxi: .nt_asm $61, "adc.zxi"
+
+nt_asm_and:     .nt_asm $2d, "and."     ; not "and" because of conflicts with Forth word
+nt_asm_and_h:   .nt_asm $29, "and.#"
+nt_asm_and_x:   .nt_asm $3d, "and.x"
+nt_asm_and_y:   .nt_asm $39, "and.y"
+nt_asm_and_z:   .nt_asm $25, "and.z"
+nt_asm_and_zi:  .nt_asm $32, "and.zi"
+nt_asm_and_ziy: .nt_asm $31, "and.ziy"
+nt_asm_and_zx:  .nt_asm $35, "and.zx"
+nt_asm_and_zxi: .nt_asm $21, "and.zxi"
+
+nt_asm_asl:     .nt_asm $0e, "asl"
+nt_asm_asl_a:   .nt_asm $0a, "asl.a"
+nt_asm_asl_x:   .nt_asm $1e, "asl.x"
+nt_asm_asl_z:   .nt_asm $06, "asl.z"
+nt_asm_asl_zx:  .nt_asm $16, "asl.zx"
+
+nt_asm_bcc:     .nt_asm $90, "bcc"
+nt_asm_bcs:     .nt_asm $b0, "bcs"
+nt_asm_beq:     .nt_asm $f0, "beq"
+nt_asm_bmi:     .nt_asm $30, "bmi"
+nt_asm_bne:     .nt_asm $d0, "bne"
+nt_asm_bpl:     .nt_asm $10, "bpl"
+nt_asm_bra:     .nt_asm $80, "bra"
+nt_asm_bvc:     .nt_asm $50, "bvc"
+nt_asm_bvs:     .nt_asm $70, "bvs"
+
+nt_asm_bit:     .nt_asm $2c, "bit"
+nt_asm_bit_h:   .nt_asm $89, "bit.#"
+nt_asm_bit_x:   .nt_asm $3c, "bit.x"
+nt_asm_bit_z:   .nt_asm $24, "bit.z"
+nt_asm_bit_zx:  .nt_asm $34, "bit.zx"
+
+nt_asm_brk:     .nt_asm $00, "brk"
+
+nt_asm_clc:     .nt_asm $18, "clc"
+nt_asm_cld:     .nt_asm $d8, "cld"
+nt_asm_cli:     .nt_asm $58, "cli"
+nt_asm_clv:     .nt_asm $b8, "clv"
+
+nt_asm_cmp:     .nt_asm $cd, "cmp"
+nt_asm_cmp_h:   .nt_asm $c9, "cmp.#"
+nt_asm_cmp_x:   .nt_asm $dd, "cmp.x"
+nt_asm_cmp_y:   .nt_asm $d9, "cmp.y"
+nt_asm_cmp_z:   .nt_asm $c5, "cmp.z"
+nt_asm_cmp_zi:  .nt_asm $d2, "cmp.zi"
+nt_asm_cmp_ziy: .nt_asm $d1, "cmp.ziy"
+nt_asm_cmp_zx:  .nt_asm $d5, "cmp.zx"
+nt_asm_cmp_zxi: .nt_asm $c1, "cmp.zxi"
+
+nt_asm_cpx:     .nt_asm $ec, "cpx"
+nt_asm_cpx_h:   .nt_asm $e0, "cpx.#"
+nt_asm_cpx_z:   .nt_asm $e4, "cpx.z"
+
+nt_asm_cpy:     .nt_asm $cc, "cpy"
+nt_asm_cpy_h:   .nt_asm $c0, "cpy.#"
+nt_asm_cpy_z:   .nt_asm $c4, "cpy.z"
+
+nt_asm_dec:     .nt_asm $ce, "dec"
+nt_asm_dec_a:   .nt_asm $3a, "dec.a"
+nt_asm_dec_x:   .nt_asm $de, "dec.x"
+nt_asm_dec_z:   .nt_asm $c6, "dec.z"
+nt_asm_dec_zx:  .nt_asm $d6, "dec.zx"
+
+nt_asm_dex:     .nt_asm $ca, "dex"
+nt_asm_dey:     .nt_asm $88, "dey"
+
+nt_asm_eor:     .nt_asm $4d, "eor"
+nt_asm_eor_h:   .nt_asm $49, "eor.#"
+nt_asm_eor_x:   .nt_asm $5d, "eor.x"
+nt_asm_eor_y:   .nt_asm $59, "eor.y"
+nt_asm_eor_z:   .nt_asm $45, "eor.z"
+nt_asm_eor_zi:  .nt_asm $52, "eor.zi"
+nt_asm_eor_ziy: .nt_asm $51, "eor.ziy"
+nt_asm_eor_zx:  .nt_asm $55, "eor.zx"
+nt_asm_eor_zxi: .nt_asm $41, "eor.zxi"
+
+nt_asm_inc:     .nt_asm $ee, "inc"
+nt_asm_inc_a:   .nt_asm $1a, "inc.a"
+nt_asm_inc_x:   .nt_asm $fe, "inc.x"
+nt_asm_inc_z:   .nt_asm $e6, "inc.z"
+nt_asm_inc_zx:  .nt_asm $f6, "inc.zx"
+
+nt_asm_inx:     .nt_asm $e8, "inx"
+nt_asm_iny:     .nt_asm $c8, "iny"
+
+nt_asm_jmp:     .nt_asm $4c, "jmp"
+nt_asm_jmp_i:   .nt_asm $6c, "jmp.i"
+nt_asm_jmp_xi:  .nt_asm $7c, "jmp.xi"
+
+nt_asm_jsr:     .nt_asm $20, "jsr"
+
+nt_asm_lda:     .nt_asm $ad, "lda"
+nt_asm_lda_h:   .nt_asm $a9, "lda.#"
+nt_asm_lda_x:   .nt_asm $bd, "lda.x"
+nt_asm_lda_y:   .nt_asm $b9, "lda.y"
+nt_asm_lda_z:   .nt_asm $a5, "lda.z"
+nt_asm_lda_zi:  .nt_asm $b2, "lda.zi"
+nt_asm_lda_ziy: .nt_asm $b1, "lda.ziy"
+nt_asm_lda_zx:  .nt_asm $b5, "lda.zx"
+nt_asm_lda_zxi: .nt_asm $a1, "lda.zxi"
+
+nt_asm_ldx:     .nt_asm $ae, "ldx"
+nt_asm_ldx_h:   .nt_asm $a2, "ldx.#"
+nt_asm_ldx_y:   .nt_asm $be, "ldx.y"
+nt_asm_ldx_z:   .nt_asm $a6, "ldx.z"
+nt_asm_ldx_zy:  .nt_asm $b6, "ldx.zy"
+
+nt_asm_ldy:     .nt_asm $ac, "ldy"
+nt_asm_ldy_h:   .nt_asm $a0, "ldy.#"
+nt_asm_ldy_x:   .nt_asm $bc, "ldy.x"
+nt_asm_ldy_z:   .nt_asm $a4, "ldy.z"
+nt_asm_ldy_zx:  .nt_asm $b4, "ldy.zx"
+
+nt_asm_lsr:     .nt_asm $4e, "lsr"
+nt_asm_lsr_a:   .nt_asm $4a, "lsr.a"
+nt_asm_lsr_x:   .nt_asm $5e, "lsr.x"
+nt_asm_lsr_z:   .nt_asm $46, "lsr.z"
+nt_asm_lsr_zx:  .nt_asm $56, "lsr.zx"
+
+nt_asm_nop:     .nt_asm $ea, "nop"
+
+nt_asm_ora:     .nt_asm $0d, "ora"
+nt_asm_ora_h:   .nt_asm $09, "ora.#"
+nt_asm_ora_x:   .nt_asm $1d, "ora.x"
+nt_asm_ora_y:   .nt_asm $19, "ora.y"
+nt_asm_ora_z:   .nt_asm $05, "ora.z"
+nt_asm_ora_zi:  .nt_asm $12, "ora.zi"
+nt_asm_ora_ziy: .nt_asm $11, "ora.ziy"
+nt_asm_ora_zx:  .nt_asm $15, "ora.zx"
+nt_asm_ora_zxi: .nt_asm $01, "ora.zxi"
+
+nt_asm_pha:     .nt_asm $48, "pha"
+nt_asm_php:     .nt_asm $08, "php"
+nt_asm_phx:     .nt_asm $da, "phx"
+nt_asm_phy:     .nt_asm $5a, "phy"
+
+nt_asm_pla:     .nt_asm $68, "pla"
+nt_asm_plp:     .nt_asm $28, "plp"
+nt_asm_plx:     .nt_asm $fa, "plx"
+nt_asm_ply:     .nt_asm $7a, "ply"
+
+nt_asm_rol:     .nt_asm $2e, "rol"
+nt_asm_rol_a:   .nt_asm $2a, "rol.a"
+nt_asm_rol_x:   .nt_asm $3e, "rol.x"
+nt_asm_rol_z:   .nt_asm $26, "rol.z"
+nt_asm_rol_zx:  .nt_asm $36, "rol.zx"
+
+nt_asm_ror:     .nt_asm $6e, "ror"
+nt_asm_ror_a:   .nt_asm $6a, "ror.a"
+nt_asm_ror_x:   .nt_asm $7e, "ror.x"
+nt_asm_ror_z:   .nt_asm $66, "ror.z"
+nt_asm_ror_zx:  .nt_asm $76, "ror.zx"
+
+nt_asm_rti:     .nt_asm $40, "rti"
+nt_asm_rts:     .nt_asm $60, "rts"
+
+nt_asm_sbc:     .nt_asm $ed, "sbc"
+nt_asm_sbc_h:   .nt_asm $e9, "sbc.#"
+nt_asm_sbc_x:   .nt_asm $fd, "sbc.x"
+nt_asm_sbc_y:   .nt_asm $f9, "sbc.y"
+nt_asm_sbc_z:   .nt_asm $e5, "sbc.z"
+nt_asm_sbc_zi:  .nt_asm $f2, "sbc.zi"
+nt_asm_sbc_ziy: .nt_asm $f1, "sbc.ziy"
+nt_asm_sbc_zx:  .nt_asm $f5, "sbc.zx"
+nt_asm_sbc_zxi: .nt_asm $e1, "sbc.zxi"
+
+nt_asm_sec:     .nt_asm $38, "sec"
+nt_asm_sed:     .nt_asm $f8, "sed"
+nt_asm_sei:     .nt_asm $78, "sei"
+
+nt_asm_sta:     .nt_asm $8d, "sta"
+nt_asm_sta_x:   .nt_asm $9d, "sta.x"
+nt_asm_sta_y:   .nt_asm $99, "sta.y"
+nt_asm_sta_z:   .nt_asm $85, "sta.z"
+nt_asm_sta_zi:  .nt_asm $92, "sta.zi"
+nt_asm_sta_ziy: .nt_asm $91, "sta.ziy"
+nt_asm_sta_zx:  .nt_asm $95, "sta.zx"
+nt_asm_sta_zxi: .nt_asm $81, "sta.zxi"
+
+nt_asm_stx:     .nt_asm $8e, "stx"
+nt_asm_stx_z:   .nt_asm $86, "stx.z"
+nt_asm_stx_zy:  .nt_asm $96, "stx.zy"
+
+nt_asm_sty:     .nt_asm $8c, "sty"
+nt_asm_sty_z:   .nt_asm $84, "sty.z"
+nt_asm_sty_zx:  .nt_asm $94, "sty.zx"
+
+nt_asm_stz:     .nt_asm $9c, "stz"
+nt_asm_stz_x:   .nt_asm $9e, "stz.x"
+nt_asm_stz_z:   .nt_asm $64, "stz.z"
+nt_asm_stz_zx:  .nt_asm $74, "stz.zx"
+
+nt_asm_tax:     .nt_asm $aa, "tax"
+nt_asm_tay:     .nt_asm $a8, "tay"
+
+nt_asm_trb:     .nt_asm $1c, "trb"
+nt_asm_trb_z:   .nt_asm $14, "trb.z"
+
+nt_asm_tsb:     .nt_asm $0c, "tsb"
+nt_asm_tsb_z:   .nt_asm $04, "tsb.z"
+
+nt_asm_tsx:     .nt_asm $ba, "tsx"
+nt_asm_txa:     .nt_asm $8a, "txa"
+nt_asm_txs:     .nt_asm $9a, "txs"
+nt_asm_tya:     .nt_asm $98, "tya"
+nt_asm_last:
 
 ; Assembler pseudo-instructions, directives and macros
 

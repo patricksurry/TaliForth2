@@ -37,9 +37,6 @@ forth:
 .include "words/all.asm"           ; Native Forth words. Starts with COLD
 .include "definitions.asm"      ; Top-level definitions, memory map
                                 ; included here to put relocatable tables after native words
-.if "disassembler" in TALI_OPTIONAL_WORDS || "assembler" in TALI_OPTIONAL_WORDS
-    .include "opcodes.asm"
-.endif
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
