@@ -23,7 +23,7 @@
 
 
 ; ## DISASM ( addr u -- ) "Disassemble a block of memory"
-; ## "disasm"  tested  Tali Forth
+; ## "disasm"  auto  Tali Forth
         ; """Convert a segment of memory to assembler output. This
         ; word is vectored so people can add their own disassembler.
         ; Natively, this produces Simpler Assembly Notation (SAN)
@@ -40,7 +40,6 @@ z_disasm:       rts
 
 
 disassembler:
-                stz scratch+5   ; flag indicating whether we're arriving at sliteral (vs 2literal)
                 jsr w_cr       ; ( addr u )
 _byte_loop:
                 ; Print address at start of the line. Note we use whatever
@@ -105,22 +104,16 @@ _byte_loop:
                 bpl _no_operand         ; bit 7 clear, single-byte instruction
 
                 ; We have an operand. Prepare the Data Stack
-                jsr w_zero             ; ( addr u 0 ) ZERO does not use Y
 
                 ; Because of the glory of a little endian CPU, we can start
                 ; with the next byte regardless if this is a one or two byte
                 ; operand, because we'll need the LSB one way or the other.
                 ; We have a copy of the opcode on the stack, so we can now move
                 ; to the next byte
-                inc 4,x
-                bne +
-                inc 5,x                 ; ( addr+1 u 0 )
-+
-                lda 2,x
-                bne +
-                dec 3,x
-+
-                dec 2,x                 ; ( addr+1 u-1 0 )
+
+                jsr w_one
+                jsr w_slash_string
+                jsr w_zero             ; ( addr+1 u-1 0 ) ZERO does not use Y
 
                 lda (4,x)
                 sta 0,x                 ; LSB of operand ( addr+1 u-1 LSB )
@@ -135,15 +128,10 @@ _byte_loop:
 
                 ; We have a three-byte instruction, so we need to get the MSB
                 ; of the operand. Move to the next byte
-                inc 4,x
-                bne +
-                inc 5,x                 ; ( addr+2 u-1 LSB )
-+
-                lda 2,x
-                bne +
-                dec 3,x
-+
-                dec 2,x                 ; ( addr+2 u-2 LSB )
+                jsr w_not_rot           ; ( LSB addr u )
+                jsr w_one
+                jsr w_slash_string
+                jsr w_rot               ; ( addr+2 u-2 LSB )
 
                 lda (4,x)
                 sta 1,x                 ; MSB of operand ( addr+2 u-2 opr )
@@ -158,13 +146,10 @@ _print_operand:
                 ; u-n opr). We want the output to be nicely formatted in
                 ; columns, so we use U.R. The maximal width of the number in
                 ; decimal on an 16-bit addressed machine is five characters
-                dex
-                dex
                 lda #5
-                sta 0,x
-                stz 1,x                 ; ( addr+n u-n opr 5 )
+                jsr push_a_tos               ; ( addr+n u-n opr 5 )
 
-                jsr w_u_dot_r          ; U.R ( addr+n u-n )
+                jsr w_u_dot_r           ; U.R ( addr+n u-n )
 
                 bra _print_mnemonic
 
@@ -173,13 +158,9 @@ _no_operand:
                 ; the lengths byte in Y and ( addr u ). Since we want to have
                 ; a nicely formatted output, we need to indent the mnemonic by
                 ; five spaces.
-                dex
-                dex
                 lda #5
-                sta 0,x
-                stz 1,x                 ; ( addr u 5 )
-
-                jsr w_spaces           ; ( addr u )
+                jsr push_a_tos               ; ( addr u 5 )
+                jsr w_spaces            ; ( addr u )
 
                 ; fall through to _print_mnemonic
 
@@ -213,11 +194,8 @@ _print_mnemonic:
                 bne _not_jsr
 
                 ; It's a JSR.  Print 5 spaces as an offset.
-                dex
-                dex
                 lda #5
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 jsr w_spaces
 
                 jsr disasm_special
@@ -229,52 +207,6 @@ _print_mnemonic:
                 bcs _printing_done
 
 _not_jsr:
-                ; See if the instruction is a jump (instruction still in A)
-                ; (Strings start with a jump over the data.)
-                cmp #OpJMP
-                bne _not_jmp
-
-                ; We have a branch.  See if it's a string by looking for
-                ; a JSR sliteral_runtime at the jump target address.
-                ; The target address is in scratch+1 and scratch+2
-                ; Use scratch+3 and scratch+4 here as we need to move
-                ; the pointer.
-                lda scratch+1   ; Copy the pointer.
-                sta scratch+3
-                lda scratch+2
-                sta scratch+4
-
-                ; Get the first byte at the jmp target address.
-                lda (scratch+3)
-
-                cmp #OpJSR          ; check for JSR
-                bne _printing_done
-                ; Next byte
-                inc scratch+3
-                bne +
-                inc scratch+4
-+
-                ; Check for string literal runtime
-                lda (scratch+3)
-
-                cmp #<sliteral_runtime
-                bne _printing_done
-                ; Next byte
-                inc scratch+3
-                bne +
-                inc scratch+4
-+
-                lda (scratch+3)
-
-                cmp #>sliteral_runtime
-                bne _printing_done
-
-                ; It's a string literal jump.
-                dec scratch+5                   ; flag for next go round
-                jsr disasm_sliteral_jump
-                bra _printing_done
-
-_not_jmp:
                 ; is it a native branch instruction with one byte relative addressing?
                 ; opcodes are bra: $80 and bxx: %xxx1 0000
                 ; if so we'll display the branch target address
@@ -289,11 +221,8 @@ _is_rel:
                 ; treat opr as signed byte and add to addr following operand: (addr+1) + 1
                 ; scratch+1 contains the operand (offset), stack has (addr+1 u-1)
                 ldy #'v'            ; we'll indicate branch forward or back with v or ^
-                dex
-                dex
-                stz 1,x
                 lda scratch+1
-                sta 0,x
+                jsr push_a_tos
                 bpl +
                 dec 1,x             ; for negative offsets extend the sign bit so add works out
                 ldy #'^'            ; it's a backward branch
@@ -306,11 +235,8 @@ _is_rel:
 
                 phy                 ; save the direction indicator
 
-                dex
-                dex
                 lda #9
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 jsr w_u_dot_r      ; print the destination with 5 leading spaces
 
                 lda #AscSP          ; print space and branch direction indicator
@@ -322,11 +248,8 @@ _printing_done:
                 jsr w_cr
 
                 ; Housekeeping: Next byte
-                inc 2,x
-                bne +
-                inc 3,x                 ; ( addr+1 u )
-+
-                jsr w_one_minus        ; ( addr+1 u-1 )
+                jsr w_one
+                jsr w_slash_string      ; ( addr u -- addr+1 u-1 )
 
                 lda 0,x                 ; All done?
                 ora 1,x
@@ -342,47 +265,6 @@ _done:
 
 
 ; Handlers for various special disassembled instructions:
-; String literal handler (both for inline strings and sliteral)
-disasm_sliteral_jump:
-                ; If we get here, we are at the jump for a constant string.
-                ; Strings are compiled into the dictionary like so:
-                ;           jmp a
-                ;           <string data bytes>
-                ;  a -->    jsr sliteral_runtime
-                ;           <string address>
-                ;           <string length>
-                ;
-                ; We have ( addr n ) on the stack where addr is the last
-                ; byte of the address a in the above jmp instruction.
-                ; Address a is in scratch+1 scratch+2.
-
-                ; Determine the distance of the jump so we end on the byte
-                ; just before the JSR (sets us up for SLITERAL on next loop)
-                jsr w_swap
-                dex
-                dex
-                lda scratch+1
-                sta 0,x
-                lda scratch+2
-                sta 1,x
-                jsr w_swap
-                jsr w_minus
-                jsr w_one_minus
-                ; ( n jump_distance )
-                ; Subtract the jump distance from the bytes left.
-                jsr w_minus
-                ; ( new_n )
-                ; Move to one byte before the target address
-                dex
-                dex
-                lda scratch+1
-                sta 0,x
-                lda scratch+2
-                sta 1,x
-                jsr w_one_minus
-                jsr w_swap ; ( new_addr new_n )
-                rts
-
 
 ; JSR handler
 disasm_jsr:
@@ -462,11 +344,7 @@ _next:          dey
                 rts
 
 _found_handler:
-                lda scratch+5               ; are we expecting sliteral?
-                beq +
-                stz scratch+5               ; yes, skip 2literal and match again
-                bra _next
-+
+                sty scratch+5               ; store the offset for later
                 lda _special_handlers+3,y   ; payload + prefix
                 pha                         ; stash a copy for payload later
                 lsr
@@ -474,16 +352,17 @@ _found_handler:
                 beq _no_prefix
                 clc
                 adc #32
-                jsr emit_a
+                jsr emit_a                  ; print the char stored as (ch - 32) << 2
 _no_prefix:
                 lda _special_handlers+2,y   ; string index
                 jsr print_string_no_lf
                 pla
                 and #3                      ; payload is 0, 1 or 2 words
                 beq _done
-                cmp #3                      ; but 3 means a double-word
+                cmp #3                      ; where 3 means a double-word
                 bne _show_payload
-                jmp _print_2literal
+                jsr _print_2literal
+                bra _done
 
 _show_payload:
                 pha
@@ -492,48 +371,76 @@ _show_payload:
                 dea
                 bne _show_payload
 
+                lda scratch+5
+                cmp #_sliteral_handler - _special_handlers
+                bne _done
+
+                ; for sliteral we want to skip past the string data
+                ; we have ( addr n ) on the stack where addr points
+                ; to the last byte of the string length u.
+                ; we want to finish with ( addr+u n-u )
+                ; and print at least a snippet of the string
+                ; which is at addr+1
+
+                jsr w_over
+                jsr w_one_minus
+                jsr w_fetch         ; ( addr n u )
+
+                ; detour to show snippet of string up to 16 chr
+                lda 1,x
+                bne _truncate
+                lda 0,x
+                cmp #16
+                bcc +               ; length < 16?
+_truncate:
+                lda #18             ; extra chars for ellipses
++
+                sta tmpdsp
+
+                lda 4,x             ; tmp1 points 1 before string
+                sta tmp1
+                lda 5,x
+                sta tmp1+1
+
+                ldy #1
+_snippet:
+                lda (tmp1),y
+                cpy #16
+                bcc +
+                lda #'.'
++
+                jsr emit_a
+                iny
+                dec tmpdsp
+                bne _snippet
+
+                ; ( addr n u -- addr+u n-u )
+                jsr w_slash_string
+
 _done:          sec
                 rts
 
 _print_literal:
                 ; ( addr u ) address of last byte of JSR and bytes left on the stack.
                 ; We need to print the value just after the address and move along two bytes.
-                jsr w_swap ; switch to (u addr)
-                jsr w_one_plus
-
-                jsr w_dup
-                jsr w_question ; Print the value at the address
-                ; Advance one more byte to skip over the constant
-                jsr w_one_plus
-                jsr w_swap ; (addr+2 u)
-                jsr w_one_minus
-                jmp w_one_minus ; (addr+2 u-2)
+                jsr w_over
+                jsr w_one_plus              ; ( addr u addr+1 )
+                jsr w_question              ; Print the value at the address
+                jsr w_two
+                jmp w_slash_string          ; leaving (addr+2 u-2)
 
 _print_2literal:
-                jsr w_swap
+                jsr w_over                  ; ( addr u addr+1 )
                 jsr w_one_plus
-                jsr w_dup
                 jsr w_two_fetch
-                jsr w_swap             ; 2! / 2@ put MSW first; but 2literal writes LSW first
-                jsr w_d_dot
-                clc
-                lda 0,x
-                adc #3
-                sta 0,x
-                bcc +
-                inc 1,x
-+
-                jsr w_swap ; ( addr+4 u )
-                sec
-                lda 0,x
-                sbc #4
-                sta 0,x
-                bcs +
-                dec 1,x
-+
-                rts
+                jsr w_d_dot                 ; fetch and print double word
+                lda #4
+                jsr push_a_tos
+                jmp w_slash_string          ; ( addr+4 u-4 )
+
 
 ; Table of special handlers with address, strings index, payload in words + prefix
+; payload is stored as 0, 1 or 2 words with 3 meaning a double-word (i.e. $1234 vs $34, $12)
 _special_handlers:
     .word underflow_1
         .byte str_disasm_sdc, 0 + ('1'-32)*4
@@ -546,10 +453,11 @@ _special_handlers:
 
     .word literal_runtime
         .byte str_disasm_lit, 1
+_sliteral_handler:
     .word sliteral_runtime
-        .byte str_disasm_lit, 2 + ('S'-32)*4
-    .word sliteral_runtime                      ; 2literal and sliteral use the same runtime
-        .byte str_disasm_lit, 3 + ('2'-32)*4    ; list is searched in reverse, put 2literal first
+        .byte str_disasm_lit, 1 + ('S'-32)*4
+    .word two_literal_runtime
+        .byte str_disasm_lit, 3 + ('2'-32)*4
     .word zero_branch_runtime
         .byte str_disasm_0bra, 1
     .word loop_runtime
@@ -561,6 +469,18 @@ _special_handlers:
     .word question_do_runtime
         .byte str_disasm_do, 1 + ('?'-32)*4
 _end_handlers:
+
+
+; Push the accumalator to TOS
+; This only saves a byte but improves readability
+; This routine is also used as a template by the assembler "push-a" word
+push_a_tos:  ; ( -- A )
+                dex
+                dex
+                sta 0,x
+                stz 1,x
+z_push_a_tos:
+                rts
 
 ; used to calculate size of assembled disassembler code
 disassembler_end:

@@ -686,14 +686,14 @@ when compiled with an `nc-limit` of 0 and check the actual code with `see`
 
 ----
 see aaa
-nt: 800  xt: 80B
-flags (CO AN IM NN HC ST): 0 0 0 1 1 0
+nt: 890  xt: 89B
+flags: CO 0 IM 0 AN 0 NN 0 HC 0 | UF 0 ST 0
 size (decimal): 6
 
-080B  20 A2 A7 20 2E 8D   .. ..
+089B  20 59 9E 20 53 86   Y. S.
 
-80B   A7A2 jsr     0
-80E   8D2E jsr     drop
+89B   9E59 jsr     0
+89E   8653 jsr     drop
 ----
 
 (The actual addresses might vary). Our word `aaa` consists of two subroutine
@@ -709,19 +709,19 @@ we get different code:
 
 ----
 see bbb
-nt: 812  xt: 81D
-flags (CO AN IM NN HC ST): 0 0 0 1 1 0
+nt: 8A2  xt: 8AD
+flags: CO 0 IM 0 AN 0 NN 0 HC 0 | UF 0 ST 0
 size (decimal): 11
 
-081D  CA CA 74 00 74 01 20 29  D8 E8 E8  ..t.t. ) ...
+08AD  CA CA 74 00 74 01 20 B5  D8 E8 E8  ..t.t. . ...
 
-81D        dex
-81E        dex
-81F      0 stz.zx
-821      1 stz.zx
-823   D829 jsr     STACK DEPTH CHECK
-826        inx
-827        inx
+8AD        dex
+8AE        dex
+8AF      0 stz.zx
+8B1      1 stz.zx
+8B3   D8B5 jsr     1 STACK DEPTH CHECK
+8B6        inx
+8B7        inx
 ----
 
 Even though the definition of `bbb` is the same as `aaa`, we have totally

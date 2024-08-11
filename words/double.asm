@@ -285,33 +285,27 @@ z_m_star_slash: rts
 xt_two_constant:
                 jsr underflow_2
 w_two_constant:
-                jsr w_create
-                jsr w_swap
+                lda #4
+                sta tmpdsp              ; PFA size 4
+                jsr create_dovar
                 jsr w_comma
                 jsr w_comma
 
                 jsr does_runtime    ; does> turns into these two routines.
                 jsr dodoes
 
-                jsr w_dup
-                jsr w_fetch
-                jsr w_swap
-                jsr w_cell_plus
-                jsr w_fetch
-
+                jsr w_two_fetch
 z_two_constant: rts
 
 
 ; ## TWO_LITERAL (C: d -- ) ( -- d) "Compile a literal double word"
 ; ## "2literal"  auto  ANS double
         ; """https://forth-standard.org/standard/double/TwoLITERAL"""
-        ; Shares code with xt_sliteral for compiling a double word
         ; """
 xt_two_literal:
                 jsr underflow_2 ; double number
 w_two_literal:
-                lda #template_push_tos_size
-                asl
+                lda #2 * template_push_tos_size
                 jsr check_nc_limit
                 bcs _no_inline
 
@@ -320,10 +314,65 @@ w_two_literal:
                 jmp w_literal
 
 _no_inline:
-                jsr cmpl_two_literal
+                ; Compile a subroutine jump that copies the four following
+                ; bytes to the stack, in the same order.  For example
+                ; a four byte double word written from MSB to LSB as UNIX
+                ; is represented on the stack as TOS: .byte N,U and NOS: X,I
+                ; so we'll generate code like:
+                ;       jsr two_literal_runtime
+                ;       .byte N, U, X, I
+
+                ldy #>two_literal_runtime
+                lda #<two_literal_runtime
+                jsr cmpl_subroutine
+
+                ldy #4
+-
+                lda 0,x         ; move four bytes from the stack to cp
+                jsr cmpl_a
+                inx
+                dey
+                bne -
 
 z_two_literal:  rts
 
+
+two_literal_runtime:
+        ; """Run time behavior of 2LITERAL, which stacks two words
+        ; following the jsr to the stack in the same memory order.
+        ; For example if we have
+        ;
+        ;       jsr two_literal_runtime
+        ;       .byte N, U, X, I
+        ;
+        ; Then on return the stack will contain the word N,U TOS
+        ; and the word X, I NOS.  This matches the order expected
+        ; for double words and as specified for 2@, 2!
+        ; see https://forth-standard.org/standard/core/TwoFetch
+        ; """
+
+                pla             ; LSB of address
+                sta tmp1
+                ply             ; MSB of address
+                sty tmp1+1
+
+                clc             ; add four to the return address
+                adc #4
+                bcc +
+                iny
++
+                phy             ; and re-stack
+                pha
+
+                ldy #4
+-
+                lda (tmp1),y    ; copy trailing four bytes to the stack
+                dex
+                sta 0,x
+                dey
+                bne -
+
+                rts
 
 
 ; ## TWO_VARIABLE ( "name" -- ) "Create a variable for a double word"
@@ -335,14 +384,16 @@ z_two_literal:  rts
         ; CREATE 2 CELLS ALLOT  or just  CREATE 0 , 0 ,
         ; """
 xt_two_variable:
-                ; We just let CREATE and ALLOT do the heavy lifting
-                jsr w_create
 w_two_variable:
+                ; We just let CREATE and ALLOT do the heavy lifting
                 dex
                 dex
                 lda #4
                 sta 0,x
                 stz 1,x
+
+                sta tmpdsp              ; PFA size 4
+                jsr create_dovar
 
                 jsr w_allot
 

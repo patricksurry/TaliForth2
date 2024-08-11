@@ -522,7 +522,7 @@ z_slash_string: rts
 
 
 
-; ## SLITERAL (C: addr u -- )( -- addr u ) "Compile a string for runtime"
+; ## SLITERAL (C: addr u -- ) ( -- addr u ) "Compile a string for runtime"
 ; ## "sliteral" auto  ANS string
         ; """https://forth-standard.org/standard/string/SLITERAL
         ; Add the runtime for an existing string.
@@ -533,127 +533,76 @@ xt_sliteral:
 w_sliteral:
                 ; We can't assume that ( addr u ) of the current string is in
                 ; a stable area (eg. already in the dictionary.)
-                ; We'll compile the string data into the dictionary using move
-                ; along with code that stacks the new ( addr' u )
-                ;   jmp _end
-                ; _str:
-                ;   < u data bytes >
-                ; _end: jsr sliteral_runtime
-                ;   < _str u >
+                ; We'll compile the length and string data into the dictionary
+                ; using move along with runtime code that stacks the new ( addr' u )
+                ;
+                ;   jsr sliteral_runtime
+                ;   .word u
+                ;   .byte < u data bytes >
 
-                jsr cmpl_jump_later
-                jsr w_to_r
-                ; ( addr u ) (R: jmp-target )
-                jsr w_here
-                jsr w_swap
-                ; ( addr addr' u ) (R: jmp-target )
-                jsr w_dup
-                jsr w_allot            ; reserve u bytes for string
-                jsr w_here
-                ; ( addr addr' u addr'+u ) (R: jmp-target )
-                jsr w_r_from
-                jsr w_store            ; point jmp past string
-                ; ( addr addr' u )
-                ; we want to reuse addr' u but sneakily rely on move
-                ; just dropping its args without modifying them
-                jsr w_move             ; copy u bytes from addr -> addr'
-                ; restore addr' u
-                ; fa fb fc fd fe ff 00
-                ;   u   addr' addr
-                ldy #4
--
-                lda $fd,x
-                sta $ff,x
-                dex
-                dey
-                bne -
-
-                ; Stack is now ( addr' u ) with the new string location
-
-cmpl_sliteral:
-cmpl_two_literal:
-                ; Compile a subroutine jump to the runtime of SLITERAL that
-                ; pushes the new ( addr u ) pair to the Data Stack.
-                ; When we're done, the code will look like this:
-
-                ; xt -->    jmp a
-                ;           <string data bytes>
-                ;  a -->    jsr sliteral_runtime
-                ;           <string address>
-                ;           <string length>
-                ; rts -->
-
-                ; This means we'll have to adjust the return address for two
-                ; cells, not just one
                 ldy #>sliteral_runtime
                 lda #<sliteral_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_subroutine     ; jsr sliteral_runtime
 
-                ; We want to have the address end up as NOS and the length
-                ; as TOS, so we store the address first
-                ldy 3,x                ; address MSB
-                lda 2,x                ; address LSB
-                jsr cmpl_word
+                lda 0,x
+                ldy 1,x
+                jsr cmpl_word           ; .word u
 
-                ldy 1,x                ; length MSB
-                lda 0,x                ; length LSB
-                jsr cmpl_word
+                jsr w_here
+                jsr w_swap
+                ; ( addr addr' u )
 
-                ; clean up and leave
-                inx
-                inx
-                inx
-                inx
+                jsr w_dup               ; allocate space for the string
+                jsr w_allot
+
+                jsr w_move              ; .text < u bytes >
 
 z_sliteral:     rts
 
 
-
 sliteral_runtime:
-
-        ; """Run time behaviour of SLITERAL: Push ( addr u ) of string to
-        ; the Data Stack. We arrive here with the return address as the
-        ; top of Return Stack, which points to the address of the string.
-        ; Also used for double word where we have ( lo hi ).
+        ; """Run time behaviour of SLITERAL: Push ( addr u ) of the string to
+        ; the Data Stack.  The length and string data follows the JSR here,
+        ; for example if we have
+        ;
+        ;       jsr sliteral_runtime
+        ;       .word u
+        ;    _addr:
+        ;       .byte < u string bytes >
+        ;
+        ; Then we want to stack ( _str u ) and return past the end of the string.
         ; """
-                dex
+                dex             ; make space on the stack
                 dex
                 dex
                 dex
 
-                ; We arrived from code like
-                ;   jsr sliteral_runtime
-                ;   .word addr
-                ;   .word length
-                ; So the return address points one byte before addr.
-                ; Pull that to tmp1 and put tmp1+4 to return past two data words
-                pla
-                sta tmp1        ; LSB of address
-                ply
-                sty tmp1+1      ; MSB of address
+                ; fetch return address which points one byte before u
                 clc
-                adc #4
+                pla             ; LSB of return address
+                sta tmp1
+                adc #3          ; calculate string offset
+                sta 2,x         ; LSB of string address
+                ply             ; MSB of address
+                sty tmp1+1
                 bcc +
                 iny
 +
-                phy
-                pha
+                sty 3,x         ; MSB of string address
 
-                ; Walk through both and save them
-                ldy #1          ; adjust for JSR/RTS mechanics on 65c02
+                ldy #2          ; copy u to TOS
                 lda (tmp1),y
-                sta 2,x         ; LSB of address
-                iny
-
+                sta 1,x         ; MSB of u
+                dey
                 lda (tmp1),y
-                sta 3,x         ; MSB of address
-                iny
+                sta 0,x         ; LSB of u
 
-                lda (tmp1),y
-                sta 0,x         ; LSB of length
-                iny
+                ; we want to continue past the string, i.e. NOS+TOS
+                clc             ; A still has LSB of u
+                adc 2,x         ; LSB of continuation address
+                sta tmp1
+                lda 1,x
+                adc 3,x
+                sta tmp1+1
 
-                lda (tmp1),y
-                sta 1,x         ; MSB of length
-
-                rts
+                jmp (tmp1)

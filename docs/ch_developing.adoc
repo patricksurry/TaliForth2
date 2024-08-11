@@ -538,8 +538,8 @@ are just a sequence of JSRs, you can safely set this bit.  This bit should not
 be set if the assembly has a JMP instruction in it (see NN above).
 Note: If neither NN or AN is set, then the word might be native compiled based
 on its size and the value in the Forth variable `nc-limit`.
-HC:: Has CFA (words created by CREATE and DOES> only).  You will probably never
-need this bit for words that you write in assembly.
+HC:: Has CFA (flags words created by CREATE and DOES> only).  This is an internal
+flag that you will probably never need for words that you write in assembly.
 ST:: Manipulates the return stack differently for native vs non-native compilation.
 This is used for words like R>, R@ and >R but you're unlikely to need this for
 your own words in assembly.

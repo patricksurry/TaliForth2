@@ -189,8 +189,21 @@ w_block_ramdrive_init:
                 ; don't have the words defined below in the Dictionary until
                 ; we really use them.
                 jsr sliteral_runtime
-                .word ramdrive_code, ramdrive_code_end-ramdrive_code
-
+                .word ramdrive_code_end-ramdrive_code
+ramdrive_code:
+                .text "base @ swap decimal"
+                .text " 1024 *" ; ( Calculate how many bytes are needed for numblocks blocks )
+                .text " dup"    ; ( Save a copy for formatting it at the end )
+                .text " buffer: ramdrive" ; ( Create ramdrive )
+                ; ( These routines just copy between the buffer and the ramdrive blocks )
+                .text " : block-read-ramdrive"  ; ( addr u -- )
+                .text " ramdrive swap 1024 * + swap 1024 move ;"
+                .text " : block-write-ramdrive" ; ( addr u -- )
+                .text " ramdrive swap 1024 * + 1024 move ;"
+                .text " ' block-read-ramdrive block-read-vector !" ; ( Replace I/O vectors )
+                .text " ' block-write-ramdrive block-write-vector !"
+                .text " ramdrive swap blank base !"
+ramdrive_code_end:
                 ; The address and length of the ramdrive code is now on the
                 ; stack. Call EVALUATE to run it.
                 jsr w_evaluate
@@ -198,20 +211,7 @@ w_block_ramdrive_init:
 z_block_ramdrive_init:
                 rts
 
-ramdrive_code:
-        .text "base @ swap decimal"
-        .text " 1024 *" ; ( Calculate how many bytes are needed for numblocks blocks )
-        .text " dup"    ; ( Save a copy for formatting it at the end )
-        .text " buffer: ramdrive" ; ( Create ramdrive )
-        ; ( These routines just copy between the buffer and the ramdrive blocks )
-        .text " : block-read-ramdrive"  ; ( addr u -- )
-        .text " ramdrive swap 1024 * + swap 1024 move ;"
-        .text " : block-write-ramdrive" ; ( addr u -- )
-        .text " ramdrive swap 1024 * + 1024 move ;"
-        .text " ' block-read-ramdrive block-read-vector !" ; ( Replace I/O vectors )
-        .text " ' block-write-ramdrive block-write-vector !"
-        .text " ramdrive swap blank base !"
-ramdrive_code_end:
+
 
 .endif
 

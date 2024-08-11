@@ -256,19 +256,28 @@ OpBNE   = $D0
 OpBEQ   = $F0
 OpRTS   = $60
 OpBRA   = $80
+OpBITzp = $24   ; used to save a branch occasionally
+
 
 ; DICTIONARY FLAGS
-; The first two bits (7, 6) are currently unused.  COMPILE, assumes bit7 is usually 0.
-N_FLAGS = 5
-; This list should match strings.asm::s_see_flags
-CO = 1  ; Compile Only
-IM = 2  ; Immediate Word
-AN = 4  ; Always Native Compile
-NN = 8  ; Never Native Compile
-ST = AN+NN ; Stack juggling to be stripped for native compile
-HC = 16 ; Word has Code Field Area (CFA)
+
+N_FLAGS = 5                 ; Bits 5-7 are currently unused.
+
+; This list should match s_see_flags in strings.asm
+
+CO = 1                      ; Compile Only
+IM = 2                      ; Immediate Word
+AN = 4                      ; Always Native Compile
+NN = 8                      ; Never Native Compile
+ST = AN+NN                  ; Stack juggling to be stripped for native compile
+HC = 16                     ; Word has Code Field Area (CFA)
+
+; Note if needed we could remove the HC flag and detect it automatically,
+; but the extra effort doesn't seem worth it unless we really need the bit
+; see `has_cfa` in the closed PR https://github.com/SamCoVT/TaliForth2/pull/122/files
 
 ; VARIOUS
+
 MAX_LINE_LENGTH  = 79      ; assumes 80 character lines
 
 ; END
