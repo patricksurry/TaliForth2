@@ -429,16 +429,5 @@ _sliteral_handler:
 _end_handlers:
 
 
-; Push the accumalator to TOS
-; This only saves a byte but improves readability
-; This routine is also used as a template by the assembler "push-a" word
-push_a_tos:  ; ( -- A )
-                dex
-                dex
-                sta 0,x
-                stz 1,x
-z_push_a_tos:
-                rts
-
 ; used to calculate size of assembled disassembler code
 disassembler_end:

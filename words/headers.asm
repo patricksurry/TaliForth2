@@ -1564,236 +1564,246 @@ nt_editor_enter_screen:
 
 ; ASSEMBLER-WORDLIST
 
+assembler_dictionary_start:
+
+.if "assembler" in TALI_OPTIONAL_WORDS || "disassembler" in TALI_OPTIONAL_WORDS
+
 ; Labels for the opcodes have the format "nt_asm_<OPC>" where a futher
 ; underscore replaces any dot present in the SAN mnemonic. The hash sign for
 ; immediate addressing is replaced by an "h" (for example, the label code for
-; "lda.#" is "xt_adm_lda_h"). All opcodes are immediate.
+; "lda.#" is "xt_adm_lda_h"). All opcode words are immediate and never-native.
+;
+; Each opcode shows the traditional mnemonic as a comment with abbreviations:
+;       llhh - a 16bit little endian address
+;       zp - an 8bit zero page address
+;       #dd - an 8bit data value
+;
+; Currently the extended opcodes rmbN, smbN, bbrN, and bbsN aren't supported.
+;
+; The .nt_asm macro ensures that each word's XT points to one of a list
+; of 256 repeated JSR insructions so that the return address (XT+2) has
+; an LSB equal to the opcode.  This gives a compact way to assemble each
+; opcode as well as a simple way to find known opcodes during disassembly.
+; See assembler.asm for details.
 
-assembler_dictionary_start:
+nt_asm_first:   ; ... nt_asm_last bracket the asm words for disasm search
 
-.if "assembler" in TALI_OPTIONAL_WORDS
+nt_asm_adc:     .nt_asm $6d, "adc"      ; ADC llhh
+nt_asm_adc_h:   .nt_asm $69, "adc.#"    ; ADC #dd
+nt_asm_adc_x:   .nt_asm $7d, "adc.x"    ; ADC llhh,x
+nt_asm_adc_y:   .nt_asm $79, "adc.y"    ; ADC llhh,y
+nt_asm_adc_z:   .nt_asm $65, "adc.z"    ; ADC zp
+nt_asm_adc_zi:  .nt_asm $72, "adc.zi"   ; ADC (zp)
+nt_asm_adc_ziy: .nt_asm $71, "adc.ziy"  ; ADC (zp),y
+nt_asm_adc_zx:  .nt_asm $75, "adc.zx"   ; ADC zp,x
+nt_asm_adc_zxi: .nt_asm $61, "adc.zxi"  ; ADC (zp,x)
 
-; TODO add traditional mnemonics
-; TODO merge assembler/disassembler options
-; TODO consider adding/testing  rmbN (typo rbm4/5), smbN, bbrN, bbsN
-; TODO broken test again?
+nt_asm_and:     .nt_asm $2d, "and."     ; AND llhh - not "and" because of conflicts with Forth word
+nt_asm_and_h:   .nt_asm $29, "and.#"    ; AND #dd
+nt_asm_and_x:   .nt_asm $3d, "and.x"    ; AND llhh,x
+nt_asm_and_y:   .nt_asm $39, "and.y"    ; AND llhh,y
+nt_asm_and_z:   .nt_asm $25, "and.z"    ; AND zp
+nt_asm_and_zi:  .nt_asm $32, "and.zi"   ; AND (zp)
+nt_asm_and_ziy: .nt_asm $31, "and.ziy"  ; AND (zp),y
+nt_asm_and_zx:  .nt_asm $35, "and.zx"   ; AND zp,x
+nt_asm_and_zxi: .nt_asm $21, "and.zxi"  ; AND (zp,x)
 
-nt_asm_first:
-nt_asm_adc:     .nt_asm $6d, "adc"
-nt_asm_adc_h:   .nt_asm $69, "adc.#"
-nt_asm_adc_x:   .nt_asm $7d, "adc.x"
-nt_asm_adc_y:   .nt_asm $79, "adc.y"
-nt_asm_adc_z:   .nt_asm $65, "adc.z"
-nt_asm_adc_zi:  .nt_asm $72, "adc.zi"
-nt_asm_adc_ziy: .nt_asm $71, "adc.ziy"
-nt_asm_adc_zx:  .nt_asm $75, "adc.zx"
-nt_asm_adc_zxi: .nt_asm $61, "adc.zxi"
+nt_asm_asl:     .nt_asm $0e, "asl"      ; ASL llhh
+nt_asm_asl_a:   .nt_asm $0a, "asl.a"    ; ASL A
+nt_asm_asl_x:   .nt_asm $1e, "asl.x"    ; ASL llhh,x
+nt_asm_asl_z:   .nt_asm $06, "asl.z"    ; ASL zp
+nt_asm_asl_zx:  .nt_asm $16, "asl.zx"   ; ASL zp,x
 
-nt_asm_and:     .nt_asm $2d, "and."     ; not "and" because of conflicts with Forth word
-nt_asm_and_h:   .nt_asm $29, "and.#"
-nt_asm_and_x:   .nt_asm $3d, "and.x"
-nt_asm_and_y:   .nt_asm $39, "and.y"
-nt_asm_and_z:   .nt_asm $25, "and.z"
-nt_asm_and_zi:  .nt_asm $32, "and.zi"
-nt_asm_and_ziy: .nt_asm $31, "and.ziy"
-nt_asm_and_zx:  .nt_asm $35, "and.zx"
-nt_asm_and_zxi: .nt_asm $21, "and.zxi"
+nt_asm_bcc:     .nt_asm $90, "bcc"      ; BCC rr
+nt_asm_bcs:     .nt_asm $b0, "bcs"      ; BCS rr
+nt_asm_beq:     .nt_asm $f0, "beq"      ; BEQ rr
+nt_asm_bmi:     .nt_asm $30, "bmi"      ; BMI rr
+nt_asm_bne:     .nt_asm $d0, "bne"      ; BNE rr
+nt_asm_bpl:     .nt_asm $10, "bpl"      ; BPL rr
+nt_asm_bra:     .nt_asm $80, "bra"      ; BRA rr
+nt_asm_bvc:     .nt_asm $50, "bvc"      ; BVC rr
+nt_asm_bvs:     .nt_asm $70, "bvs"      ; BVS rr
 
-nt_asm_asl:     .nt_asm $0e, "asl"
-nt_asm_asl_a:   .nt_asm $0a, "asl.a"
-nt_asm_asl_x:   .nt_asm $1e, "asl.x"
-nt_asm_asl_z:   .nt_asm $06, "asl.z"
-nt_asm_asl_zx:  .nt_asm $16, "asl.zx"
+nt_asm_bit:     .nt_asm $2c, "bit"      ; BIT llhh
+nt_asm_bit_h:   .nt_asm $89, "bit.#"    ; BIT #dd
+nt_asm_bit_x:   .nt_asm $3c, "bit.x"    ; BIT llhh,x
+nt_asm_bit_z:   .nt_asm $24, "bit.z"    ; BIT zp
+nt_asm_bit_zx:  .nt_asm $34, "bit.zx"   ; BIT zp,x
 
-nt_asm_bcc:     .nt_asm $90, "bcc"
-nt_asm_bcs:     .nt_asm $b0, "bcs"
-nt_asm_beq:     .nt_asm $f0, "beq"
-nt_asm_bmi:     .nt_asm $30, "bmi"
-nt_asm_bne:     .nt_asm $d0, "bne"
-nt_asm_bpl:     .nt_asm $10, "bpl"
-nt_asm_bra:     .nt_asm $80, "bra"
-nt_asm_bvc:     .nt_asm $50, "bvc"
-nt_asm_bvs:     .nt_asm $70, "bvs"
+nt_asm_brk:     .nt_asm $00, "brk"      ; BRK
 
-nt_asm_bit:     .nt_asm $2c, "bit"
-nt_asm_bit_h:   .nt_asm $89, "bit.#"
-nt_asm_bit_x:   .nt_asm $3c, "bit.x"
-nt_asm_bit_z:   .nt_asm $24, "bit.z"
-nt_asm_bit_zx:  .nt_asm $34, "bit.zx"
+nt_asm_clc:     .nt_asm $18, "clc"      ; CLC
+nt_asm_cld:     .nt_asm $d8, "cld"      ; CLD
+nt_asm_cli:     .nt_asm $58, "cli"      ; CLI
+nt_asm_clv:     .nt_asm $b8, "clv"      ; CLV
 
-nt_asm_brk:     .nt_asm $00, "brk"
+nt_asm_cmp:     .nt_asm $cd, "cmp"      ; CMP llhh
+nt_asm_cmp_h:   .nt_asm $c9, "cmp.#"    ; CMP #dd
+nt_asm_cmp_x:   .nt_asm $dd, "cmp.x"    ; CMP llhh,x
+nt_asm_cmp_y:   .nt_asm $d9, "cmp.y"    ; CMP llhh,y
+nt_asm_cmp_z:   .nt_asm $c5, "cmp.z"    ; CMP zp
+nt_asm_cmp_zi:  .nt_asm $d2, "cmp.zi"   ; CMP (zp)
+nt_asm_cmp_ziy: .nt_asm $d1, "cmp.ziy"  ; CMP (zp),y
+nt_asm_cmp_zx:  .nt_asm $d5, "cmp.zx"   ; CMP zp,x
+nt_asm_cmp_zxi: .nt_asm $c1, "cmp.zxi"  ; CMP (zp,x)
 
-nt_asm_clc:     .nt_asm $18, "clc"
-nt_asm_cld:     .nt_asm $d8, "cld"
-nt_asm_cli:     .nt_asm $58, "cli"
-nt_asm_clv:     .nt_asm $b8, "clv"
+nt_asm_cpx:     .nt_asm $ec, "cpx"      ; CPX llhh
+nt_asm_cpx_h:   .nt_asm $e0, "cpx.#"    ; CPX #dd
+nt_asm_cpx_z:   .nt_asm $e4, "cpx.z"    ; CPX zp
 
-nt_asm_cmp:     .nt_asm $cd, "cmp"
-nt_asm_cmp_h:   .nt_asm $c9, "cmp.#"
-nt_asm_cmp_x:   .nt_asm $dd, "cmp.x"
-nt_asm_cmp_y:   .nt_asm $d9, "cmp.y"
-nt_asm_cmp_z:   .nt_asm $c5, "cmp.z"
-nt_asm_cmp_zi:  .nt_asm $d2, "cmp.zi"
-nt_asm_cmp_ziy: .nt_asm $d1, "cmp.ziy"
-nt_asm_cmp_zx:  .nt_asm $d5, "cmp.zx"
-nt_asm_cmp_zxi: .nt_asm $c1, "cmp.zxi"
+nt_asm_cpy:     .nt_asm $cc, "cpy"      ; CPY llhh
+nt_asm_cpy_h:   .nt_asm $c0, "cpy.#"    ; CPY #dd
+nt_asm_cpy_z:   .nt_asm $c4, "cpy.z"    ; CPY zp
 
-nt_asm_cpx:     .nt_asm $ec, "cpx"
-nt_asm_cpx_h:   .nt_asm $e0, "cpx.#"
-nt_asm_cpx_z:   .nt_asm $e4, "cpx.z"
+nt_asm_dec:     .nt_asm $ce, "dec"      ; DEC llhh
+nt_asm_dec_a:   .nt_asm $3a, "dec.a"    ; DEC A
+nt_asm_dec_x:   .nt_asm $de, "dec.x"    ; DEC llhh,x
+nt_asm_dec_z:   .nt_asm $c6, "dec.z"    ; DEC zp
+nt_asm_dec_zx:  .nt_asm $d6, "dec.zx"   ; DEC zp,x
 
-nt_asm_cpy:     .nt_asm $cc, "cpy"
-nt_asm_cpy_h:   .nt_asm $c0, "cpy.#"
-nt_asm_cpy_z:   .nt_asm $c4, "cpy.z"
+nt_asm_dex:     .nt_asm $ca, "dex"      ; DEX
+nt_asm_dey:     .nt_asm $88, "dey"      ; DEY
 
-nt_asm_dec:     .nt_asm $ce, "dec"
-nt_asm_dec_a:   .nt_asm $3a, "dec.a"
-nt_asm_dec_x:   .nt_asm $de, "dec.x"
-nt_asm_dec_z:   .nt_asm $c6, "dec.z"
-nt_asm_dec_zx:  .nt_asm $d6, "dec.zx"
+nt_asm_eor:     .nt_asm $4d, "eor"      ; EOR llhh
+nt_asm_eor_h:   .nt_asm $49, "eor.#"    ; EOR #dd
+nt_asm_eor_x:   .nt_asm $5d, "eor.x"    ; EOR llhh,x
+nt_asm_eor_y:   .nt_asm $59, "eor.y"    ; EOR llhh,y
+nt_asm_eor_z:   .nt_asm $45, "eor.z"    ; EOR zp
+nt_asm_eor_zi:  .nt_asm $52, "eor.zi"   ; EOR (zp)
+nt_asm_eor_ziy: .nt_asm $51, "eor.ziy"  ; EOR (zp),y
+nt_asm_eor_zx:  .nt_asm $55, "eor.zx"   ; EOR zp,x
+nt_asm_eor_zxi: .nt_asm $41, "eor.zxi"  ; EOR (zp,x)
 
-nt_asm_dex:     .nt_asm $ca, "dex"
-nt_asm_dey:     .nt_asm $88, "dey"
+nt_asm_inc:     .nt_asm $ee, "inc"      ; INC llhh
+nt_asm_inc_a:   .nt_asm $1a, "inc.a"    ; INC A
+nt_asm_inc_x:   .nt_asm $fe, "inc.x"    ; INC llhh,x
+nt_asm_inc_z:   .nt_asm $e6, "inc.z"    ; INC zp
+nt_asm_inc_zx:  .nt_asm $f6, "inc.zx"   ; INC zp,x
 
-nt_asm_eor:     .nt_asm $4d, "eor"
-nt_asm_eor_h:   .nt_asm $49, "eor.#"
-nt_asm_eor_x:   .nt_asm $5d, "eor.x"
-nt_asm_eor_y:   .nt_asm $59, "eor.y"
-nt_asm_eor_z:   .nt_asm $45, "eor.z"
-nt_asm_eor_zi:  .nt_asm $52, "eor.zi"
-nt_asm_eor_ziy: .nt_asm $51, "eor.ziy"
-nt_asm_eor_zx:  .nt_asm $55, "eor.zx"
-nt_asm_eor_zxi: .nt_asm $41, "eor.zxi"
+nt_asm_inx:     .nt_asm $e8, "inx"      ; INX
+nt_asm_iny:     .nt_asm $c8, "iny"      ; INY
 
-nt_asm_inc:     .nt_asm $ee, "inc"
-nt_asm_inc_a:   .nt_asm $1a, "inc.a"
-nt_asm_inc_x:   .nt_asm $fe, "inc.x"
-nt_asm_inc_z:   .nt_asm $e6, "inc.z"
-nt_asm_inc_zx:  .nt_asm $f6, "inc.zx"
+nt_asm_jmp:     .nt_asm $4c, "jmp"      ; JMP llhh - flags containing word as NN
+nt_asm_jmp_i:   .nt_asm $6c, "jmp.i"    ; JMP (llhh)
+nt_asm_jmp_xi:  .nt_asm $7c, "jmp.xi"   ; JMP (llhh,x)
 
-nt_asm_inx:     .nt_asm $e8, "inx"
-nt_asm_iny:     .nt_asm $c8, "iny"
+nt_asm_jsr:     .nt_asm $20, "jsr"      ; JSR llhh
 
-nt_asm_jmp:     .nt_asm $4c, "jmp"
-nt_asm_jmp_i:   .nt_asm $6c, "jmp.i"
-nt_asm_jmp_xi:  .nt_asm $7c, "jmp.xi"
+nt_asm_lda:     .nt_asm $ad, "lda"      ; LDA llhh
+nt_asm_lda_h:   .nt_asm $a9, "lda.#"    ; LDA #dd
+nt_asm_lda_x:   .nt_asm $bd, "lda.x"    ; LDA llhh,x
+nt_asm_lda_y:   .nt_asm $b9, "lda.y"    ; LDA llhh,y
+nt_asm_lda_z:   .nt_asm $a5, "lda.z"    ; LDA zp
+nt_asm_lda_zi:  .nt_asm $b2, "lda.zi"   ; LDA (zp)
+nt_asm_lda_ziy: .nt_asm $b1, "lda.ziy"  ; LDA (zp),y
+nt_asm_lda_zx:  .nt_asm $b5, "lda.zx"   ; LDA zp,x
+nt_asm_lda_zxi: .nt_asm $a1, "lda.zxi"  ; LDA (zp,x)
 
-nt_asm_jsr:     .nt_asm $20, "jsr"
+nt_asm_ldx:     .nt_asm $ae, "ldx"      ; LDX llhh
+nt_asm_ldx_h:   .nt_asm $a2, "ldx.#"    ; LDX #dd
+nt_asm_ldx_y:   .nt_asm $be, "ldx.y"    ; LDX llhh,x
+nt_asm_ldx_z:   .nt_asm $a6, "ldx.z"    ; LDX zp
+nt_asm_ldx_zy:  .nt_asm $b6, "ldx.zy"   ; LDX zp,y
 
-nt_asm_lda:     .nt_asm $ad, "lda"
-nt_asm_lda_h:   .nt_asm $a9, "lda.#"
-nt_asm_lda_x:   .nt_asm $bd, "lda.x"
-nt_asm_lda_y:   .nt_asm $b9, "lda.y"
-nt_asm_lda_z:   .nt_asm $a5, "lda.z"
-nt_asm_lda_zi:  .nt_asm $b2, "lda.zi"
-nt_asm_lda_ziy: .nt_asm $b1, "lda.ziy"
-nt_asm_lda_zx:  .nt_asm $b5, "lda.zx"
-nt_asm_lda_zxi: .nt_asm $a1, "lda.zxi"
+nt_asm_ldy:     .nt_asm $ac, "ldy"      ; LDY llhh
+nt_asm_ldy_h:   .nt_asm $a0, "ldy.#"    ; LDY #dd
+nt_asm_ldy_x:   .nt_asm $bc, "ldy.x"    ; LDY llhh,x
+nt_asm_ldy_z:   .nt_asm $a4, "ldy.z"    ; LDY zp
+nt_asm_ldy_zx:  .nt_asm $b4, "ldy.zx"   ; LDY zp,x
 
-nt_asm_ldx:     .nt_asm $ae, "ldx"
-nt_asm_ldx_h:   .nt_asm $a2, "ldx.#"
-nt_asm_ldx_y:   .nt_asm $be, "ldx.y"
-nt_asm_ldx_z:   .nt_asm $a6, "ldx.z"
-nt_asm_ldx_zy:  .nt_asm $b6, "ldx.zy"
+nt_asm_lsr:     .nt_asm $4e, "lsr"      ; LSR llhh
+nt_asm_lsr_a:   .nt_asm $4a, "lsr.a"    ; LSR A
+nt_asm_lsr_x:   .nt_asm $5e, "lsr.x"    ; LSR llhh,x
+nt_asm_lsr_z:   .nt_asm $46, "lsr.z"    ; LSR zp
+nt_asm_lsr_zx:  .nt_asm $56, "lsr.zx"   ; LSR zp,x
 
-nt_asm_ldy:     .nt_asm $ac, "ldy"
-nt_asm_ldy_h:   .nt_asm $a0, "ldy.#"
-nt_asm_ldy_x:   .nt_asm $bc, "ldy.x"
-nt_asm_ldy_z:   .nt_asm $a4, "ldy.z"
-nt_asm_ldy_zx:  .nt_asm $b4, "ldy.zx"
+nt_asm_nop:     .nt_asm $ea, "nop"      ; NOP
 
-nt_asm_lsr:     .nt_asm $4e, "lsr"
-nt_asm_lsr_a:   .nt_asm $4a, "lsr.a"
-nt_asm_lsr_x:   .nt_asm $5e, "lsr.x"
-nt_asm_lsr_z:   .nt_asm $46, "lsr.z"
-nt_asm_lsr_zx:  .nt_asm $56, "lsr.zx"
+nt_asm_ora:     .nt_asm $0d, "ora"      ; ORA llhh
+nt_asm_ora_h:   .nt_asm $09, "ora.#"    ; ORA #dd
+nt_asm_ora_x:   .nt_asm $1d, "ora.x"    ; ORA llhh,x
+nt_asm_ora_y:   .nt_asm $19, "ora.y"    ; ORA llhh,y
+nt_asm_ora_z:   .nt_asm $05, "ora.z"    ; ORA zp
+nt_asm_ora_zi:  .nt_asm $12, "ora.zi"   ; ORA (zp)
+nt_asm_ora_ziy: .nt_asm $11, "ora.ziy"  ; ORA (zp),y
+nt_asm_ora_zx:  .nt_asm $15, "ora.zx"   ; ORA zp,x
+nt_asm_ora_zxi: .nt_asm $01, "ora.zxi"  ; ORA (zp,x)
 
-nt_asm_nop:     .nt_asm $ea, "nop"
+nt_asm_pha:     .nt_asm $48, "pha"      ; PHA
+nt_asm_php:     .nt_asm $08, "php"      ; PHP
+nt_asm_phx:     .nt_asm $da, "phx"      ; PHX
+nt_asm_phy:     .nt_asm $5a, "phy"      ; PHY
 
-nt_asm_ora:     .nt_asm $0d, "ora"
-nt_asm_ora_h:   .nt_asm $09, "ora.#"
-nt_asm_ora_x:   .nt_asm $1d, "ora.x"
-nt_asm_ora_y:   .nt_asm $19, "ora.y"
-nt_asm_ora_z:   .nt_asm $05, "ora.z"
-nt_asm_ora_zi:  .nt_asm $12, "ora.zi"
-nt_asm_ora_ziy: .nt_asm $11, "ora.ziy"
-nt_asm_ora_zx:  .nt_asm $15, "ora.zx"
-nt_asm_ora_zxi: .nt_asm $01, "ora.zxi"
+nt_asm_pla:     .nt_asm $68, "pla"      ; PLA
+nt_asm_plp:     .nt_asm $28, "plp"      ; PLP
+nt_asm_plx:     .nt_asm $fa, "plx"      ; PLX
+nt_asm_ply:     .nt_asm $7a, "ply"      ; PLY
 
-nt_asm_pha:     .nt_asm $48, "pha"
-nt_asm_php:     .nt_asm $08, "php"
-nt_asm_phx:     .nt_asm $da, "phx"
-nt_asm_phy:     .nt_asm $5a, "phy"
+nt_asm_rol:     .nt_asm $2e, "rol"      ; ROL llhh
+nt_asm_rol_a:   .nt_asm $2a, "rol.a"    ; ROL A
+nt_asm_rol_x:   .nt_asm $3e, "rol.x"    ; ROL llhh,x
+nt_asm_rol_z:   .nt_asm $26, "rol.z"    ; ROL zp
+nt_asm_rol_zx:  .nt_asm $36, "rol.zx"   ; ROL zp,x
 
-nt_asm_pla:     .nt_asm $68, "pla"
-nt_asm_plp:     .nt_asm $28, "plp"
-nt_asm_plx:     .nt_asm $fa, "plx"
-nt_asm_ply:     .nt_asm $7a, "ply"
+nt_asm_ror:     .nt_asm $6e, "ror"      ; ROR llhh
+nt_asm_ror_a:   .nt_asm $6a, "ror.a"    ; ROR A
+nt_asm_ror_x:   .nt_asm $7e, "ror.x"    ; ROR llhh,x
+nt_asm_ror_z:   .nt_asm $66, "ror.z"    ; ROR zp
+nt_asm_ror_zx:  .nt_asm $76, "ror.zx"   ; ROR zp,x
 
-nt_asm_rol:     .nt_asm $2e, "rol"
-nt_asm_rol_a:   .nt_asm $2a, "rol.a"
-nt_asm_rol_x:   .nt_asm $3e, "rol.x"
-nt_asm_rol_z:   .nt_asm $26, "rol.z"
-nt_asm_rol_zx:  .nt_asm $36, "rol.zx"
+nt_asm_rti:     .nt_asm $40, "rti"      ; RTI
+nt_asm_rts:     .nt_asm $60, "rts"      ; RTS
 
-nt_asm_ror:     .nt_asm $6e, "ror"
-nt_asm_ror_a:   .nt_asm $6a, "ror.a"
-nt_asm_ror_x:   .nt_asm $7e, "ror.x"
-nt_asm_ror_z:   .nt_asm $66, "ror.z"
-nt_asm_ror_zx:  .nt_asm $76, "ror.zx"
+nt_asm_sbc:     .nt_asm $ed, "sbc"      ; SBC llhh
+nt_asm_sbc_h:   .nt_asm $e9, "sbc.#"    ; SBC #dd
+nt_asm_sbc_x:   .nt_asm $fd, "sbc.x"    ; SBC llhh,x
+nt_asm_sbc_y:   .nt_asm $f9, "sbc.y"    ; SBC llhh,y
+nt_asm_sbc_z:   .nt_asm $e5, "sbc.z"    ; SBC zp
+nt_asm_sbc_zi:  .nt_asm $f2, "sbc.zi"   ; SBC (zp)
+nt_asm_sbc_ziy: .nt_asm $f1, "sbc.ziy"  ; SBC (zp),y
+nt_asm_sbc_zx:  .nt_asm $f5, "sbc.zx"   ; SBC zp,x
+nt_asm_sbc_zxi: .nt_asm $e1, "sbc.zxi"  ; SBC (zp,x)
 
-nt_asm_rti:     .nt_asm $40, "rti"
-nt_asm_rts:     .nt_asm $60, "rts"
+nt_asm_sec:     .nt_asm $38, "sec"      ; SEC
+nt_asm_sed:     .nt_asm $f8, "sed"      ; SED
+nt_asm_sei:     .nt_asm $78, "sei"      ; SEI
 
-nt_asm_sbc:     .nt_asm $ed, "sbc"
-nt_asm_sbc_h:   .nt_asm $e9, "sbc.#"
-nt_asm_sbc_x:   .nt_asm $fd, "sbc.x"
-nt_asm_sbc_y:   .nt_asm $f9, "sbc.y"
-nt_asm_sbc_z:   .nt_asm $e5, "sbc.z"
-nt_asm_sbc_zi:  .nt_asm $f2, "sbc.zi"
-nt_asm_sbc_ziy: .nt_asm $f1, "sbc.ziy"
-nt_asm_sbc_zx:  .nt_asm $f5, "sbc.zx"
-nt_asm_sbc_zxi: .nt_asm $e1, "sbc.zxi"
+nt_asm_sta:     .nt_asm $8d, "sta"      ; STA llhh
+nt_asm_sta_x:   .nt_asm $9d, "sta.x"    ; STA llhh,x
+nt_asm_sta_y:   .nt_asm $99, "sta.y"    ; STA llhh,y
+nt_asm_sta_z:   .nt_asm $85, "sta.z"    ; STA zp
+nt_asm_sta_zi:  .nt_asm $92, "sta.zi"   ; STA (zp)
+nt_asm_sta_ziy: .nt_asm $91, "sta.ziy"  ; STA (zp),y
+nt_asm_sta_zx:  .nt_asm $95, "sta.zx"   ; STA zp,x
+nt_asm_sta_zxi: .nt_asm $81, "sta.zxi"  ; STA (zp,x)
 
-nt_asm_sec:     .nt_asm $38, "sec"
-nt_asm_sed:     .nt_asm $f8, "sed"
-nt_asm_sei:     .nt_asm $78, "sei"
+nt_asm_stx:     .nt_asm $8e, "stx"      ; STX llhh
+nt_asm_stx_z:   .nt_asm $86, "stx.z"    ; STX zp
+nt_asm_stx_zy:  .nt_asm $96, "stx.zy"   ; STX zp,y
 
-nt_asm_sta:     .nt_asm $8d, "sta"
-nt_asm_sta_x:   .nt_asm $9d, "sta.x"
-nt_asm_sta_y:   .nt_asm $99, "sta.y"
-nt_asm_sta_z:   .nt_asm $85, "sta.z"
-nt_asm_sta_zi:  .nt_asm $92, "sta.zi"
-nt_asm_sta_ziy: .nt_asm $91, "sta.ziy"
-nt_asm_sta_zx:  .nt_asm $95, "sta.zx"
-nt_asm_sta_zxi: .nt_asm $81, "sta.zxi"
+nt_asm_sty:     .nt_asm $8c, "sty"      ; STY llhh
+nt_asm_sty_z:   .nt_asm $84, "sty.z"    ; STY zp
+nt_asm_sty_zx:  .nt_asm $94, "sty.zx"   ; STY zp,x
 
-nt_asm_stx:     .nt_asm $8e, "stx"
-nt_asm_stx_z:   .nt_asm $86, "stx.z"
-nt_asm_stx_zy:  .nt_asm $96, "stx.zy"
+nt_asm_stz:     .nt_asm $9c, "stz"      ; STZ llhh
+nt_asm_stz_x:   .nt_asm $9e, "stz.x"    ; STZ llhh,x
+nt_asm_stz_z:   .nt_asm $64, "stz.z"    ; STZ zp
+nt_asm_stz_zx:  .nt_asm $74, "stz.zx"   ; STZ zp,x
 
-nt_asm_sty:     .nt_asm $8c, "sty"
-nt_asm_sty_z:   .nt_asm $84, "sty.z"
-nt_asm_sty_zx:  .nt_asm $94, "sty.zx"
+nt_asm_tax:     .nt_asm $aa, "tax"      ; TAX
+nt_asm_tay:     .nt_asm $a8, "tay"      ; TAY
 
-nt_asm_stz:     .nt_asm $9c, "stz"
-nt_asm_stz_x:   .nt_asm $9e, "stz.x"
-nt_asm_stz_z:   .nt_asm $64, "stz.z"
-nt_asm_stz_zx:  .nt_asm $74, "stz.zx"
+nt_asm_trb:     .nt_asm $1c, "trb"      ; TRB llhh
+nt_asm_trb_z:   .nt_asm $14, "trb.z"    ; TRB zp
 
-nt_asm_tax:     .nt_asm $aa, "tax"
-nt_asm_tay:     .nt_asm $a8, "tay"
+nt_asm_tsb:     .nt_asm $0c, "tsb"      ; TSB llhh
+nt_asm_tsb_z:   .nt_asm $04, "tsb.z"    ; TSB zp
 
-nt_asm_trb:     .nt_asm $1c, "trb"
-nt_asm_trb_z:   .nt_asm $14, "trb.z"
+nt_asm_tsx:     .nt_asm $ba, "tsx"      ; TSX
+nt_asm_txa:     .nt_asm $8a, "txa"      ; TAX
+nt_asm_txs:     .nt_asm $9a, "txs"      ; TXS
+nt_asm_tya:     .nt_asm $98, "tya"      ; TYA
 
-nt_asm_tsb:     .nt_asm $0c, "tsb"
-nt_asm_tsb_z:   .nt_asm $04, "tsb.z"
-
-nt_asm_tsx:     .nt_asm $ba, "tsx"
-nt_asm_txa:     .nt_asm $8a, "txa"
-nt_asm_txs:     .nt_asm $9a, "txs"
-nt_asm_tya:     .nt_asm $98, "tya"
 nt_asm_last:
 
 ; Assembler pseudo-instructions, directives and macros

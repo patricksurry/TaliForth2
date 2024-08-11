@@ -73,7 +73,6 @@ nt_asm .macro op, label
     .endmacro
 
 
-
 asm_op_common:
         ; """Common routine for all opcodes. We arrive here with the opcode
         ; in the LSB of the caller's return address.

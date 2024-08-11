@@ -370,8 +370,8 @@ _emit:
 .endif
                 jsr w_hex
                 jsr w_dump
-.if "disassembler" in TALI_OPTIONAL_WORDS
                 pla                     ; recover HC flag
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 beq +
                 lda #3
                 sta 0,x                 ; for CFA words, just show three bytes

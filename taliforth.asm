@@ -218,6 +218,17 @@ dovar:
 ; =====================================================================
 ; LOW LEVEL HELPER FUNCTIONS
 
+; Push the accumalator to TOS
+; This only saves a byte but improves readability
+; This routine is also used as a template by the assembler "push-a" word
+push_a_tos:  ; ( -- A )
+                dex
+                dex
+                sta 0,x
+                stz 1,x
+z_push_a_tos:
+                rts
+
 push_upvar_tos:
         ; """Write addr of user page variable with offset A to TOS"""
                 dex
