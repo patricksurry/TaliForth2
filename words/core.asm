@@ -1134,7 +1134,7 @@ create_common:
 
                 ; We want a length between 1 and 31.  We could allow 1-32
                 ; and store length-1 but it doesn't seem worth the hassle.
-                ; Complain and quit if it's empty or too long.
+                ; Complain and quit if it's empty.  Shorten it if too long.
                 lda 1,x
                 bne _too_long
 
@@ -1148,8 +1148,10 @@ create_common:
                 bcc +
 
 _too_long:
-                lda #err_toolong
-                jmp error
+                ; The name is too long - silently shorten to 31 chars
+                lda #31
+                sta 0,x
+                stz 1,x
 +
                 ; Check to see if this name already exists.
                 jsr w_two_dup           ; ( cfa addr u addr u )

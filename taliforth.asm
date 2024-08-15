@@ -263,7 +263,7 @@ _nibble_to_ascii:
 
 
 find_header_name:
-        ; """Given a string on the stack ( addr  n ) with n at most 255
+        ; """Given a string on the stack ( addr  n ) with n at most 31
         ; and tmp1 pointing at an NT header, search each
         ; linked header looking for a matching name.
         ; Each header has length at NT, name at NT+8
@@ -272,7 +272,6 @@ find_header_name:
         ; On failure tmp1 is 0, A=0 and Z=1.
         ; Stomps tmp2.  The stack is unchanged.
         ; """
-
                 lda 2,x                 ; Copy mystery string to tmp2
                 sta tmp2
                 lda 3,x
