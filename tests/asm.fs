@@ -79,6 +79,7 @@ T{ 1122 s" 1122 sta" little-endian? -> true }T
 T{ nops -> 3 }T
 
 \ Testing all assembler instructions: Opcode and length
+T{ 06D 3 s" 1122 adc" opcode-test -> true true }T
 T{ 069 2 s" 12 adc.#" opcode-test -> true true }T
 T{ 07D 3 s" 1122 adc.x" opcode-test -> true true }T
 T{ 079 3 s" 1122 adc.y" opcode-test -> true true }T

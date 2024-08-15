@@ -37,9 +37,6 @@ forth:
 .include "words/all.asm"           ; Native Forth words. Starts with COLD
 .include "definitions.asm"      ; Top-level definitions, memory map
                                 ; included here to put relocatable tables after native words
-.if "disassembler" in TALI_OPTIONAL_WORDS || "assembler" in TALI_OPTIONAL_WORDS
-    .include "opcodes.asm"
-.endif
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
@@ -220,6 +217,17 @@ dovar:
 
 ; =====================================================================
 ; LOW LEVEL HELPER FUNCTIONS
+
+; Push the accumulator to TOS
+; This only saves a byte but improves readability
+; This routine is also used as a template by the assembler "push-a" word
+push_a_tos:  ; ( -- A )
+                dex
+                dex
+                sta 0,x
+                stz 1,x
+z_push_a_tos:
+                rts
 
 push_upvar_tos:
         ; """Write addr of user page variable with offset A to TOS"""
