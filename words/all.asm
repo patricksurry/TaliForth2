@@ -221,7 +221,8 @@ _stack_ok:
 
                 lda #1                  ; number for "compile" string
 _print:
-                jsr print_string
+                jsr print_string_no_lf
+                jsr w_cr
 
                 ; Awesome line, everybody! Now get the next one.
                 bra _get_line
@@ -237,11 +238,11 @@ z_quit:         ; no RTS required
 .include "tali.asm"
 .include "double.asm"
 .include "string.asm"
+.if "assembler" in TALI_OPTIONAL_WORDS || "disassembler" in TALI_OPTIONAL_WORDS
+    .include "assembler.asm"
+.endif
 .if "disassembler" in TALI_OPTIONAL_WORDS
     .include "disasm.asm"
-.endif
-.if "assembler" in TALI_OPTIONAL_WORDS
-    .include "assembler.asm"
 .endif
 .if "ed" in TALI_OPTIONAL_WORDS
     .include "ed.asm"        ; Line-based editor ed6502

@@ -286,6 +286,14 @@ w_find_name:
                 jmp _fail_done
 
 _nonempty:
+                ; Truncate names longer than the max allowed (31).
+                dex
+                dex
+                lda #31
+                sta 0,x
+                stz 1,x
+                jsr w_min
+
                 ; Set up for traversing the wordlist search order.
                 stz tmp3                ; Start at the beginning
 
@@ -813,7 +821,7 @@ _check_hex:
                 lda #16
                 bra _base_changed
 _check_binary:
-                cmp #'%'
+                cmp #'%'                ; binary?
                 bne _check_char
                 ; Switch temporarily to hexadecimal
                 lda #2

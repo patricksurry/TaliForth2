@@ -37,9 +37,6 @@ forth:
 .include "words/all.asm"           ; Native Forth words. Starts with COLD
 .include "definitions.asm"      ; Top-level definitions, memory map
                                 ; included here to put relocatable tables after native words
-.if "disassembler" in TALI_OPTIONAL_WORDS || "assembler" in TALI_OPTIONAL_WORDS
-    .include "opcodes.asm"
-.endif
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
@@ -221,6 +218,17 @@ dovar:
 ; =====================================================================
 ; LOW LEVEL HELPER FUNCTIONS
 
+; Push the accumulator to TOS
+; This only saves a byte but improves readability
+; This routine is also used as a template by the assembler "push-a" word
+push_a_tos:  ; ( -- A )
+                dex
+                dex
+                sta 0,x
+                stz 1,x
+z_push_a_tos:
+                rts
+
 push_upvar_tos:
         ; """Write addr of user page variable with offset A to TOS"""
                 dex
@@ -263,7 +271,7 @@ _nibble_to_ascii:
 
 
 find_header_name:
-        ; """Given a string on the stack ( addr  n ) with n at most 255
+        ; """Given a string on the stack ( addr  n ) with n at most 31
         ; and tmp1 pointing at an NT header, search each
         ; linked header looking for a matching name.
         ; Each header has length at NT, name at NT+8
@@ -272,7 +280,6 @@ find_header_name:
         ; On failure tmp1 is 0, A=0 and Z=1.
         ; Stomps tmp2.  The stack is unchanged.
         ; """
-
                 lda 2,x                 ; Copy mystery string to tmp2
                 sta tmp2
                 lda 3,x
@@ -675,15 +682,15 @@ _no_underflow:
 ; =====================================================================
 ; PRINTING ROUTINES
 
-; We distinguish two types of print calls, both of which take the string number
-; (see strings.asm) in A:
+; print_string_no_lf prints a high-bit terminated string
+; from string_table (see strings.asm) indexed by the accumulator,
+; with no trailing line ending.
 
-;       print_string       - with a line feed
-;       print_string_no_lf - without a line feed
+; print_error does likewise, with A indexing error_table
 
-; In addition, print_common provides a lower-level alternative for error
-; handling and anything else that provides the address of the
-; zero-terminated string directly in tmp3. All of those routines assume that
+; print_common provides a lower-level alternative for error
+; handling and anything else that provides the address of a
+; high-bit terminated string directly in tmp3. These routines assume that
 ; printing should be more concerned with size than speed, because anything to
 ; do with humans reading text is going to be slow.
 
@@ -702,19 +709,22 @@ print_string_no_lf:
 
                 ; fall through to print_common
 print_common:
-        ; """Common print routine used by both the print functions and
-        ; the error printing routine. Assumes string address is in tmp3. Uses
-        ; Y.
+        ; """Common print routine used by both printing routines.
+        ; Assumes tmp3 points to a high-bit terminated string.
+        ; Uses Y.
         ; """
                 ldy #0
 _loop:
                 lda (tmp3),y
-                beq _done               ; strings are zero-terminated
+                bpl +                           ; strings are high-bit terminated
 
-                jsr emit_a              ; allows vectoring via output
+                and #$7f                        ; last character, clear high bit
+                ldy #$ff                        ; flag end of loop
++
+                jsr emit_a                      ; allows vectoring via output
                 iny
-                bra _loop
-_done:
+                bne _loop
+
                 rts
 
 
@@ -724,21 +734,12 @@ print_error:
                 asl
                 tay
                 lda error_table,y
-                sta tmp3                ; LSB
+                sta tmp3                        ; LSB
                 iny
                 lda error_table,y
-                sta tmp3+1              ; MSB
+                sta tmp3+1                      ; MSB
 
-                jsr print_common
-                rts
-
-
-print_string:
-        ; """Print a zero-terminated string to the console/screen, adding a LF.
-        ; We do not check to see if the index is out of range. Uses tmp3.
-        ; """
-                jsr print_string_no_lf
-                jmp w_cr               ; JSR/RTS because never compiled
+                bra print_common
 
 
 print_u:

@@ -234,7 +234,7 @@ has_uf_check:
                 ; ( addr -- )
 
                 ; Does addr point at a JSR?
-                lda (0, x)              ; fetch byte @ addr
+                lda (0,x)               ; fetch byte @ addr
                 cmp #OpJSR
                 bne _not_uf             ; not a JSR
 
@@ -242,11 +242,11 @@ has_uf_check:
                 ; We can check 0 <= addr - underflow_1 <= underflow_4 - underflow_1 < 256
                 jsr w_one_plus
                 jsr w_fetch             ; get JSR address to TOS
-                lda 0, x                ; LSB of jsr address
+                lda 0,x                 ; LSB of jsr address
                 sec
                 sbc #<underflow_1
                 tay                     ; stash LSB of result and finish subtraction
-                lda 1, x                ; MSB of jsr address
+                lda 1,x                 ; MSB of jsr address
                 sbc #>underflow_1
                 bne _not_uf             ; MSB of result must be zero
 

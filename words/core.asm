@@ -1132,21 +1132,27 @@ create_common:
                 ; get string
                 jsr w_parse_name        ; ( cfa addr u )
 
-                ; if we were given an empty string, we complain and quit
+                ; We want a length between 1 and 31.  We could allow 1-32
+                ; and store length-1 but it doesn't seem worth the hassle.
+                ; Complain and quit if it's empty.  Shorten it if too long.
+                lda 1,x
+                bne _too_long
+
                 lda 0,x
-                ora 1,x
-                bne _got_name
+                bne +
 
                 lda #err_noname
                 jmp error
++
+                cmp #32
+                bcc +
 
-_got_name:
-                ; Enforce maximal length of string by overwriting the MSB of
-                ; the length.   We also implicitly assume below that N < 248 so that
-                ; the total header length (N+8) also fits in a byte.
-                ; If not a lot of the following additions will fail due to carry
+_too_long:
+                ; The name is too long - silently shorten to 31 chars
+                lda #31
+                sta 0,x
                 stz 1,x
-
++
                 ; Check to see if this name already exists.
                 jsr w_two_dup           ; ( cfa addr u addr u )
                 jsr w_find_name         ; ( cfa addr u flag ) (non-zero nt as flag)
@@ -2007,15 +2013,14 @@ w_environment_q:
                 ; a bit harder by the fact that some of these return a
                 ; double-cell number and some a single-cell one.
 
-                ; We will walk through the table with variables that return
-                ; a single-cell result
-                ldy #00                 ; counter for table
 
-                ; We use a flag on the the stack to signal if we have a single-cell
-                ; or double-cell number. We use 0 to signal single-cell and 1 for
-                ; double-cell.
-                phy
+                ldy #0                  ; index for table
+
 _table_loop:
+                ; See if this is the last entry.
+                cpy #env_table_end - env_table_single
+                beq _table_done
+
                 ; We arrived here with the address of the string to be checked
                 ; on the stack. We make a copy. Index is in Y
                 jsr w_two_dup          ; ( addr u addr u ) 2DUP does not use Y
@@ -2029,51 +2034,44 @@ _table_loop:
                 sta 0,x
                 iny
                 lda env_table_single,y
-                sta 1,x                 ; ( addr u addr u addr-t )
+                sta 1,x                 ; ( addr u addr u addr-s )
                 iny
 
-                ; See if this is the last entry. The LSB is still in A
-                ora 0,x
-                beq _table_done
+                ; Calculate length using difference from next pointer
+                dex
+                dex
+                lda env_table_single,y
+                sta 0,x
+                lda env_table_single+1,y
+                sta 1,x
+                jsr xt_over
+                jsr xt_minus            ; ( addr u addr u addr-s u-s )
 
-                ; We have a string entry. The address there is stored in
-                ; old-style address format, that is, the first byte is the
-                ; length of the string
-                phy                     ; save Y, which is used by COUNT
-                jsr w_count            ; ( addr u addr u addr-s u-s )
-                jsr w_compare          ; ( addr u f )
-                ply
+                ; Compare the strings (surprisingly w_compare doesn't use Y)
+                jsr w_compare           ; ( addr u f )
 
-                ; If we found a match (flag is zero -- COMPARE is weird
-                ; that way), return the result
-                lda 0,x
-                ora 1,x
-                beq _got_result
-
-                ; Flag is not zero, so not a perfect match, so try next
-                ; word
+                ; Pre-drop the flag before we branch
                 inx                     ; DROP, now ( addr u )
                 inx
 
-                bra _table_loop
+                ; If we found a match (flag is zero -- COMPARE is weird
+                ; that way), fall through to return the result
+                lda $fe,x
+                ora $ff,x
+                bne _table_loop         ; Not a match, so try next string
 
-_got_result:
-                ; We arrive here with ( addr u -1 ) and know that we've found
-                ; a match. The index of the match+2 is in Y.
-                inx                     ; drop flag, now ( addr u )
-                inx
+                ; We arrive here with ( addr u ) after finding a match
+                ; Y contains the index of the match + 2.
                 dey                     ; go back to index we had
                 dey
 
-                ; See if this is a single-cell word.
-                pla
-                bne _double_result
+                cpy #env_table_double - env_table_single
+                bcs _double_result
 
                 ; Single-cell result
                 lda env_results_single,y
                 sta 2,x
-                iny
-                lda env_results_single,y
+                lda env_results_single+1,y
                 sta 3,x                 ; ( res u )
 
                 bra _set_flag
@@ -2085,91 +2083,61 @@ _double_result:
                 dex                     ; ( addr u ? )
                 dex
 
-                ; We have 11 single-cell words we check, plus the 0000 as
-                ; a marker for the end of the table, so we arrive here
-                ; with Y as 22 or more. To get the index for the double-
-                ; cell words, we move the result
+                ; To get the index for the double-cell words,
+                ; we subtract the table offset and multiply by two
+                ; since we have four bytes per entry but Y increments by 2
                 tya
                 sec
-                sbc #24
-
-                ; We have four bytes per entry in the table, but the index
-                ; keeps increasing by two, so we only have to multiply by
-                ; two (shift left once) to get the right result
+                sbc #(env_table_double - env_table_single)
                 asl
                 tay
 
                 lda env_results_double,y
                 sta 2,x
-                iny
-                lda env_results_double,y
+                lda env_results_double+1,y
                 sta 3,x                 ; ( res u ? )
-                iny
-
-                lda env_results_double,y
+                lda env_results_double+2,y
                 sta 4,x
-                iny
-                lda env_results_double,y
+                lda env_results_double+3,y
                 sta 5,x                 ; ( res res ? )
 
                 ; fall through to _set_flag
 _set_flag:
-                lda #$FF
-                sta 0,x
-                sta 1,x                 ; ( res f )
-
+                lda #$ff
                 bra _done
+
 _table_done:
-                ; We're done with a table, because the entry was a zero.
-                ; We arrive here with ( addr u addr u 0 )
+                ; We're done checking all the entries.
+                ; We arrive here with ( addr u )
+                ; Drop one entry to leave space for flag ( ? )
+                inx
+                inx
+                lda #0                  ; flag failure and fall through
 
-                ; We take the flag from stack and increase it by one. If the
-                ; flag is zero, we have just completed the single-cell number
-                ; strings, so we in increase the flag and try again. Otherwise,
-                ; we're done with the double-cell table without having found
-                ; a match, and we're done
-                pla
-                bne _no_match
-
-                ; Flag is zero, increase it to one and start over to check
-                ; double-cell values
-                ina
-                pha
-
-                txa
-                clc
-                adc #6                  ; skip six bytes
-                tax                     ; ( addr u )
-
-                bra _table_loop
-_no_match:
-                ; Bummer, not found. We arrive here with
-                ; ( addr u addr u 0 ) and need to return just a zero
-                txa
-                clc
-                adc #10
-                tax                     ; ( addr ) - not ( 0 ) !
-
-                jsr w_false
 _done:
+                ; Set the flag to either ffff or 0000 leaving
+                ; ( res true ) or ( dres dres true ) or just ( false )
+                sta 0,x
+                sta 1,x
+
 z_environment_q:
                 rts
 
 
 ; Tables for ENVIRONMENT?. We use two separate ones, one for the single-cell
-; results and one for the double-celled results. The zero cell at the
-; end of each table marks its, uh, end. The strings themselves are defined
-; in strings.asm. Note if we add more entries to the single-cell table, we
-; have to adapt the result code for double printout, where we subtract 22
-; (two bytes each single-cell string and two bytes for the end-of-table
-; marker 0000
+; results and one for the double-celled results. The strings themselves
+; are defined consecutively in strings.asm so that we can calculate
+; length as the difference in offsets.
+
 env_table_single:
         .word envs_cs, envs_hold, envs_pad, envs_aub, envs_floored
         .word envs_max_char, envs_max_n, envs_max_u, envs_rsc
-        .word envs_sc, envs_wl, 0000
-
+        .word envs_sc, envs_wl
 env_table_double:
-        .word envs_max_d, envs_max_ud, 0000
+        .word envs_max_d, envs_max_ud
+env_table_end:
+        .word envs_eot                  ; pointer beyond last string
+
 
 env_results_single:
         .word $00FF     ; /COUNTED-STRING
@@ -3880,7 +3848,7 @@ _skip:          jsr w_not_rot           ; ( qu v ru )
 
                 lda 0,x
                 tay
-                lda s_abc_upper,y       ; upper case 0-9A-Z
+                lda alpha36,y           ; upper case 0-9A-Z
                 sta 0,x
                 stz 1,x                 ; paranoid; now ( ud char )
 
