@@ -37,9 +37,6 @@ forth:
 .include "words/all.asm"           ; Native Forth words. Starts with COLD
 .include "definitions.asm"      ; Top-level definitions, memory map
                                 ; included here to put relocatable tables after native words
-.if "disassembler" in TALI_OPTIONAL_WORDS || "assembler" in TALI_OPTIONAL_WORDS
-    .include "opcodes.asm"
-.endif
 
 ; High-level Forth words, see forth_code/README.md
 forth_words_start:
@@ -111,16 +108,53 @@ dodefer:
 
                 jmp (tmp2)      ; This is actually a jump to the new target
 
-defer_error:
-                ; """Error routine for undefined DEFER: Complain and abort"""
-                lda #err_defer
-                jmp error
 
 dodoes:
         ; """Execute the runtime portion of DOES>. See DOES> and
         ; docs/create-does.txt for details and
         ; http://www.bradrodriguez.com/papers/moving3.htm
         ; """
+                ; typically called like
+                ;       : foo CREATE 0 , DOES> forth code ;
+                ;
+                ; which makes a defining word `foo` like
+                ;
+                ; xt_foo:
+                ;    jsr w_create
+                ;    jsr w_zero                 ; initialize PFA with 0
+                ;    jsr w_comma
+                ;    jsr does_runtime           ; point CFA to _doit and return
+                ; _doit:
+                ;    jsr dodoes
+                ; _action:
+                ;    <compiled forth code>
+                ;    rts
+                ;
+                ; so defining `foo someword` will first create something like:
+                ;
+                ; someword:
+                ;       jsr dovar       ; code field area (CFA)
+                ;       .word 0         ; parameter field area (PFA)
+                ;
+                ; and then does_runtime will convert it into:
+                ;
+                ; xt_someword:
+                ;       jsr _doit
+                ;       .word 0         ; PFA
+                ;
+                ; so finally invoking `someword` from some caller will
+                ; do `jsr xt_someword` followed by `jsr _doit` which in turn
+                ; triggers `jsr dodoes`, resulting in a return stack like:
+                ;
+                ;       (R: caller-1 PFA-1 _action-1 )
+                ;
+                ; our job here is to put the PFA address on the data stack
+                ; and jump to _action, eventually returning to caller, ie.
+                ;
+                ;       (R: caller-1 PFA-1 _action-1 -- caller-1 )
+                ;       ( -- PFA )
+                ;       jmp _action
+
                 ; Assumes the address of the CFA of the original defining word
                 ; (say, CONSTANT) is on the top of the Return Stack. Save it
                 ; for a later jump, adding one byte because of the way the
@@ -183,6 +217,17 @@ dovar:
 
 ; =====================================================================
 ; LOW LEVEL HELPER FUNCTIONS
+
+; Push the accumulator to TOS
+; This only saves a byte but improves readability
+; This routine is also used as a template by the assembler "push-a" word
+push_a_tos:  ; ( -- A )
+                dex
+                dex
+                sta 0,x
+                stz 1,x
+z_push_a_tos:
+                rts
 
 push_upvar_tos:
         ; """Write addr of user page variable with offset A to TOS"""
@@ -309,13 +354,14 @@ _adjoint:
 
 
 find_nt_by_name:
-        ; Given a string on the stack ( addr n ) with n at most 255
+        ; """Given a string on the stack ( addr  n ) with n at most 31
         ; and tmp1 pointing at an NT header, search each
         ; linked header looking for a matching name.
         ;
         ; On success tmp1 points at the matching NT, with A nonzero and Z=0.
         ; On failure tmp1 is 0, A=0 and Z=1.
         ; Stomps tmp2.  The stack is unchanged.
+        ; """
 
                 lda tmp1                ; Start by checking if initial NT is zero
                 ora tmp1+1
@@ -605,6 +651,7 @@ _interpret:
                 ; skipping EXECUTE completely during RTS. If we were to execute
                 ; xt directly, we have to fool around with the Return Stack
                 ; instead, which is actually slightly slower
+                jsr w_name_to_int      ; ( nt - xt )
                 jsr w_execute
 
                 ; That's quite enough for this word, let's get the next one
@@ -623,7 +670,7 @@ _compile:
                 bne _interpret          ; IMMEDIATE word, execute right now
 
                 ; Compile the xt into the Dictionary with COMPILE,
-                jsr w_compile_comma
+                jsr compile_nt_comma
                 bra _loop
 
 _line_done:
@@ -649,7 +696,7 @@ is_printable:
                 bcs _failed
 
                 sec
-                bra _done
+                .byte OpBITzp
 _failed:
                 clc
 _done:
@@ -737,15 +784,15 @@ _no_underflow:
 ; =====================================================================
 ; PRINTING ROUTINES
 
-; We distinguish two types of print calls, both of which take the string number
-; (see strings.asm) in A:
+; print_string_no_lf prints a high-bit terminated string
+; from string_table (see strings.asm) indexed by the accumulator,
+; with no trailing line ending.
 
-;       print_string       - with a line feed
-;       print_string_no_lf - without a line feed
+; print_error does likewise, with A indexing error_table
 
-; In addition, print_common provides a lower-level alternative for error
-; handling and anything else that provides the address of the
-; zero-terminated string directly in tmp3. All of those routines assume that
+; print_common provides a lower-level alternative for error
+; handling and anything else that provides the address of a
+; high-bit terminated string directly in tmp3. These routines assume that
 ; printing should be more concerned with size than speed, because anything to
 ; do with humans reading text is going to be slow.
 
@@ -764,19 +811,22 @@ print_string_no_lf:
 
                 ; fall through to print_common
 print_common:
-        ; """Common print routine used by both the print functions and
-        ; the error printing routine. Assumes string address is in tmp3. Uses
-        ; Y.
+        ; """Common print routine used by both printing routines.
+        ; Assumes tmp3 points to a high-bit terminated string.
+        ; Uses Y.
         ; """
                 ldy #0
 _loop:
                 lda (tmp3),y
-                beq _done               ; strings are zero-terminated
+                bpl +                           ; strings are high-bit terminated
 
-                jsr emit_a              ; allows vectoring via output
+                and #$7f                        ; last character, clear high bit
+                ldy #$ff                        ; flag end of loop
++
+                jsr emit_a                      ; allows vectoring via output
                 iny
-                bra _loop
-_done:
+                bne _loop
+
                 rts
 
 
@@ -786,21 +836,12 @@ print_error:
                 asl
                 tay
                 lda error_table,y
-                sta tmp3                ; LSB
+                sta tmp3                        ; LSB
                 iny
                 lda error_table,y
-                sta tmp3+1              ; MSB
+                sta tmp3+1                      ; MSB
 
-                jsr print_common
-                rts
-
-
-print_string:
-        ; """Print a zero-terminated string to the console/screen, adding a LF.
-        ; We do not check to see if the index is out of range. Uses tmp3.
-        ; """
-                jsr print_string_no_lf
-                jmp w_cr               ; JSR/RTS because never compiled
+                bra print_common
 
 
 print_u:

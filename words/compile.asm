@@ -44,6 +44,17 @@
 ; The inline forms are typically much simpler since they can use
 ; 65c02 jmp and bxx branch opcodes directly.
 
+;TODO does it make sense to have an actual word, like COMPILE-NT, ?
+compile_nt_comma:  ; ( nt -- )
+        ; compile, looks up the nt from the xt which is very slow
+        ; if we already have the nt, we can get things rolling faster
+
+        jsr w_dup                       ; ( nt nt )
+        jsr w_name_to_int               ; ( nt xt )
+        jsr w_dup                       ; ( nt xt xt )
+        jsr w_rot                       ; ( xt xt nt )
+        bra compile_comma_common
+
 
 ; ## COMPILE_COMMA ( xt -- ) "Compile xt"
 ; ## "compile,"  auto  ANS core ext
@@ -63,8 +74,8 @@ xt_compile_comma:
 w_compile_comma:
                 ; See if this is an Always Native (AN) word by checking the
                 ; AN flag. We need nt for this.
-                jsr w_dup              ; keep an unadjusted copy of xt
-                jsr w_dup              ; plus one to convert to nt
+                jsr w_dup               ; keep an unadjusted copy of xt
+                jsr w_dup               ; plus one to convert to nt
 ;TODO avoid this check
                 jsr w_int_to_name
                 ; ( xt xt nt )
@@ -74,6 +85,7 @@ w_compile_comma:
                 ora 1,x
                 beq cmpl_as_call        ; No nt so unknown size; must compile as a JSR
 
+compile_comma_common:
                 ; Otherwise investigate the nt
                 lda (0,x)               ; get status flags byte @ NT
 
@@ -219,7 +231,7 @@ has_uf_check:
                 ; ( addr -- )
 
                 ; Does addr point at a JSR?
-                lda (0, x)              ; fetch byte @ addr
+                lda (0,x)               ; fetch byte @ addr
                 cmp #OpJSR
                 bne _not_uf             ; not a JSR
 
@@ -227,11 +239,11 @@ has_uf_check:
                 ; We can check 0 <= addr - underflow_1 <= underflow_4 - underflow_1 < 256
                 jsr w_one_plus
                 jsr w_fetch             ; get JSR address to TOS
-                lda 0, x                ; LSB of jsr address
+                lda 0,x                 ; LSB of jsr address
                 sec
                 sbc #<underflow_1
                 tay                     ; stash LSB of result and finish subtraction
-                lda 1, x                ; MSB of jsr address
+                lda 1,x                 ; MSB of jsr address
                 sbc #>underflow_1
                 bne _not_uf             ; MSB of result must be zero
 
@@ -239,7 +251,7 @@ has_uf_check:
                 bcs _not_uf             ; LSB is too big
 
                 sec                     ; C=1 means it is an UF check
-                .byte $24               ; bit zp opcode masks the clc, with no effect on carry
+                .byte OpBITzp           ; mask the clc, with no effect on carry
 _not_uf:        clc                     ; C=0 means it isn't a UF check
                 inx                     ; clean up stack
                 inx
@@ -264,6 +276,10 @@ _not_uf:        clc                     ; C=0 means it isn't a UF check
 ;
 ; We have have various utility routines here for compiling a word in Y/A
 ; and a single byte in A.
+
+; TODO for all of these we could potentially avoid jmp (and NN) and
+; use BRA instaed.  jump_later is a bit harder since we need to remember NN state
+; in case something else changed it
 
 cmpl_jump_later:
     ; compile a jump to be filled in later with dummy address <MSB=Y/LSB=??>

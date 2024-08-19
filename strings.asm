@@ -8,20 +8,22 @@
 
 ; ## GENERAL STRINGS
 
-; All general strings must be zero-terminated, names start with "s_",
+; the base36 alphabet for printing values in current base
+
+alpha36:  .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+; All general strings are bit-7 terminated (.shift), names start with "s_",
 ; aliases with "str_"
 
 ; The assembler variable ix is used to number these sequentially,
 ; even when some are missing because they were removed in the
 ; platform file.
 ix := 0
-str_ok             = ix         ; unused?
+str_ok             = ix         ; referenced by QUIT via state=0
 ix += 1
-str_compile        = ix         ; unused?
+str_compile        = ix         ; referenced by QUIT via state=1
 ix += 1
 str_redefined      = ix
-ix += 1
-str_abc_upper      = ix         ; unused?
 ix += 1
 .if "wordlist" in TALI_OPTIONAL_WORDS
 str_wid_forth      = ix
@@ -41,6 +43,8 @@ str_see_header     = ix
 ix += 1
 str_see_size       = ix
 ix += 1
+str_see_cfapfa     = ix
+ix += 1
 .if "disassembler" in TALI_OPTIONAL_WORDS
 str_disasm_sdc     = ix
 ix += 1
@@ -57,43 +61,45 @@ ix += 1
 ; Since we can't fit a 16-bit address in a register, we use indexes as offsets
 ; to tables as error and string numbers.
 string_table:
-        .word s_ok, s_compiled, s_redefined, s_abc_upper              ; 0-3
+        .word s_ok, s_compiled, s_redefined                     ; 0-2
 .if "wordlist" in TALI_OPTIONAL_WORDS
-        .word s_wid_forth, s_wid_editor, s_wid_asm, s_wid_root        ; 4-7
+        .word s_wid_forth, s_wid_editor, s_wid_asm, s_wid_root  ; 3-6
 .endif
-        .word s_see_nt, s_see_xt, s_see_header, s_see_size            ; 8-11
+        .word s_see_nt, s_see_xt, s_see_header, s_see_size, s_see_cfapfa            ; 7-11
 .if "disassembler" in TALI_OPTIONAL_WORDS
         .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do ; 12-15
 .endif
 
-s_ok:         .text " ok", 0         ; note space at beginning
-s_compiled:   .text " compiled", 0   ; note space at beginning
-s_redefined:  .text "redefined ", 0  ; note space at end
+; note .shift is like .text but terminates the string by setting bit 7 of the last character
+; print_common in taliforth.asm shows how we use these
 
-s_abc_upper:  .text "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+s_ok:         .shift " ok"              ; note space at beginning
+s_compiled:   .shift " compiled"        ; note space at beginning
+s_redefined:  .shift "redefined "       ; note space at end
 
 .if "wordlist" in TALI_OPTIONAL_WORDS
-s_wid_asm:    .text "Assembler ", 0  ; Wordlist ID 2, note space at end
-s_wid_editor: .text "Editor ", 0     ; Wordlist ID 1, note space at end
-s_wid_forth:  .text "Forth ", 0      ; Wordlist ID 0, note space at end
-s_wid_root:   .text "Root ", 0       ; Wordlist ID 3, note space at end
+s_wid_asm:    .shift "Assembler "       ; Wordlist ID 2, note space at end
+s_wid_editor: .shift "Editor "     ; Wordlist ID 1, note space at end
+s_wid_forth:  .shift "Forth "      ; Wordlist ID 0, note space at end
+s_wid_root:   .shift "Root "       ; Wordlist ID 3, note space at end
 .endif
 
-s_see_nt:     .text "nt: ", 0
-s_see_xt:     .text "xt: ", 0
-s_see_header: .text "header: ", 0
-s_see_size:   .text "size (decimal): ", 0
+s_see_nt:     .shift "nt: "
+s_see_xt:     .shift "xt: "
+s_see_header: .shift "header: "
+s_see_size:   .shift "size (decimal): "
+s_see_cfapfa: .shift "CFA 3  PFA "
 
 ; this string is referenced directly, not via string table
 ; must match DICTIONARY FLAGS in definitions.asm and calculated flag order in xt_see
 see_flags_template:     .shift "flags: HC",0,"NN",0,"AN",0,"IM",0,"CO",0,"DC",0,"LC",0,"FP",0,"| UF",0,"ST",0
 
 .if "disassembler" in TALI_OPTIONAL_WORDS
-s_disasm_sdc: .text " STACK DEPTH CHECK", 0
-s_disasm_lit: .text "LITERAL ", 0
-s_disasm_0bra: .text "0BRANCH ",0
-s_disasm_loop: .text "LOOP ",0
-s_disasm_do: .text "DO ",0
+s_disasm_sdc: .shift " STACK DEPTH CHECK"
+s_disasm_lit: .shift "LITERAL "
+s_disasm_0bra: .shift "0BRANCH "
+s_disasm_loop: .shift "LOOP "
+s_disasm_do: .shift "DO "
 .endif
 
 ; ## ERROR STRINGS
@@ -116,43 +122,46 @@ err_negallot     = 10
 err_wordlist     = 11
 err_blockwords   = 12
 err_returnstack  = 13
+err_toolong      = 14
 
 error_table:
         .word es_allot, es_badsource, es_compileonly, es_defer  ;  0-3
         .word es_divzero, es_noname, es_refill, es_state        ;  4-7
         .word es_syntax, es_underflow, es_negallot, es_wordlist ;  8-11
-        .word es_blockwords, es_returnstack                     ; 12-13
+        .word es_blockwords, es_returnstack, es_toolong         ; 12-14
 
 .if ! TALI_OPTION_TERSE
-es_allot:       .text "ALLOT using all available memory", 0
-es_badsource:   .text "Illegal SOURCE-ID during REFILL", 0
-es_compileonly: .text "Interpreting a compile-only word", 0
-es_defer:       .text "DEFERed word not defined yet", 0
-es_divzero:     .text "Division by zero", 0
-es_noname:      .text "Parsing failure", 0
-es_refill:      .text "QUIT could not get input (REFILL returned -1)", 0
-es_state:       .text "Already in compile mode", 0
-es_syntax:      .text "Undefined word or invalid number", 0
-es_underflow:   .text "Data stack underflow", 0
-es_negallot:    .text "Max memory freed with ALLOT", 0
-es_wordlist:    .text "No wordlists available", 0
-es_blockwords:  .text "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR",0
-es_returnstack: .text "Return stack:", 0
+es_allot:       .shift "ALLOT using all available memory"
+es_badsource:   .shift "Illegal SOURCE-ID during REFILL"
+es_compileonly: .shift "Interpreting a compile-only word"
+es_defer:       .shift "DEFERed word not defined yet"
+es_divzero:     .shift "Division by zero"
+es_noname:      .shift "Parsing failure"
+es_refill:      .shift "QUIT could not get input (REFILL returned -1)"
+es_state:       .shift "Already in compile mode"
+es_syntax:      .shift "Undefined word or invalid number"
+es_underflow:   .shift "Data stack underflow"
+es_negallot:    .shift "Max memory freed with ALLOT"
+es_wordlist:    .shift "No wordlists available"
+es_blockwords:  .shift "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR"
+es_returnstack: .shift "Return stack:"
+es_toolong:     .shift "Name too long (max 31)"
 .else
-es_allot:       .text "EALLT", 0
-es_badsource:   .text "EBSRC", 0
-es_compileonly: .text "ECMPL", 0
-es_defer:       .text "EDEFR", 0
-es_divzero:     .text "EDIV0", 0
-es_noname:      .text "ENAME", 0
-es_refill:      .text "EREFL", 0
-es_state:       .text "ESTAT", 0
-es_syntax:      .text "ESNTX", 0
-es_underflow:   .text "EUNDR", 0
-es_negallot:    .text "ENALT", 0
-es_wordlist:    .text "EWLST", 0
-es_blockwords:  .text "EBLKW",0
-es_returnstack: .text "RS", 0
+es_allot:       .shift "EALLT"
+es_badsource:   .shift "EBSRC"
+es_compileonly: .shift "ECMPL"
+es_defer:       .shift "EDEFR"
+es_divzero:     .shift "EDIV0"
+es_noname:      .shift "ENAME"
+es_refill:      .shift "EREFL"
+es_state:       .shift "ESTAT"
+es_syntax:      .shift "ESNTX"
+es_underflow:   .shift "EUNDR"
+es_negallot:    .shift "ENALT"
+es_wordlist:    .shift "EWLST"
+es_blockwords:  .shift "EBLKW"
+es_returnstack: .shift "RS"
+es_toolong:     .shift "E2LNG"
 .endif
 
 
@@ -165,21 +174,22 @@ es_returnstack: .text "RS", 0
 ; "envs_".
 
 ; These return a single-cell number
-envs_cs:        .text 15, "/COUNTED-STRING"
-envs_hold:      .text 5, "/HOLD"
-envs_pad:       .text 4, "/PAD"
-envs_aub:       .text 17, "ADDRESS-UNIT-BITS"
-envs_floored:   .text 7, "FLOORED"
-envs_max_char:  .text 8, "MAX-CHAR"
-envs_max_n:     .text 5, "MAX-N"
-envs_max_u:     .text 5, "MAX-U"
-envs_rsc:       .text 18, "RETURN-STACK-CELLS"
-envs_sc:        .text 11, "STACK-CELLS"
-envs_wl:        .text 9, "WORDLISTS"
+envs_cs:        .text "/COUNTED-STRING"
+envs_hold:      .text "/HOLD"
+envs_pad:       .text "/PAD"
+envs_aub:       .text "ADDRESS-UNIT-BITS"
+envs_floored:   .text "FLOORED"
+envs_max_char:  .text "MAX-CHAR"
+envs_max_n:     .text "MAX-N"
+envs_max_u:     .text "MAX-U"
+envs_rsc:       .text "RETURN-STACK-CELLS"
+envs_sc:        .text "STACK-CELLS"
+envs_wl:        .text "WORDLISTS"
 
 ; These return a double-cell number
-envs_max_d:     .text 5, "MAX-D"
-envs_max_ud:    .text 6, "MAX-UD"
+envs_max_d:     .text "MAX-D"
+envs_max_ud:    .text "MAX-UD"
+envs_eot:
 .endif
 
 ; END

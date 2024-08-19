@@ -44,8 +44,9 @@
 ;
 ;       CO - Compile Only
 ;       IM - Immediate Word
-;       NN - Never Native Compile (must always be called by JSR)
 ;       AN - Always Native Compile (may not be called by JSR)
+;       NN - Never Native Compile (must always be called by JSR)
+;       HC - Has CFA (words created by CREATE and DOES> only)
 ;
 ;       The NN and AN flags are intrepreted together like this:
 ;
@@ -57,7 +58,7 @@
 ;           | 1 | 1 |  ST : Normal word with return stack juggling that
 ;           +---+---+       must be removed when inlining (R>, R@, >R etc)
 ;
-; Note there is currently one bit unused.
+; Note that there are currently no free bits in the status byte.
 ;
 ; By default, all words can be natively compiled (compiled inline) or
 ; as a subroutine jump target; the system decides which variant to use based on
@@ -145,7 +146,7 @@ _nt:                    ; remember start of header to update last_nt pointer
 .if _fp
     .word last_nt       ; previous Dictionary header, 0000 signals start
 .else
-   .byte <last_nt
+    .byte <last_nt
 .endif
 .if _dc
     .word xt_\label     ; start of code block (xt of this word)
@@ -160,6 +161,19 @@ _nt_end = *
 
 last_nt ::= _nt         ; update to this header
 .endmacro
+
+; a specialized macro to generate assembler words
+nt_asm .macro op, label
+_nt:
+        .byte IM + NN + DC      ; immediate, never native, and header disjoint from code
+        .byte len(\label)
+        .byte <last_nt          ; these predefined headers are close together
+        .word .xt_asm(\op)      ; pick jsr from the asm_op_table whose return address gives op code
+        .byte 3                 ; the body is always 3 bytes tho never-native anyway
+        .text \label
+last_nt ::= _nt
+    .endmacro
+
 
 ; last_nt tracks the previous header, and is reset after each wordlist
 last_nt := 0
@@ -537,189 +551,247 @@ last_nt := 0
 
 ; ASSEMBLER-WORDLIST
 
+assembler_dictionary_start:
+
+.if "assembler" in TALI_OPTIONAL_WORDS || "disassembler" in TALI_OPTIONAL_WORDS
+
 ; Labels for the opcodes have the format "nt_asm_<OPC>" where a futher
 ; underscore replaces any dot present in the SAN mnemonic. The hash sign for
-; immediate addressing is replaced by an "h" (for example, the label code for
-; "lda.#" is "xt_adm_lda_h"). All opcodes are immediate.
+; immediate addressing is replaced by an "h".  For example, the label code for
+; "lda.#" is "xt_adm_lda_h"). All opcode words are immediate and never-native.
+;
+; Each opcode shows the traditional mnemonic as a comment with abbreviations:
+;       llhh - a 16bit little endian address
+;       zp - an 8bit zero page address
+;       #dd - an 8bit data value
+;
+; Currently the extended opcodes rmbN, smbN, bbrN, and bbsN aren't supported.
+;
+; The .nt_asm macro ensures that each word's XT points to one of a list
+; of 256 repeated JSR insructions so that the return address (XT+2) has
+; an LSB equal to the opcode.  This gives a compact way to assemble each
+; opcode as well as a simple way to find known opcodes during disassembly.
+; See assembler.asm for details.
 
-.if "assembler" in TALI_OPTIONAL_WORDS
-#nt_header asm_adc_h, "adc.#", IM+NN
-#nt_header asm_adc_x, "adc.x", IM+NN
-#nt_header asm_adc_y, "adc.y", IM+NN
-#nt_header asm_adc_z, "adc.z", IM+NN
-#nt_header asm_adc_zi, "adc.zi", IM+NN
-#nt_header asm_adc_ziy, "adc.ziy", IM+NN
-#nt_header asm_adc_zx, "adc.zx", IM+NN
-#nt_header asm_adc_zxi, "adc.zxi", IM+NN
-#nt_header asm_and, "and.", IM+NN               ; not "and" because of conflicts with Forth word
-#nt_header asm_and_h, "and.#", IM+NN
-#nt_header asm_and_x, "and.x", IM+NN
-#nt_header asm_and_y, "and.y", IM+NN
-#nt_header asm_and_z, "and.z", IM+NN
-#nt_header asm_and_zi, "and.zi", IM+NN
-#nt_header asm_and_ziy, "and.ziy", IM+NN
-#nt_header asm_and_zx, "and.zx", IM+NN
-#nt_header asm_and_zxi, "and.zxi", IM+NN
-#nt_header asm_asl, "asl", IM+NN
-#nt_header asm_asl_a, "asl.a", IM+NN
-#nt_header asm_asl_x, "asl.x", IM+NN
-#nt_header asm_asl_z, "asl.z", IM+NN
-#nt_header asm_asl_zx, "asl.zx", IM+NN
-#nt_header asm_bcc, "bcc", IM+NN
-#nt_header asm_bcs, "bcs", IM+NN
-#nt_header asm_beq, "beq", IM+NN
-#nt_header asm_bit, "bit", IM+NN
-#nt_header asm_bit_h, "bit.#", IM+NN
-#nt_header asm_bit_x, "bit.x", IM+NN
-#nt_header asm_bit_z, "bit.z", IM+NN
-#nt_header asm_bit_zx, "bit.zx", IM+NN
-#nt_header asm_bmi, "bmi", IM+NN
-#nt_header asm_bne, "bne", IM+NN
-#nt_header asm_bpl, "bpl", IM+NN
-#nt_header asm_bra, "bra", IM+NN
-#nt_header asm_brk, "brk", IM+NN
-#nt_header asm_bvc, "bvc", IM+NN
-#nt_header asm_bvs, "bvs", IM+NN
-#nt_header asm_clc, "clc", IM+NN
-#nt_header asm_cld, "cld", IM+NN
-#nt_header asm_cli, "cli", IM+NN
-#nt_header asm_clv, "clv", IM+NN
-#nt_header asm_cmp, "cmp", IM+NN
-#nt_header asm_cmp_h, "cmp.#", IM+NN
-#nt_header asm_cmp_x, "cmp.x", IM+NN
-#nt_header asm_cmp_y, "cmp.y", IM+NN
-#nt_header asm_cmp_z, "cmp.z", IM+NN
-#nt_header asm_cmp_zi, "cmp.zi", IM+NN
-#nt_header asm_cmp_ziy, "cmp.ziy", IM+NN
-#nt_header asm_cmp_zx, "cmp.zx", IM+NN
-#nt_header asm_cmp_zxi, "cmp.zxi", IM+NN
-#nt_header asm_cpx, "cpx", IM+NN
-#nt_header asm_cpx_h, "cpx.#", IM+NN
-#nt_header asm_cpx_z, "cpx.z", IM+NN
-#nt_header asm_cpy, "cpy", IM+NN
-#nt_header asm_cpy_h, "cpy.#", IM+NN
-#nt_header asm_cpy_z, "cpy.z", IM+NN
-#nt_header asm_dec, "dec", IM+NN
-#nt_header asm_dec_a, "dec.a", IM+NN
-#nt_header asm_dec_x, "dec.x", IM+NN
-#nt_header asm_dec_z, "dec.z", IM+NN
-#nt_header asm_dec_zx, "dec.zx", IM+NN
-#nt_header asm_dex, "dex", IM+NN
-#nt_header asm_dey, "dey", IM+NN
-#nt_header asm_eor, "eor", IM+NN
-#nt_header asm_eor_h, "eor.#", IM+NN
-#nt_header asm_eor_x, "eor.x", IM+NN
-#nt_header asm_eor_y, "eor.y", IM+NN
-#nt_header asm_eor_z, "eor.z", IM+NN
-#nt_header asm_eor_zi, "eor.zi", IM+NN
-#nt_header asm_eor_ziy, "eor.ziy", IM+NN
-#nt_header asm_eor_zx, "eor.zx", IM+NN
-#nt_header asm_eor_zxi, "eor.zxi", IM+NN
-#nt_header asm_inc, "inc", IM+NN
-#nt_header asm_inc_a, "inc.a", IM+NN
-#nt_header asm_inc_x, "inc.x", IM+NN
-#nt_header asm_inc_z, "inc.z", IM+NN
-#nt_header asm_inc_zx, "inc.zx", IM+NN
-#nt_header asm_inx, "inx", IM+NN
-#nt_header asm_iny, "iny", IM+NN
-#nt_header asm_jmp, "jmp", IM+NN
-#nt_header asm_jmp_i, "jmp.i", IM+NN
-#nt_header asm_jmp_xi, "jmp.xi", IM+NN
-#nt_header asm_jsr, "jsr", IM+NN
-#nt_header asm_lda, "lda", IM+NN
-#nt_header asm_lda_h, "lda.#", IM+NN
-#nt_header asm_lda_x, "lda.x", IM+NN
-#nt_header asm_lda_y, "lda.y", IM+NN
-#nt_header asm_lda_z, "lda.z", IM+NN
-#nt_header asm_lda_zi, "lda.zi", IM+NN
-#nt_header asm_lda_ziy, "lda.ziy", IM+NN
-#nt_header asm_lda_zx, "lda.zx", IM+NN
-#nt_header asm_lda_zxi, "lda.zxi", IM+NN
-#nt_header asm_ldx, "ldx", IM+NN
-#nt_header asm_ldx_h, "ldx.#", IM+NN
-#nt_header asm_ldx_y, "ldx.y", IM+NN
-#nt_header asm_ldx_z, "ldx.z", IM+NN
-#nt_header asm_ldx_zy, "ldx.zy", IM+NN
-#nt_header asm_ldy, "ldy", IM+NN
-#nt_header asm_ldy_h, "ldy.#", IM+NN
-#nt_header asm_ldy_x, "ldy.x", IM+NN
-#nt_header asm_ldy_z, "ldy.z", IM+NN
-#nt_header asm_ldy_zx, "ldy.zx", IM+NN
-#nt_header asm_lsr, "lsr", IM+NN
-#nt_header asm_lsr_a, "lsr.a", IM+NN
-#nt_header asm_lsr_x, "lsr.x", IM+NN
-#nt_header asm_lsr_z, "lsr.z", IM+NN
-#nt_header asm_lsr_zx, "lsr.zx", IM+NN
-#nt_header asm_nop, "nop", IM+NN
-#nt_header asm_ora, "ora", IM+NN
-#nt_header asm_ora_h, "ora.#", IM+NN
-#nt_header asm_ora_x, "ora.x", IM+NN
-#nt_header asm_ora_y, "ora.y", IM+NN
-#nt_header asm_ora_z, "ora.z", IM+NN
-#nt_header asm_ora_zi, "ora.zi", IM+NN
-#nt_header asm_ora_ziy, "ora.ziy", IM+NN
-#nt_header asm_ora_zx, "ora.zx", IM+NN
-#nt_header asm_ora_zxi, "ora.zxi", IM+NN
-#nt_header asm_pha, "pha", IM+NN
-#nt_header asm_php, "php", IM+NN
-#nt_header asm_phx, "phx", IM+NN
-#nt_header asm_phy, "phy", IM+NN
-#nt_header asm_pla, "pla", IM+NN
-#nt_header asm_plp, "plp", IM+NN
-#nt_header asm_plx, "plx", IM+NN
-#nt_header asm_ply, "ply", IM+NN
-#nt_header asm_rol, "rol", IM+NN
-#nt_header asm_rol_a, "rol.a", IM+NN
-#nt_header asm_rol_x, "rol.x", IM+NN
-#nt_header asm_rol_z, "rol.z", IM+NN
-#nt_header asm_rol_zx, "rol.zx", IM+NN
-#nt_header asm_ror, "ror", IM+NN
-#nt_header asm_ror_a, "ror.a", IM+NN
-#nt_header asm_ror_x, "ror.x", IM+NN
-#nt_header asm_ror_z, "ror.z", IM+NN
-#nt_header asm_ror_zx, "ror.zx", IM+NN
-#nt_header asm_rti, "rti", IM+NN
-#nt_header asm_rts, "rts", IM+NN
-#nt_header asm_sbc, "sbc", IM+NN
-#nt_header asm_sbc_h, "sbc.#", IM+NN
-#nt_header asm_sbc_x, "sbc.x", IM+NN
-#nt_header asm_sbc_y, "sbc.y", IM+NN
-#nt_header asm_sbc_z, "sbc.z", IM+NN
-#nt_header asm_sbc_zi, "sbc.zi", IM+NN
-#nt_header asm_sbc_ziy, "sbc.ziy", IM+NN
-#nt_header asm_sbc_zx, "sbc.zx", IM+NN
-#nt_header asm_sbc_zxi, "sbc.zxi", IM+NN
-#nt_header asm_sec, "sec", IM+NN
-#nt_header asm_sed, "sed", IM+NN
-#nt_header asm_sei, "sei", IM+NN
-#nt_header asm_sta, "sta", IM+NN
-#nt_header asm_sta_x, "sta.x", IM+NN
-#nt_header asm_sta_y, "sta.y", IM+NN
-#nt_header asm_sta_z, "sta.z", IM+NN
-#nt_header asm_sta_zi, "sta.zi", IM+NN
-#nt_header asm_sta_ziy, "sta.ziy", IM+NN
-#nt_header asm_sta_zx, "sta.zx", IM+NN
-#nt_header asm_sta_zxi, "sta.zxi", IM+NN
-#nt_header asm_stx, "stx", IM+NN
-#nt_header asm_stx_z, "stx.z", IM+NN
-#nt_header asm_stx_zy, "stx.zy", IM+NN
-#nt_header asm_sty, "sty", IM+NN
-#nt_header asm_sty_z, "sty.z", IM+NN
-#nt_header asm_sty_zx, "sty.zx", IM+NN
-#nt_header asm_stz, "stz", IM+NN
-#nt_header asm_stz_x, "stz.x", IM+NN
-#nt_header asm_stz_z, "stz.z", IM+NN
-#nt_header asm_stz_zx, "stz.zx", IM+NN
-#nt_header asm_tax, "tax", IM+NN
-#nt_header asm_tay, "tay", IM+NN
-#nt_header asm_trb, "trb", IM+NN
-#nt_header asm_trb_z, "trb.z", IM+NN
-#nt_header asm_tsb, "tsb", IM+NN
-#nt_header asm_tsb_z, "tsb.z", IM+NN
-#nt_header asm_tsx, "tsx", IM+NN
-#nt_header asm_txa, "txa", IM+NN
-#nt_header asm_txs, "txs", IM+NN
-#nt_header asm_tya, "tya", IM+NN
+nt_asm_first:   ; ... nt_asm_last bracket the asm words for disasm search
+
+nt_asm_adc:     .nt_asm $6d, "adc"      ; ADC llhh
+nt_asm_adc_h:   .nt_asm $69, "adc.#"    ; ADC #dd
+nt_asm_adc_x:   .nt_asm $7d, "adc.x"    ; ADC llhh,x
+nt_asm_adc_y:   .nt_asm $79, "adc.y"    ; ADC llhh,y
+nt_asm_adc_z:   .nt_asm $65, "adc.z"    ; ADC zp
+nt_asm_adc_zi:  .nt_asm $72, "adc.zi"   ; ADC (zp)
+nt_asm_adc_ziy: .nt_asm $71, "adc.ziy"  ; ADC (zp),y
+nt_asm_adc_zx:  .nt_asm $75, "adc.zx"   ; ADC zp,x
+nt_asm_adc_zxi: .nt_asm $61, "adc.zxi"  ; ADC (zp,x)
+
+nt_asm_and:     .nt_asm $2d, "and."     ; AND llhh - not "and" because of conflicts with Forth word
+nt_asm_and_h:   .nt_asm $29, "and.#"    ; AND #dd
+nt_asm_and_x:   .nt_asm $3d, "and.x"    ; AND llhh,x
+nt_asm_and_y:   .nt_asm $39, "and.y"    ; AND llhh,y
+nt_asm_and_z:   .nt_asm $25, "and.z"    ; AND zp
+nt_asm_and_zi:  .nt_asm $32, "and.zi"   ; AND (zp)
+nt_asm_and_ziy: .nt_asm $31, "and.ziy"  ; AND (zp),y
+nt_asm_and_zx:  .nt_asm $35, "and.zx"   ; AND zp,x
+nt_asm_and_zxi: .nt_asm $21, "and.zxi"  ; AND (zp,x)
+
+nt_asm_asl:     .nt_asm $0e, "asl"      ; ASL llhh
+nt_asm_asl_a:   .nt_asm $0a, "asl.a"    ; ASL A
+nt_asm_asl_x:   .nt_asm $1e, "asl.x"    ; ASL llhh,x
+nt_asm_asl_z:   .nt_asm $06, "asl.z"    ; ASL zp
+nt_asm_asl_zx:  .nt_asm $16, "asl.zx"   ; ASL zp,x
+
+nt_asm_bcc:     .nt_asm $90, "bcc"      ; BCC rr
+nt_asm_bcs:     .nt_asm $b0, "bcs"      ; BCS rr
+nt_asm_beq:     .nt_asm $f0, "beq"      ; BEQ rr
+nt_asm_bmi:     .nt_asm $30, "bmi"      ; BMI rr
+nt_asm_bne:     .nt_asm $d0, "bne"      ; BNE rr
+nt_asm_bpl:     .nt_asm $10, "bpl"      ; BPL rr
+nt_asm_bra:     .nt_asm $80, "bra"      ; BRA rr
+nt_asm_bvc:     .nt_asm $50, "bvc"      ; BVC rr
+nt_asm_bvs:     .nt_asm $70, "bvs"      ; BVS rr
+
+nt_asm_bit:     .nt_asm $2c, "bit"      ; BIT llhh
+nt_asm_bit_h:   .nt_asm $89, "bit.#"    ; BIT #dd
+nt_asm_bit_x:   .nt_asm $3c, "bit.x"    ; BIT llhh,x
+nt_asm_bit_z:   .nt_asm $24, "bit.z"    ; BIT zp
+nt_asm_bit_zx:  .nt_asm $34, "bit.zx"   ; BIT zp,x
+
+nt_asm_brk:     .nt_asm $00, "brk"      ; BRK
+
+nt_asm_clc:     .nt_asm $18, "clc"      ; CLC
+nt_asm_cld:     .nt_asm $d8, "cld"      ; CLD
+nt_asm_cli:     .nt_asm $58, "cli"      ; CLI
+nt_asm_clv:     .nt_asm $b8, "clv"      ; CLV
+
+nt_asm_cmp:     .nt_asm $cd, "cmp"      ; CMP llhh
+nt_asm_cmp_h:   .nt_asm $c9, "cmp.#"    ; CMP #dd
+nt_asm_cmp_x:   .nt_asm $dd, "cmp.x"    ; CMP llhh,x
+nt_asm_cmp_y:   .nt_asm $d9, "cmp.y"    ; CMP llhh,y
+nt_asm_cmp_z:   .nt_asm $c5, "cmp.z"    ; CMP zp
+nt_asm_cmp_zi:  .nt_asm $d2, "cmp.zi"   ; CMP (zp)
+nt_asm_cmp_ziy: .nt_asm $d1, "cmp.ziy"  ; CMP (zp),y
+nt_asm_cmp_zx:  .nt_asm $d5, "cmp.zx"   ; CMP zp,x
+nt_asm_cmp_zxi: .nt_asm $c1, "cmp.zxi"  ; CMP (zp,x)
+
+nt_asm_cpx:     .nt_asm $ec, "cpx"      ; CPX llhh
+nt_asm_cpx_h:   .nt_asm $e0, "cpx.#"    ; CPX #dd
+nt_asm_cpx_z:   .nt_asm $e4, "cpx.z"    ; CPX zp
+
+nt_asm_cpy:     .nt_asm $cc, "cpy"      ; CPY llhh
+nt_asm_cpy_h:   .nt_asm $c0, "cpy.#"    ; CPY #dd
+nt_asm_cpy_z:   .nt_asm $c4, "cpy.z"    ; CPY zp
+
+nt_asm_dec:     .nt_asm $ce, "dec"      ; DEC llhh
+nt_asm_dec_a:   .nt_asm $3a, "dec.a"    ; DEC A
+nt_asm_dec_x:   .nt_asm $de, "dec.x"    ; DEC llhh,x
+nt_asm_dec_z:   .nt_asm $c6, "dec.z"    ; DEC zp
+nt_asm_dec_zx:  .nt_asm $d6, "dec.zx"   ; DEC zp,x
+
+nt_asm_dex:     .nt_asm $ca, "dex"      ; DEX
+nt_asm_dey:     .nt_asm $88, "dey"      ; DEY
+
+nt_asm_eor:     .nt_asm $4d, "eor"      ; EOR llhh
+nt_asm_eor_h:   .nt_asm $49, "eor.#"    ; EOR #dd
+nt_asm_eor_x:   .nt_asm $5d, "eor.x"    ; EOR llhh,x
+nt_asm_eor_y:   .nt_asm $59, "eor.y"    ; EOR llhh,y
+nt_asm_eor_z:   .nt_asm $45, "eor.z"    ; EOR zp
+nt_asm_eor_zi:  .nt_asm $52, "eor.zi"   ; EOR (zp)
+nt_asm_eor_ziy: .nt_asm $51, "eor.ziy"  ; EOR (zp),y
+nt_asm_eor_zx:  .nt_asm $55, "eor.zx"   ; EOR zp,x
+nt_asm_eor_zxi: .nt_asm $41, "eor.zxi"  ; EOR (zp,x)
+
+nt_asm_inc:     .nt_asm $ee, "inc"      ; INC llhh
+nt_asm_inc_a:   .nt_asm $1a, "inc.a"    ; INC A
+nt_asm_inc_x:   .nt_asm $fe, "inc.x"    ; INC llhh,x
+nt_asm_inc_z:   .nt_asm $e6, "inc.z"    ; INC zp
+nt_asm_inc_zx:  .nt_asm $f6, "inc.zx"   ; INC zp,x
+
+nt_asm_inx:     .nt_asm $e8, "inx"      ; INX
+nt_asm_iny:     .nt_asm $c8, "iny"      ; INY
+
+nt_asm_jmp:     .nt_asm $4c, "jmp"      ; JMP llhh - flags containing word as NN
+nt_asm_jmp_i:   .nt_asm $6c, "jmp.i"    ; JMP (llhh)
+nt_asm_jmp_xi:  .nt_asm $7c, "jmp.xi"   ; JMP (llhh,x)
+
+nt_asm_jsr:     .nt_asm $20, "jsr"      ; JSR llhh
+
+nt_asm_lda:     .nt_asm $ad, "lda"      ; LDA llhh
+nt_asm_lda_h:   .nt_asm $a9, "lda.#"    ; LDA #dd
+nt_asm_lda_x:   .nt_asm $bd, "lda.x"    ; LDA llhh,x
+nt_asm_lda_y:   .nt_asm $b9, "lda.y"    ; LDA llhh,y
+nt_asm_lda_z:   .nt_asm $a5, "lda.z"    ; LDA zp
+nt_asm_lda_zi:  .nt_asm $b2, "lda.zi"   ; LDA (zp)
+nt_asm_lda_ziy: .nt_asm $b1, "lda.ziy"  ; LDA (zp),y
+nt_asm_lda_zx:  .nt_asm $b5, "lda.zx"   ; LDA zp,x
+nt_asm_lda_zxi: .nt_asm $a1, "lda.zxi"  ; LDA (zp,x)
+
+nt_asm_ldx:     .nt_asm $ae, "ldx"      ; LDX llhh
+nt_asm_ldx_h:   .nt_asm $a2, "ldx.#"    ; LDX #dd
+nt_asm_ldx_y:   .nt_asm $be, "ldx.y"    ; LDX llhh,x
+nt_asm_ldx_z:   .nt_asm $a6, "ldx.z"    ; LDX zp
+nt_asm_ldx_zy:  .nt_asm $b6, "ldx.zy"   ; LDX zp,y
+
+nt_asm_ldy:     .nt_asm $ac, "ldy"      ; LDY llhh
+nt_asm_ldy_h:   .nt_asm $a0, "ldy.#"    ; LDY #dd
+nt_asm_ldy_x:   .nt_asm $bc, "ldy.x"    ; LDY llhh,x
+nt_asm_ldy_z:   .nt_asm $a4, "ldy.z"    ; LDY zp
+nt_asm_ldy_zx:  .nt_asm $b4, "ldy.zx"   ; LDY zp,x
+
+nt_asm_lsr:     .nt_asm $4e, "lsr"      ; LSR llhh
+nt_asm_lsr_a:   .nt_asm $4a, "lsr.a"    ; LSR A
+nt_asm_lsr_x:   .nt_asm $5e, "lsr.x"    ; LSR llhh,x
+nt_asm_lsr_z:   .nt_asm $46, "lsr.z"    ; LSR zp
+nt_asm_lsr_zx:  .nt_asm $56, "lsr.zx"   ; LSR zp,x
+
+nt_asm_nop:     .nt_asm $ea, "nop"      ; NOP
+
+nt_asm_ora:     .nt_asm $0d, "ora"      ; ORA llhh
+nt_asm_ora_h:   .nt_asm $09, "ora.#"    ; ORA #dd
+nt_asm_ora_x:   .nt_asm $1d, "ora.x"    ; ORA llhh,x
+nt_asm_ora_y:   .nt_asm $19, "ora.y"    ; ORA llhh,y
+nt_asm_ora_z:   .nt_asm $05, "ora.z"    ; ORA zp
+nt_asm_ora_zi:  .nt_asm $12, "ora.zi"   ; ORA (zp)
+nt_asm_ora_ziy: .nt_asm $11, "ora.ziy"  ; ORA (zp),y
+nt_asm_ora_zx:  .nt_asm $15, "ora.zx"   ; ORA zp,x
+nt_asm_ora_zxi: .nt_asm $01, "ora.zxi"  ; ORA (zp,x)
+
+nt_asm_pha:     .nt_asm $48, "pha"      ; PHA
+nt_asm_php:     .nt_asm $08, "php"      ; PHP
+nt_asm_phx:     .nt_asm $da, "phx"      ; PHX
+nt_asm_phy:     .nt_asm $5a, "phy"      ; PHY
+
+nt_asm_pla:     .nt_asm $68, "pla"      ; PLA
+nt_asm_plp:     .nt_asm $28, "plp"      ; PLP
+nt_asm_plx:     .nt_asm $fa, "plx"      ; PLX
+nt_asm_ply:     .nt_asm $7a, "ply"      ; PLY
+
+nt_asm_rol:     .nt_asm $2e, "rol"      ; ROL llhh
+nt_asm_rol_a:   .nt_asm $2a, "rol.a"    ; ROL A
+nt_asm_rol_x:   .nt_asm $3e, "rol.x"    ; ROL llhh,x
+nt_asm_rol_z:   .nt_asm $26, "rol.z"    ; ROL zp
+nt_asm_rol_zx:  .nt_asm $36, "rol.zx"   ; ROL zp,x
+
+nt_asm_ror:     .nt_asm $6e, "ror"      ; ROR llhh
+nt_asm_ror_a:   .nt_asm $6a, "ror.a"    ; ROR A
+nt_asm_ror_x:   .nt_asm $7e, "ror.x"    ; ROR llhh,x
+nt_asm_ror_z:   .nt_asm $66, "ror.z"    ; ROR zp
+nt_asm_ror_zx:  .nt_asm $76, "ror.zx"   ; ROR zp,x
+
+nt_asm_rti:     .nt_asm $40, "rti"      ; RTI
+nt_asm_rts:     .nt_asm $60, "rts"      ; RTS
+
+nt_asm_sbc:     .nt_asm $ed, "sbc"      ; SBC llhh
+nt_asm_sbc_h:   .nt_asm $e9, "sbc.#"    ; SBC #dd
+nt_asm_sbc_x:   .nt_asm $fd, "sbc.x"    ; SBC llhh,x
+nt_asm_sbc_y:   .nt_asm $f9, "sbc.y"    ; SBC llhh,y
+nt_asm_sbc_z:   .nt_asm $e5, "sbc.z"    ; SBC zp
+nt_asm_sbc_zi:  .nt_asm $f2, "sbc.zi"   ; SBC (zp)
+nt_asm_sbc_ziy: .nt_asm $f1, "sbc.ziy"  ; SBC (zp),y
+nt_asm_sbc_zx:  .nt_asm $f5, "sbc.zx"   ; SBC zp,x
+nt_asm_sbc_zxi: .nt_asm $e1, "sbc.zxi"  ; SBC (zp,x)
+
+nt_asm_sec:     .nt_asm $38, "sec"      ; SEC
+nt_asm_sed:     .nt_asm $f8, "sed"      ; SED
+nt_asm_sei:     .nt_asm $78, "sei"      ; SEI
+
+nt_asm_sta:     .nt_asm $8d, "sta"      ; STA llhh
+nt_asm_sta_x:   .nt_asm $9d, "sta.x"    ; STA llhh,x
+nt_asm_sta_y:   .nt_asm $99, "sta.y"    ; STA llhh,y
+nt_asm_sta_z:   .nt_asm $85, "sta.z"    ; STA zp
+nt_asm_sta_zi:  .nt_asm $92, "sta.zi"   ; STA (zp)
+nt_asm_sta_ziy: .nt_asm $91, "sta.ziy"  ; STA (zp),y
+nt_asm_sta_zx:  .nt_asm $95, "sta.zx"   ; STA zp,x
+nt_asm_sta_zxi: .nt_asm $81, "sta.zxi"  ; STA (zp,x)
+
+nt_asm_stx:     .nt_asm $8e, "stx"      ; STX llhh
+nt_asm_stx_z:   .nt_asm $86, "stx.z"    ; STX zp
+nt_asm_stx_zy:  .nt_asm $96, "stx.zy"   ; STX zp,y
+
+nt_asm_sty:     .nt_asm $8c, "sty"      ; STY llhh
+nt_asm_sty_z:   .nt_asm $84, "sty.z"    ; STY zp
+nt_asm_sty_zx:  .nt_asm $94, "sty.zx"   ; STY zp,x
+
+nt_asm_stz:     .nt_asm $9c, "stz"      ; STZ llhh
+nt_asm_stz_x:   .nt_asm $9e, "stz.x"    ; STZ llhh,x
+nt_asm_stz_z:   .nt_asm $64, "stz.z"    ; STZ zp
+nt_asm_stz_zx:  .nt_asm $74, "stz.zx"   ; STZ zp,x
+
+nt_asm_tax:     .nt_asm $aa, "tax"      ; TAX
+nt_asm_tay:     .nt_asm $a8, "tay"      ; TAY
+
+nt_asm_trb:     .nt_asm $1c, "trb"      ; TRB llhh
+nt_asm_trb_z:   .nt_asm $14, "trb.z"    ; TRB zp
+
+nt_asm_tsb:     .nt_asm $0c, "tsb"      ; TSB llhh
+nt_asm_tsb_z:   .nt_asm $04, "tsb.z"    ; TSB zp
+
+nt_asm_tsx:     .nt_asm $ba, "tsx"      ; TSX
+nt_asm_txa:     .nt_asm $8a, "txa"      ; TAX
+nt_asm_txs:     .nt_asm $9a, "txs"      ; TXS
+nt_asm_tya:     .nt_asm $98, "tya"      ; TYA
+
+nt_asm_last:
 
 ; Assembler pseudo-instructions, directives and macros
 

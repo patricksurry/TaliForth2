@@ -54,6 +54,15 @@ hex
 : 1122 1122 ;
 : 3 3 ;
 
+\ Test that words with assembler direct JMP are marked NN
+\ see https://github.com/SamCoVT/TaliForth2/issues/113
+: aword dup drop ;
+: cword [ ' aword jmp ] ;
+: dword [ ' aword ] jmp ;
+
+T{ capture-output see cword restore-output s"  NN 1 " search -rot 2drop -> true }T
+T{ capture-output see cword restore-output s"  NN 1 " search -rot 2drop -> true }T
+
 \ --------------------------------------------------------------------------
 
 \ Testing pseudo-instructions
@@ -70,6 +79,7 @@ T{ 1122 s" 1122 sta" little-endian? -> true }T
 T{ nops -> 3 }T
 
 \ Testing all assembler instructions: Opcode and length
+T{ 06D 3 s" 1122 adc" opcode-test -> true true }T
 T{ 069 2 s" 12 adc.#" opcode-test -> true true }T
 T{ 07D 3 s" 1122 adc.x" opcode-test -> true true }T
 T{ 079 3 s" 1122 adc.y" opcode-test -> true true }T

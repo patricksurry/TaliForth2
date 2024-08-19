@@ -127,5 +127,11 @@ T{ c"dup" FIND -> xt  @ -1 }T
 T{ c".("  FIND -> xti @  1 }T
 T{ c"x"   FIND -> c"x"   0 }T
 
+\ ORDER tests
+
+assembler-wordlist >order assembler-wordlist set-current
+T{ capture-output order restore-output s\" \nAssembler Forth   Assembler \n" compare -> assembler-wordlist 0 }T
+only forth definitions
+T{ capture-output order restore-output s\" \nForth   Forth \n" compare -> 0 0 }T
 
 search_tests

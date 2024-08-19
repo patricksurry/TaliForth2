@@ -594,11 +594,11 @@ z_and:          rts
 
 
 
-; ## AT_XY ( n m -- ) "Move cursor to position given"
-; ## "at-xy"  tested  ANS facility
+; ## AT_XY ( m n -- ) "Move cursor to position given"
+; ## "at-xy"  auto  ANS facility
         ; """https://forth-standard.org/standard/facility/AT-XY
-        ; On an ANSI compatible terminal, place cursor at row n colum m.
-        ; ANSI code is ESC[<n>;<m>H
+        ; On an ANSI compatible terminal, place cursor at row n column m.
+        ; ANSI code is ESC[<n+1>;<m+1>H
         ;
         ; Do not use U. to print the numbers because the
         ; trailing space will not work with xterm
@@ -763,7 +763,7 @@ z_bracket_tick: rts
                 ; """
 xt_buffer_colon:
 w_buffer_colon:
-                jsr w_create
+                jsr w_create            ; will report default PFA size of 2 in SEE
                 jsr w_allot
 z_buffer_colon: rts
 
@@ -1044,39 +1044,14 @@ w_value:
 w_constant:
 
             	; Use create but with DOCONST for constants.
+                lda #2
+                sta tmpdsp              ; 2 byte PFA
                 lda #<doconst           ; LSB of DOCONST
                 ldy #>doconst           ; MSB of DOCONST
                 jsr create_common
 
                 ; Now we save the constant number itself in the next cell
-                jsr w_comma            ; drop through to adjust_z
-
-adjust_z:
-                ; Now the length of the complete word has increased by
-                ; two. We need to update that number or else words such as SEE
-                ; will ignore the PFA. We use this same routine for VARIABLE,
-                ; VALUE and DEFER
-                jsr w_latestnt          ; gives us ( -- nt )
-
-                ; Use header status flags to calculate offset to code size
-                ; code size is 3 + 0-3 bytes further down
-                lda (0,x)               ; Fetch status flags
-                and #DC+FP
-                lsr
-                adc #3                  ; 3 + 0/2(DC) + 0/1(FP=C)
-                adc 0,x                 ; add nt to offset
-                sta 0,x
-                bcc +
-                inc 1,x
-+
-                lda (0,x)
-                ina
-                ina
-                sta (0,x)               ; size += 2
-
-                inx
-                inx
-
+                jsr w_comma
 z_value:
 z_constant:     rts
 
@@ -1139,6 +1114,11 @@ xt_create:
 w_create:
                 ; Several routines will use CREATE to build new words.
                 ; They'll pass the CFA in A/Y, with Y=0 indicating no CFA.
+                ; When Y is non-zero, tmpdsp should contain the PFA size
+                ; so we can adjust the word length for SEE.
+                lda #2                  ; 2 byte PFA for variable
+                sta tmpdsp
+create_dovar:
                 ldy #>dovar
                 lda #<dovar
 create_common:
@@ -1151,21 +1131,27 @@ create_common:
                 ; get string
                 jsr w_parse_name        ; ( cfa addr u )
 
-                ; if we were given an empty string, we complain and quit
+                ; We want a length between 1 and 31.  We could allow 1-32
+                ; and store length-1 but it doesn't seem worth the hassle.
+                ; Complain and quit if it's empty.  Shorten it if too long.
+                lda 1,x
+                bne _too_long
+
                 lda 0,x
-                ora 1,x
-                bne _got_name
+                bne +
 
                 lda #err_noname
                 jmp error
++
+                cmp #32
+                bcc +
 
-_got_name:
-                ; Enforce maximal length of string by overwriting the MSB of
-                ; the length.   We also implicitly assume below that N < 248 so that
-                ; the total header length (N+8) also fits in a byte.
-                ; If not a lot of the following additions will fail due to carry
+_too_long:
+                ; The name is too long - silently shorten to 31 chars
+                lda #31
+                sta 0,x
                 stz 1,x
-
++
                 ; Check to see if this name already exists.
                 jsr w_two_dup           ; ( cfa addr u addr u )
                 jsr w_find_name         ; ( cfa addr u flag ) (non-zero nt as flag)
@@ -1392,6 +1378,8 @@ z_decimal:      rts
 xt_defer:
 w_defer:
                 ; we want CREATE but with DODEFER as the CFA
+                lda #2
+                sta tmpdsp      ; 2 byte PFA
                 lda #<dodefer   ; LSB
                 ldy #>dodefer   ; MSB
                 jsr create_common
@@ -1402,10 +1390,14 @@ w_defer:
                 lda #<defer_error
                 ldy #>defer_error
                 jsr cmpl_word
-                jsr adjust_z    ; adjust header by two to correct length
 
 z_defer:        rts
 
+
+defer_error:
+                ; """Error routine for undefined DEFER: Complain and abort"""
+                lda #err_defer
+                jmp error
 
 
 ; ## DEFER_FETCH ( xt1 -- xt2 ) "Get the current XT for a deferred word"
@@ -1702,7 +1694,7 @@ does_runtime:
                 sta (tmp1),y
 
                 ; Since we removed the return address that brought us here, we
-                ; go back to whatever the main routine was. Otherwise, we we
+                ; go back to whatever the main routine was. Otherwise, we
                 ; smash into the subroutine jump to DODOES.
                 rts
 
@@ -1994,15 +1986,14 @@ w_environment_q:
                 ; a bit harder by the fact that some of these return a
                 ; double-cell number and some a single-cell one.
 
-                ; We will walk through the table with variables that return
-                ; a single-cell result
-                ldy #00                 ; counter for table
 
-                ; We use a flag on the the stack to signal if we have a single-cell
-                ; or double-cell number. We use 0 to signal single-cell and 1 for
-                ; double-cell.
-                phy
+                ldy #0                  ; index for table
+
 _table_loop:
+                ; See if this is the last entry.
+                cpy #env_table_end - env_table_single
+                beq _table_done
+
                 ; We arrived here with the address of the string to be checked
                 ; on the stack. We make a copy. Index is in Y
                 jsr w_two_dup          ; ( addr u addr u ) 2DUP does not use Y
@@ -2016,51 +2007,44 @@ _table_loop:
                 sta 0,x
                 iny
                 lda env_table_single,y
-                sta 1,x                 ; ( addr u addr u addr-t )
+                sta 1,x                 ; ( addr u addr u addr-s )
                 iny
 
-                ; See if this is the last entry. The LSB is still in A
-                ora 0,x
-                beq _table_done
+                ; Calculate length using difference from next pointer
+                dex
+                dex
+                lda env_table_single,y
+                sta 0,x
+                lda env_table_single+1,y
+                sta 1,x
+                jsr xt_over
+                jsr xt_minus            ; ( addr u addr u addr-s u-s )
 
-                ; We have a string entry. The address there is stored in
-                ; old-style address format, that is, the first byte is the
-                ; length of the string
-                phy                     ; save Y, which is used by COUNT
-                jsr w_count            ; ( addr u addr u addr-s u-s )
-                jsr w_compare          ; ( addr u f )
-                ply
+                ; Compare the strings (surprisingly w_compare doesn't use Y)
+                jsr w_compare           ; ( addr u f )
 
-                ; If we found a match (flag is zero -- COMPARE is weird
-                ; that way), return the result
-                lda 0,x
-                ora 1,x
-                beq _got_result
-
-                ; Flag is not zero, so not a perfect match, so try next
-                ; word
+                ; Pre-drop the flag before we branch
                 inx                     ; DROP, now ( addr u )
                 inx
 
-                bra _table_loop
+                ; If we found a match (flag is zero -- COMPARE is weird
+                ; that way), fall through to return the result
+                lda $fe,x
+                ora $ff,x
+                bne _table_loop         ; Not a match, so try next string
 
-_got_result:
-                ; We arrive here with ( addr u -1 ) and know that we've found
-                ; a match. The index of the match+2 is in Y.
-                inx                     ; drop flag, now ( addr u )
-                inx
+                ; We arrive here with ( addr u ) after finding a match
+                ; Y contains the index of the match + 2.
                 dey                     ; go back to index we had
                 dey
 
-                ; See if this is a single-cell word.
-                pla
-                bne _double_result
+                cpy #env_table_double - env_table_single
+                bcs _double_result
 
                 ; Single-cell result
                 lda env_results_single,y
                 sta 2,x
-                iny
-                lda env_results_single,y
+                lda env_results_single+1,y
                 sta 3,x                 ; ( res u )
 
                 bra _set_flag
@@ -2072,91 +2056,61 @@ _double_result:
                 dex                     ; ( addr u ? )
                 dex
 
-                ; We have 11 single-cell words we check, plus the 0000 as
-                ; a marker for the end of the table, so we arrive here
-                ; with Y as 22 or more. To get the index for the double-
-                ; cell words, we move the result
+                ; To get the index for the double-cell words,
+                ; we subtract the table offset and multiply by two
+                ; since we have four bytes per entry but Y increments by 2
                 tya
                 sec
-                sbc #24
-
-                ; We have four bytes per entry in the table, but the index
-                ; keeps increasing by two, so we only have to multiply by
-                ; two (shift left once) to get the right result
+                sbc #(env_table_double - env_table_single)
                 asl
                 tay
 
                 lda env_results_double,y
                 sta 2,x
-                iny
-                lda env_results_double,y
+                lda env_results_double+1,y
                 sta 3,x                 ; ( res u ? )
-                iny
-
-                lda env_results_double,y
+                lda env_results_double+2,y
                 sta 4,x
-                iny
-                lda env_results_double,y
+                lda env_results_double+3,y
                 sta 5,x                 ; ( res res ? )
 
                 ; fall through to _set_flag
 _set_flag:
-                lda #$FF
-                sta 0,x
-                sta 1,x                 ; ( res f )
-
+                lda #$ff
                 bra _done
+
 _table_done:
-                ; We're done with a table, because the entry was a zero.
-                ; We arrive here with ( addr u addr u 0 )
+                ; We're done checking all the entries.
+                ; We arrive here with ( addr u )
+                ; Drop one entry to leave space for flag ( ? )
+                inx
+                inx
+                lda #0                  ; flag failure and fall through
 
-                ; We take the flag from stack and increase it by one. If the
-                ; flag is zero, we have just completed the single-cell number
-                ; strings, so we in increase the flag and try again. Otherwise,
-                ; we're done with the double-cell table without having found
-                ; a match, and we're done
-                pla
-                bne _no_match
-
-                ; Flag is zero, increase it to one and start over to check
-                ; double-cell values
-                ina
-                pha
-
-                txa
-                clc
-                adc #6                  ; skip six bytes
-                tax                     ; ( addr u )
-
-                bra _table_loop
-_no_match:
-                ; Bummer, not found. We arrive here with
-                ; ( addr u addr u 0 ) and need to return just a zero
-                txa
-                clc
-                adc #10
-                tax                     ; ( addr ) - not ( 0 ) !
-
-                jsr w_false
 _done:
+                ; Set the flag to either ffff or 0000 leaving
+                ; ( res true ) or ( dres dres true ) or just ( false )
+                sta 0,x
+                sta 1,x
+
 z_environment_q:
                 rts
 
 
 ; Tables for ENVIRONMENT?. We use two separate ones, one for the single-cell
-; results and one for the double-celled results. The zero cell at the
-; end of each table marks its, uh, end. The strings themselves are defined
-; in strings.asm. Note if we add more entries to the single-cell table, we
-; have to adapt the result code for double printout, where we subtract 22
-; (two bytes each single-cell string and two bytes for the end-of-table
-; marker 0000
+; results and one for the double-celled results. The strings themselves
+; are defined consecutively in strings.asm so that we can calculate
+; length as the difference in offsets.
+
 env_table_single:
         .word envs_cs, envs_hold, envs_pad, envs_aub, envs_floored
         .word envs_max_char, envs_max_n, envs_max_u, envs_rsc
-        .word envs_sc, envs_wl, 0000
-
+        .word envs_sc, envs_wl
 env_table_double:
-        .word envs_max_d, envs_max_ud, 0000
+        .word envs_max_d, envs_max_ud
+env_table_end:
+        .word envs_eot                  ; pointer beyond last string
+
 
 env_results_single:
         .word $00FF     ; /COUNTED-STRING
@@ -3227,11 +3181,11 @@ _noleave:
                 ; reuse TOS
 
                 ; Clean up the loop params by appending unloop
-                lda #<w_unloop
+                lda #<nt_unloop
                 sta 0,x
-                lda #>w_unloop
+                lda #>nt_unloop
                 sta 1,x
-                jsr w_compile_comma
+                jsr compile_nt_comma    ; use the faster entry with the NT
 
                 ; Finally we're left with qdo-skip which either
                 ; points at ?DO's "skip the loop" jmp address,
@@ -3241,7 +3195,7 @@ _noleave:
                 beq +
                 jsr w_here
                 jsr w_swap
-                jmp w_store            ; write here as ?DO jmp target and return
+                jmp w_store             ; write here as ?DO jmp target and return
 
 +               inx                     ; drop the ignored word for DO
                 inx
@@ -3436,16 +3390,20 @@ w_marker:
                 pha
 
                 ; we want CREATE but with marker_runtime as the CFA
+                lda #4 + marker_end_offset - marker_start_offset
+                sta tmpdsp              ; PFA size in bytes
                 lda #<marker_runtime
                 ldy #>marker_runtime
                 jsr create_common
 
-                ; Add original CP as payload
+                ; Write the payload bytes
+
+                ; Add original CP
                 ply                     ; MSB
                 pla                     ; LSB
                 jsr cmpl_word
 
-                ; Add original DP as payload
+                ; Add original DP
                 ply                     ; MSB
                 pla                     ; LSB
                 jsr cmpl_word
@@ -3464,13 +3422,14 @@ z_marker:       rts
 
 
 marker_runtime:
-        ; """Restore Dictionary and memory (DP and CP) to where the were
-        ; when this marker was defined. We arrive here with the return
-        ; address on the Return Stack in the usual 65c02 format
+        ; """Restore Dictionary and memory (DP and CP) along with other
+        ; user state to where they were when marker was defined.
+        ; This is called as a CFA followed by the payload data in the PFA, so
+        ; the return address when we arrive here points to PFA-1
         ; """
 
-                ; Get the address of the string address off the stack and
-                ; increase by one because of the RTS mechanics
+                ; Get the address of the payload off the stack,
+                ; increasing by one because of the RTS mechanics
                 pla
                 sta tmp1        ; LSB of address
                 pla
@@ -3836,7 +3795,7 @@ _skip:          jsr w_not_rot           ; ( qu v ru )
 
                 lda 0,x
                 tay
-                lda s_abc_upper,y       ; upper case 0-9A-Z
+                lda alpha36,y           ; upper case 0-9A-Z
                 sta 0,x
                 stz 1,x                 ; paranoid; now ( ud char )
 
@@ -4051,7 +4010,7 @@ z_pad:          rts
 
 
 ; ## PAGE ( -- ) "Clear the screen"
-; ## "page"  tested  ANS facility
+; ## "page"  auto  ANS facility
         ; """https://forth-standard.org/standard/facility/PAGE
         ; Clears a page if supported by ANS terminal codes. This is
         ; Clear Screen ("ESC[2J") plus moving the cursor to the top
@@ -4117,6 +4076,8 @@ z_paren:        rts
         ; is actually perfectly legal (see for example
         ; http://forth-standard.org/standard/usage#subsubsection.3.4.1.1).
         ; Otherwise, PARSE-NAME chokes on tabs.
+        ;
+        ; Uses tmp1, tmp2
         ; """
 
 xt_parse_name:
@@ -4448,22 +4409,18 @@ z_plus:         rts
 xt_plus_store:
                 jsr underflow_2
 w_plus_store:
-                ; move address to tmp1 so we can work with it
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
-
-                ldy #0          ; LSB
-                lda (tmp1),y
                 clc
+                lda (0,x)       ; fetch LSB at addr
                 adc 2,x
-                sta (tmp1),y
+                sta (0,x)
 
-                iny             ; MSB
-                lda (tmp1),y
+                inc 0,x         ; addr++
+                bne +
+                inc 1,x
++
+                lda (0,x)       ; fetch MSB
                 adc 3,x
-                sta (tmp1),y
+                sta (0,x)
 
                 inx
                 inx
@@ -4520,21 +4477,19 @@ w_postpone:
                 beq _not_immediate
 
                 ; We're immediate, so instead of executing it right now, we
-                ; compile it. xt is TOS, so this is easy. The RTS at the end
-                ; takes us back to the original caller
-                jsr w_compile_comma
+                ; compile it. nt is TOS, so this is easy.
+                jsr compile_nt_comma
                 bra _done
 
 _not_immediate:
                 ; This is not an immediate word, so we enact "deferred
-                ; compilation" by including ' <NAME> COMPILE, which we do by
-                ; compiling the run-time routine of LITERAL, the xt itself, and
-                ; a subroutine jump to COMPILE,
-                jsr w_literal
+                ; compilation" by including ' <NAME> COMPILE-NT, which we do by
+                ; compiling the literal xt, and a subroutine jump to COMPILE-NT,
+                jsr w_literal                   ; ( nt -- )
 
                 ; Last, compile COMPILE,
-                ldy #>w_compile_comma
-                lda #<w_compile_comma
+                ldy #>compile_nt_comma
+                lda #<compile_nt_comma
                 jsr cmpl_subroutine
 _done:
 z_postpone:     rts
@@ -4930,10 +4885,44 @@ w_s_quote:
                 stz tmp2+1
 
 s_quote_start:
-                ; Put a jmp past the string data to be filled in later.
-                jsr cmpl_jump_later
-                jsr w_here             ; the start of the string
-                ; ( jmp-target addr )
+                ; S" has undefined interpretation semantics in the CORE word set, but
+                ; the FILE wordset permits it provided "no standard words other than S"
+                ; ... [should overwrite the] interpreted string"
+                ; (see https://forth-standard.org/standard/file/Sq for the details).
+                ; One approach would be to reserve a fixed buffer of at least 80
+                ; bytes somewhere outside the dictionary, like we do for command history
+                ; or the block buffer.  The alternative adopted here is to always
+                ; allocate space for the string in the dictionary.  This means
+                ; that every interactive use of S" allocates space you won't get back
+                ; (without MARKER or the like) but has the big advantage that strings
+                ; stay where you put them and don't get overwritten by other operations.
+
+                ; We will save a bit of space when interpeting by writing the string
+                ; literal directly HERE.  When we're compiling we'll use SLITERAL
+                ; which needs a five byte prologue (jsr sliteral_runtime / .word length)
+                ; so we'll leave space for that.
+
+                lda state               ; check whether we're interpeting (0) or compiling (-1)
+                ora state+1             ; paranoid
+
+                pha                     ; save zero / nonzero for post-processing
+                beq _interpeting        ; just write string directly
+
+                ; we're compiling, so reserve just enough space for SLITERAL to later
+                ; add the prologue before the string data
+
+                clc
+                lda cp
+                adc #5                  ; reserve five bytes for the prologue (see below)
+                sta cp
+                bcc +
+                inc cp+1
++
+_interpeting:
+                ; Now we'll compile the string bytes into the dictionary
+                ; But first remember the address where we started
+
+                jsr w_here              ; ( addr )
 
 _savechars_loop:
                 ; Start saving the string into the dictionary up to the
@@ -5137,32 +5126,40 @@ _found_string_end:
                 bne +
                 inc toin+1
 +
-                ; We currently have ( jmp-target addr )
-                ; We need to calculate the length of string
-                ; and update the jump target.
+                ; Finally we've compiled all the string data into the dictionary
+                ; We still have the start address and need the string length
 
-                jsr w_here
-                jsr w_rot
-                jsr w_store    ; Update the jmp target
-
+                ; ( addr )
                 jsr w_here
                 jsr w_over
                 jsr w_minus    ; HERE - addr gives string length
+                ; ( addr u )
 
                 ; What happens next depends on the state (which is bad, but
                 ; that's the way it works at the moment). If we are
-                ; interpreting, we save the string to a transient buffer
-                ; and return that address (used for file calls, see
-                ; https://forth-standard.org/standard/file/Sq ). If we're
-                ; compiling, we just need SLITERAL
-                lda state
-                ora state+1             ; paranoid
+                ; interpreting (state=0), we're done because we've saved the string
+                ; to a buffer.  (In fact we've over-delivered by compiling the string
+                ; to permanent storage in the dictionary!)
+
+                ; If we're compiling, we need to turn the string into an SLITERAL.
+                ; We'll just rewind the CP to where it was when we started -
+                ; five bytes before the string we've written - and let sliteral
+                ; work its magic.  It'll write the five byte prologue and copy
+                ; the string data onto itself (a no-op) while re-allocating the space.
+
+                pla                     ; fetch the state flag (0 = interpret)
                 beq _done
 
-                ; Jump into the middle of the sliteral word, after the
-                ; string data has been compiled into the dictionary,
-                ; because we've already done that step.
-                jsr cmpl_sliteral         ; ( addr u -- )
+                sec                     ; rewind the CP to addr-5
+                lda 2,x
+                sbc #5
+                sta cp
+                lda 3,x
+                sbc #0
+                sta cp+1
+
+                ; write the prologue, "copy" the string and reallocate the space
+                jsr w_sliteral         ; ( addr u -- )
 
 _done:
 z_s_quote:      rts
@@ -5847,11 +5844,11 @@ z_to:           rts
         ; start of that word's parameter field (PFA). This is defined as the
         ; address that HERE would return right after CREATE.
         ;
-        ; This is a
-        ; difficult word for STC Forths, because most words don't actually
-        ; have a Code Field Area (CFA) to skip. We solve this by having CREATE
-        ; add a flag, "has CFA" (HC), in the header so >BODY know to skip
-        ; the subroutine jumps to DOVAR, DOCONST, or DODOES
+        ; This is a difficult word for STC Forths, because most words
+        ; don't actually have a Code Field Area (CFA) to skip.
+
+        ; We solve this with a header flag in CREATE, "has CFA" (HC),
+        ; so >BODY knows to skip the CFA jsr like DOVAR, DOCONST, or DODOES
         ; """
 
 xt_to_body:
@@ -6894,9 +6891,6 @@ w_variable:
                 lda #0
                 jsr cmpl_a
                 jsr cmpl_a
-
-                ; Now we need to adjust the length of the complete word by two bytes
-                jsr adjust_z
 
 z_variable:     rts
 

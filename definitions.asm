@@ -256,25 +256,32 @@ OpBNE   = $D0
 OpBEQ   = $F0
 OpRTS   = $60
 OpBRA   = $80
+OpBITzp = $24   ; used to save a branch occasionally
+
 
 ; DICTIONARY FLAGS
-; The first two bits (7, 6) are currently unused.  COMPILE, assumes bit7 is usually 0.
+
 N_FLAGS = 8
 
 ; This list should match s_see_flags in strings.asm
 
-FP = 1      ; Far previous NT (LSB/MSB not just LSB within previous page)
-LC = 2      ; Long code (two byte vs one byte length for native compile)
-DC = 4      ; Disjoint code (two byte pointer rather than xt adjoining header)
+FP = 1                      ; Far previous NT (LSB/MSB not just LSB within previous page)
+LC = 2                      ; Long code (two byte vs one byte length for native compile)
+DC = 4                      ; Disjoint code (two byte pointer rather than xt adjoining header)
 
-CO = 8      ; Compile Only
-IM = 16     ; Immediate Word
-AN = 32     ; Always Native Compile
-NN = 64     ; Never Native Compile
-ST = AN+NN  ; Stack juggling to be stripped for native compile
-HC = 128    ; Word has Code Field Area (CFA)
+CO = 8                      ; Compile Only
+IM = 16                     ; Immediate Word
+AN = 32                     ; Always Native Compile
+NN = 64                     ; Never Native Compile
+ST = AN+NN                  ; Stack juggling to be stripped for native compile
+HC = 128                    ; Word has Code Field Area (CFA)
+
+; Note if needed we could replace the HC flag with a synthetic flag we calculate,
+; but the extra effort doesn't seem worth it unless we really need the bit
+; see `has_cfa` in the closed PR https://github.com/SamCoVT/TaliForth2/pull/122/files
 
 ; VARIOUS
+
 MAX_LINE_LENGTH  = 79      ; assumes 80 character lines
 
 ; END

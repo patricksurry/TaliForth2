@@ -6,13 +6,13 @@ talitest.py script. To see the options available, run the script with `--help`.
 This script requires python3 and `py65` (available via pip) to be installed.
 
 When the test is done, a summary will be printed. The detailed results can be
-found in the file `results.txt`. The script will abort if it detects a crash. 
+found in the file `results.txt`. The script will abort if it detects a crash.
 
 The tests are broken up into separate files to allow quick turnaround times with
 specific tests. Without any options, the script will run all tests (also
 can be triggered with the `--tests all`. The files roughly follow the separation
 into ANS word sets (see https://forth-standard.org/standard/words). Words
-special to Tali Forth have their own file, `tali.fs`. 
+special to Tali Forth have their own file, `tali.fs`.
 
 ## Source of tests
 
@@ -57,6 +57,21 @@ other work on your machine while it is running:
 nice -n 19 ./ptest.sh
 ```
 
+### Test coverage
+
+You can use `c65`'s heatmap profiling to check test coverage.
+On a unix-like system, read test input from a pipe followed by
+user commands with a command like this:
+
+```sh
+cat tests/tester.fs tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs tests/facility.fs tests/ed.fs tests/asm.fs tests/tali.fs tests/tools.fs tests/block.fs tests/search.fs tests/user.fs tests/cycles.fs - | c65/c65 -r taliforth-py65mon.bin -gg
+```
+
+You'll see the tests run interactively and then wait for user input.
+Type `bye` to enter the monitor (warning: ctrl-C seems to misbehave).
+Use `c65`s `heat` command to explore test coverage.
+You can run a subset of tests in the same way but `tester.fs` must be listed first
+to provide the test harness and `-` must be listed last to await user input after the tests.
 
 ### Adding further tests
 
