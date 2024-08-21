@@ -1112,11 +1112,13 @@ z_cr:           rts
         ; """
 xt_create:
 w_create:
-                ; Several routines will use CREATE to build new words.
+                ; Several routines build new words using create_common.
                 ; They'll pass the CFA in A/Y, with Y=0 indicating no CFA.
-                ; When Y is non-zero, tmpdsp should contain the PFA size
-                ; so we can adjust the word length for SEE.
-                lda #2                  ; 2 byte PFA for variable
+                ; When Y is non-zero, tmpdsp should contain the planned
+                ; PFA size so we can adjust the word length for SEE.
+                ; Note that we're only responsible for allocating the header
+                ; space. The caller will allocate and populate the PFA itself.
+                lda #2                  ; default 2 byte PFA for variable
                 sta tmpdsp
 create_dovar:
                 ldy #>dovar
@@ -1296,11 +1298,14 @@ _process_name:
 
                 ; HEADER BYTE 3 or 4: Length of code
                 ; If there's no CFA this is zero since we have no code yet,
-                ; otherwise it's 3 for the subroutine call we'll compile below
+                ; otherwise it's three bytes for the subroutine call we'll compile below
+                ; along with the size of the parameter field area (PFA) from tmpdsp
                 lda 5,x                 ; has CFA?
                 beq +                   ; leave A=0
 
-                lda #3                  ; otherwise 3
+                clc
+                lda #3                  ; otherwise 3 plus the size of the PFA area
+                adc tmpdsp              ; add PFA size, assume no carry
 +
                 jsr cmpl_a
 
@@ -1333,8 +1338,8 @@ _name_loop:
                 bra _name_loop
 
 _end:
-                inx                     ; drop name address
-                inx                     ; ( cfa )
+                inx                     ; drop address leaving ( cfa )
+                inx
 
                 ; After the name string comes the code field, starting at the
                 ; current xt of this word, which for CREATE is a subroutine call

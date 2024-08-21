@@ -207,11 +207,11 @@ T{ capture-output see exit restore-output see-exit-output compare-glob -> 0 }T
 \ the test variable life (above) has HC flag
 
 : see-life-output s\" \n
-nt: *  xt: *   header: C1 04 ?? ?? 05 \n
-flags: HC 1 NN 1 AN 0 IM 0 CO 0 DC 0 LC 0 FP 1 | UF 0 ST 0 \n
+nt: *  xt: *  header: C0 04 ?? 05 \n
+flags: HC 1 NN 1 AN 0 IM 0 CO 0 DC 0 LC 0 FP 0 | UF 0 ST 0 \n
 size (decimal): CFA 3  PFA 2 \n
 \n
-*  20 ?? ?? 2A 00   ??*.\n
+*  20 ?? ?? 2A 00                                     ??*.\n
 \n
 *  ????? jsr     \n"
 ;
