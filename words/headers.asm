@@ -33,7 +33,7 @@
 ;
 ;  (msb)  7    6    5    4    3    2    1    0  (lsb)
 ;       +----+----+----+----+----+----+----+----+
-;       | 0  | NN | AN | IM | CO | DC | LC | FP |
+;       | HC | NN | AN | IM | CO | DC | LC | FP |
 ;       +----+----+----+----+----+----+----+----+
 ;
 ; Flag bits:
@@ -167,8 +167,8 @@ nt_asm .macro op, label
 _nt:
         .byte IM + NN + DC      ; immediate, never native, and header disjoint from code
         .byte len(\label)
-        .byte <last_nt          ; these predefined headers are close together
-        .word .xt_asm(\op)      ; pick jsr from the asm_op_table whose return address gives op code
+        .byte <last_nt          ; predefined headers are close together
+        .word xt_asm_op(\op)    ; pick jsr from the asm_op_table whose return address gives op code
         .byte 3                 ; the body is always 3 bytes tho never-native anyway
         .text \label
 last_nt ::= _nt
@@ -349,6 +349,7 @@ last_nt := 0
 #nt_header quit
 #nt_header recurse, "recurse", CO+IM
 #nt_header leave, "leave", CO+IM
+nt_unloop:
 #nt_header unloop, "unloop", CO
 #nt_header exit, "exit", AN+CO
 #nt_header plus_loop, "+loop", CO+IM
@@ -474,6 +475,7 @@ last_nt := 0
 #nt_header space
 #nt_header true
 #nt_header false
+nt_question:
 #nt_header question, "?"
 #nt_header ud_dot_r, "ud.r"
 #nt_header ud_dot, "ud."
@@ -551,9 +553,15 @@ last_nt := 0
 
 ; ASSEMBLER-WORDLIST
 
-assembler_dictionary_start:
-
 .if "assembler" in TALI_OPTIONAL_WORDS || "disassembler" in TALI_OPTIONAL_WORDS
+
+; Assembler pseudo-instructions, directives and macros
+; nb. these need to come before the opcode macros since it assumes near previous NT
+
+#nt_header asm_arrow, "-->", IM         ; uses same code as HERE, but immediate
+#nt_header asm_back_jump, "<j", IM      ; syntactic sugar, does nothing
+#nt_header asm_back_branch, "<b", IM
+#nt_header asm_push_a, "push-a", IM+NN
 
 ; Labels for the opcodes have the format "nt_asm_<OPC>" where a futher
 ; underscore replaces any dot present in the SAN mnemonic. The hash sign for
@@ -789,21 +797,15 @@ nt_asm_tsb_z:   .nt_asm $04, "tsb.z"    ; TSB zp
 nt_asm_tsx:     .nt_asm $ba, "tsx"      ; TSX
 nt_asm_txa:     .nt_asm $8a, "txa"      ; TAX
 nt_asm_txs:     .nt_asm $9a, "txs"      ; TXS
+
+nt_asm_last:    ; mark the end of the linked list of asm opcodes
 nt_asm_tya:     .nt_asm $98, "tya"      ; TYA
 
-nt_asm_last:
 
-; Assembler pseudo-instructions, directives and macros
-
-#nt_header asm_arrow, "-->", IM         ; uses same code as HERE, but immediate
-#nt_header asm_back_jump, "<j", IM      ; syntactic sugar, does nothing
-#nt_header asm_back_branch, "<b", IM
-#nt_header asm_push_a, "push-a", IM+NN
+; END of ASSEMBLER-WORDLIST
 .endif
 
 assembler_dictionary_start = last_nt
 last_nt := 0
-
-; END of ASSEMBLER-WORDLIST
 
 ; END

@@ -4466,13 +4466,6 @@ w_postpone:
 +
                 ; Grab status flag byte from NT
                 lda (0,x)
-                pha
-
-                ; We need the xt instead of the nt
-                jsr w_name_to_int               ; ( nt -- xt )
-
-                ; Is it an immediate word?
-                pla
                 and #IM                         ; check Immediate status flag
                 beq _not_immediate
 

@@ -594,9 +594,6 @@ z_latestxt:     rts
 xt_name_to_int:
                 jsr underflow_1
 w_name_to_int:
-                ; The header either has an explict xt pointer (DC=1)
-                ; or the xt immediately follows the header (DC=0)
-
                 lda 0,x                 ; copy nt to tmp1
                 sta tmp1
                 lda 1,x
@@ -604,7 +601,6 @@ w_name_to_int:
 
                 jsr nt_to_xt            ; get xt to Y/A
 
-_done:
                 sta 0,x
                 sty 1,x
 z_name_to_int:  rts

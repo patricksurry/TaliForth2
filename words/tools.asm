@@ -312,14 +312,15 @@ _show_header:
 
                 lda #N_FLAGS            ; count off status byte flags
                 sta tmptos
-
+.if N_FLAGS < 8
 -
-                cmp #8                  ; discard unused high bits
+                cmp #8                  ; discard any unused high bits
                 beq +
                 asl 0,x
                 ina
                 bra -
 +
+.endif
                 ; use a high-bit terminated template string to show flag names
                 ; and insert flag values at placeholders marked by ascii zeros
                 lda #<see_flags_template

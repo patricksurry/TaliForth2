@@ -280,12 +280,26 @@ _nibble_to_ascii:
 ; in find_nt_by_xt (mostly by compile,).
 ; Inlining nt_to_nt in the find_nt_by_name variant would save about 25M cycles
 ; (about 14% of the test suite cycles) but this is only a compile time expense
-; so might not be worth it for "real" forth code,
-; particularly if we add some simple cache to find_nt_by.
+; so might not be worth it for "real" forth code.
+; An alternative would be a simple cache of recently used words.
 
 nt_to_nt:
+                ; If the header structure goes off the rails we can get hung up here
+                ; and start looping through non-NT addresses.  A simple safety check is
+                ; to watch (tmp1)+1 for a length byte >= 32.  For example:
+                ;
+                ;       ldy #1
+                ;       lda (tmp1),y
+                ;       cmp #32
+                ;       bcc +
+                ;       lda #str_see_nt
+                ;       jsr print_string_no_lf
+                ;       lda #$0a
+                ;       jsr kernel_putc
+                ; -     bra -
+                ; +
+
                 ; nt_to_nt updates tmp1 to point to the next header address
-                ; Use as standalone subroutine by setting V=1 (e.g. bit z_drop)
                 ; Sets tmp1=0 and Z=1 when we reach the end of the list
                 lda (tmp1)              ; check the flag bits
                 lsr                     ; FP => carry
@@ -613,8 +627,7 @@ _double_number:
                 bra _loop
 
 _got_name_token:
-                ; We have a known word's nt TOS. We're going to need its xt
-                ; though, which is four bytes father down.
+                ; We have a known word's nt TOS and need to calculate its xt
 
                 ; We arrive here with ( addr u nt ), so we NIP twice
                 lda 0,x
@@ -628,10 +641,9 @@ _got_name_token:
                 inx                     ; ( nt )
 
                 ; Whether interpreting or compiling we'll need to check the
-                ; status byte at nt+1 so let's save it now
+                ; status byte at nt so let's save it now
                 lda (0,x)
                 pha
-                jsr w_name_to_int      ; ( nt - xt )
 
                 ; See if we are in interpret or compile mode, 0 is interpret
                 lda state
@@ -641,7 +653,7 @@ _got_name_token:
 
                 ; We are interpreting, so EXECUTE the xt that is TOS. First,
                 ; though, see if this isn't a compile-only word, which would be
-                ; illegal. The status byte is the second one of the header.
+                ; illegal.
                 and #CO                 ; mask everything but Compile Only bit
                 bne _compileonly
 
@@ -669,7 +681,7 @@ _compile:
                 and #IM                 ; Mask all but IM bit
                 bne _interpret          ; IMMEDIATE word, execute right now
 
-                ; Compile the xt into the Dictionary with COMPILE,
+                ; Compile the word into the Dictionary using nt entry for COMPILE,
                 jsr compile_nt_comma
                 bra _loop
 
