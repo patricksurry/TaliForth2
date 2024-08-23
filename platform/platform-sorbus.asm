@@ -13,6 +13,28 @@
 
 * = $0400   ; start of SX4 file
 
+; Explicitly list the optional features we want, or omit to get all features by default
+
+TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
+
+; define what the CR word should emit to kernel_putc at the end of each line
+
+TALI_OPTION_CR_EOL := [ "lf" ]
+;TALI_OPTION_CR_EOL := [ "cr" ]
+;TALI_OPTION_CR_EOL := [ "cr", "lf" ]
+
+; TALI_OPTION_HISTORY enables editable input history buffers via ctrl-n/ctrl-p
+; These buffers are disabled when set to 0 (saving about ~0.2K Tali ROM, 1K RAM)
+
+TALI_OPTION_HISTORY := 1
+;TALI_OPTION_HISTORY := 0
+
+; TALI_OPTION_TERSE strips or shortens various strings to reduce the memory
+; footprint when set to 1 (~0.5K)
+
+TALI_OPTION_TERSE := 0
+;TALI_OPTION_TERSE := 1
+
 ; from the Sorbus memory map
 BANK       = $DF00      ; select bank to use
 krn_chrout = $FF03      ; output a character to UART
