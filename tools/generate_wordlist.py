@@ -25,11 +25,9 @@ auto_tested = 0
 def get_sizes(label_dict):
     """Use the VICE format labels to calculate the length of the native words
     in bytes. Returns a dictionary that contains them based on the
-    names. Assumes lines in label map are of the format
+    names. Assumes lines in label map are of the format:
 
-    "al 210 .match_mnemonic"
-    "cp  = $0000"
-
+        al 8666 .xt_dup
     """
 
     with open(LABELS) as f:
