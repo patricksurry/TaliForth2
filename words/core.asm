@@ -3763,18 +3763,16 @@ w_not_equals:
                 cmp 3,x
                 bne _not_equal
 
-                lda #$FF
                 bra _done
 
 _not_equal:
                 dey                     ; drop thru to done
 
 _done:
-                tya
                 inx
                 inx
-                sta 0,x
-                sta 1,x
+                sty 0,x
+                sty 1,x
 
 z_not_equals:   rts
 
