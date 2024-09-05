@@ -65,6 +65,7 @@ clean:
 taliforth-%.bin: platform/platform-%.asm $(COMMON_SOURCES)
 	64tass --nostart \
 	--list=docs/$*-listing.txt \
+	--vice-labels \
 	--labels=docs/$*-labelmap.txt \
 	--output $@ \
 	$<

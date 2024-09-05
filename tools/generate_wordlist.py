@@ -23,30 +23,26 @@ not_tested = 0
 auto_tested = 0
 
 def get_sizes(label_dict):
-    """Use the Ophis labelmap to calculate the length of the native words
+    """Use the VICE format labels to calculate the length of the native words
     in bytes. Returns a dictionary that contains them based on the
-    names. Assumes lines in label map are of the format
+    names. Assumes lines in label map are of the format:
 
-    "cp  = $0000"
-
+        al 8666 .xt_dup
     """
 
     with open(LABELS) as f:
-        raw_list = f.readlines()
+        raw_list = f.read().splitlines()
 
     for line in raw_list:
-        ws = line.split('=')
-
-        if not ws[0].startswith('xt_') and not ws[0].startswith('z_'):
+        ws = line.split()
+        if len(ws) != 3 or ws[0] != 'al' or ':' in ws[2]:
             continue
 
-        #print("Debug: ", ws)
-        addr_hex = ws[1].replace('$', '0x')
-        addr = int(addr_hex, 16)
+        if not ws[2].startswith('.xt_') and not ws[2].startswith('.z_'):
+            continue
 
-        label_dict[ws[0].strip()] = addr
+        label_dict[ws[2][1:]] = int(ws[1], 16)
 
-    #print(label_dict)
     return label_dict
 
 
