@@ -301,7 +301,6 @@ last_nt := 0
 #nt_header aligned
 #nt_header wordsize
 #nt_header words
-#nt_header djb2
 #nt_header marker, "marker", IM
 #nt_header at_xy, "at-xy"
 #nt_header page
@@ -798,9 +797,9 @@ nt_asm_tsx:     .nt_asm $ba, "tsx"      ; TSX
 nt_asm_txa:     .nt_asm $8a, "txa"      ; TAX
 nt_asm_txs:     .nt_asm $9a, "txs"      ; TXS
 
-nt_asm_last:    ; mark the end of the linked list of asm opcodes
 nt_asm_tya:     .nt_asm $98, "tya"      ; TYA
 
+nt_asm_last = last_nt                   ; mark the end of the linked list of asm opcodes
 
 ; END of ASSEMBLER-WORDLIST
 .endif
