@@ -620,25 +620,25 @@ w_name_to_string:
                 lda (2,x)       ; grab status flags for header length
                 and #DC+LC+FP   ; mask length bits
                 lsr
-                adc #4          ; A has header length
+                adc #4-1        ; calculate header length less one
+                tay             ; stash temporarily
 
-                adc 2,x         ; add to LSB of NT
-                tay             ; don't store yet so we can fetch length
-                                ; note carry is also preserved
-
-                inc 2,x         ; nt += 1 for name length
+                inc 2,x         ; nt+1 has the name length
                 bne +
                 inc 3,x
 +
-                lda (2,x)       ; fetch length byte
-                sta 0,x         ; ( nt+1 u )
+                lda (2,x)       ; fetch name length byte
+
+                sta 0,x         ; namelen is always <256
                 stz 1,x
 
-                sty 2,x         ; write LSB of nt + header length
+                tya
+                adc 2,x         ; note C=0 from adc above
+                sta 2,x         ; LSB of nameptr = nt+1 + hdrlen-1
                 bcc +
-                inc 3,x         ; MSB
+                inc 3,x         ; MSB of nameptr
 +
-
+                ; ( addr n )
 z_name_to_string:
                 rts
 
@@ -1098,7 +1098,8 @@ w_wordsize:
                 pla             ; check if there's a MSB
                 and #LC         ; extra byte if LC is set
                 beq _small      ; otherwise it's zero
-                inc 0,x
+
+                inc 0,x         ; increment ptr
                 bne +
                 inc 1,x
 +
