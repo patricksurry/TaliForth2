@@ -77,10 +77,10 @@ w_compile_comma:
                 jsr w_dup               ; keep an unadjusted copy of xt
                 jsr w_dup               ; plus one to convert to nt
 
-                ; the reverse lookup from xt => nt is expensive so
-                ; the compile_comma_common entrypoint below is preferred
+                ; Nb. this reverse lookup from xt => nt is expensive so it's
+                ; better to use the compile_comma_common entrypoint below
                 ; if the nt is already available, e.g. while interpreting
-                jsr w_int_to_name       ; this reverse lookup is expensi
+                jsr w_int_to_name
                 ; ( xt xt nt )
 
                 ; Does this xt even have a valid (non-zero) nt?

@@ -263,7 +263,7 @@ OpBITzp = $24   ; used to save a branch occasionally
 
 N_FLAGS = 8
 
-; This list should match s_see_flags in strings.asm
+; This list should match s_see_flags in strings.asm.  See words/headers.asm for details.
 
 FP = 1                      ; Far previous NT (LSB/MSB not just LSB within previous page)
 LC = 2                      ; Long code (two byte vs one byte length for native compile)
@@ -276,7 +276,7 @@ NN = 64                     ; Never Native Compile
 ST = AN+NN                  ; Stack juggling to be stripped for native compile
 HC = 128                    ; Word has Code Field Area (CFA)
 
-; Note if needed we could replace the HC flag with a synthetic flag we calculate,
+; Note if needed we could replace the expicit HC flag with a calculation,
 ; but the extra effort doesn't seem worth it unless we really need the bit
 ; see `has_cfa` in the closed PR https://github.com/SamCoVT/TaliForth2/pull/122/files
 

@@ -299,8 +299,8 @@ nt_to_nt:
                 ; -     bra -
                 ; +
 
-                ; nt_to_nt updates tmp1 to point to the next header address
-                ; Sets tmp1=0 and Z=1 when we reach the end of the list
+                ; nt_to_nt updates tmp1 to point to the previous NT header,
+                ; setting tmp1=0 and Z=1 when we've reached the end of the list
                 lda (tmp1)              ; check the flag bits
                 lsr                     ; FP => carry
 

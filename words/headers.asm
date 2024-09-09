@@ -15,7 +15,7 @@
 ;               +----------------+
 ;               | Name length    |
 ;               +----------------+
-;               | Last header    | -> nt_last_word
+;               | Prev header    | -> nt_prev_word
 ;               +----------------+
 ;               | Start of code  | -> xt_word
 ;               +----------------+
@@ -70,7 +70,7 @@
 ;
 ; The actual header implementation looks like this:
 ;
-;   nt_last --> +----------------+
+;   nt_prev --> +----------------+
 ;               :                :
 ;               :                :
 ;                     ...
@@ -82,8 +82,8 @@
 ;               |  Name length   |   Max name length 31 (5 bits)
 ;               |   (1 byte)     |   Top three bits are currently reserved
 ;               +----------------+
-;               |    Last NT     |   FP=0: nt_last = nt_word - offset
-;               |  (1|2 bytes)   |   FP=1: nt_last = 2 byte pointer
+;               |    Prev NT     |   FP=0: nt_prev = nt_word - offset
+;               |  (1|2 bytes)   |   FP=1: nt_prev = 2 byte pointer
 ;               +----------------+
 ;               | Start of code  |   DC=0: xt_word = nt_end
 ;               |  (0|2 bytes)   |   DC=1: xt_word = 2 byte pointer
@@ -120,10 +120,10 @@
 ; If the word needs any of the CO, IM, AN, NN flags, pass both the name
 ; and flags like `#nt_header myword, "myword", IM+CO`.
 ; The macro automatically chains words together in the dictionary using
-; the `last_nt` compiler variable.  When your word list is complete
+; the `prev_nt` compiler variable.  When your word list is complete
 ; you can capture the head of the dictionary (the latest NT header)
-; by assigning from it, like `dictionary_start = last_nt`.
-; Then start a new wordlist by resetting `last_nt := 0`.
+; by assigning from it, like `dictionary_start = prev_nt`.
+; Then start a new wordlist by resetting `prev_nt := 0`.
 
 
 ; The #nt_header macro is used to generate the physical header representation
@@ -135,8 +135,8 @@ nt_header .macro label, name="", flags=0
     ; temp string with explicit name or stringified label
     _s := \name ? \name : str(.\label)
 
-_nt:                    ; remember start of header to update last_nt pointer
-    _fp := _nt < last_nt || _nt - last_nt > 256 ? FP : 0
+_nt:                    ; remember start of header to update prev_nt pointer
+    _fp := _nt < prev_nt || _nt - prev_nt > 256 ? FP : 0
     _sz := z_\label - xt_\label
     _lc := _sz > 255 ? LC : 0
     _dc := _nt_end != xt_\label ? DC : 0
@@ -144,9 +144,9 @@ _nt:                    ; remember start of header to update last_nt pointer
     .byte \flags | _fp | _lc | _dc       ; status flags byte
     .byte len(_s)       ; length of word string, max 31
 .if _fp
-    .word last_nt       ; previous Dictionary header, 0000 signals start
+    .word prev_nt       ; previous Dictionary header, 0000 signals start
 .else
-    .byte <last_nt
+    .byte <prev_nt
 .endif
 .if _dc
     .word xt_\label     ; start of code block (xt of this word)
@@ -159,7 +159,7 @@ _nt:                    ; remember start of header to update last_nt pointer
     .text _s            ; word name, always lower case, not zero-terminated
 _nt_end = *
 
-last_nt ::= _nt         ; update to this header
+prev_nt ::= _nt         ; update to this header
 .endmacro
 
 ; a specialized macro to generate assembler words
@@ -167,30 +167,30 @@ nt_asm .macro op, label
 _nt:
         .byte IM + NN + DC      ; immediate, never native, and header disjoint from code
         .byte len(\label)
-        .byte <last_nt          ; predefined headers are close together
+        .byte <prev_nt          ; predefined headers are close together
         .word xt_asm_op(\op)    ; pick jsr from the asm_op_table whose return address gives op code
         .byte 3                 ; the body is always 3 bytes tho never-native anyway
         .text \label
-last_nt ::= _nt
+prev_nt ::= _nt
     .endmacro
 
 
-; last_nt tracks the previous header, and is reset after each wordlist
-last_nt := 0
+; prev_nt tracks the previous header, and is reset after each wordlist
+prev_nt := 0
 
 
 ; FORTH-WORDLIST
 
 ; Each wordlist is organized as a linked list with the head of the list stored
 ; in the `cold_user_table` table called `wordlists_offset`.  The main Forth
-; dictionary is linked at `dictionary_start`.  Whenever we search for a word,
+; dictionary is linked from `dictionary_start`.  Whenever we search for a word,
 ; for example via `find-name`, we begin at the head and walk through the linked
 ; list until we find the word or find a header whose previous NT pointer is 0.
 ; This means it's more efficient to have frequently used words towards the head
 ; of the list (later in memory).  In the main dictionary the first word we search
-; (last in memory) is DROP and the last word we search (earliest in memory) is BYE.
-; Other words are sorted with the more common ones later in memory so they are
-; found earlier. Anything to do with output comes later (further up) because
+; (highest in memory) is DROP and the final word we search (lowest in memory) is BYE.
+; Other words are sorted with the more common ones higher in memory so they are
+; found faster. Anything to do with output is further back in the list because
 ; speed is less important when a human is involved.
 
 ; The initial skeleton of this list was automatically generated by a script
@@ -509,8 +509,8 @@ nt_question:
 #nt_header dup
 #nt_header drop                 ; DROP is always the first native word in the Dictionary
 
-dictionary_start = last_nt
-last_nt := 0
+dictionary_start = prev_nt
+prev_nt := 0
 
 ; END of FORTH-WORDLIST
 
@@ -527,8 +527,8 @@ last_nt := 0
 #nt_header words
 .endif
 
-root_dictionary_start = last_nt
-last_nt := 0
+root_dictionary_start = prev_nt
+prev_nt := 0
 
 ; END of ROOT-WORDLIST
 
@@ -544,8 +544,8 @@ last_nt := 0
 #nt_header editor_enter_screen, "enter-screen"
 .endif
 
-editor_dictionary_start = last_nt
-last_nt := 0
+editor_dictionary_start = prev_nt
+prev_nt := 0
 
 ; END of EDITOR-WORDLIST
 
@@ -580,7 +580,7 @@ last_nt := 0
 ; opcode as well as a simple way to find known opcodes during disassembly.
 ; See assembler.asm for details.
 
-nt_asm_first:   ; ... nt_asm_last bracket the asm words for disasm search
+nt_asm_begin:   ; ... nt_asm_end bracket the asm words for disasm search
 
 nt_asm_adc:     .nt_asm $6d, "adc"      ; ADC llhh
 nt_asm_adc_h:   .nt_asm $69, "adc.#"    ; ADC #dd
@@ -799,12 +799,12 @@ nt_asm_txs:     .nt_asm $9a, "txs"      ; TXS
 
 nt_asm_tya:     .nt_asm $98, "tya"      ; TYA
 
-nt_asm_last = last_nt                   ; mark the end of the linked list of asm opcodes
+nt_asm_end = prev_nt                    ; mark the end of the linked list of asm opcodes
 
 ; END of ASSEMBLER-WORDLIST
 .endif
 
-assembler_dictionary_start = last_nt
-last_nt := 0
+assembler_dictionary_start = prev_nt
+prev_nt := 0
 
 ; END

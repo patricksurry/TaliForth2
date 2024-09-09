@@ -1206,10 +1206,9 @@ _process_name:
                 ; Luckily we have an out.  We'll optimistically assume the generated
                 ; code is < 256 bytes (LC=0) which is usually true.  Once compilation
                 ; is done, `;' will check if the word is flagged as never native (NN).
-                ; If so we won't be native compiling anyway so we'll set the one byte
-                ; length to 255 (for SEE) and call it a day.  Otherwise the word is
-                ; relocatable so we'll shift everything from the name onward along one
-                ; byte and write the correct two byte length.
+                ; If so we'll create a new header after the code, wasting a few bytes.
+                ; Otherwise the code is relocatable so we'll shift it up by a byte
+                ; to make room for the two byte length.
 
                 ; Get the CURRENT dictionary pointer.
                 jsr current_to_dp

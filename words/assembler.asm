@@ -127,9 +127,9 @@ op_find_nt:
                 sbc #2
                 sta tmptos
 
-                lda #<nt_asm_last       ; first candidate NT is the last in the linked list
+                lda #<nt_asm_end       ; first candidate NT is the start of the linked list
                 sta tmp1
-                lda #>nt_asm_last
+                lda #>nt_asm_end
                 sta tmp1+1
 
 _loop:
@@ -137,14 +137,14 @@ _loop:
                 cmp tmptos              ; check LSB of this word's XT
                 beq _found
 
-                jsr nt_to_nt            ; advance tmp1 to next NT
+                jsr nt_to_nt            ; update tmp1 to previous NT in the list
 
                 lda tmp1
-                cmp #<nt_asm_first
+                cmp #<nt_asm_begin
                 bne _loop
 
                 lda tmp1+1
-                cmp #>nt_asm_first
+                cmp #>nt_asm_begin
                 bne _loop
 
                 stz tmp1
