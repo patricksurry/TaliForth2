@@ -2165,21 +2165,20 @@ env_results_double:
 xt_equal:
                 jsr underflow_2
 w_equal:
+                ldy #0                  ; default not-equal (false)
+
                 lda 0,x                 ; LSB
                 cmp 2,x
-                bne _false
+                bne _not_equal
 
                 lda 1,x                 ; MSB
                 cmp 3,x
-                bne _false
+                bne _not_equal
 
-                lda #$FF
-                bra _done
+                dey                     ; equal, set to true
 
-_false:         lda #0                  ; drop thru to done
-
-_done:          sta 2,x
-                sta 3,x
+_not_equal:     sty 2,x
+                sty 3,x
 
                 inx
                 inx
@@ -3752,29 +3751,23 @@ z_nip:          rts
 xt_not_equals:
                 jsr underflow_2
 w_not_equals:
-                ldy #0                  ; default is true
+                ldy #$ff                 ; default not-equal (true)
 
                 lda 0,x                 ; LSB
                 cmp 2,x
-                bne _not_equal
+                bne _done
 
                 ; LSB is equal
                 lda 1,x                 ; MSB
                 cmp 3,x
-                bne _not_equal
+                bne _done
 
-                lda #$FF
-                bra _done
-
-_not_equal:
-                dey                     ; drop thru to done
-
+                iny                     ; actually equal (false)
 _done:
-                tya
                 inx
                 inx
-                sta 0,x
-                sta 1,x
+                sty 0,x
+                sty 1,x
 
 z_not_equals:   rts
 
