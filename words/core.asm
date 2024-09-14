@@ -2044,8 +2044,8 @@ _table_loop:
                 sta 0,x
                 lda env_table_single+1,y
                 sta 1,x
-                jsr xt_over
-                jsr xt_minus            ; ( addr u addr u addr-s u-s )
+                jsr w_over
+                jsr w_minus            ; ( addr u addr u addr-s u-s )
 
                 ; Compare the strings (surprisingly w_compare doesn't use Y)
                 jsr w_compare           ; ( addr u f )
