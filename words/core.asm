@@ -5975,7 +5975,7 @@ z_to_in:        rts
         ; to deal with a dot as a last character that signalizes double -
         ; this should be a pure number string.
         ;
-        ; This routine calles UM*, which uses tmp1, tmp2 and tmp3, so we
+        ; This routine calls UM*, which uses tmp1, tmp2 and tmp3, so we
         ; cannot access any of those.
         ;
         ; For the math routine, we move the inputs to the scratchpad to
@@ -6896,21 +6896,24 @@ z_um_slash_mod: rts
         ; average expensive in size and cycles to optimize for these cases.
         ;
         ; Also note that although multiplication is symmetrical,
-        ; typically algorithm performance isn't.  For example, if we sum a
-        ; shifted copy of the LHS each time we find a one bit in the RHS
-        ; then it's usually faster to have the smaller number of the RHS.
+        ; typically algorithm performance isn't.  For example, since we sum
+        ; a shifted copy of the RHS each time we find a one bit in the LHS
+        ; then it's usually faster to have the larger number on the right and
+        ; smaller number on the left.
         ; """
 
 xt_um_star:
                 jsr underflow_2
 w_um_star:
-                ; In stack terms the product a * b = d looks like this:
+                ; When we write "123 45 um*" to calculate the product a * b = d
+                ; then TOS is the RHS (b) and NOS is the LHS (a) and our
+                ; calculation looks like this on the stack:
                 ;
                 ;           +-----------+-----------+
                 ;           |    TOS    |    NOS    |
                 ;           | 0,x | 1,x | 2,x | 3,x |
                 ;           +-----+-----+-----+-----+
-                ; Input:    | alo   ahi | blo   bhi |    we move a-1 to tmp2 and use b in place
+                ; Input:    | blo   bhi | alo   ahi |    we move b-1 to tmp2 and use a in place
                 ;           +-----------+-----------+
                 ; Output:   | dhlo dhhi   dllo dlhi |    NUXI order d2 d3 d0 d1
                 ;           +-----------------------+
@@ -6919,43 +6922,43 @@ w_um_star:
                 ;              +--------- cached in tmp1
 
 
-                ; set tmp2 to LHS-1 to eliminate clc inside the loop
-                ; at the same time checking for LHS=0 for a quick exit
+                ; set tmp2 to RHS-1 to eliminate clc inside the loop
+                ; at the same time check for quick exit if RHS=0
                 lda 0,x         ; copy TOS-1 to tmp2
-                clc             ; subtract one
-                sbc #0          ; leaving C=1 unless A was zero
+                clc             ; subtract the extra one
+                sbc #0          ; leaves C=1 unless LSB was zero
                 sta tmp2
 
                 lda 1,x
-                sbc #0          ; leaving C=1 unless both bytes were zero
-                bcc _zero       ; is TOS zero?
+                sbc #0          ; leaves C=1 unless both bytes were zero
+                bcc _tos_zero   ; is TOS aka RHS zero?
                 sta tmp2+1
 
                 lda #0
-                sta tmp1        ; set dhi = $0000 in <tmp1, acc>
-                stx tmp3        ; remember when to exit from outer loop
+                sta tmp1        ; initialize dhlo/dhhi = $0000 in <tmp1, acc>
+                stx tmp3        ; tracks when to exit from outer loop
                 dex
                 dex
 
 _outer_loop:
-                ; We loop over RHS bits in two passes, once for the low byte
-                ; and then for the high byte.  Each time we use a RHS bit
+                ; We loop over LHS bits in two passes, once for the low byte
+                ; and then for the high byte.  Each time we use a LHS bit
                 ; we roll it out from the least significant bit, and roll
                 ; in a bit of the result to the most significant bit.  Once
                 ; we've done this eight times the RHS byte has been replaced
                 ; by the output byte.
+                ; We don't explicitly test for LHS=0 but the skip8 shortcut
+                ; deals with it fairly quickly.
 
                 ; On entry A has the low byte of tmp1
 
-                ldy 4,x         ; think "2,x" the first time and "3,x" the next
-                beq _skip8      ; shortcut if all bits in this byte are zero
-
-                lsr 4,x
-                ldy #8          ; inner loop counter, looping over RHS bits
-
+                ldy #8          ; inner loop counter, looping over LHS bits
+                lsr 4,x         ; think "2,x" the first time and "3,x" the next
+                bcs +
+                beq _skip8      ; shortcut if all bits in this byte were zero
 _inner_loop:
                 bcc _no_add
-
++
                 sta tmp1+1      ; add a copy of LHS-1 + C=1 to tmp1
                 lda tmp1
                 adc tmp2        ; save time, don't CLC
@@ -6988,8 +6991,8 @@ _skip8:
                 lda #0
                 bra _next8
 
-_zero:
-                stz 2,x
+_tos_zero:
+                stz 2,x         ; just set the other result bytes to zero
                 stz 3,x
 _done:
 z_um_star:      rts
