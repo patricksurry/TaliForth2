@@ -3382,8 +3382,11 @@ w_m_star:
                 ; get the absolute value of both numbers so we can feed
                 ; them to UM*, which does the real work
                 jsr w_abs
-                jsr w_swap
+                inx             ; temporarily drop TOS
+                inx
                 jsr w_abs
+                dex             ; recover TOS
+                dex
 
                 jsr w_um_star          ; ( d )
 
@@ -6878,105 +6881,84 @@ z_um_slash_mod: rts
         ;
         ; This is based on modified FIG Forth code by Dr. Jefyll, see
         ; http://forum.6502.org/viewtopic.php?f=9&t=689 for a detailed
-        ; discussion.
+        ; discussion and some great explanatory diagrams.
         ;
         ; We don't use the system scratch pad (SYSPAD) for temp
         ; storage because >NUMBER uses it as well, but instead tmp1 to
         ; tmp3 (tmp1 is N in the original code, tmp1+1 is N+1, etc).
         ;
-        ; Consider switching to a table-supported version based on
-        ; http://codebase64.org/doku.php?id=base:seriously_fast_multiplication
-        ; http://codebase64.org/doku.php?id=magazines:chacking16#d_graphics_for_the_masseslib3d>
-        ; http://forum.6502.org/viewtopic.php?p=205#p205
-        ; http://forum.6502.org/viewtopic.php?f=9&t=689
+        ; There's a lengthy discussion of alternative 6502 multiply
+        ; algorithms at http://forum.6502.org/viewtopic.php?f=2&t=7451
+        ; with performance compared at https://github.com/TobyLobster/multiply_test
+        ; However those performance figures are averaged over all possible
+        ; inputs values uniformly.   In practical applications smaller inputs
+        ; are much more likely, especially zero, so it's worth a little more
+        ; average expensive in size and cycles to optimize for these cases.
+        ;
+        ; Also note that although multiplication is symmetrical,
+        ; typically algorithm performance isn't.  For example, if we sum a
+        ; shifted copy of the LHS each time we find a one bit in the RHS
+        ; then it's usually faster to have the smaller number of the RHS.
         ; """
 
 xt_um_star:
                 jsr underflow_2
 w_um_star:
-
-.comment
-TODO
-( a b -- d )
-
-stack   in      out
-3,x     A1      D1
-2,x     A0      D0
-1,x     B1      D3      ; D3 cached in ACC
-0,x     B0      D2      ; D2 cached in tmp
-
-We'll calculate A * B by looping over the 16 bits of A (k=0..15)
-and adding B << k to the result whenever the k-th bit is true.
-We use a few tricks to minimize data movement.
-The first trick is that D2/D3 (cached in tmp/ACC) is used as a sliding window
-to represent bits k...k+15.  Whenever we need to add B << k we can
-just add B0/B1 to D2/D3 and then roll the result right one bit.
-The second trick is to store D0/D1 in the same space as A0/A1.
-Each time we use up a bit from A0/A1 we can roll it out and
-roll in the current LSB from D2/D3.  We can be even more clever
-and roll the first 8 bits directly into A0 (without touching A1)
-and the next 8 bits directly into A1 (without touching A0.)
-
-Imagine we're multiplying A = $AA55 times B = $1001
-to get the unsigned 32-bit result $0AA5FA55.
-The stack looks something like this:
-
-B0 = $01 B1 = $10  A0 = $55 A1 = $AA  D2: tmp  D3: acc
-00000001 00010000  01010101 10101010  00000000 00000000
-                          1 * B    += 00000001 00010000
-              1 => 10101010 10101010  00000000 00001000  0 => D3 => D2 => 1 => A0
-                          0 * B    += 00000000 00001000
-              0 => 01010101 10101010  00000000 00000100  0 => D3 => D2 => 0 => A0
-                          1 * B    += 00000001 00010100
-              1 => 10101010 10101010  00000000 00001010  0 => D3 => D2 => 1 => A0
-                          0 * B    += 00000000 00001010
-              0 => 01010101 10101010  00000000 00000101  0 => D3 => D2 => 0 => A0
-                          1 * B    += 00000001 00010101
-              1 => 10101010 10101010  10000000 00001010  0 => D3 => D2 => 1 => A0
-                   dddddaaa aaaaaaaa
-        ( after five steps we've used five bits of A and collected the five
-        least significant bits of the result )
-                ...
-
-B0 = $01 B1 = $10  D0 = $55 D1 = $FA  D2 = $A5 D3 = $0A
-00000001 00010000  01010101 11111010  10100101 00001010
-
-Optimization:
-If both bytes of A or B is 0, the result is 0
-If a whole byte of A is zero we can shift a whole byte at once.
-It's not symmetrical in A and B.  It's faster if A has fewer 1 bits (and more 0 bytes).
-Larger byte is more likely to have more 1s if remaining bits distributed uniformly
-.endcomment
+                ; In stack terms the product a * b = d looks like this:
+                ;
+                ;           +-----------+-----------+
+                ;           |    TOS    |    NOS    |
+                ;           | 0,x | 1,x | 2,x | 3,x |
+                ;           +-----+-----+-----+-----+
+                ; Input:    | alo   ahi | blo   bhi |    we move a-1 to tmp2 and use b in place
+                ;           +-----------+-----------+
+                ; Output:   | dhlo dhhi   dllo dlhi |    NUXI order d2 d3 d0 d1
+                ;           +-----------------------+
+                ;              ^    ^
+                ;              |    +---- cached in ACC/tmp1+1
+                ;              +--------- cached in tmp1
 
 
-
-                ; to eliminate clc inside the loop, the value at
-                ; tmp1 is reduced by 1 in advance
-                clc
-                lda 0,x         ; copy TOS to tmp2
-                sbc #0
+                ; set tmp2 to LHS-1 to eliminate clc inside the loop
+                ; at the same time checking for LHS=0 for a quick exit
+                lda 0,x         ; copy TOS-1 to tmp2
+                clc             ; subtract one
+                sbc #0          ; leaving C=1 unless A was zero
                 sta tmp2
 
                 lda 1,x
-                sbc #0
+                sbc #0          ; leaving C=1 unless both bytes were zero
                 bcc _zero       ; is TOS zero?
                 sta tmp2+1
 
                 lda #0
-                sta tmp1
-                stx tmp3        ; tested for exit from outer loop
+                sta tmp1        ; set dhi = $0000 in <tmp1, acc>
+                stx tmp3        ; remember when to exit from outer loop
                 dex
                 dex
 
 _outer_loop:
-                ldy #8          ; counter inner loop
-                lsr 4,x         ; think "2,x" then later "3,x"
+                ; We loop over RHS bits in two passes, once for the low byte
+                ; and then for the high byte.  Each time we use a RHS bit
+                ; we roll it out from the least significant bit, and roll
+                ; in a bit of the result to the most significant bit.  Once
+                ; we've done this eight times the RHS byte has been replaced
+                ; by the output byte.
+
+                ; On entry A has the low byte of tmp1
+
+                ldy 4,x         ; think "2,x" the first time and "3,x" the next
+                beq _skip8      ; shortcut if all bits in this byte are zero
+
+                lsr 4,x
+                ldy #8          ; inner loop counter, looping over RHS bits
 
 _inner_loop:
                 bcc _no_add
-                sta tmp1+1      ; save time, don't CLC
+
+                sta tmp1+1      ; add a copy of LHS-1 + C=1 to tmp1
                 lda tmp1
-                adc tmp2
+                adc tmp2        ; save time, don't CLC
                 sta tmp1
                 lda tmp1+1
                 adc tmp2+1
@@ -6984,11 +6966,11 @@ _inner_loop:
 _no_add:
                 ror
                 ror tmp1
-                ror 4,x         ; think "2,x" then later "3,x"
+                ror 4,x         ; first "2,x" then "3,x"
 
                 dey
-                bne _inner_loop ; go back for one more shift?
-
+                bne _inner_loop ; done eight bits?
+_next8:
                 inx
                 cpx tmp3
                 bne _outer_loop ; go back for eight more shifts?
@@ -6998,6 +6980,13 @@ _no_add:
                 lda tmp1
                 sta 0,x
                 bra _done
+
+_skip8:
+                ldy tmp1         ; 0 => A => tmp1 => 4,x
+                sty 4,x
+                sta tmp1
+                lda #0
+                bra _next8
 
 _zero:
                 stz 2,x
