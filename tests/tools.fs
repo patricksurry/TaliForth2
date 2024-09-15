@@ -146,8 +146,8 @@ T{ blkbuffer 32 capture-output dump restore-output s\" \n
 
 
 : see-/mod-output s\" \n
-nt: *  xt: * \n
-flags: CO 0 IM 0 AN 0 NN 0 HC 0 | UF 1 ST 0 \n
+nt: *  xt: *  header: 04 04 ?? ?? ?? 1E \n
+flags: HC 0 NN 0 AN 0 IM 0 CO 0 DC 1 LC 0 FP 0 | UF 1 ST 0 \n
 size (decimal): 30 \n
 \n
 *  20 ?? ?? A9 FF 48 B5 00  95 FE B5 01 95 FF E8 E8   ??..H.. ........
