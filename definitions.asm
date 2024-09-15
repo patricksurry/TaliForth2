@@ -62,7 +62,7 @@ dsp0      = zpage_end-7    ; initial Data Stack Pointer
 ; The rest of zero page is free for kernel/external use (zpage_end+1 to $FF)
 
 ; TaliForth zeropage usage is as follows:
-;   zero page variables: 30 words = 60 bytes ($0000-$0038) - see cold_user_table
+;   zero page variables: 30 words = 60 bytes ($0000-$0038) - see cold_zp_table
 ;   Forth Data Stack: 128 - 60 - 8 = 60 bytes or 30 words
 ;   Data Stack floodplain: 8 bytes after stack (to avoid catastrophic underflow)
 

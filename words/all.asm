@@ -30,6 +30,14 @@ xt_cold:
 w_cold:
                 cld
 
+                ; Initialize 65c02 stack (Return Stack)
+                ldx #rsp0
+                txs
+
+                ; Clear Data Stack. This is repeated in ABORT, but this way we
+                ; can load high-level words with EVALUATE
+                ldx #dsp0
+
                 ; Set the OUTPUT vector to the default kernel_putc
                 ; We do this really early so we can print error messages
                 ; during debugging
@@ -39,42 +47,25 @@ w_cold:
                 sta output+1
 
                 ; Load all of the important zero page variables from ROM
-                ldx #cold_zp_table_end-cold_zp_table-1
+                ldy #cold_zp_table_end-cold_zp_table-1
 
 _load_zp_loop:
-                ; This loop loads them back to front. We can use X here
-                ; because Tali hasn't started using the stack yet.
-                lda cold_zp_table,x
-                sta zpage,x
-                dex
-                bne _load_zp_loop
-
-                ; Copy the 0th element.
-                lda cold_zp_table
-                sta zpage
-
-                ; Initialize 65c02 stack (Return Stack)
-                ldx #rsp0
-                txs
-
-                ; Clear Data Stack. This is repeated in ABORT, but this way we
-                ; can load high-level words with EVALUATE
-                ldx #dsp0
+                ; This loop loads them back to front.
+                lda cold_zp_table,y
+                sta zpage,y
+                dey
+                bpl _load_zp_loop           ; <128 bytes so safe to loop until y<0
 
                 ; Initialize the user variables.
                 ldy #cold_user_table_end-cold_user_table-1
-
 _load_user_vars_loop:
                 ; Like the zero page variables, these are initialized
                 ; back to front.
                 lda cold_user_table,y
                 sta (up),y
                 dey
-                bne _load_user_vars_loop
+                bpl _load_user_vars_loop    ; again we have <128 bytes so bpl is safe
 
-                ; Copy the 0th element.
-                lda cold_user_table
-                sta (up)
                 jsr w_cr
 
                 ; Define high-level words in forth_words.asc via EVALUATE,

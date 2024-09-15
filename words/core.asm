@@ -1771,7 +1771,7 @@ z_dot_quote:    rts
 
 
 
-; ## DOT_R ( n u -- ) "Print NOS as unsigned number with TOS with"
+; ## DOT_R ( n u -- ) "Print NOS as unsigned number with TOS width"
 ; ## ".r"  tested  ANS core ext
         ; """https://forth-standard.org/standard/core/DotR
         ;
@@ -1782,10 +1782,10 @@ z_dot_quote:    rts
 xt_dot_r:
                 jsr underflow_2
 w_dot_r:
-                jsr w_to_r
+                jsr w_to_r              ; ( n ) (R: u )
                 jsr w_dup
                 jsr w_abs
-                jsr w_zero
+                jsr w_zero              ; ( n |n| 0 ) (R: u )
                 jsr w_less_number_sign
                 jsr w_number_sign_s
                 jsr w_rot
@@ -2021,8 +2021,8 @@ _table_loop:
                 sta 0,x
                 lda env_table_single+1,y
                 sta 1,x
-                jsr xt_over
-                jsr xt_minus            ; ( addr u addr u addr-s u-s )
+                jsr w_over
+                jsr w_minus            ; ( addr u addr u addr-s u-s )
 
                 ; Compare the strings (surprisingly w_compare doesn't use Y)
                 jsr w_compare           ; ( addr u f )
@@ -2142,21 +2142,20 @@ env_results_double:
 xt_equal:
                 jsr underflow_2
 w_equal:
+                ldy #0                  ; default not-equal (false)
+
                 lda 0,x                 ; LSB
                 cmp 2,x
-                bne _false
+                bne _not_equal
 
                 lda 1,x                 ; MSB
                 cmp 3,x
-                bne _false
+                bne _not_equal
 
-                lda #$FF
-                bra _done
+                dey                     ; equal, set to true
 
-_false:         lda #0                  ; drop thru to done
-
-_done:          sta 2,x
-                sta 3,x
+_not_equal:     sty 2,x
+                sty 3,x
 
                 inx
                 inx
@@ -2420,11 +2419,12 @@ w_fm_slash_mod:
                 bpl _check_d
 
                 inc tmp2        ; set flag to negative for n1
-                jsr w_negate   ; NEGATE
-                jsr w_to_r     ; >R
-                jsr w_dnegate  ; DNEGATE
-                jsr w_r_from   ; R>
-
+                jsr w_negate    ; NEGATE
+                inx
+                inx             ; pretend to push to stack
+                jsr w_dnegate   ; DNEGATE
+                dex
+                dex
 _check_d:
                 ; If d is negative, add n1 to high cell of d
                 lda 3,x         ; MSB of high word of d
@@ -3334,8 +3334,11 @@ w_m_star:
                 ; get the absolute value of both numbers so we can feed
                 ; them to UM*, which does the real work
                 jsr w_abs
-                jsr w_swap
+                inx             ; temporarily drop TOS
+                inx
                 jsr w_abs
+                dex             ; recover TOS
+                dex
 
                 jsr w_um_star          ; ( d )
 
@@ -3703,29 +3706,23 @@ z_nip:          rts
 xt_not_equals:
                 jsr underflow_2
 w_not_equals:
-                ldy #0                  ; default is true
+                ldy #$ff                 ; default not-equal (true)
 
                 lda 0,x                 ; LSB
                 cmp 2,x
-                bne _not_equal
+                bne _done
 
                 ; LSB is equal
                 lda 1,x                 ; MSB
                 cmp 3,x
-                bne _not_equal
+                bne _done
 
-                lda #$FF
-                bra _done
-
-_not_equal:
-                dey                     ; drop thru to done
-
+                iny                     ; actually equal (false)
 _done:
-                tya
                 inx
                 inx
-                sta 0,x
-                sta 1,x
+                sty 0,x
+                sty 1,x
 
 z_not_equals:   rts
 
@@ -4796,7 +4793,7 @@ w_rshift:
                 and #%00001111
                 beq _done               ; if 0 shifts, quit
 
-                tay
+                tay                     ; we could optimize y >= 8 but prob not worth it
 _loop:
                 lsr 3,x
                 ror 2,x
@@ -4836,6 +4833,7 @@ w_s_backslash_quote:
 z_s_backslash_quote:
                 rts
 
+;TODO cf DIGIT?
 
 ; This is a helper function for s_backslash_quote to convert a character
 ; from ASCII to the corresponding hex value, eg 'F'->15
@@ -5572,20 +5570,25 @@ w_slash_mod:
 
 slashmod_common:
                 pha
-                jsr w_to_r             ; >R
-                jsr w_s_to_d           ; S>D
-                jsr w_r_from           ; R>
-                jsr w_sm_slash_rem     ; SM/REM
+                ; rather than >R S>D R> we'll do ( n1 n2 -- d1 n2 ) inline
 
-                ; Get the flag back from the 65c02's stack. Zero is SLASH,
-                ; $FF is SLASH MOD
+                lda 0,x                 ; dup but drop leaving ( n1 -- ) with [ ? n2 ] in the wings
+                sta $fe,x
+                lda 1,x
+                sta $ff,x
+                inx
+                inx
+                jsr w_s_to_d            ; sign extend and then recover n2
+                dex
+                dex
+
+                jsr w_sm_slash_rem      ; SM/REM leaving ( rem quo )
+
+                ; Check flag with SLASH=0, SLASH_MOD=$ff
                 pla
                 bne _done
 
-                ; The following code is for SLASH only
-                jsr w_swap
-                inx             ; DROP
-                inx
+                jsr w_nip               ; SLASH discards the remainer
 _done:
 z_slash_mod:
 z_slash:        rts
@@ -5794,9 +5797,11 @@ z_star_slash:
 xt_star_slash_mod:
                 jsr underflow_3
 w_star_slash_mod:
-                jsr w_to_r
-                jsr w_m_star
-                jsr w_r_from
+                inx                     ; pretend to push to stack
+                inx
+                jsr w_m_star            ; doesn't use further stack space
+                dex
+                dex
                 jsr w_sm_slash_rem
 
 z_star_slash_mod:
@@ -6067,7 +6072,7 @@ z_to_in:        rts
         ; to deal with a dot as a last character that signalizes double -
         ; this should be a pure number string.
         ;
-        ; This routine calles UM*, which uses tmp1, tmp2 and tmp3, so we
+        ; This routine calls UM*, which uses tmp1, tmp2 and tmp3, so we
         ; cannot access any of those.
         ;
         ; For the math routine, we move the inputs to the scratchpad to
@@ -6821,7 +6826,7 @@ z_u_less_than:    rts
         ; Forth code, modified by Garth Wilson, see
         ; http://6502.org/source/integers/ummodfix/ummodfix.htm
         ;
-        ; This uses tmp1, tmp1+1, and tmptos
+        ; This uses tmpdsp but otherwise works in place
         ; """
 
 xt_um_slash_mod:
@@ -6835,51 +6840,131 @@ w_um_slash_mod:
                 lda #err_divzero
                 jmp error
 
+                ; note we don't check for the overflow condition that occurs
+                ; when the divisor is less than the high word of the dividend,
+                ; ie. when the quotient would be more than 16 bits
+
+                ; During the main part of the routine we have the following
+                ; stack layout.  We're essentially doing binary long division
+                ; (see https://en.wikipedia.org/wiki/Binary_number#Division).
+                ; At each step we check whether the divisor fits into the
+                ; top word of the dividend, while rolling the dividend left one bit,
+                ; and rolling our result bits in from the right.
+                ; Eventually we're left with the remainder TOS and quotient NOS:
+                ;
+                ;       +-----------+-----------+-----------+
+                ;       |    TOS    |    NOS    |    3OS    |
+                ;       | 0,x | 1,x | 2,x | 3,x | 4,x | 5,x |
+                ;       +-----+-----+-----+-----+-----+-----+
+                ;       |  divisor  |       dividend        |
+                ;       | ulo   uhi | ud2   ud3   ud0   ud1 |
+                ;       +-----------+-----------+-----------+
+                ;                   | remainder | quotient  |
+                ;                   | rlo   rhi | qlo   qhi |
+                ;                   +-----------+-----------+
+                ;
+                ; Finally we do DROP, SWAP leaving the desired result:
+                ;
+                ;       +-----------+-----------+
+                ;       |    TOS    |    NOS    |
+                ;       | 0,x | 1,x | 2,x | 3,x |
+                ;       +-----+-----+-----+-----+
+                ;       | quotient  | remainder |
+                ;       | qlo   qhi | rlo   rhi |
+                ;       +-----------+-----------+
+
 _not_zero:
                 ; We loop 17 times
-                lda #17
-                sta tmptos
+                ldy #17
+
+                ; because we're often dividing a word that's been
+                ; extended to a double via S>D, it's worth doing a
+                ; fast pre-loop until we see a non-zero high dividend
+
+                lda 2,x                 ; is high part of dividend zero?
+                ora 3,x
+                bne _loop               ; nope, carry on...
+
+_while_zero:    rol 4,x                 ; roll the bottom word
+                rol 5,x
+                dey
+                beq _done
+                bcc _while_zero         ; until we get a high bit
+
+                rol 2,x                 ; enter the bit into the high part
+                bra _maybe              ; start the real work
 
 _loop:
                 ; rotate low cell of dividend one bit left (LSB)
+                ; entering the last result bit from the carry
+                ; NB. the arbitrary bit on pass one is discarded on step 17
                 rol 4,x
                 rol 5,x
 
                 ; loop control
-                dec tmptos
+                dey
                 beq _done
 
                 ; rotate high cell of dividend one bit left (MSB)
                 rol 2,x
                 rol 3,x
 
-                stz tmp1        ; store the bit we got from hi cell (MSB)
-                rol tmp1
+                ; Garth's original routine explicitly stores
+                ; the carry (bit 17) in a temp and uses an
+                ; extended version of the _maybe branch here.
+                ; While that saves some code, this routine is
+                ; so heavily used that it seems worth unfolding
+                ; the C=0 and C=1 for speed and avoid the temp storage
 
-                ; subtract dividend hi cell minus divisor
-                sec
+                bcc _maybe      ; hi bit set?
+
+                ; bit 17 aka carry is set, so divisor will definitely go
                 lda 2,x
                 sbc 0,x
-                sta tmp1+1
+                sta 2,x
+
                 lda 3,x
                 sbc 1,x
+                sta 3,x
 
-                tay
-                lda tmp1
-                sbc #0
-                bcc _loop
-
-                ; make result new dividend high cell
-                lda tmp1+1
-                sta 2,x
-                sty 3,x         ; used as temp storage
-
+                sec             ; result bit is 1
                 bra _loop
+
+_maybe:
+                ; otherwise we need to check if divisor "goes", i.e.
+                ; is no larger than the high word of dividend, by actually
+                ; doing the subtraction and checking the resulting carry
+
+                ; start with the MSB so we can short-circuit early
+
+                sec
+                lda 3,x         ; check if we need borrow on MSB
+                sbc 1,x
+                bcc _loop       ; if we do, divisor won't go, result bit is C=0
+
+                ina
+                sta tmpdsp      ; stash msb+1 to simplify upcoming borrow test
+
+                lda 2,x         ; find difference of LSB
+                sbc 0,x         ; note carry is already set
+                bcs _ok         ; if C=1, we're good to go
+
+                dec tmpdsp      ; need to borrow from the MSB
+                beq _loop       ; failing if it was 0 (ie. msb+1 was 1), leaving C=0
+
+                sec             ; otherwise we're good, so ensure C=1
+_ok:
+                sta 2,x         ; update the LSB of dividend
+                lda tmpdsp      ; recover stashed MSB
+                dea             ; undo our +1 adjustment
+                sta 3,x         ; update MSB of dividend
+
+                bra _loop       ; continue with result bit C=1
 _done:
-                inx
+                inx             ; drop the divisor
                 inx
 
-                jsr w_swap
+                jsr w_swap      ; swap to return ( rem quo )
 
 z_um_slash_mod: rts
 
@@ -6893,49 +6978,87 @@ z_um_slash_mod: rts
         ;
         ; This is based on modified FIG Forth code by Dr. Jefyll, see
         ; http://forum.6502.org/viewtopic.php?f=9&t=689 for a detailed
-        ; discussion.
+        ; discussion and some great explanatory diagrams.
         ;
         ; We don't use the system scratch pad (SYSPAD) for temp
         ; storage because >NUMBER uses it as well, but instead tmp1 to
         ; tmp3 (tmp1 is N in the original code, tmp1+1 is N+1, etc).
         ;
-        ; Consider switching to a table-supported version based on
-        ; http://codebase64.org/doku.php?id=base:seriously_fast_multiplication
-        ; http://codebase64.org/doku.php?id=magazines:chacking16#d_graphics_for_the_masseslib3d>
-        ; http://forum.6502.org/viewtopic.php?p=205#p205
-        ; http://forum.6502.org/viewtopic.php?f=9&t=689
+        ; There's a lengthy discussion of alternative 6502 multiply
+        ; algorithms at http://forum.6502.org/viewtopic.php?f=2&t=7451
+        ; with performance compared at https://github.com/TobyLobster/multiply_test
+        ; However those performance figures are averaged over all possible
+        ; inputs values uniformly.   In practical applications smaller inputs
+        ; are much more likely, especially zero, so it's worth a little more
+        ; average expensive in size and cycles to optimize for these cases.
+        ;
+        ; Also note that although multiplication is symmetrical,
+        ; typically algorithm performance isn't.  For example, since we sum
+        ; a shifted copy of the RHS each time we find a one bit in the LHS
+        ; then it's usually faster to have the larger number on the right and
+        ; smaller number on the left.
         ; """
 
 xt_um_star:
                 jsr underflow_2
 w_um_star:
-                ; to eliminate clc inside the loop, the value at
-                ; tmp1 is reduced by 1 in advance
-                clc
-                lda 0,x         ; copy TOS to tmp2
-                sbc #0
+                ; When we write "123 45 um*" to calculate the product a * b = d
+                ; then TOS is the RHS (b) and NOS is the LHS (a) and our
+                ; calculation looks like this on the stack:
+                ;
+                ;           +-----------+-----------+
+                ;           |    TOS    |    NOS    |
+                ;           | 0,x | 1,x | 2,x | 3,x |
+                ;           +-----+-----+-----+-----+
+                ; Input:    | blo   bhi | alo   ahi |    we move b-1 to tmp2 and use a in place
+                ;           +-----------+-----------+
+                ; Output:   | dhlo dhhi   dllo dlhi |    NUXI order d2 d3 d0 d1
+                ;           +-----------------------+
+                ;              ^    ^
+                ;              |    +---- cached in ACC/tmp1+1
+                ;              +--------- cached in tmp1
+
+
+                ; set tmp2 to RHS-1 to eliminate clc inside the loop
+                ; at the same time check for quick exit if RHS=0
+                lda 0,x         ; copy TOS-1 to tmp2
+                clc             ; subtract the extra one
+                sbc #0          ; leaves C=1 unless LSB was zero
                 sta tmp2
 
                 lda 1,x
-                sbc #0
-                bcc _zero       ; is TOS zero?
+                sbc #0          ; leaves C=1 unless both bytes were zero
+                bcc _tos_zero   ; is TOS aka RHS zero?
                 sta tmp2+1
 
                 lda #0
-                sta tmp1
-                stx tmp3        ; tested for exit from outer loop
+                sta tmp1        ; initialize dhlo/dhhi = $0000 in <tmp1, acc>
+                stx tmp3        ; tracks when to exit from outer loop
                 dex
                 dex
 
 _outer_loop:
-                ldy #8          ; counter inner loop
-                lsr 4,x         ; think "2,x" then later "3,x"
+                ; We loop over LHS bits in two passes, once for the low byte
+                ; and then for the high byte.  Each time we use a LHS bit
+                ; we roll it out from the least significant bit, and roll
+                ; in a bit of the result to the most significant bit.  Once
+                ; we've done this eight times the RHS byte has been replaced
+                ; by the output byte.
+                ; We don't explicitly test for LHS=0 but the skip8 shortcut
+                ; deals with it fairly quickly.
 
+                ; On entry A has the low byte of tmp1
+
+                ldy #8          ; inner loop counter, looping over LHS bits
+                lsr 4,x         ; think "2,x" the first time and "3,x" the next
+                bcs +
+                beq _skip8      ; shortcut if all bits in this byte were zero
 _inner_loop:
                 bcc _no_add
-                sta tmp1+1      ; save time, don't CLC
++
+                sta tmp1+1      ; add a copy of LHS-1 + C=1 to tmp1
                 lda tmp1
-                adc tmp2
+                adc tmp2        ; save time, don't CLC
                 sta tmp1
                 lda tmp1+1
                 adc tmp2+1
@@ -6943,11 +7066,11 @@ _inner_loop:
 _no_add:
                 ror
                 ror tmp1
-                ror 4,x         ; think "2,x" then later "3,x"
+                ror 4,x         ; first "2,x" then "3,x"
 
                 dey
-                bne _inner_loop ; go back for one more shift?
-
+                bne _inner_loop ; done eight bits?
+_next8:
                 inx
                 cpx tmp3
                 bne _outer_loop ; go back for eight more shifts?
@@ -6958,8 +7081,15 @@ _no_add:
                 sta 0,x
                 bra _done
 
-_zero:
-                stz 2,x
+_skip8:
+                ldy tmp1         ; 0 => A => tmp1 => 4,x
+                sty 4,x
+                sta tmp1
+                lda #0
+                bra _next8
+
+_tos_zero:
+                stz 2,x         ; just set the other result bytes to zero
                 stz 3,x
 _done:
 z_um_star:      rts
@@ -7082,12 +7212,18 @@ z_while:        rts
 xt_within:
                 jsr underflow_3
 w_within:
-                jsr w_over
-                jsr w_minus
-                jsr w_to_r
-                jsr w_minus
-                jsr w_r_from
-                jsr w_u_less_than
+                jsr w_over              ; ( n1 n2 n3 n2 )
+                jsr w_minus             ; ( n1 n2 n3-n2 )
+                inx                     ; pretend to push n3-n2 to return stack
+                inx
+                jsr w_minus             ; ( n1-n2 ) with ( n2 n3-n2 ) past end of stack
+                dex                     ; nip the overhang leaving ( n1-n2 n3-n2 )
+                dex
+                lda $fe,x
+                sta 0,x
+                lda $ff,x
+                sta 1,x
+                jsr w_u_less_than       ; ( f )
 
 z_within:       rts
 

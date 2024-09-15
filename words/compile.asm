@@ -499,19 +499,8 @@ zbranch_runtime:
                 sty tmp1+1
 
                 tay             ; test if A = 0 which tells us whether to branch
-                beq _branch
+                bne _nobranch   ; the usual case is to repeat, so fall thru
 
-                ; no branch, just skip the address bytes and erturn
-                clc
-                lda tmp1        ; LSB
-                adc #3          ; skip two bytes plus the extra for jsr/rts behavior
-                sta tmp1
-                bcc _jmp
-
-                inc tmp1+1
-                bra _jmp
-
-_branch:
                 ; Flag is FALSE (0) so we take the jump to the address given in
                 ; the next two bytes. However, the address points to the last
                 ; byte of the JSR instruction, not to the next byte afterwards
@@ -526,3 +515,14 @@ _branch:
 _jmp:
                 ; However we got here, tmp1 has the address to jump to.
                 jmp (tmp1)
+
+_nobranch:
+                ; no branch, continue past the address bytes
+                clc
+                lda tmp1        ; LSB
+                adc #3          ; skip two bytes plus the extra for jsr/rts behavior
+                sta tmp1
+                bcc _jmp
+
+                inc tmp1+1
+                bra _jmp

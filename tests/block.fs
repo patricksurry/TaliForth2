@@ -99,14 +99,19 @@ T{ blkinscreenD   -> 2  }T \ Note: blkinscreen5 is a constant.
 T{ shouldbe19 @   -> 19 }T
 
 :noname
-    block-c65-init if
-        ." testing c65 block read/write"
-        $c000 1 block-write     \ write a block from ROM
-        $400 1 block-read       \ read it back to block buffer
-        $c000 $400 $400 $400 compare    \ unchanged?
+    s" block-c65-init" find-name ?dup if
+        name>int execute if
+            ." testing c65 block read/write"
+            $c000 1 block-write     \ write a block from ROM
+            $400 1 block-read       \ read it back to block buffer
+            $c000 $400 $400 $400 compare    \ unchanged?
+        else
+            ." no c65 block device"
+            0                       \ pass the null test
+        then
     else
-        ." no c65 block device"
-        0                       \ pass the null test
+        ." this build doesn't include block-c65-init"
+        0
     then
 ;
 T{ execute -> 0 }T
