@@ -212,7 +212,7 @@ w_m_star_slash:
                 lda 1,x
                 eor 3,x
                 eor 5,x
-                pha                     ; stash the sign bit on the stack
+                pha                     ; stash the sign bit on the return stack
 
                 jsr w_abs               ; ( d1 n1 |n2| )
                 jsr w_swap
