@@ -2355,8 +2355,7 @@ z_fetch:        rts
 xt_find:
                 jsr underflow_1
 w_find:
-                ; Duplicate caddr in case conversion fails. We use the
-                jsr w_dup
+                jsr w_dup		; dup caddr in case conversion fails
 
                 ; Convert ancient-type counted string address to
                 ; modern format
