@@ -39,6 +39,8 @@ str_see_nt         = ix
 ix += 1
 str_see_xt         = ix
 ix += 1
+str_see_header     = ix
+ix += 1
 str_see_size       = ix
 ix += 1
 str_see_cfapfa     = ix
@@ -63,9 +65,9 @@ string_table:
 .if "wordlist" in TALI_OPTIONAL_WORDS
         .word s_wid_forth, s_wid_editor, s_wid_asm, s_wid_root  ; 3-6
 .endif
-        .word s_see_nt, s_see_xt, s_see_size, s_see_cfapfa            ; 7-10
+        .word s_see_nt, s_see_xt, s_see_header, s_see_size, s_see_cfapfa            ; 7-11
 .if "disassembler" in TALI_OPTIONAL_WORDS
-        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do ; 11-15
+        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do ; 12-15
 .endif
 
 ; note .shift is like .text but terminates the string by setting bit 7 of the last character
@@ -84,12 +86,13 @@ s_wid_root:   .shift "Root "       ; Wordlist ID 3, note space at end
 
 s_see_nt:     .shift "nt: "
 s_see_xt:     .shift "xt: "
+s_see_header: .shift "header: "
 s_see_size:   .shift "size (decimal): "
 s_see_cfapfa: .shift "CFA 3  PFA "
 
 ; this string is referenced directly, not via string table
 ; must match DICTIONARY FLAGS in definitions.asm and calculated flag order in xt_see
-see_flags_template:     .shift "flags: CO",0,"IM",0,"AN",0,"NN",0,"HC",0,"| UF",0,"ST",0
+see_flags_template:     .shift "flags: HC",0,"NN",0,"AN",0,"IM",0,"CO",0,"DC",0,"LC",0,"FP",0,"| UF",0,"ST",0
 
 .if "disassembler" in TALI_OPTIONAL_WORDS
 s_disasm_sdc: .shift " STACK DEPTH CHECK"

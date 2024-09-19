@@ -3,10 +3,9 @@
 xt_allow_native:
 w_allow_native:
                 jsr current_to_dp
-                ldy #1          ; offset for header flag byte
-                lda (dp),y
+                lda (dp)        ; header status flags are @ nt
                 and #$FF-NN-AN  ; AN and NN flag is clear.
-                sta (dp),y
+                sta (dp)
 z_allow_native:
                 rts
 
@@ -17,11 +16,10 @@ z_allow_native:
 xt_always_native:
 w_always_native:
                 jsr current_to_dp
-                ldy #1          ; offset for header flag byte
-                lda (dp),y
+                lda (dp)        ; header status flags are @ nt
                 ora #AN         ; Make sure AN flag is set
                 and #$FF-NN     ; and NN flag is clear.
-                sta (dp),y
+                sta (dp)
 z_always_native:
                 rts
 
@@ -281,9 +279,7 @@ w_find_name:
                 ; check for special case of an empty string (length zero)
                 lda 0,x
                 ora 1,x
-                bne _nonempty
-
-                jmp _fail_done
+                beq _fail_done
 
 _nonempty:
                 ; Truncate names longer than the max allowed (31).
@@ -325,7 +321,7 @@ _wordlist_loop:
                 lda (up),y
                 sta tmp1+1
 
-                jsr find_header_name
+                jsr find_nt_by_name
                 bne _success
 
                 ; Move on to the next wordlist in the search order.
@@ -507,119 +503,48 @@ z_input_to_r: 	rts
 
 
 
-; ## INT_TO_NAME ( xt -- nt ) "Get name token from execution token"
+; ## INT_TO_NAME ( xt -- nt | 0 ) "Get name token from execution token"
 ; ## "int>name"  auto  Tali Forth
         ; """www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
         ; This is called >NAME in Gforth, but we change it to
         ; INT>NAME to match NAME>INT
+        ;
+        ; Uses tmp1
         ; """
 
 xt_int_to_name:
                 jsr underflow_1
 w_int_to_name:
                 ; Unfortunately, to find the header, we have to walk through
-                ; all of the wordlists. We are running out of tmp variables.
-                ; (I'm assuming there is a reason this is avoiding tmp1) so
-                ; hold the current wordlist on the data stack. This searches
-                ; all of the wordlists in id order.
-                dex
-                dex
-                stz 0,x
-                stz 1,x
+                ; all of the wordlists, which we do in id order.
+
+                stz tmptos              ; initialize loop counter with first wordlist id
 
 _wordlist_loop:
-                ; A needs to have the current wordlist id in it at
-                ; the top of this loop.
-                lda 0,x                 ; Get the current wordlist.
+                lda tmptos              ; fetch and increment wordlist id
+                cmp #max_wordlists
+                bcs _done               ; we're done when index >= max
+                inc tmptos              ; bump index for next go round
 
                 ; Get the DP for that wordlist.
                 asl                     ; Turn offset into cells offset.
                 clc
                 adc #wordlists_offset
                 tay
-                lda (up),y              ; Save the DP for this wordlist
-                sta tmp2                ; into tmp2
+                lda (up),y              ; Save the DP (first nt) for this wordlist
+                sta tmp1
                 iny
                 lda (up),y
-                sta tmp2+1
+                sta tmp1+1
 
-                ; Check for an empty wordlist (DP will be 0)
-                lda tmp2
-                ora tmp2+1
-                beq _next_wordlist
+                jsr find_nt_by_xt
+                beq _wordlist_loop      ; found?
 
-                lda 2,x         ; Target xt is now behind wordlist id.
-                sta tmp3        ; Save target xt in tmp3
-                lda 3,x
-                sta tmp3+1
-
-_loop:
-                ldy #4          ; xt is four bytes down
-                lda (tmp2),y    ; LSB of xt of current nt
-                cmp tmp3
-                bne _no_match
-
-                ; LSB is the same, now check MSB
-                iny
-                lda (tmp2),y    ; MSB of xt of current nt
-                cmp tmp3+1
-                beq _match
-
-_no_match:
-                ; no match, so we need to get the next word. Next nt is two
-                ; bytes down
-                clc
-                lda tmp2
-                adc #2
-                sta tmp2
-                bcc +
-                inc tmp2+1
-+
-                ldy #0
-                lda (tmp2),y
-                pha
-                iny
-                ora (tmp2),y
-                beq _zero
-
-                ; Not zero continue
-                lda (tmp2),y
-                sta tmp2+1
-                pla
-                sta tmp2
-                bra _loop
-
-_zero:
-                ; if next word is zero, the xt has no nt in this wordlist
-                pla             ; Leftover from above loop
-
-_next_wordlist:
-                ; Move on to the next wordlist.
-                lda 0,x
-                ina
+_done:
+                ; Write stashed nt (found or 0) to TOS
+                lda tmp1
                 sta 0,x
-                cmp #max_wordlists
-                bne _wordlist_loop
-
-                ; We didn't find it in any of the wordlists.
-                ; Remove the wordlist id from the stack.
-                inx
-                inx
-
-                ; We return a zero to indicate that we didn't find it.
-                stz 0,x
-                stz 1,x
-                bra z_int_to_name
-
-_match:
-                ; We found it. Remove wordlist id from stack.
-                inx
-                inx
-
-                ; It's a match! Replace TOS with nt
-                lda tmp2
-                sta 0,x
-                lda tmp2+1
+                lda tmp1+1
                 sta 1,x
 
 z_int_to_name:  rts
@@ -662,30 +587,22 @@ z_latestxt:     rts
 ; ## "name>int"  tested  Gforth
         ; """See
         ; https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
+        ;
+        ; Uses tmp1
         ; """
 
 xt_name_to_int:
                 jsr underflow_1
 w_name_to_int:
-                ; The xt starts four bytes down from the nt
-                lda 0,x
-                clc
-                adc #4
-                sta tmp3
-
+                lda 0,x                 ; copy nt to tmp1
+                sta tmp1
                 lda 1,x
-                bcc _done
-                ina
-_done:
-                sta tmp3+1
+                sta tmp1+1
 
-                ldy #0
-                lda (tmp3),y
+                jsr nt_to_xt            ; get xt to Y/A
+
                 sta 0,x
-                iny
-                lda (tmp3),y
-                sta 1,x
-
+                sty 1,x
 z_name_to_int:  rts
 
 
@@ -697,23 +614,31 @@ z_name_to_int:  rts
 xt_name_to_string:
                 jsr underflow_1
 w_name_to_string:
-                dex
+                dex             ; make space for length
                 dex
 
-                ; the length of the string is the first byte of the
-                ; header pointed to by nt
-                lda (2,x)
-                sta 0,x
+                lda (2,x)       ; grab status flags for header length
+                and #DC+LC+FP   ; mask length bits
+                lsr
+                adc #4-1        ; calculate header length less one
+                tay             ; stash temporarily
+
+                inc 2,x         ; nt+1 has the name length
+                bne +
+                inc 3,x
++
+                lda (2,x)       ; fetch name length byte
+
+                sta 0,x         ; namelen is always <256
                 stz 1,x
 
-                ; the string itself always starts eight bytes down
-                lda 2,x         ; LSB
-                clc
-                adc #8
-                sta 2,x
-                bcc z_name_to_string
-                inc 3,x         ; MSB
-
+                tya
+                adc 2,x         ; note C=0 from adc above
+                sta 2,x         ; LSB of nameptr = nt+1 + hdrlen-1
+                bcc +
+                inc 3,x         ; MSB of nameptr
++
+                ; ( addr n )
 z_name_to_string:
                 rts
 
@@ -734,11 +659,10 @@ z_nc_limit:
 xt_never_native:
 w_never_native:
                 jsr current_to_dp
-                ldy #1          ; offset for header flag byte
-                lda (dp),y
+                lda (dp)        ; header status flags are @ nt
                 ora #NN         ; Make sure NN flag is set
                 and #$FF-AN     ; and AN flag is clear.
-                sta (dp),y
+                sta (dp)
 z_never_native:
                 rts
 
@@ -1157,31 +1081,32 @@ z_useraddr:     rts
 xt_wordsize:
                 jsr underflow_1
 w_wordsize:
-                ; We get the start address of the word from its header entry
-                ; for the start of the actual code (execution token, xt)
-                ; which is four bytes down, and the pointer to the end of the
-                ; code (z_word, six bytes down)
-                lda 0,x
-                sta tmp1
-                lda 1,x
-                sta tmp1+1
+                ; Use header status flags to calculate offset to code size
+                lda (0,x)       ; fetch status flag byte
+                pha             ; stash the flags for later LC check
+                and #DC+FP      ; mask length bits excluding LC
+                lsr             ; preserve DC flag with FP in carry
+                adc #3          ; offset to code size is 3 + 0-3
 
-                ldy #6
-                lda (tmp1),y    ; LSB of z
-                dey
-                dey
+                adc 0,x         ; add offset to nt, carry clear from offset calc
+                sta 0,x         ; LSB of size byte(s) address
+                bcc +
+                inc 1,x         ; MSB
++
+                lda (0,x)       ; get LSB of body size
+                tay             ; hold that thought
+                pla             ; check if there's a MSB
+                and #LC         ; extra byte if LC is set
+                beq _small      ; otherwise it's zero
 
-                sec
-                sbc (tmp1),y    ; LSB of xt
-                sta 0,x
+                inc 0,x         ; increment ptr
+                bne +
+                inc 1,x
++
+                lda (0,x)       ; grab MSB
 
-                ldy #7
-                lda (tmp1),y    ; MSB of z
-                dey
-                dey
-
-                sbc (tmp1),y    ; MSB of xt
-                sta 1,x
+_small:         sty 0,x         ; Y has LSB
+                sta 1,x         ; A has either MSB we fetched or 0 if there wasn't one
 
 z_wordsize:     rts
 

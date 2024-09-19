@@ -388,14 +388,14 @@ w_two_variable:
                 ; We just let CREATE and ALLOT do the heavy lifting
                 dex
                 dex
-                lda #4
+                lda #4                  ; ( 4 )
                 sta 0,x
                 stz 1,x
 
-                sta tmpdsp              ; PFA size 4
+                sta tmpdsp              ; tell create our PFA size is 4
                 jsr create_dovar
 
-                jsr w_allot
+                jsr w_allot             ; allocate the data area
 
 z_two_variable: rts
 

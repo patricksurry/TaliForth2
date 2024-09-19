@@ -76,9 +76,9 @@ _found:
                 ; to copy and paste directly from the disassembler to the
                 ; assembler.
 
-                pha                 ; stash the NT for later
+                pha                 ; stash MSB of NT for later
                 lda tmp1
-                pha
+                pha                 ; LSB of NT
 
                 lda scratch         ; fetch the opcode
                 jsr op_length       ; get length Y = 1,2,3

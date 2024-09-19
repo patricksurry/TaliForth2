@@ -63,15 +63,7 @@ asm_op_table:
 ; Multiply both sides by m to get 3*m*171 == m mod 256.
 ; So we can choose k = 171 m mod 256.  Phew.
 
-nt_asm .macro op, label
-        _ := asm_op_table + 3*(171 * (512 + \op - 2 - <asm_op_table) % 256)
-        .byte len(\label), IM+NN
-        .word +
-        .word _, _ + 3
-        .text \label
-+
-    .endmacro
-
+xt_asm_op .sfunction op, ( asm_op_table + 3*(171 * (512 + op - 2 - <asm_op_table) % 256) )
 
 asm_op_common:
         ; """Common routine for all opcodes. We arrive here with the opcode
@@ -135,32 +127,24 @@ op_find_nt:
                 sbc #2
                 sta tmptos
 
-                lda #<nt_asm_first      ; first candidate NT
+                lda #<nt_asm_end       ; first candidate NT is the start of the linked list
                 sta tmp1
-                lda #>nt_asm_first
+                lda #>nt_asm_end
                 sta tmp1+1
 
 _loop:
-                ldy #4
-                lda (tmp1),y            ; check LSB of this words XT
-                cmp tmptos
+                jsr nt_to_xt            ; return XT in Y,A
+                cmp tmptos              ; check LSB of this word's XT
                 beq _found
 
-                ; next NT
-                ldy #2
-                lda (tmp1),y
-                pha
-                iny
-                lda (tmp1),y
-                sta tmp1+1
-                pla
-                sta tmp1
+                jsr nt_to_nt            ; update tmp1 to previous NT in the list
 
-                cmp #<nt_asm_last
+                lda tmp1
+                cmp #<nt_asm_begin
                 bne _loop
 
                 lda tmp1+1
-                cmp #>nt_asm_last
+                cmp #>nt_asm_begin
                 bne _loop
 
                 stz tmp1

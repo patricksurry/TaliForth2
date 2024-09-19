@@ -59,7 +59,7 @@ _done:          ; clear the stack
 z_cmove:        rts
 
 
-; ## CMOVE_UP ( add1 add2 u -- ) "Copy bytes from high to low"
+; ## CMOVE_UP ( addr1 addr2 u -- ) "Copy bytes from high to low"
 ; ## "cmove>"  auto  ANS string
         ; """https://forth-standard.org/standard/string/CMOVEtop
         ; Based on code in Leventhal, Lance A. "6502 Assembly Language

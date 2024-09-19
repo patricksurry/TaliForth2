@@ -261,18 +261,22 @@ OpBITzp = $24   ; used to save a branch occasionally
 
 ; DICTIONARY FLAGS
 
-N_FLAGS = 5                 ; Bits 5-7 are currently unused.
+N_FLAGS = 8
 
-; This list should match s_see_flags in strings.asm
+; This list should match s_see_flags in strings.asm.  See words/headers.asm for details.
 
-CO = 1                      ; Compile Only
-IM = 2                      ; Immediate Word
-AN = 4                      ; Always Native Compile
-NN = 8                      ; Never Native Compile
+FP = 1                      ; Far previous NT (LSB/MSB not just LSB within previous page)
+LC = 2                      ; Long code (two byte vs one byte length for native compile)
+DC = 4                      ; Disjoint code (two byte pointer rather than xt adjoining header)
+
+CO = 8                      ; Compile Only
+IM = 16                     ; Immediate Word
+AN = 32                     ; Always Native Compile
+NN = 64                     ; Never Native Compile
 ST = AN+NN                  ; Stack juggling to be stripped for native compile
-HC = 16                     ; Word has Code Field Area (CFA)
+HC = 128                    ; Word has Code Field Area (CFA)
 
-; Note if needed we could remove the HC flag and detect it automatically,
+; Note if needed we could replace the expicit HC flag with a calculation,
 ; but the extra effort doesn't seem worth it unless we really need the bit
 ; see `has_cfa` in the closed PR https://github.com/SamCoVT/TaliForth2/pull/122/files
 

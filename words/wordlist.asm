@@ -315,27 +315,24 @@ w_search_wordlist:
                 lda 0,x
                 asl             ; Convert wid to offset in cells (x2)
                 adc tmp2
-                sta tmp2
+                sta tmp2        ; set tmp2 to the dp for the given wordlist
                 bcc +
                 inc tmp2+1      ; Propagate carry if needed.
-
-                ; tmp2 now holds the address of the dictionary pointer
-                ; for the given wordlist.
 +
-                ; Remove the wid from the stack.
+                ; Remove the wid from the stack leaving ( caddr u )
                 inx
                 inx
 
                 ; check for special case of an empty string (length zero)
                 lda 0,x
                 ora 1,x
-                beq _done
+                beq _drop_fail
 
                 ; Check for special case of empty wordlist
                 ; (dictionary pointer, in tmp2, is 0)
                 lda tmp2
                 ora tmp2+1
-                beq _done
+                beq _drop_fail
 
                 ; set up first loop iteration
                 lda (tmp2)              ; nt of first word in Dictionary
@@ -348,8 +345,8 @@ w_search_wordlist:
                 lda (tmp2)
                 sta tmp1+1
 
-                jsr find_header_name
-                beq _fail_done
+                jsr find_nt_by_name
+                beq _drop_fail
 
                 ; The strings match. Drop the count and put correct nt TOS
                 inx
@@ -359,42 +356,36 @@ w_search_wordlist:
                 lda tmp1+1
                 sta 1,x
 
-                ; Change the nt into an xt, but save a copy of the nt
-                ; to look up whether the word is immediate or not.
-                jsr w_dup              ; ( nt nt )
-                jsr w_name_to_int      ; ( nt xt )
-                jsr w_swap             ; ( xt nt )
-
-                ldy #0                  ; Prepare flag
-
-                ; The flags are in the second byte of the header
-                inc 0,x
+                ; Grab the status flags from the nt (compare "FIND")
+                ldy #1                  ; assume immediate, returning 1
+                lda (0,x)
+                and #IM                 ; is IM set?
                 bne +
-                inc 1,x                 ; ( xt nt+1 )
+                ldy #$ff                ; not immediate, return -1
 +
-                lda (0,x)               ; ( xt char )
-                and #IM
-                bne _immediate          ; bit set, we're immediate
+                phy                     ; stash the 1 or -1
 
-                lda #$FF                ; We're not immediate, return -1
-                sta 0,x
-                sta 1,x
-                bra _done_nodrop
+                ; Change the nt into an xt
+                jsr w_name_to_int      ; ( xt )
 
-_immediate:
-                lda #1                  ; We're immediate, return 1
-                sta 0,x
-                stz 1,x
+                dex                     ; make space for the result
+                dex
 
-                bra _done_nodrop
-
-_fail_done:
-                stz 2,x         ; failure flag
-                stz 3,x
+                pla                     ; result 1 or -1
+                bra +
+ _drop_fail:
+                ; we arrive with A=0 and ( caddr u )
+                ; so drop one stack element and write the 0 result
+                inx
+                inx
++
+                sta 0,x                 ; A is -1, 0 or 1
+                cmp #1
+                bne +
+                dec a                   ; for 1 we store <1,0>
++
+                sta 1,x                 ; for 0 and -1 we store the same value twice
 _done:
-                inx
-                inx
-_done_nodrop:
 z_search_wordlist:
                 rts
 
@@ -425,12 +416,9 @@ z_set_current:  rts
 
 xt_set_order:
 w_set_order:
-                ; Test for -1 TOS
-                lda #$FF
-                cmp 1,x
-                bne _start
-                cmp 0,x
-                bne _start
+                ; Test for -1 TOS.
+                lda 1,x         ; just check MSB sign bit since other negative
+                bpl _start      ; values have undefined behavior anyway
 
                 ; There is a -1 TOS.  Replace it with the default
                 ; search order, which is just the FORTH-WORDLIST.
@@ -447,21 +435,20 @@ w_set_order:
 _start:
                 ; Set #ORDER - the number of wordlists in the search order.
                 ldy #num_order_offset
-                lda 0,x
+                inx             ; Pre-drop the count so we can preserve Z flag
+                inx
+                lda $fe,x
+
                 sta (up),y      ; #ORDER is a byte variable.
                 sta tmp1        ; Save a copy for zero check and looping.
                                 ; Only the low byte is saved in tmp1 as
                                 ; only 8 wordlists are allowed.
 
-                inx             ; Drop the count off the data stack.
-                inx
-
                 ; Check if there are zero wordlists.
-                lda tmp1
                 beq _done       ; If zero, there are no wordlists.
 
                 ; Move the wordlist ids from the data stack to the search order.
-                ldy #search_order_offset
+                ldy #search_order_offset        ; offset to start of byte array
 _loop:
                 ; Move one wordlist id over into the search order.
                 lda 0,x         ; The search order is a byte array

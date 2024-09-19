@@ -270,33 +270,143 @@ _nibble_to_ascii:
                 rts
 
 
-find_header_name:
+; =====================================================================
+; HEADER HELPER FUNCTIONS
+;
+; These functions help navigate the variable size headers.
+; Currently nt_to_nt is a subroutine that's shared by several callers.
+; In the current test suite this is called about 2M times
+; in find_nt_by_name (during parsing), and another 100K times
+; in find_nt_by_xt (mostly by compile,).
+; Inlining nt_to_nt in the find_nt_by_name variant would save about 25M cycles
+; (about 14% of the test suite cycles) but this is only a compile time expense
+; so might not be worth it for "real" forth code.
+; An alternative would be a simple cache of recently used words.
+
+nt_to_nt:
+                ; If the header structure goes off the rails we can get hung up here
+                ; and start looping through non-NT addresses.  A simple safety check is
+                ; to watch (tmp1)+1 for a length byte >= 32.  For example:
+                ;
+                ;       ldy #1
+                ;       lda (tmp1),y
+                ;       cmp #32
+                ;       bcc +
+                ;       lda #str_see_nt
+                ;       jsr print_string_no_lf
+                ;       lda #$0a
+                ;       jsr kernel_putc
+                ; -     bra -
+                ; +
+
+                ; nt_to_nt updates tmp1 to point to the previous NT header,
+                ; setting tmp1=0 and Z=1 when we've reached the end of the list
+                lda (tmp1)              ; check the flag bits
+                lsr                     ; FP => carry
+
+                ldy #2
+                lda (tmp1),y            ; get the LSB
+                bcc _no_msb             ; is there a MSB?
+
+                ; It's a two byte pointer, with A as LSB
+                pha                     ; stash LSB since we can't update tmp1 yet
+                iny
+                lda (tmp1),y            ; fetch MSB
+                sta tmp1+1              ; update MSB
+                pla
+                bra _finish
+
+_no_msb:
+                ; New MSB is same as current one if new LSB < current one
+                ; else current MSB-1 if new LSB >= current one
+                cmp tmp1                ; C=1 when new LSB >= current one
+                bcc _finish             ; leave current MSB alone
+                dec tmp1+1
+
+_finish:
+                ; write LSB and set Z flag
+                sta tmp1
+                ora tmp1+1
+
+                rts
+
+
+nt_to_xt:
+        ; Given a valid nt in tmp1 (unchanged), return its xt in Y/A
+
+                lda (tmp1)              ; DC flag tells us pointer (1) or adjoining (0)
+                lsr                     ; FP -> carry bit
+                bit #DC>>1              ; is DC set (leaves carry unchanged)?
+                beq _adjoint
+
+                ; the explicit xt pointer is at offset 3 (when FP=0) or 4 (when FP=1)
+                ldy #3
+                bcc +
+                iny
++
+                lda (tmp1),y            ; fetch LSB of xt
+                pha
+                iny
+                lda (tmp1),y            ; fetch MSB
+                tay
+                pla
+                rts
+_adjoint:
+                ; otherwise calculate nt + header + name length
+                and #(DC+LC)>>1         ; mask length bits
+                adc #4                  ; add along with FP in carry
+
+                ldy #1                  ; add name length byte
+                adc (tmp1),y            ; carry already clear and stays clear
+
+                adc tmp1                ; add to nt
+                ldy tmp1+1
+                bcc +
+                iny                     ; maybe update MSB
++
+                rts
+
+
+find_nt_by_name:
         ; """Given a string on the stack ( addr  n ) with n at most 31
         ; and tmp1 pointing at an NT header, search each
         ; linked header looking for a matching name.
-        ; Each header has length at NT, name at NT+8
-        ; and next header pointer at NT+2 with 0 marking the end.
-        ; On success tmp1 points at the matching NT, with A=$FF and Z=0.
+        ;
+        ; On success tmp1 points at the matching NT, with A nonzero and Z=0.
         ; On failure tmp1 is 0, A=0 and Z=1.
         ; Stomps tmp2.  The stack is unchanged.
         ; """
-                lda 2,x                 ; Copy mystery string to tmp2
-                sta tmp2
-                lda 3,x
-                sta tmp2+1
+
+                lda tmp1                ; Start by checking if initial NT is zero
+                ora tmp1+1
+                beq _done
 
 _loop:
                 ; first quick test: Are strings the same length?
-                lda (tmp1)
+                ldy #1                  ; length is at header offset 1
+                lda (tmp1),y
                 cmp 0,x
-                bne _next_entry
+                beq _maybe
 
+_next_nt:
+                jsr nt_to_nt
+
+                bne _loop        ; A=0 means failure, otherwise try again
+                bra _done
+
+_maybe:
                 ; second quick test: could first characters be equal?
-                lda (tmp2)      ; first character of mystery string
-                ldy #8
-                eor (tmp1),y    ; flag any mismatched bits
-                and #%11011111  ; but ignore upper/lower case bit
-                bne _next_entry ; definitely not equal if any bits differ
+                ; Use header status flags to calculate offset to name (header size)
+                lda (tmp1)              ; Fetch status flags
+                and #DC+LC+FP
+                lsr
+                adc #4
+                tay
+
+                lda (tmp1),y            ; first character of candidate
+                eor (2,x)               ; flag any mismatched bits
+                and #%11011111          ; but ignore upper/lower case bit
+                bne _next_nt            ; definitely not equal if any bits differ
 
                 ; Same length and probably same first character
                 ; (though we still have to check properly).
@@ -304,24 +414,24 @@ _loop:
                 ; from back to front, because words like CELLS and CELL+ would
                 ; take longer otherwise.
 
-                ; The string of the word we're testing against is 8 bytes down
-                lda tmp1
-                pha             ; Save original address on the stack
+                sty tmptos              ; stash header length, the name offset
+                sec
+                lda 2,x                 ; Copy mystery string addr - Y to tmp2
+                sbc tmptos
+                sta tmp2
+                lda 3,x
+                sbc #0
+                sta tmp2+1
+
                 clc
-                adc #8
-                sta tmp1
-                lda tmp1+1
-                pha
-                bcc +
-                ina
-                sta tmp1+1
-+
-                ldy 0,x         ; index is length of string minus 1
+                lda 0,x                 ; string length
+                sta tmptos+1            ; our loop counter
+                adc tmptos              ; add offset
+                tay
                 dey
 
 _next_char:
-                lda (tmp2),y    ; last char of mystery string
-
+                lda (tmp2),y            ; last char of mystery string
                 ; Lowercase the incoming charcter.
                 cmp #'Z'+1
                 bcs _check_char
@@ -332,42 +442,47 @@ _next_char:
                 ora #$20
 
 _check_char:
-                cmp (tmp1),y    ; last char of word we're testing against
-                bne _reset_tmp1
+                cmp (tmp1),y            ; last char of word we're testing against
+                bne _next_nt
 
                 dey
-                bpl _next_char
+                dec tmptos+1
+                bne _next_char
 
-        ; if we fall through on success, and only then, Y is $FF
-_reset_tmp1:
-                pla
-                sta tmp1+1
-                pla
-                sta tmp1
+                ; fall through on success with non-zero result
+                lda #$ff
 
-                tya             ; leave A = $FF on success
-                iny             ; if Y was $FF, we succeeded
-                beq _done
+_done:
+                rts
 
-_next_entry:
-                ; Otherwise move on to next header address
-                ldy #2
-                lda (tmp1),y
-                pha
-                iny
-                lda (tmp1),y
-                sta tmp1+1
-                pla
-                sta tmp1
 
-                ; If we got a zero, we've walked the whole Dictionary and
-                ; return as a failure, otherwise try again
+find_nt_by_xt:
+        ; Given ( xt ) on the stack and tmp1 pointing to an NT header
+        ; search each linked header looking for a matching xt
+
+                lda tmp1                ; Start by checking if initial NT is zero
                 ora tmp1+1
-                bne _loop
+                beq _done               ; failure with A=0, Z=1
 
-_done:          cmp #0      ; A is 0 on failure and $FF on success
-                rts         ; so cmp #0 sets Z on failure and clears on success
+_loop:
+                jsr nt_to_xt            ; nt in tmp1 to xt in y/a
 
+                ; ( xt )
+                cmp 0,x                 ; does LSB match?
+                bne _next_nt
+                tya
+                cmp 1,x                 ; does MSB match?
+                bne _next_nt
+
+                lda #$ff                ; non-zero result for success
+                bra _done
+
+_next_nt:
+                jsr nt_to_nt
+                bne _loop               ; A=0 means failure, otherwise try again
+
+_done:
+                rts
 
 
 compare_16bit:
@@ -512,8 +627,7 @@ _double_number:
                 bra _loop
 
 _got_name_token:
-                ; We have a known word's nt TOS. We're going to need its xt
-                ; though, which is four bytes father down.
+                ; We have a known word's nt TOS and need to calculate its xt
 
                 ; We arrive here with ( addr u nt ), so we NIP twice
                 lda 0,x
@@ -527,25 +641,21 @@ _got_name_token:
                 inx                     ; ( nt )
 
                 ; Whether interpreting or compiling we'll need to check the
-                ; status byte at nt+1 so let's save it now
-                jsr w_dup
-                jsr w_one_plus
+                ; status byte at nt so let's save it now
                 lda (0,x)
-                inx
-                inx
+                pha
 
                 ; See if we are in interpret or compile mode, 0 is interpret
-                ldy state
-                bne _compile
+                lda state
+                lsr                     ; C=1 for compile, 0 for interpret
+                pla                     ; A=flags
+                bcs _compile
 
                 ; We are interpreting, so EXECUTE the xt that is TOS. First,
                 ; though, see if this isn't a compile-only word, which would be
-                ; illegal. The status byte is the second one of the header.
+                ; illegal.
                 and #CO                 ; mask everything but Compile Only bit
-                beq _interpret
-
-                lda #err_compileonly
-                jmp error
+                bne _compileonly
 
 _interpret:
                 ; We JSR to EXECUTE instead of calling the xt directly because
@@ -557,17 +667,21 @@ _interpret:
                 jsr w_execute
 
                 ; That's quite enough for this word, let's get the next one
-                jmp _loop
+                bra _loop
+
+_compileonly:
+                lda #err_compileonly
+                jmp error
 
 _compile:
                 ; We're compiling! However, we need to see if this is an
                 ; IMMEDIATE word, which would mean we execute it right now even
-                ; during compilation mode. Fortunately, we saved the nt so life
-                ; is easier. The flags are in the second byte of the header
+                ; during compilation mode. Fortunately, we saved the header flags
+                ; so life is easier.
                 and #IM                 ; Mask all but IM bit
                 bne _interpret          ; IMMEDIATE word, execute right now
 
-                ; Compile the xt into the Dictionary with COMPILE,
+                ; Compile the word into the Dictionary using nt entry for COMPILE,
                 jsr compile_nt_comma
                 bra _loop
 

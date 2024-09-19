@@ -1020,10 +1020,9 @@ z_comma:        rts
 xt_compile_only:
 w_compile_only:
                 jsr current_to_dp
-                ldy #1          ; offset for status byte
-                lda (dp),y
+                lda (dp)        ; status flags are @ NT
                 ora #CO        ; make sure bit 7 is set
-                sta (dp),y
+                sta (dp)
 
 z_compile_only: rts
 
@@ -1113,11 +1112,13 @@ z_cr:           rts
         ; """
 xt_create:
 w_create:
-                ; Several routines will use CREATE to build new words.
+                ; Several routines build new words using create_common.
                 ; They'll pass the CFA in A/Y, with Y=0 indicating no CFA.
-                ; When Y is non-zero, tmpdsp should contain the PFA size
-                ; so we can adjust the word length for SEE.
-                lda #2                  ; 2 byte PFA for variable
+                ; When Y is non-zero, tmpdsp should contain the planned
+                ; PFA size so we can adjust the word length for SEE.
+                ; Note that we're only responsible for allocating the header
+                ; space. The caller will allocate and populate the PFA itself.
+                lda #2                  ; default 2 byte PFA for variable
                 sta tmpdsp
 create_dovar:
                 ldy #>dovar
@@ -1127,7 +1128,7 @@ create_common:
                 dex
                 dex
                 sta 0,x
-                sty 1,x
+                sty 1,x                 ; ( cfa )
 
                 ; get string
                 jsr w_parse_name        ; ( cfa addr u )
@@ -1196,43 +1197,55 @@ _new_name:
 _process_name:
                 ; ( cfa addr u )
 
-                ; remember the first free byte of memory as the start of
-                ; the new word
-                lda cp
-                sta tmp1
-                lda cp+1
-                sta tmp1+1
-
-                ; ( cfa addr u )
-                lda 0,x
-                sta tmp2                ; store length of string in tmp2
-
-                ; The length of the new header is 8 bytes plus the length of
-                ; the string, so remember it in tmp2+1  (assumes u < 247)
-                clc
-                adc #8
-                sta tmp2+1               ; total header length
-
-                ; Also replace TOS with total header length and ALLOT the memory.
-                ; We'll compile the CFA jsr later if its needed
-                sta 0,x
-                stz 1,x                 ; max header size is 255 chars
-                jsr w_allot
-                ; ( cfa addr )
+                ; We need to decide on the flexible sizes in the header before
+                ; we know how much memory to allot.  We'll always generate adjoining
+                ; code so DC=0.  We can check nt - last_nt to see if we can just store
+                ; the LSB (FP=0) or we need LSB/MSB (FP=1).  The LC (long code)
+                ; flag is harder since we don't know the code length until after we've
+                ; written the header and finish code generation.  Catch-22?
+                ; Luckily we have an out.  We'll optimistically assume the generated
+                ; code is < 256 bytes (LC=0) which is usually true.  Once compilation
+                ; is done, `;' will check if the word is flagged as never native (NN).
+                ; If so we'll create a new header after the code, wasting a few bytes.
+                ; Otherwise the code is relocatable so we'll shift it up by a byte
+                ; to make room for the two byte length.
 
                 ; Get the CURRENT dictionary pointer.
                 jsr current_to_dp
 
-                ; Now we walk through the header with Y as the index, adding
-                ; information byte-by-byte
-                ldy #0
+                ; Remember the first free byte of memory as the start of
+                ; the header for the new word: tmp1 = cp.
+                ; Calculate offset from dp at the same time.
+                lda cp
+                sta tmp1
+                clc                     ; we want cp - dp - 1 so clc for the -1
+                sbc dp
 
-                ; HEADER BYTE 0: Length of string
-                lda tmp2
-                sta (tmp1),y
-                iny
+                lda cp+1
+                sta tmp1+1
+                sbc dp+1                ; A has MSB of cp - dp - 1
 
-                ; HEADER BYTE 1: Flag bits (not to be confused with the status variable above)
+                ; we can skip MSB if cp-dp-1 is 0
+
+                beq +                   ; if A is 0 we can use a single byte offset
+                lda #FP                 ; otherwise we'll need a two byte pointer
++
+                ; Finish determining the status flag byte in A.
+
+                ; Most of the words CREATE'd with DOXXX CFA's must currently be
+                ; called via JSR (i.e. never native) since they are compiled like
+                ; `jsr doxxx + data` and expect to extract their data and then rts
+                ; to the parent caller.  (Note: it might be possible to inline these
+                ; if they were instead compiled like `<push address-of-data> + rts + data`
+                ; so there'd only be one instance of data and fewer jsr levels.)
+
+                ; Although many words CREATE'd without a CFA can be compiled natively
+                ; we don't know for sure until we've seen whether they contain things
+                ; like looping constructs with non-relocatable JMPs.
+
+                ; Long story short, we flag everything as NN here, but then revert when
+                ; possible in ";".
+                ora #NN
 
                 ; Words defined by CREATE are marked in the header as
                 ; having a Code Field Area (CFA), which is a bit tricky for
@@ -1240,130 +1253,104 @@ _process_name:
                 ; correctly with DOES> and CREATE. See the discussion at
                 ; http://forum.6502.org/viewtopic.php?f=9&t=5182 for details
 
-                ; ( cfa addr )
-                lda 3,x                 ; check MSB of CFA
-                beq +                   ; 0 means no CFA, leave A=0
+                ; ( cfa addr u )
 
-                lda #HC                 ; otherwise set the HC bit
+                ldy 5,x                 ; check MSB of CFA
+                beq +                   ; 0 means no CFA, don't set HC
+
+                ora #HC                 ; otherwise set the HC bit
 +
-                ; Most of the words CREATE'd with DOXXX CFA's must currently be
-                ; called via JSR (i.e. never native; NN) since they are compiled like
-                ; `jsr doxxx + data` and expect to extract their data and then rts
-                ; to the parent caller.  (See `dodoes` in taliforth.asm for more detail.)
+                ; Now start writing the header byte-by-byte
 
-                ; Many words CREATE'd without a CFA can safely be compiled natively
-                ; but not all (e.g. looping constructs with non-relocatable jmp).  For
-                ; safety we flag everything as NN here, but ";" will revert when possible.
-                ora #NN
-                sta (tmp1),y
-                iny
+                ; HEADER BYTE 0: status flags byte
+                jsr cmpl_a
+                lsr                     ; FP -> C tells us 1 or 2 byte last nt
 
-                ; HEADER BYTE 2,3: Next header. This is the current last word
-                ; in the Dictionary
-                lda dp
-                sta (tmp1),y
-                iny
-                lda dp+1
-                sta (tmp1),y
-                iny
+                ; HEADER BYTE 1: length of name
+                lda 0,x
+                jsr cmpl_a
 
-                lda 3,x
+                ; HEADER BYTE 2 or 2,3: last nt
+                ; We always write the LSB
+                lda dp                  ; LSB of prev header is in dp
+                jsr cmpl_a              ; note cmpl_a doesn't affect carry
+
+                ; If C=FP=1 we write the MSB, otherwise we'll infer it later
+                bcc +                   ; FP=0, skip the MSB
+                lda dp+1                ; otherwise MSB of dp
+                jsr cmpl_a
++
+                ; Interlude: Point start of dictionary (DP) at our new header (old CP)
+                ; and update the CURRENT wordlist with the new DP
+                ; unless it's a ":" word with no CFA which ";" will add to dictionary later
+                lda 5,x                 ; has cfa?
                 beq +
 
-                ; Interlude: Point start of dictionary (DP) at our new header (old CP)
-                ; unless it's a ":" word no CFA which ":" will add later
-                lda tmp1+1
-                sta dp+1
                 lda tmp1
                 sta dp
-+
-                ; HEADER BYTE 4,5: Start of the code field ("xt_" of this word).
-                ; This begins after the header so we take the length of the
-                ; header, which we cleverly saved in tmp2+1, and use it as an
-                ; offset to the address of the start of the word.
-                clc
-                lda tmp1                ; redundant unless we skipped interlude
-                adc tmp2+1              ; add total header length
-                sta (tmp1),y
-                sta tmptos              ; save result for next step
-                iny
-
                 lda tmp1+1
-                adc #0                  ; only need the carry
-                sta (tmp1),y
-                sta tmptos+1
-                iny
+                sta dp+1
 
-                ; HEADER BYTE 6,7: End of code ("z_" of this word).
-                ; If there's no CFA this is the same as xt_ since we have no code yet,
-                ; otherwise we add three bytes for the subroutine call we'll compile below
-                clc
-                lda 3,x
+                jsr dp_to_current
++
+                ; We always write code adjacent to header (DC=0) so skip the xt field
+
+                ; HEADER BYTE 3 or 4: Length of code
+                ; If there's no CFA this is zero since we have no code yet,
+                ; otherwise it's three bytes for the subroutine call we'll compile below
+                ; along with the size of the parameter field area (PFA) from tmpdsp
+                lda 5,x                 ; has CFA?
                 beq +                   ; leave A=0
-                lda #3
+
+                clc
+                lda #3                  ; otherwise 3 plus the size of the PFA area
                 adc tmpdsp              ; add PFA size, assume no carry
 +
-                adc tmptos              ; add LSB of xt_
-                sta (tmp1),y
-                iny
+                jsr cmpl_a
 
-                lda tmptos+1            ; recall MSB of xt_
-                adc #0                  ; only need the carry
-                sta (tmp1),y
-                iny
+                ; HEADER BYTE 4 or 5 onward: Name string
+                ; We have ( cfa addr u ) and will compile bytes
+                ; by hand so we can translate to lowercase
 
-                ; HEADER BYTE 8: Start of name string. The address is TOS, the
-                ; length in tmp2. We subtract 8 from the address so we can
-                ; use the same loop index, which is already 8 bytes ahead at
-                ; this point
-                ; ( cfa addr )
-                lda 0,x
-                sec
-                sbc #8
-                sta tmptos
-
-                lda 1,x
-                sbc #0          ; only need carry
-                sta tmptos+1
-
+                ldy 0,x                 ; Y = name length
+                inx                     ; drop name length
+                inx                     ; ( cfa addr )
 _name_loop:
-                lda (tmptos),y
+                lda (0,x)               ; get next character of name
 
                 ; Make sure it goes into the dictionary in lower case.
                 cmp #'Z'+1
-                bcs _store_name
+                bcs +
                 cmp #'A'
-                bcc _store_name
+                bcc +
 
-                ; An uppercase letter has been found so make it lowercase.
-                ora #$20
+                ora #$20                ; uppercase to lowercase
++
+                jsr cmpl_a
+                dey
+                beq _end
 
-                ; Fall into _store_name.
-
-_store_name:
-                sta (tmp1),y
-                iny
-                dec tmp2
+                inc 0,x                 ; increment string address
                 bne _name_loop
+
+                inc 1,x
+                bra _name_loop
+
+_end:
+                inx                     ; drop address leaving ( cfa )
+                inx
 
                 ; After the name string comes the code field, starting at the
                 ; current xt of this word, which for CREATE is a subroutine call
                 ; to DOVAR.  Other words use different subroutines or omit the CFA.
 
-                ; ( cfa addr )
-                ldy 3,x
+                ldy 1,x                 ; check MSB
                 beq +
 
-                lda 2,x
-                jsr cmpl_subroutine             ; Add the CFA jsr
-                ; Update the CURRENT wordlist with the new DP
-                ; unless this is a ":" word since ";" will do it later
-                ; We do this down here because this routine uses Y.
-                jsr dp_to_current
+                lda 0,x
+                jsr cmpl_subroutine     ; Add the CFA jsr to Y/A
 +
-                ; And we're done. Restore stack
-                inx
-                inx
+                ; And we're done. Drop CFA
                 inx
                 inx
 
@@ -1680,45 +1667,35 @@ does_runtime:
         ; other Forths
         ; """
 
-                ply             ; LSB
-                pla             ; MSB
-
-                iny
-                bne +
-                ina
-+
-                sty tmp1
-                sta tmp1+1
-
                 ; CREATE has also already modified the DP to point to the new
                 ; word. We have no idea which instructions followed the CREATE
                 ; command if there is a DOES> so the CP could point anywhere
-                ; by now. The address of the word's xt is four bytes down.
-                jsr current_to_dp   ; Grab the DP from the CURRENT wordlist.
-                lda dp
-                clc
-                adc #4
-                sta tmp2
-                lda dp+1
-                adc #0          ; we only care about the carry
-                sta tmp2+1
+                ; by now.
 
-                ; Now we get that address and add one byte to skip over the JSR
-                ; opcode
-                lda (tmp2)
-                clc
-                adc #1
-                sta tmp3
-                ldy #1
-                lda (tmp2),y
-                adc #0          ; we only care about the carry
-                sta tmp3+1
+                jsr current_to_dp       ; Grab the DP from the CURRENT wordlist.
+                lda dp
+                sta tmp1
+                lda dp+1
+                sta tmp1+1
+                jsr nt_to_xt            ; nt in tmp1 to xt in y/a
+                sta tmp1                ; xt in tmp2
+                sty tmp1+1
+
+                pla                     ; LSB of return address
+                ply                     ; MSB
+
+                ina                     ; increment to point at PFA
+                bne +
+                iny
++
+                phy
 
                 ; Replace the DOVAR address with our own
-                lda tmp1        ; LSB
-                sta (tmp3)
-                lda tmp1+1
-                sta (tmp3),y    ; Y is still 1
+                ldy #1                  ; xt points at jsr lsb/msb
+                sta (tmp1),y
+                iny
+                pla
+                sta (tmp1),y
 
                 ; Since we removed the return address that brought us here, we
                 ; go back to whatever the main routine was. Otherwise, we
@@ -2378,67 +2355,42 @@ z_fetch:        rts
 xt_find:
                 jsr underflow_1
 w_find:
-                ; Save address in case conversion fails. We use the
-                ; Return Stack instead of temporary variables like TMP1
-                ; because this is shorter and anybody still using FIND
-                ; can't be worried about speed anyway
-                lda 1,x                 ; MSB
-                pha
-                lda 0,x                 ; LSB
-                pha
+                jsr w_dup		; dup caddr in case conversion fails
 
                 ; Convert ancient-type counted string address to
                 ; modern format
                 jsr w_count            ; ( caddr -- addr u )
                 jsr w_find_name        ; ( addr u -- nt | 0 )
 
+                ; ( caddr nt | 0 )
+
                 lda 0,x
                 ora 1,x
-                bne _found_word
+                beq _done               ; Not found, just return ( caddr 0 )
 
-                ; No word found. Return address of the string and a false
-                ; flag
-                jsr w_false            ; ( 0 0 )
-
-                ; The address needs to be restored.
-                pla                     ; LSB of address
-                sta 2,x
-                pla
-                sta 3,x                 ; MSB of address
-
-                bra _done               ; ( addr 0 )
-
-_found_word:
-                ; We don't need the address after all, dump it
-                pla
-                pla
-
-                ; We arrive here with ( nt ) on the TOS. Now we have to
+                ; We arrive here with ( caddr nt ). Now we have to
                 ; convert the return values to FIND's format
-                jsr w_dup              ; ( nt nt )
-                jsr w_name_to_int      ; ( nt xt )
-                jsr w_swap             ; ( xt nt )
 
-                ldy #0                  ; Prepare flag
-
-                ; The flags are in the second byte of the header
-                inc 0,x
+                ; First check the status flag @ nt
+                ldy #1                  ; assume immediate, returning 1
+                lda (0,x)              ; check status flag byte
+                and #IM                 ; is IM set?
                 bne +
-                inc 1,x                 ; ( xt nt+1 )
+                ldy #$ff                ; not immediate, return -1
 +
-                lda (0,x)               ; ( xt char )
-                and #IM
-                bne _immediate          ; bit set, we're immediate
+                phy                     ; stash the 1 or -1
 
-                lda #$FF                ; We're not immediate, return -1
+                jsr w_name_to_int       ; ( nt -- xt )
+                jsr w_swap
+
+                ; ( xt caddr )
+                pla                     ; result 1 or -1
+
                 sta 0,x
+                bmi +                   ; for -1 we store $ff twice
+                dec a                   ; for 1 we store 1 and then 0
++
                 sta 1,x
-                bra _done
-
-_immediate:
-                lda #1                  ; We're immediate, return 1
-                sta 0,x
-                stz 1,x
 _done:
 z_find:         rts
 
@@ -2758,10 +2710,9 @@ z_if:           rts
 xt_immediate:
 w_immediate:
                 jsr current_to_dp
-                ldy #1          ; offset for status byte
-                lda (dp),y
-                ora #IM        ; make sure bit 7 is set
-                sta (dp),y
+                lda (dp)        ; status flags are first header byte
+                ora #IM         ; ensure IM bit is set
+                sta (dp)
 
 z_immediate:    rts
 
@@ -4219,6 +4170,7 @@ _char_found:
                 sta 0,x
                 stz 1,x                 ; paranoid, now ( "name" c )
 
+                bra w_parse             ; fall through to parse, skipping underflow
 
 
 ; ## PARSE ( "name" c -- addr u ) "Parse input with delimiter character"
@@ -4504,7 +4456,7 @@ w_postpone:
                 lda #err_noname
                 jmp error
 +
-                jsr w_find_name                ; ( -- nt | 0 )
+                jsr w_find_name                 ; ( -- nt | 0 )
 
                 ; if word not in Dictionary, complain and quit
                 bne +
@@ -4512,15 +4464,9 @@ w_postpone:
                 jmp error
 
 +
-                ; See if this is an immediate word
-                ; by fetching the status flag at nt+1
-                jsr w_dup
-                jsr w_one_plus
+                ; Grab status flag byte from NT
                 lda (0,x)
-                inx
-                inx
-
-                and #IM         ; mask all but Intermediate flag
+                and #IM                         ; check Immediate status flag
                 beq _not_immediate
 
                 ; We're immediate, so instead of executing it right now, we
@@ -4664,40 +4610,25 @@ z_r_from:       jmp (tmp1)
 xt_recurse:
 w_recurse:
                 ; The whole routine amounts to compiling a reference to
-                ; the word that is being compiled.
+                ; the word that is being compiled. WORKWORD contains either
+                ; the nt (if : started the word) or the xt (if :NONNAME
+                ; started the word). Status bit 6 tells us which.
 
-                ; We just need the LSB and MSB of the xt of the word
-                ; we are currently working on.
-                ; WORKWORD has either the nt (: started the word)
-                ; or the xt (:NONAME started the word).
-                ; Bit 6 in status tells us.
-
-                lda workword            ; we need workword either way
+                lda workword
                 ldy workword+1
 
-                bit status
-                bvc _compile            ; if it's a :NONAME word, we're good
+                bit status                      ; status bit 6 => V flag
+                bvc _got_xt
 
-                ; This is a regular : word, so the xt is four bytes down
-                ; from the nt which we saved in WORKWORD. We could probably
-                ; use NAME>INT here but this is going to be faster, and
-                ; fast counts with recursion
-                clc
-                adc #4
-                sta tmp1                ; LSB
-                tya
-                adc #0
-                sta tmp1+1              ; MSB
+                ; we have a bit more work to get nt -> xt
+                sta tmp1
+                sty tmp1+1
+                jsr nt_to_xt                    ; nt in tmp1 to y/a
 
-                ldy #1
-                lda (tmp1),y            ; MSB
-                tay
-                lda (tmp1)              ; LSB
+_got_xt:
+                jsr cmpl_subroutine             ; JSR <Y/A>
 
-_compile:
-                jmp cmpl_subroutine     ; generate JSR Y/A
-
-z_recurse:
+z_recurse:      rts
 
 
 
@@ -5285,14 +5216,15 @@ z_s_to_d:       rts
 
 
 
-; ## SEMICOLON ( -- ) "End compilation of new word"
+; ## SEMICOLON ( -- ) or ( -- xt ) for :noname "End compilation of new word"
 ; ## ";"  auto  ANS core
         ; """https://forth-standard.org/standard/core/Semi
         ; End the compilation of a new word into the Dictionary.
         ;
-        ; When we
-        ; enter this, WORKWORD is pointing to the nt_ of this word in the
+        ; When we enter, WORKWORD is pointing to the nt of this word in the
         ; Dictionary, DP to the previous word, and CP to the next free byte.
+        ; See more details in create_common which sets the stage for us.
+        ;
         ; A Forth definition would be (see "Starting Forth"):
         ; : POSTPONE EXIT  REVEAL POSTPONE ; [ ; IMMEDIATE  Following the
         ; practice of Gforth, we warn here if a word has been redefined.
@@ -5300,49 +5232,91 @@ z_s_to_d:       rts
 
 xt_semicolon:
 w_semicolon:
-                ; Check if this is a : word or a :NONAME word.
-                bit status              ; check bit 6 (overflow flag)
-                bvs _colonword
-
-                ; This is a :NONAME word - just put an RTS on the end and
-                ; the address (held in workword) on the stack.
-                lda #OpRTS
-                jsr cmpl_a
-
                 dex
                 dex
                 lda workword
                 sta 0,x
                 lda workword+1
-                sta 1,x
+                sta 1,x                 ; ( xt|nt )
+
+                ; Check if this is a : word or a :NONAME word.
+                bit status              ; check bit 6 (overflow flag)
+                bvs _colonword
+
+                ; This is a :NONAME word - just put an RTS on the end and
+                ; leave workword (xt) on the stack.
+                lda #OpRTS
+                jsr cmpl_a
+
                 bra _semicolon_done
 
 _colonword:
+                ; ( nt )
+
                 ; if status bit 4 is still 1, we didn't compile any never-native
                 ; code so we can safely clear the NN flag
                 lda #%00010000
                 and status
                 beq +
-                ldy #1
-                lda (workword),y
+                lda (workword)
                 and #255-NN
-                sta (workword),y
+                sta (workword)
 +
-
-                ; CP is the byte that will be the address we use in the
-                ; header as the end-of-compile address (z_word). This is
-                ; six bytes down from the header
-                ldy #6
+                ; Calculate code size by subtracting xt from CP.
+                dex
+                dex
                 lda cp
-                sta (workword),y
-                iny
+                sta 0,x
                 lda cp+1
-                sta (workword),y
+                sta 1,x                 ; ( nt cp )
 
-                ; Allocate one further byte and save the RTS instruction
-                ; there
+                jsr w_swap              ; ( cp nt )
+                jsr w_name_to_int       ; ( cp xt )
+                jsr w_minus             ; ( cp-xt )
+
+                ; We've optimistically saved only one byte for the code size
+                ; in the header.  If the code is too big we have work to do...
+
+                lda 1,x
+                beq _setsz              ; one byte size is OK
+.if !TALI_OPTION_TERSE
+                jsr fixup_long_word
+                bcs +                   ; C=1 means fixup already added RTS
+.else
+                ; we currently only use the word size for SEE so in the
+                ; minimal case we'll just call the length 255,
+                ; make the word NN, and move on...
+                stz 1,x
+                lda #$ff
+                sta 0,x
+                lda (workword)
+                ora #NN
+                sta (workword)
+.endif
+_setsz:
+                ; Compile the closing RTS instruction
                 lda #OpRTS
                 jsr cmpl_a
++
+                ; ( codesize )
+
+                ; Use header status flags to calculate offset to code size
+                lda (workword)          ; Fetch status flags
+                and #DC+FP
+                lsr                     ; A=0 or 2 with FP in carry
+                adc #3
+                tay
+
+                lda 0,x                 ; LSB of code size
+                sta (workword),y        ; write LSB
+                lda 1,x
+                beq +
+
+                iny                     ; write MSB only if non-zero
+                sta (workword),y
++
+                inx                     ; drop codesize
+                inx
 
                 ; Before we formally add the word to the Dictionary, we
                 ; check to see if it is already present, and if yes, we
@@ -5354,34 +5328,22 @@ _colonword:
                 bit status
                 bpl _new_word   ; Bit 7 is clear = new word
 
-                ; We start by putting the string of the
-                ; word we're defining on the stack
-                dex
-                dex
-                dex
-                dex
-
-                ; WORKWORD points to the beginning of the head of our new
-                ; word, where the first byte is the length of the string
-                ; We can't use LATESTNT because we haven't added the new
-                ; word to the Dictionary yet
-                lda (workword)
-                sta 0,x
-                stz 1,x
-
-                ; Eight bytes below WORKWORD is the actual beginning of
-                ; the string
-                lda workword
-                clc
-                adc #8
-                sta 2,x
-                lda workword+1
-                adc #0                  ; only want carry
-                sta 3,x
-
                 ; This word is already in the Dictionary, so we print a
                 ; warning to the user.
-                lda #str_redefined       ; address of string "redefined"
+
+                ; Start by putting nt on the stack, using WORKWORD.
+                ; Note LATESTNT won't work since we haven't added the
+                ; new word to the Dictionary yet
+                dex
+                dex
+                lda workword
+                sta 0,x
+                lda workword+1
+                sta 1,x
+
+                jsr w_name_to_string    ; ( nt -- addr u )
+
+                lda #str_redefined      ; address of string "redefined"
                 jsr print_string_no_lf
 
                 ; Now we print the offending word.
@@ -5411,6 +5373,144 @@ _semicolon_done:
 z_semicolon:    rts
 
 
+.if !TALI_OPTION_TERSE
+fixup_long_word:
+        ; Handle word with more than 256 bytes of code.  Our header is too
+        ; small by one byte since we now need a two byte code length field.
+        ; We've got two options:
+        ;
+        ; - if the word is relocatable (no NN) then we can shuffle
+        ;   the code up one byte to make room for the extra size byte.
+        ;
+        ; - if the word is NN then we instead move the header itself,
+        ;   writing the bigger one immediately after the code.  This
+        ;   wastes the original header bytes but is a rare case.
+
+                ; In both cases we need to allocate an extra byte after the code.
+                ; For the shuffle case this is a dummy that gets overwritten
+                ; when we move up by one.  For the new header case this is
+                ; the actual RTS after the original code body.
+
+                lda #OpRTS
+                jsr cmpl_a
+
+                ; Either way we'll need the word's name (pointer and lengt)
+                dex
+                dex
+                lda workword
+                sta 0,x
+                lda workword+1
+                sta 1,x
+                jsr w_name_to_string
+
+                ; ( codesize nameptr namelen )
+
+                lda (workword)
+                and #NN
+
+                bne _mvhdr              ; NN so we'll need a new header
+
+                ; we'll shuffle the name string and code up one byte
+                ; nameptr is the start of the block we want to move,
+                ; and the number of bytes is namelen + codesize
+
+                ; ( codesize nameptr namelen )
+                jsr w_swap
+                jsr w_dup
+                jsr w_one_plus
+                jsr w_rot
+                ; ( codesize nameptr nameptr+1 namelen )
+                clc
+                lda 6,x
+                adc 0,x
+                sta 0,x
+                lda 7,x
+                adc 1,x
+                sta 1,x
+                ; ( codesize nameptr nameptr+1 codesize+namelen )
+                jsr w_cmove_up
+                ; ( codesize )
+
+                lda (workword)
+                ora #LC
+                sta (workword)          ; update the flag bit to indicate two-byte code size
+
+                clc                     ; we still need to add the final RTS
+                rts
+
+_mvhdr:
+                ; moving the header means back to the drawing board
+                ; we'll need two bytes each for prev NT (FP=1),
+                ; code size (LC=1) and code pointer (DC=1)
+                ; which means an eight byte header, plus the name string
+
+                ; keep a copy of the current header pointer
+                lda workword
+                sta tmp1
+                lda workword+1
+                sta tmp1+1
+
+                ; the new header will land at CP, after the RTS we wrote above
+                lda cp
+                sta workword
+                lda cp+1
+                sta workword+1
+
+                ; ( codesize nameptr namelen )
+
+                ; allocate namelen + 8 bytes for the new header
+                dex
+                dex
+                clc
+                lda 2,x
+                adc #8                  ; full header size
+                sta 0,x
+                stz 1,x                 ; no MSB since name length <32
+                jsr w_allot
+
+                ; Now fill in the new header
+                ldy #0                  ; nt+0
+                lda (tmp1),y
+                ora #FP+LC+DC           ; need long form for everything
+                sta (workword),y        ; status byte
+                iny                     ; nt+1
+                lda (tmp1),y
+                sta (workword),y        ; name length
+
+                jsr nt_to_xt            ; get XT from tmp1 as Y=MSB, A=LSB
+                phy
+                ldy #4                  ; nt+4
+                sta (workword),y        ; XT LSB
+                pla
+                iny                     ; nt+5
+                sta (workword),y        ; XT MSB
+
+                jsr nt_to_nt            ; rewrite tmp1 as prev NT
+                ldy #2                  ; nt+2
+                lda tmp1
+                sta (workword),y
+                iny                     ; nt+3
+                lda tmp1+1
+                sta (workword),y
+
+                ; finally copy the name string
+                ; ( codesize nameptr namelen )
+                dex
+                dex
+                clc
+                lda workword
+                adc #8                  ; offset to name in new header
+                sta 0,x
+                lda workword+1
+                adc #0
+                sta 1,x
+                jsr w_swap
+                ; ( codesize nameptr newnameptr namelen )
+                jsr w_cmove_up
+
+                sec                     ; we already have the RTS
+                rts
+.endif
 
 ; ## SIGN ( n -- ) "Add minus to pictured output"
 ; ## "sign"  auto  ANS core
@@ -5924,11 +6024,7 @@ w_to_body:
                 jsr w_dup              ; ( xt xt )
                 jsr w_int_to_name      ; ( xt nt )
 
-                ; The status byte is nt+1
-                inc 0,x
-                bne +
-                inc 1,x
-+
+                ; The status flags byte is @ NT
                 lda (0,x)               ; get status byte
                 and #HC
                 beq _no_cfa

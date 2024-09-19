@@ -116,11 +116,10 @@ z_block:        rts
 
 xt_block_c65_init:
 w_block_c65_init:
-                ldy #0                  ; Y will be result 0 or -1, assume the worst
                 lda #$ff
                 sta io_blk_status       ; write status so we can see if it changes
-                lda #$0
-                sta io_blk_action
+                ldy #0                  ; Y will be result 0 or -1, assume the worst
+                sty io_blk_action       ; status action
                 lda io_blk_status       ; $0 if OK, non-zero otherwise
                 bne +                   ; failed, leave Y=0
                 dey                     ; otherwise set Y=-1

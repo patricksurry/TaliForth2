@@ -8,33 +8,40 @@
 ; tricks in the code. We roughly follow the Gforth terminology: The Execution
 ; Token (xt) is the address of the first byte of a word's code that can be, uh,
 ; executed; the Name Token (nt) is a pointer to the beginning of the word's
-; header in the Dictionary. There the link to the next word in the Dictionary
-; is always one cell down from the current word's own nt. In the code itself,
-; we use "nt_<WORD>" for the nt and "xt_<WORD>" for the xt.
+; header in the Dictionary.   Conceptually the header looks like this:
 
-; This gives us the following header structure:
-
-;              8 bit     8 bit
-;               LSB       MSB
-; nt_word ->  +--------+--------+
-;          +0 | Length | Status |
-;             +--------+--------+
-;          +2 | Next Header     | -> nt_next_word
-;             +-----------------+
-;          +4 | Start of Code   | -> xt_word
-;             +-----------------+
-;          +6 | End of Code     | -> z_word
-;             +--------+--------+
-;          +8 | Name   |        |
-;             +--------+--------+
-;             |        |        |
-;             +--------+--------+
-;             |        |  ...   | (name string does not end with a zero)
-;          +n +--------+--------+
-
-; The Status Byte is created by adding the flags defined in definitions.asm,
-; which are:
-
+;   nt_word --> +----------------+
+;               | Status flags   |
+;               +----------------+
+;               | Name length    |
+;               +----------------+
+;               | Prev header    | -> nt_prev_word
+;               +----------------+
+;               | Start of code  | -> xt_word
+;               +----------------+
+;               | Length of code | -> z_word - xt_word
+;               +----------------+
+;               | Name string    | (name length bytes, not zero terminated)
+;               +----------------+
+;
+; In practice we use variable sizes for several of the fields so that
+; each header is between 4-8 bytes plus the word's name, with most headers
+; taking only four bytes.  The variable size fields are indicated in the status byte
+; along with other flags defined in definitions.asm:
+;
+; Status flags byte
+;
+;  (msb)  7    6    5    4    3    2    1    0  (lsb)
+;       +----+----+----+----+----+----+----+----+
+;       | HC | NN | AN | IM | CO | DC | LC | FP |
+;       +----+----+----+----+----+----+----+----+
+;
+; Flag bits:
+;
+;       FP - Far previous NT (LSB/MSB not just LSB within previous page)
+;       LC - Long code (two byte vs one byte length for native compile)
+;       DC - Disjoint code (two byte pointer to xt rather than adjoining header)
+;
 ;       CO - Compile Only
 ;       IM - Immediate Word
 ;       AN - Always Native Compile (may not be called by JSR)
@@ -51,1446 +58,459 @@
 ;           | 1 | 1 |  ST : Normal word with return stack juggling that
 ;           +---+---+       must be removed when inlining (R>, R@, >R etc)
 ;
-; Note there are currently three bits unused.
-
-; By default, all existing words can be natively compiled (compiled inline) or
+; Note that there are currently no free bits in the status byte.
+;
+; By default, all words can be natively compiled (compiled inline) or
 ; as a subroutine jump target; the system decides which variant to use based on
-; a threshold the user can set. By default, all user-created words are flagged
-; never-native. The user can override this by using the always-native word
-; just after defining their new word.  The NN flag forbids native compiling,
-; the AN flag forces it.
+; a threshold the user can set. Tali detects users words that can't be inlined,
+; typically because they contain non-relocatable `jmp` instructions, and flags
+; them as NN.  The user can override the default flags using the `always-native`
+; or `never-native` words, for example when using raw assembly.
+;
+;
+; The actual header implementation looks like this:
+;
+;   nt_prev --> +----------------+
+;               :                :
+;               :                :
+;                     ...
+;
+;   nt_word --> +----------------+
+;               |  Status flags  |   See description below
+;               |    (1 byte)    |
+;               +----------------+
+;               |  Name length   |   Max name length 31 (5 bits)
+;               |   (1 byte)     |   Top three bits are currently reserved
+;               +----------------+
+;               |    Prev NT     |   FP=0: nt_prev = nt_word - offset
+;               |  (1|2 bytes)   |   FP=1: nt_prev = 2 byte pointer
+;               +----------------+
+;               | Start of code  |   DC=0: xt_word = nt_end
+;               |  (0|2 bytes)   |   DC=1: xt_word = 2 byte pointer
+;               +----------------+
+;               |   Code size    |   LC=0: One byte code length
+;               |  (1|2 bytes)   |   LC=1: Two byte code length
+;               +----------------+
+;               |  Name string   |   Name is 7-bit lower case ascii
+;               :                :
+;               :                :   Note string is not zero-terminated
+;    nt_end --> +----------------+
+;                       ...
+;   xt_word --> +----------------+
+;               |   Word body    |   When DC=0 the code body adjoins the header
+;               :  (65c02 code)  :
+;               :                :
+;    z_word --> +----------------+
+;
+;
+; We can calculate the actual header length from the flag bits FP, LC and DC
+; using simple assembly:
+;
+;       lda flags       ; start with status flags in the accumulator
+;       and #DC+LC+FP   ; mask the header length bits
+;       lsr             ; shift FP to carry flag, A = 2*DC + LC
+;       adc #4          ; header length is 4 bytes + 2*DC + LC + FP
+;
+; To simplify header creation, reduce errors and allow for future changes
+; we use the #nt_header macro to generate the actual header bytes for each word.
+; Usually word NAME is implemented by code between `xt_name` and `z_name`.
+; These headers are generated with just `#nt_header name`.  When a word's name
+; doesn't match its start and end labels simply pass the name string
+; as the optional second argument, like `#nt_header m_star_slash, "m*/"`.
+; If the word needs any of the CO, IM, AN, NN flags, pass both the name
+; and flags like `#nt_header myword, "myword", IM+CO`.
+; The macro automatically chains words together in the dictionary using
+; the `prev_nt` compiler variable.  When your word list is complete
+; you can capture the head of the dictionary (the latest NT header)
+; by assigning from it, like `dictionary_start = prev_nt`.
+; Then start a new wordlist by resetting `prev_nt := 0`.
 
-; The last word (top word in code) is always BYE. It is marked as the last word
-; by its value of 0000 in its Next Header field. The words are sorted with the
-; more common ones first (further down in code) so they are found earlier.
-; Anything to do with output comes later (further up) because things will
-; always be slow if there is a human involved.
+
+; The #nt_header macro is used to generate the physical header representation
+nt_header .macro label, name="", flags=0
+        ; It might be nicer to pass the name string instead of the bare label
+        ; but it seems hard to generate a symbol from a string in 64tass
+        ; see https://sourceforge.net/p/tass64/feature-requests/23/
+
+    ; temp string with explicit name or stringified label
+    _s := \name ? \name : str(.\label)
+
+_nt:                    ; remember start of header to update prev_nt pointer
+    _fp := _nt < prev_nt || _nt - prev_nt > 256 ? FP : 0
+    _sz := z_\label - xt_\label
+    _lc := _sz > 255 ? LC : 0
+    _dc := _nt_end != xt_\label ? DC : 0
+
+    .byte \flags | _fp | _lc | _dc       ; status flags byte
+    .byte len(_s)       ; length of word string, max 31
+.if _fp
+    .word prev_nt       ; previous Dictionary header, 0000 signals start
+.else
+    .byte <prev_nt
+.endif
+.if _dc
+    .word xt_\label     ; start of code block (xt of this word)
+.endif
+.if _lc
+    .word _sz          ; code size up to but not including final RTS
+.else
+    .byte _sz
+.endif
+    .text _s            ; word name, always lower case, not zero-terminated
+_nt_end = *
+
+prev_nt ::= _nt         ; update to this header
+.endmacro
+
+; a specialized macro to generate assembler words
+nt_asm .macro op, label
+_nt:
+        .byte IM + NN + DC      ; immediate, never native, and header disjoint from code
+        .byte len(\label)
+        .byte <prev_nt          ; predefined headers are close together
+        .word xt_asm_op(\op)    ; pick jsr from the asm_op_table whose return address gives op code
+        .byte 3                 ; the body is always 3 bytes tho never-native anyway
+        .text \label
+prev_nt ::= _nt
+    .endmacro
+
+
+; prev_nt tracks the previous header, and is reset after each wordlist
+prev_nt := 0
+
+
+; FORTH-WORDLIST
+
+; Each wordlist is organized as a linked list with the head of the list stored
+; in the `cold_user_table` table called `wordlists_offset`.  The main Forth
+; dictionary is linked from `dictionary_start`.  Whenever we search for a word,
+; for example via `find-name`, we begin at the head and walk through the linked
+; list until we find the word or find a header whose previous NT pointer is 0.
+; This means it's more efficient to have frequently used words towards the head
+; of the list (later in memory).  In the main dictionary the first word we search
+; (highest in memory) is DROP and the final word we search (lowest in memory) is BYE.
+; Other words are sorted with the more common ones higher in memory so they are
+; found faster. Anything to do with output is further back in the list because
+; speed is less important when a human is involved.
 
 ; The initial skeleton of this list was automatically generated by a script
 ; in the tools folder and then sorted by hand.
 
-; FORTH-WORDLIST
-
-; DROP is always the first native word in the Dictionary
-dictionary_start:
-nt_drop:
-        .byte 4, 0
-        .word nt_dup, xt_drop, z_drop
-        .text "drop"
-
-nt_dup:
-        .byte 3, 0
-        .word nt_swap, xt_dup, z_dup
-        .text "dup"
-
-nt_swap:
-        .byte 4, 0
-        .word nt_store, xt_swap, z_swap
-        .text "swap"
-
-nt_store:
-        .byte 1, 0
-        .word nt_fetch, xt_store, z_store
-        .text "!"
-
-nt_fetch:
-        .byte 1, 0
-        .word nt_over, xt_fetch, z_fetch
-        .text "@"
-
-nt_over:
-        .byte 4, 0
-        .word nt_to_r, xt_over, z_over
-        .text "over"
-
-nt_to_r:
-        .byte 2, CO+ST       ; native skips stack juggling
-        .word nt_r_from, xt_to_r, z_to_r
-        .text ">r"
-
-nt_r_from:
-        .byte 2, CO+ST          ; native skips stack juggling
-        .word nt_r_fetch, xt_r_from, z_r_from
-        .text "r>"
-
-nt_r_fetch:
-        .byte 2, CO+ST          ; native skips stack juggling
-        .word nt_nip, xt_r_fetch, z_r_fetch
-        .text "r@"
-
-nt_nip:
-        .byte 3, 0
-        .word nt_rot, xt_nip, z_nip
-        .text "nip"
-
-nt_rot:
-        .byte 3, 0
-        .word nt_not_rot, xt_rot, z_rot
-        .text "rot"
-
-nt_not_rot:
-        .byte 4, 0
-        .word nt_tuck, xt_not_rot, z_not_rot
-        .text "-rot"
-
-nt_tuck:
-        .byte 4, 0
-        .word nt_comma, xt_tuck, z_tuck
-        .text "tuck"
-
-nt_comma:
-        .byte 1, 0
-        .word nt_c_fetch, xt_comma, z_comma
-        .text ","
-
-nt_c_fetch:
-        .byte 2, 0
-        .word nt_c_store, xt_c_fetch, z_c_fetch
-        .text "c@"
-
-nt_c_store:
-        .byte 2, 0
-        .word nt_plus_store, xt_c_store, z_c_store
-        .text "c!"
-
-nt_plus_store:
-        .byte 2, 0
-        .word nt_zero, xt_plus_store, z_plus_store
-        .text "+!"
-
-nt_zero:
-        .byte 1, 0
-        .word nt_one, xt_zero, z_zero
-        .text "0"
-
-nt_one:
-        .byte 1, 0
-        .word nt_two, xt_one, z_one
-        .text "1"
-
-nt_two:
-        .byte 1, 0
-        .word nt_execute, xt_two, z_two
-        .text "2"
-
-nt_execute:
-        .byte 7, 0
-        .word nt_emit, xt_execute, z_execute
-        .text "execute"
-
-nt_emit:
-        .byte 4, NN
-        .word nt_type, xt_emit, z_emit
-        .text "emit"
-
-nt_type:
-        .byte 4, 0
-        .word nt_dot, xt_type, z_type
-        .text "type"
-
-nt_dot:
-        .byte 1, 0
-        .word nt_u_dot, xt_dot, z_dot
-        .text "."
-
-nt_u_dot:
-        .byte 2, 0
-        .word nt_u_dot_r, xt_u_dot, z_u_dot
-        .text "u."
-
-nt_u_dot_r:
-        .byte 3, 0
-        .word nt_dot_r, xt_u_dot_r, z_u_dot_r
-        .text "u.r"
-
-nt_dot_r:
-        .byte 2, 0
-        .word nt_d_dot, xt_dot_r, z_dot_r
-        .text ".r"
-
-nt_d_dot:
-        .byte 2, 0
-        .word nt_d_dot_r, xt_d_dot, z_d_dot
-        .text "d."
-
-nt_d_dot_r:
-        .byte 3, 0
-        .word nt_m_star_slash, xt_d_dot_r, z_d_dot_r
-        .text "d.r"
-
-nt_m_star_slash:
-        .byte 3, 0
-        .word nt_ud_dot, xt_m_star_slash, z_m_star_slash
-        .text "m*/"
-
-nt_ud_dot:
-        .byte 3, 0
-        .word nt_ud_dot_r, xt_ud_dot, z_ud_dot
-        .text "ud."
-
-nt_ud_dot_r:
-        .byte 4, 0
-        .word nt_question, xt_ud_dot_r, z_ud_dot_r
-        .text "ud.r"
-
-nt_question:
-        .byte 1, 0
-        .word nt_false, xt_question, z_question
-        .text "?"
-
-nt_false:
-        .byte 5, 0
-        .word nt_true, xt_false, z_false
-        .text "false"
-
-nt_true:
-        .byte 4, 0
-        .word nt_space, xt_true, z_true
-        .text "true"
-
-nt_space:
-        .byte 5, 0
-        .word nt_two_dup, xt_space, z_space
-        .text "space"
-
-nt_two_dup:
-        .byte 4, 0
-        .word nt_question_dup, xt_two_dup, z_two_dup
-        .text "2dup"
-
-nt_question_dup:
-        .byte 4, 0
-        .word nt_plus, xt_question_dup, z_question_dup
-        .text "?dup"
-
-nt_plus:
-        .byte 1, 0
-        .word nt_minus, xt_plus, z_plus
-        .text "+"
-
-nt_minus:
-        .byte 1, 0
-        .word nt_one_minus, xt_minus, z_minus
-        .text "-"
-
-nt_one_minus:
-        .byte 2, 0
-        .word nt_one_plus, xt_one_minus, z_one_minus
-        .text "1-"
-
-nt_one_plus:
-        .byte 2, 0
-        .word nt_two_star, xt_one_plus, z_one_plus
-        .text "1+"
-
-nt_two_star:
-        .byte 2, 0
-        .word nt_two_slash, xt_two_star, z_two_star
-        .text "2*"
-
-nt_two_slash:
-        .byte 2, 0
-        .word nt_abs, xt_two_slash, z_two_slash
-        .text "2/"
-
-nt_abs:
-        .byte 3, 0
-        .word nt_dabs, xt_abs, z_abs
-        .text "abs"
-
-nt_dabs:
-        .byte 4, 0
-        .word nt_and, xt_dabs, z_dabs
-        .text "dabs"
-
-nt_and:
-        .byte 3, 0
-        .word nt_or, xt_and, z_and
-        .text "and"
-
-nt_or:
-        .byte 2, 0
-        .word nt_xor, xt_or, z_or
-        .text "or"
-
-nt_xor:
-        .byte 3, 0
-        .word nt_rshift, xt_xor, z_xor
-        .text "xor"
-
-nt_rshift:
-        .byte 6, 0
-        .word nt_lshift, xt_rshift, z_rshift
-        .text "rshift"
-
-nt_lshift:
-        .byte 6, 0
-        .word nt_pick, xt_lshift, z_lshift
-        .text "lshift"
-
-nt_pick:
-        .byte 4, 0    ; underflow check is complicated, leave off here
-        .word nt_char, xt_pick, z_pick
-        .text "pick"
-
-nt_char:
-        .byte 4, 0
-        .word nt_bracket_char, xt_char, z_char
-        .text "char"
-
-nt_bracket_char:
-        .byte 6, CO+IM
-        .word nt_char_plus, xt_bracket_char, z_bracket_char
-        .text "[char]"
-
-nt_char_plus:
-        .byte 5, 0
-        .word nt_chars, xt_char_plus, z_char_plus ; same as 1+
-        .text "char+"
-
-nt_chars:
-        .byte 5, 0      ; deleted during compile
-        .word nt_cells, xt_chars, z_chars
-        .text "chars"
-
-nt_cells:
-        .byte 5, 0
-        .word nt_cell_plus, xt_cells, z_cells  ; same as 2*
-        .text "cells"
-
-nt_cell_plus:
-        .byte 5, 0
-        .word nt_here, xt_cell_plus, z_cell_plus
-        .text "cell+"
-
-nt_here:
-        .byte 4, 0
-        .word nt_equal, xt_here, z_here
-        .text "here"
-
-nt_equal:
-        .byte 1, 0
-        .word nt_not_equals, xt_equal, z_equal
-        .text "="
-
-nt_not_equals:
-        .byte 2, 0
-        .word nt_less_than, xt_not_equals, z_not_equals
-        .text "<>"
-
-nt_less_than:
-        .byte 1, 0
-        .word nt_u_less_than, xt_less_than, z_less_than
-        .text "<"
-
-nt_u_less_than:
-        .byte 2, 0
-        .word nt_u_greater_than, xt_u_less_than, z_u_less_than
-        .text "u<"
-
-nt_u_greater_than:
-        .byte 2, 0
-        .word nt_greater_than, xt_u_greater_than, z_u_greater_than
-        .text "u>"
-
-nt_greater_than:
-        .byte 1, 0
-        .word nt_zero_equal, xt_greater_than, z_greater_than
-        .text ">"
-
-nt_zero_equal:
-        .byte 2, 0
-        .word nt_zero_unequal, xt_zero_equal, z_zero_equal
-        .text "0="
-
-nt_zero_unequal:
-        .byte 3, 0
-        .word nt_zero_greater, xt_zero_unequal, z_zero_unequal
-        .text "0<>"
-
-nt_zero_greater:
-        .byte 2, 0
-        .word nt_zero_less, xt_zero_greater, z_zero_greater
-        .text "0>"
-
-nt_zero_less:
-        .byte 2, 0
-        .word nt_min, xt_zero_less, z_zero_less
-        .text "0<"
-
-nt_min:
-        .byte 3, 0
-        .word nt_max, xt_min, z_min
-        .text "min"
-
-nt_max:
-        .byte 3, 0
-        .word nt_two_drop, xt_max, z_max
-        .text "max"
-
-nt_two_drop:
-        .byte 5, 0
-        .word nt_two_swap, xt_two_drop, z_two_drop
-        .text "2drop"
-
-nt_two_swap:
-        .byte 5, 0
-        .word nt_two_over, xt_two_swap, z_two_swap
-        .text "2swap"
-
-nt_two_over:
-        .byte 5, 0
-        .word nt_two_store, xt_two_over, z_two_over
-        .text "2over"
-
-nt_two_store:
-        .byte 2, 0
-        .word nt_two_fetch, xt_two_store, z_two_store
-        .text "2!"
-
-nt_two_fetch:
-        .byte 2, 0
-        .word nt_two_variable, xt_two_fetch, z_two_fetch
-        .text "2@"
-
-nt_two_variable:
-        .byte 9, 0
-        .word nt_two_constant, xt_two_variable, z_two_variable
-        .text "2variable"
-
-nt_two_constant:
-        .byte 9, 0
-        .word nt_two_literal, xt_two_constant, z_two_constant
-        .text "2constant"
-
-nt_two_literal:
-        .byte 8, IM
-        .word nt_two_r_fetch, xt_two_literal, z_two_literal
-        .text "2literal"
-
-nt_two_r_fetch:
-        .byte 3, CO+ST          ; native skips stack juggling
-        .word nt_two_r_from, xt_two_r_fetch, z_two_r_fetch
-        .text "2r@"
-
-nt_two_r_from:
-        .byte 3, CO+ST          ; native skips stack juggling
-        .word nt_two_to_r, xt_two_r_from, z_two_r_from
-        .text "2r>"
-
-nt_two_to_r:
-        .byte 3, CO+ST       ; native skips stack juggling
-        .word nt_invert, xt_two_to_r, z_two_to_r
-        .text "2>r"
-
-nt_invert:
-        .byte 6, 0
-        .word nt_negate, xt_invert, z_invert
-        .text "invert"
-
-nt_negate:
-        .byte 6, 0
-        .word nt_dnegate, xt_negate, z_negate
-        .text "negate"
-
-nt_dnegate:
-        .byte 7, 0
-        .word nt_c_comma, xt_dnegate, z_dnegate
-        .text "dnegate"
-
-nt_c_comma:
-        .byte 2, 0
-        .word nt_bounds, xt_c_comma, z_c_comma
-        .text "c,"
-
-nt_bounds:
-        .byte 6, 0
-        .word nt_spaces, xt_bounds, z_bounds
-        .text "bounds"
-
-nt_spaces:
-        .byte 6, 0
-        .word nt_bl, xt_spaces, z_spaces
-        .text "spaces"
-
-nt_bl:
-        .byte 2, 0
-        .word nt_minus_trailing, xt_bl, z_bl
-        .text "bl"
-
-nt_minus_trailing:
-        .byte 9, 0
-        .word nt_minus_leading, xt_minus_trailing, z_minus_trailing
-        .text "-trailing"
-
-nt_minus_leading:
-        .byte 8, 0
-        .word nt_slash_string, xt_minus_leading, z_minus_leading
-        .text "-leading"
-
-nt_slash_string:
-        .byte 7, 0
-        .word nt_refill, xt_slash_string, z_slash_string
-        .text "/string"
-
-nt_refill:
-        .byte 6, 0
-        .word nt_accept, xt_refill, z_refill
-        .text "refill"
-
-nt_accept:
-        .byte 6, NN
-        .word nt_input_to_r, xt_accept, z_accept
-        .text "accept"
-
-nt_input_to_r:
-        .byte 7, NN
-        .word nt_r_to_input, xt_input_to_r, z_input_to_r
-        .text "input>r"
-
-nt_r_to_input:
-        .byte 7, NN
-        .word nt_unused, xt_r_to_input, z_r_to_input
-        .text "r>input"
-
-nt_unused:
-        .byte 6, 0
-        .word nt_depth, xt_unused, z_unused
-        .text "unused"
-
-nt_depth:
-        .byte 5, 0
-        .word nt_key, xt_depth, z_depth
-        .text "depth"
-
-nt_key:
-        .byte 3, 0
-        .word nt_keyq, xt_key, z_key
-        .text "key"
-
-nt_keyq:
-        .byte 4, 0
-        .word nt_allot, xt_keyq, z_keyq
-        .text "key?"
-
-nt_allot:
-        .byte 5, 0
-        .word nt_create, xt_allot, z_allot
-        .text "allot"
-
-nt_create:
-        .byte 6, 0
-        .word nt_does, xt_create, z_create
-        .text "create"
-
-nt_does:
-        .byte 5, CO+IM
-        .word nt_variable, xt_does, z_does
-        .text "does>"
-
-nt_variable:
-        .byte 8, 0
-        .word nt_constant, xt_variable, z_variable
-        .text "variable"
-
-nt_constant:
-        .byte 8, 0
-        .word nt_value, xt_constant, z_constant
-        .text "constant"
-
-nt_value:
-        .byte 5, 0
-        .word nt_to, xt_value, z_value          ; same code as CONSTANT
-        .text "value"
-
-nt_to:
-        .byte 2, NN+IM
-        .word nt_s_to_d, xt_to, z_to
-        .text "to"
-
-nt_s_to_d:
-        .byte 3, 0
-        .word nt_d_to_s, xt_s_to_d, z_s_to_d
-        .text "s>d"
-
-nt_d_to_s:
-        .byte 3, 0
-        .word nt_d_minus, xt_d_to_s, z_d_to_s
-        .text "d>s"
-
-nt_d_minus:
-        .byte 2, 0
-        .word nt_d_plus, xt_d_minus, z_d_minus
-        .text "d-"
-
-nt_d_plus:
-        .byte 2, 0
-        .word nt_erase, xt_d_plus, z_d_plus
-        .text "d+"
-
-nt_erase:
-        .byte 5, 0
-        .word nt_blank, xt_erase, z_erase
-        .text "erase"
-
-nt_blank:
-        .byte 5, 0
-        .word nt_fill, xt_blank, z_blank
-        .text "blank"
-
-nt_fill:
-        .byte 4, 0
-        .word nt_find_name, xt_fill, z_fill
-        .text "fill"
-
-nt_find_name:
-        .byte 9, 0
-        .word nt_tick, xt_find_name, z_find_name
-        .text "find-name"
-
-nt_tick:
-        .byte 1, 0
-        .word nt_bracket_tick, xt_tick, z_tick
-        .text "'"
-
-nt_bracket_tick:
-        .byte 3, CO+IM
-        .word nt_name_to_int, xt_bracket_tick, z_bracket_tick
-        .text "[']"
-
-nt_name_to_int:
-        .byte 8, 0
-        .word nt_int_to_name, xt_name_to_int, z_name_to_int
-        .text "name>int"
-
-nt_int_to_name:
-        .byte 8, 0
-        .word nt_name_to_string, xt_int_to_name, z_int_to_name
-        .text "int>name"
-
-nt_name_to_string:
-        .byte 11, 0
-        .word nt_to_body, xt_name_to_string, z_name_to_string
-        .text "name>string"
-
-nt_to_body:
-        .byte 5, 0
-        .word nt_defer, xt_to_body, z_to_body
-        .text ">body"
-
-nt_defer:
-        .byte 5, 0
-        .word nt_latestxt, xt_defer, z_defer
-        .text "defer"
-
-nt_latestxt:
-        .byte 8, 0
-        .word nt_latestnt, xt_latestxt, z_latestxt
-        .text "latestxt"
-
-nt_latestnt:
-        .byte 8, 0
-        .word nt_parse_name, xt_latestnt, z_latestnt
-        .text "latestnt"
-
-nt_parse_name:
-        .byte 10, NN
-        .word nt_parse, xt_parse_name, z_parse_name
-        .text "parse-name"
-
-nt_parse:
-        .byte 5, 0
-        .word nt_execute_parsing, xt_parse, z_parse
-        .text "parse"
-
-nt_execute_parsing:
-        .byte 15, 0
-        .word nt_source, xt_execute_parsing, z_execute_parsing
-        .text "execute-parsing"
-
-nt_source:
-        .byte 6, 0
-        .word nt_source_id, xt_source, z_source
-        .text "source"
-
-nt_source_id:
-        .byte 9, 0
-        .word nt_colon, xt_source_id, z_source_id
-        .text "source-id"
-
-nt_colon:
-        .byte 1, 0
-        .word nt_semicolon, xt_colon, z_colon
-        .text ":"
-
-nt_semicolon:
-        .byte 1, CO+IM
-        .word nt_colon_noname, xt_semicolon, z_semicolon
-        .text ";"
-
-nt_colon_noname:
-        .byte 7, 0
-        .word nt_compile_comma, xt_colon_noname, z_colon_noname
-        .text ":noname"
-
-nt_compile_comma:
-        .byte 8, NN
-        .word nt_left_bracket, xt_compile_comma, z_compile_comma
-        .text "compile,"
-
-nt_left_bracket:
-        .byte 1, IM+CO
-        .word nt_right_bracket, xt_left_bracket, z_left_bracket
-        .text "["
-
-nt_right_bracket:
-        .byte 1, IM
-        .word nt_literal, xt_right_bracket, z_right_bracket
-        .text "]"
-
-nt_literal:
-        .byte 7, IM+CO
-        .word nt_sliteral, xt_literal, z_literal
-        .text "literal"
-
-nt_sliteral:
-        .byte 8, CO+IM
-        .word nt_dot_quote, xt_sliteral, z_sliteral
-        .text "sliteral"
-
-nt_dot_quote:
-        .byte 2, CO+IM
-        .word nt_s_quote, xt_dot_quote, z_dot_quote
-        .text ".", $22
-
-nt_s_quote:
-        .byte 2, IM+NN
-        .word nt_s_backslash_quote, xt_s_quote, z_s_quote
-        .text "s", $22
-
-nt_s_backslash_quote:
-        .byte 3, IM
-        .word nt_postpone, xt_s_backslash_quote, z_s_backslash_quote
-        .text "s", $5C, $22
-
-nt_postpone:
-        .byte 8, IM+CO
-        .word nt_immediate, xt_postpone, z_postpone
-        .text "postpone"
-
-nt_immediate:
-        .byte 9, 0
-        .word nt_compile_only, xt_immediate, z_immediate
-        .text "immediate"
-
-nt_compile_only:
-        .byte 12, 0
-        .word nt_never_native, xt_compile_only, z_compile_only
-        .text "compile-only"
-
-nt_never_native:
-        .byte 12, 0
-        .word nt_always_native, xt_never_native, z_never_native
-        .text "never-native"
-
-nt_always_native:
-        .byte 13, 0
-        .word nt_allow_native, xt_always_native, z_always_native
-        .text "always-native"
-
-nt_allow_native:
-        .byte 12, 0
-        .word nt_nc_limit, xt_allow_native, z_allow_native
-        .text "allow-native"
-
-nt_nc_limit:
-        .byte 8, NN
-        .word nt_strip_underflow, xt_nc_limit, z_nc_limit
-        .text "nc-limit"
-
-nt_strip_underflow:
-        .byte 15, NN
-        .word nt_abort, xt_strip_underflow, z_strip_underflow
-        .text "strip-underflow"
-
-nt_abort:
-        .byte 5, 0
-        .word nt_abort_quote, xt_abort, z_abort
-        .text "abort"
-
-nt_abort_quote:
-        .byte 6, CO+IM+NN
-        .word nt_do, xt_abort_quote, z_abort_quote
-        .text "abort", $22
-
-nt_do:
-        .byte 2, CO+IM+NN
-        .word nt_question_do, xt_do, z_do
-        .text "do"
-
-nt_question_do:
-        .byte 3, CO+IM+NN
-        .word nt_i, xt_question_do, z_question_do
-        .text "?do"
-
-nt_i:
-        .byte 1, CO
-        .word nt_j, xt_i, z_i
-        .text "i"
-
-nt_j:
-        .byte 1, CO
-        .word nt_loop, xt_j, z_j
-        .text "j"
-
-nt_loop:
-        .byte 4, CO+IM
-        .word nt_plus_loop, xt_loop, z_loop
-        .text "loop"
-
-nt_plus_loop:
-        .byte 5, CO+IM
-        .word nt_exit, xt_plus_loop, z_plus_loop
-        .text "+loop"
-
-nt_exit:
-        .byte 4, AN+CO
-        .word nt_unloop, xt_exit, z_exit
-        .text "exit"
-
-nt_unloop:
-        .byte 6, CO
-        .word nt_leave, xt_unloop, z_unloop
-        .text "unloop"
-
-nt_leave:
-        .byte 5, CO+IM
-        .word nt_recurse, xt_leave, z_leave
-        .text "leave"
-
-nt_recurse:
-        .byte 7, CO+IM+NN
-        .word nt_quit, xt_recurse, z_recurse
-        .text "recurse"
-
-nt_quit:
-        .byte 4, 0
-        .word nt_begin, xt_quit, z_quit
-        .text "quit"
-
-nt_begin:
-        .byte 5, CO+IM
-        .word nt_again, xt_begin, z_begin
-        .text "begin"
-
-nt_again:
-        .byte 5, CO+IM
-        .word nt_state, xt_again, z_again
-        .text "again"
-
-nt_state:
-        .byte 5, 0
-        .word nt_evaluate, xt_state, z_state
-        .text "state"
-
-nt_evaluate:
-        .byte 8, 0
-        .word nt_base, xt_evaluate, z_evaluate
-        .text "evaluate"
-
-nt_base:
-        .byte 4, 0
-        .word nt_digit_question, xt_base, z_base
-        .text "base"
-
-nt_digit_question:
-        .byte 6, 0
-        .word nt_number, xt_digit_question, z_digit_question
-        .text "digit?"
-
-nt_number:
-        .byte 6, 0
-        .word nt_to_number, xt_number, z_number
-        .text "number"
-
-nt_to_number:
-        .byte 7, 0
-        .word nt_hex, xt_to_number, z_to_number
-        .text ">number"
-
-nt_hex:
-        .byte 3, 0
-        .word nt_decimal, xt_hex, z_hex
-        .text "hex"
-
-nt_decimal:
-        .byte 7, 0
-        .word nt_count, xt_decimal, z_decimal
-        .text "decimal"
-
-nt_count:
-        .byte 5, 0
-        .word nt_m_star, xt_count, z_count
-        .text "count"
-
-nt_m_star:
-        .byte 2, 0
-        .word nt_um_star, xt_m_star, z_m_star
-        .text "m*"
-
-nt_um_star:
-        .byte 3, 0
-        .word nt_star, xt_um_star, z_um_star
-        .text "um*"
-
-nt_star:
-        .byte 1, 0
-        .word nt_um_slash_mod, xt_star, z_star
-        .text "*"
-
-nt_um_slash_mod:
-        .byte 6, 0
-        .word nt_sm_slash_rem, xt_um_slash_mod, z_um_slash_mod
-        .text "um/mod"
-
-nt_sm_slash_rem:
-        .byte 6, 0
-        .word nt_fm_slash_mod, xt_sm_slash_rem, z_sm_slash_rem
-        .text "sm/rem"
-
-nt_fm_slash_mod:
-        .byte 6, 0
-        .word nt_slash, xt_fm_slash_mod, z_fm_slash_mod
-        .text "fm/mod"
-
-nt_slash:
-        .byte 1, 0
-        .word nt_slash_mod, xt_slash, z_slash
-        .text "/"
-
-nt_slash_mod:
-        .byte 4, 0
-        .word nt_mod, xt_slash_mod, z_slash_mod
-        .text "/mod"
-
-nt_mod:
-        .byte 3, 0
-        .word nt_star_slash_mod, xt_mod, z_mod
-        .text "mod"
-
-nt_star_slash_mod:
-        .byte 5, 0
-        .word nt_star_slash, xt_star_slash_mod, z_star_slash_mod
-        .text "*/mod"
-
-nt_star_slash:
-        .byte 2, 0
-        .word nt_backslash, xt_star_slash, z_star_slash
-        .text "*/"
-
-nt_backslash:
-        .byte 1, IM
-        .word nt_move, xt_backslash, z_backslash
-        .byte '\'
-
-nt_move:
-        .byte 4, NN
-        .word nt_cmove_up, xt_move, z_move
-        .text "move"
-
-nt_cmove_up:
-        .byte 6, 0
-        .word nt_cmove, xt_cmove_up, z_cmove_up
-        .text "cmove>"
-
-nt_cmove:
-        .byte 5, 0
-        .word nt_pad, xt_cmove, z_cmove
-        .text "cmove"
-
-nt_pad:
-        .byte 3, 0
-        .word nt_cleave, xt_pad, z_pad
-        .text "pad"
-
-nt_cleave:
-        .byte 6, 0
-        .word nt_hexstore, xt_cleave, z_cleave
-        .text "cleave"
-
-nt_hexstore:
-        .byte 8, 0
-        .word nt_within, xt_hexstore, z_hexstore
-        .text "hexstore"
-
-nt_within:
-        .byte 6, 0
-        .word nt_to_in, xt_within, z_within
-        .text "within"
-
-nt_to_in:
-        .byte 3, 0
-        .word nt_less_number_sign, xt_to_in, z_to_in
-        .text ">in"
-
-nt_less_number_sign:
-        .byte 2, 0
-        .word nt_number_sign, xt_less_number_sign, z_less_number_sign
-        .text "<#"
-
-nt_number_sign:
-        .byte 1, 0
-        .word nt_number_sign_s, xt_number_sign, z_number_sign
-        .text "#"
-
-nt_number_sign_s:
-        .byte 2, 0
-        .word nt_number_sign_greater, xt_number_sign_s, z_number_sign_s
-        .text "#s"
-
-nt_number_sign_greater:
-        .byte 2, 0
-        .word nt_hold, xt_number_sign_greater, z_number_sign_greater
-        .text "#>"
-
-nt_hold:
-        .byte 4, 0
-        .word nt_sign, xt_hold, z_hold
-        .text "hold"
-
-nt_sign:
-        .byte 4, 0
-        .word nt_output, xt_sign, z_sign
-        .text "sign"
-
-nt_output:
-        .byte 6, 0
-        .word nt_input, xt_output, z_output
-        .text "output"
-
-nt_input:
-        .byte 5, 0
-        .word nt_havekey, xt_input, z_input
-        .text "input"
-
-nt_havekey:
-        .byte 7, 0
-        .word nt_cr, xt_havekey, z_havekey
-        .text "havekey"
-
-nt_cr:
-        .byte 2, 0
-        .word nt_page, xt_cr, z_cr
-        .text "cr"
-
-nt_page:
-        .byte 4, 0
-        .word nt_at_xy, xt_page, z_page
-        .text "page"
-
-nt_at_xy:
-        .byte 5, 0
-        .word nt_marker, xt_at_xy, z_at_xy
-        .text "at-xy"
-
-nt_marker:
-        .byte 6, IM
-        .word nt_words, xt_marker, z_marker
-        .text "marker"
-
-nt_words:
-        .byte 5, 0
-        .word nt_wordsize, xt_words, z_words
-        .text "words"
-
-nt_wordsize:
-        .byte 8, 0
-        .word nt_aligned, xt_wordsize, z_wordsize
-        .text "wordsize"
-
-nt_aligned:
-        .byte 7, 0
-        .word nt_align, xt_aligned, z_aligned   ; same code as ALIGN
-        .text "aligned"
-
-nt_align:
-        .byte 5, 0
-        .word nt_bell, xt_align, z_align
-        .text "align"
-
-nt_bell:
-        .byte 4, 0
-        .word nt_dump, xt_bell, z_bell
-        .text "bell"
-
-nt_dump:
-        .byte 4, 0
-        .word nt_dot_s, xt_dump, z_dump
-        .text "dump"
-
-nt_dot_s:
-        .byte 2, 0
-        .word +, xt_dot_s, z_dot_s
-        .text ".s"
-+
-
-.if "disassembler" in TALI_OPTIONAL_WORDS
-nt_disasm:
-        .byte 6, 0
-        .word +, xt_disasm, z_disasm
-        .text "disasm"
-+
-.endif
-
-nt_compare:
-        .byte 7, 0
-        .word nt_search, xt_compare, z_compare
-        .text "compare"
-
-nt_search:
-        .byte 6, NN
-        .word +, xt_search, z_search
-        .text "search"
-+
-.if "environment?" in TALI_OPTIONAL_WORDS
-nt_environment_q:
-        .byte 12, 0
-        .word +, xt_environment_q, z_environment_q
-        .text "environment?"
-+
-.endif
-nt_find:
-        .byte 4, 0
-        .word nt_word, xt_find, z_find
-        .text "find"
-
-nt_word:
-        .byte 4, 0
-        .word nt_paren, xt_word, z_word
-        .text "word"
-
-nt_paren:
-        .byte 1, IM
-        .word nt_dot_paren, xt_paren, z_paren
-        .text "("
-
-nt_dot_paren:
-        .byte 2, IM
-        .word nt_if, xt_dot_paren, z_dot_paren
-        .text ".("
-
-nt_if:
-        .byte 2, IM+CO+NN
-        .word nt_then, xt_if, z_if
-        .text "if"
-
-nt_then:
-        .byte 4, IM+CO+NN
-        .word nt_else, xt_then, z_then
-        .text "then"
-
-nt_else:
-        .byte 4, IM+CO+NN
-        .word nt_repeat, xt_else, z_else
-        .text "else"
-
-nt_repeat:
-        .byte 6, IM+CO+NN
-        .word nt_until, xt_repeat, z_repeat
-        .text "repeat"
-
-nt_until:
-        .byte 5, IM+CO+NN
-        .word nt_while, xt_until, z_until
-        .text "until"
-
-nt_while:
-        .byte 5, IM+CO+NN
-        .word nt_case, xt_while, z_while
-        .text "while"
-
-nt_case:
-        .byte 4, IM+CO+NN
-        .word nt_of, xt_case, z_case    ; shares code with ZERO
-        .text "case"
-
-nt_of:
-        .byte 2, IM+CO+NN
-        .word nt_endof, xt_of, z_of
-        .text "of"
-
-nt_endof:
-        .byte 5, IM+CO+NN
-        .word nt_endcase, xt_endof, z_endof ; shares code with ELSE
-        .text "endof"
-
-nt_endcase:
-        .byte 7, IM+CO+NN
-        .word nt_defer_fetch, xt_endcase, z_endcase
-        .text "endcase"
-
-nt_defer_fetch:
-        .byte 6, 0
-        .word nt_defer_store, xt_defer_fetch, z_defer_fetch
-        .text "defer@"
-
-nt_defer_store:
-        .byte 6, 0
-        .word nt_is, xt_defer_store, z_defer_store
-        .text "defer!"
-
-nt_is:
-        .byte 2, IM
-        .word nt_action_of, xt_is, z_is
-        .text "is"
-
-nt_action_of:
-        .byte 9, IM
-        .word nt_useraddr, xt_action_of, z_action_of
-        .text "action-of"
-
-nt_useraddr:
-        .byte 8, 0
-        .word nt_buffer_colon, xt_useraddr, z_useraddr
-        .text "useraddr"
-
-nt_buffer_colon:
-        .byte 7, 0
-        .word +, xt_buffer_colon, z_buffer_colon
-        .text "buffer:"
-+
-.if "block" in TALI_OPTIONAL_WORDS
-nt_buffstatus:
-        .byte 10, 0
-        .word nt_buffblocknum, xt_buffstatus, z_buffstatus
-        .text "buffstatus"
-
-nt_buffblocknum:
-        .byte 12, 0
-        .word nt_blkbuffer, xt_buffblocknum, z_buffblocknum
-        .text "buffblocknum"
-
-nt_blkbuffer:
-        .byte 9, 0
-        .word nt_scr, xt_blkbuffer, z_blkbuffer
-        .text "blkbuffer"
-
-nt_scr:
-        .byte 3, NN
-        .word nt_blk, xt_scr, z_scr
-        .text "scr"
-
-nt_blk:
-        .byte 3, NN
-        .word nt_block_write, xt_blk, z_blk
-        .text "blk"
-
-nt_block_write:
-        .byte 11, NN
-        .word nt_block_write_vector, xt_block_write, z_block_write
-        .text "block-write"
-
-nt_block_write_vector:
-        .byte 18, NN
-        .word nt_block_read, xt_block_write_vector, z_block_write_vector
-        .text "block-write-vector"
-
-nt_block_read:
-        .byte 10, NN
-        .word nt_block_read_vector, xt_block_read, z_block_read
-        .text "block-read"
-
-nt_block_read_vector:
-        .byte 17, NN
-        .word nt_save_buffers, xt_block_read_vector, z_block_read_vector
-        .text "block-read-vector"
-
-nt_save_buffers:
-        .byte 12, 0
-        .word nt_block, xt_save_buffers, z_save_buffers
-        .text "save-buffers"
-
-nt_block:
-        .byte 5, 0
-        .word nt_update, xt_block, z_block
-        .text "block"
-
-nt_update:
-        .byte 6, 0
-        .word nt_buffer, xt_update, z_update
-        .text "update"
-
-nt_buffer:
-        .byte 6, 0
-        .word nt_empty_buffers, xt_buffer, z_buffer
-        .text "buffer"
-
-nt_empty_buffers:
-        .byte 13, 0
-        .word nt_flush, xt_empty_buffers, z_empty_buffers
-        .text "empty-buffers"
-
-nt_flush:
-        .byte 5, 0
-        .word nt_load, xt_flush, z_flush
-        .text "flush"
-
-nt_load:
-        .byte 4, 0
-        .word nt_thru, xt_load, z_load
-        .text "load"
-
-nt_thru:
-        .byte 4, 0
-        .word +, xt_thru, z_thru
-        .text "thru"
-+
-.if TALI_ARCH == "c65"
-nt_block_c65_init:
-        .byte 14, 0
-        .word +, xt_block_c65_init, z_block_c65_init
-        .text "block-c65-init"
-+
-.endif
-.if "editor" in TALI_OPTIONAL_WORDS
-nt_list:
-        .byte 4, 0
-        .word +, xt_list, z_list
-        .text "list"
-+
-.endif
-.endif
-
-.if "block" in TALI_OPTIONAL_WORDS && "ramdrive" in TALI_OPTIONAL_WORDS
-nt_block_ramdrive_init:
-        .byte 19, 0
-        .word +, xt_block_ramdrive_init, z_block_ramdrive_init
-        .text "block-ramdrive-init"
-+
-.endif
-
-.if "wordlist" in TALI_OPTIONAL_WORDS
-nt_definitions:
-        .byte 11, 0
-        .word nt_wordlist, xt_definitions, z_definitions
-        .text "definitions"
-
-nt_wordlist:
-        .byte 8, 0
-        .word nt_search_wordlist, xt_wordlist, z_wordlist
-        .text "wordlist"
-
-nt_search_wordlist:
-        .byte 15, 0
-        .word nt_set_current, xt_search_wordlist, z_search_wordlist
-        .text "search-wordlist"
-
-nt_set_current:
-        .byte 11, 0
-        .word nt_get_current, xt_set_current, z_set_current
-        .text "set-current"
-
-nt_get_current:
-        .byte 11, 0
-        .word nt_set_order, xt_get_current, z_get_current
-        .text "get-current"
-
-nt_set_order:
-        .byte 9, 0
-        .word nt_get_order, xt_set_order, z_set_order
-        .text "set-order"
-
-nt_get_order:
-        .byte 9, 0
-        .word nt_root_wordlist, xt_get_order, z_get_order
-        .text "get-order"
-
-nt_root_wordlist:
-        .byte 13, 0
-        .word +, xt_root_wordlist, z_root_wordlist
-        .text "root-wordlist"
-+
-.endif
-
-.if "assembler" in TALI_OPTIONAL_WORDS && "wordlist" in TALI_OPTIONAL_WORDS
-nt_assembler_wordlist:  ; shares code with TWO
-        .byte 18, 0
-        .word +, xt_assembler_wordlist, z_assembler_wordlist
-        .text "assembler-wordlist"
-+
-.endif
-
-.if "editor" in TALI_OPTIONAL_WORDS && "wordlist" in TALI_OPTIONAL_WORDS
-nt_editor_wordlist:     ; shares code with ONE
-        .byte 15, 0
-        .word +, xt_editor_wordlist, z_editor_wordlist
-        .text "editor-wordlist"
-+
-.endif
-
-.if "wordlist" in TALI_OPTIONAL_WORDS
-nt_forth_wordlist:      ; shares code with ZERO
-        .byte 14, 0
-        .word nt_only, xt_forth_wordlist, z_forth_wordlist
-        .text "forth-wordlist"
-
-nt_only:
-        .byte 4, 0
-        .word nt_also, xt_only, z_only
-        .text "only"
-
-nt_also:
-        .byte 4, 0
-        .word nt_previous, xt_also, z_also
-        .text "also"
-
-nt_previous:
-        .byte 8, 0
-        .word nt_to_order, xt_previous, z_previous
-        .text "previous"
-
-nt_to_order:
-        .byte 6, 0
-        .word nt_order, xt_to_order, z_to_order
-        .text ">order"
-
-nt_order:
-        .byte 5, 0
-        .word nt_forth, xt_order, z_order
-        .text "order"
-
-nt_forth:
-        .byte 5, 0
-        .word +, xt_forth, z_forth
-        .text "forth"
-+
-.endif
-
-nt_see: .byte 3, NN
-        .word +, xt_see, z_see
-        .text "see"
-+
+#nt_header bye
+#nt_header cold
 
 .if "ed" in TALI_OPTIONAL_WORDS
-nt_ed:                  ; ed6502
-        .byte 3, NN
-        .word +, xt_ed, z_ed
-        .text "ed:"
-+
+#nt_header ed, "ed:", NN                                ; ed6502
 .endif
 
-nt_cold:
-        .byte 4, 0
-        .word nt_bye, xt_cold, z_cold
-        .text "cold"
+.if "wordlist" in TALI_OPTIONAL_WORDS
+    .if "editor" in TALI_OPTIONAL_WORDS
+#nt_header editor_wordlist, "editor-wordlist"           ; shares code with ONE
+    .endif
 
-nt_bye:
-        .byte 3         ; length of word strings
-        .byte 0         ; status byte
-        .word 0000      ; next word in Dictionary, 0000 signals end
-        .word xt_bye    ; start of code block (xt of this word)
-        .word z_bye     ; end of code (RTS)
-        .text "bye"     ; word name, always lower case, not zero-terminated
+    .if "assembler" in TALI_OPTIONAL_WORDS
+#nt_header assembler_wordlist, "assembler-wordlist"     ; shares code with TWO
+    .endif
+
+#nt_header forth
+#nt_header order
+#nt_header to_order, ">order"
+#nt_header previous
+#nt_header also
+#nt_header only
+#nt_header forth_wordlist, "forth-wordlist"             ; shares code with ZERO
+.endif
+
+.if "wordlist" in TALI_OPTIONAL_WORDS
+#nt_header root_wordlist, "root-wordlist"
+#nt_header get_order, "get-order"
+#nt_header set_order, "set-order"
+#nt_header get_current, "get-current"
+#nt_header set_current, "set-current"
+#nt_header search_wordlist, "search-wordlist"
+#nt_header wordlist
+#nt_header definitions
+.endif
+
+.if "block" in TALI_OPTIONAL_WORDS
+
+    .if "ramdrive" in TALI_OPTIONAL_WORDS
+#nt_header block_ramdrive_init, "block-ramdrive-init"
+    .endif
+   .if TALI_ARCH == "c65"
+#nt_header block_c65_init, "block-c65-init"
+   .endif
+   .if "editor" in TALI_OPTIONAL_WORDS
+#nt_header list
+   .endif
+
+#nt_header thru
+#nt_header load
+#nt_header flush
+#nt_header empty_buffers, "empty-buffers"
+#nt_header buffer
+#nt_header update
+#nt_header block
+#nt_header save_buffers, "save-buffers"
+#nt_header block_read_vector, "block-read-vector", NN
+#nt_header block_read, "block-read", NN
+#nt_header block_write_vector, "block-write-vector", NN
+#nt_header block_write, "block-write", NN
+#nt_header blk, "blk", NN
+#nt_header scr, "scr", NN
+#nt_header blkbuffer
+#nt_header buffblocknum
+#nt_header buffstatus
+.endif
+
+.if "environment?" in TALI_OPTIONAL_WORDS
+#nt_header environment_q, "environment?"
+.endif
+
+.if "disassembler" in TALI_OPTIONAL_WORDS
+#nt_header disasm
+.endif
+
+#nt_header see, "see", NN
+#nt_header buffer_colon, "buffer:"
+#nt_header useraddr
+#nt_header action_of, "action-of", IM
+#nt_header is, "is", IM
+#nt_header defer_store, "defer!"
+#nt_header defer_fetch, "defer@"
+#nt_header endcase, "endcase", IM+CO+NN
+#nt_header endof, "endof", IM+CO+NN             ; shares code with ELSE
+#nt_header of, "of", IM+CO+NN
+#nt_header case, "case", IM+CO+NN               ; shares code with ZERO
+#nt_header while, "while", IM+CO+NN
+#nt_header until, "until", IM+CO+NN
+#nt_header repeat, "repeat", IM+CO+NN
+#nt_header else, "else", IM+CO+NN
+#nt_header then, "then", IM+CO+NN
+#nt_header if, "if", IM+CO+NN
+#nt_header dot_paren, ".(", IM
+#nt_header paren, "(", IM
+#nt_header word
+#nt_header find
+#nt_header search, "search", NN
+#nt_header compare
+#nt_header dot_s, ".s"
+#nt_header dump
+#nt_header bell
+#nt_header align
+#nt_header aligned
+#nt_header wordsize
+#nt_header words
+#nt_header marker, "marker", IM
+#nt_header at_xy, "at-xy"
+#nt_header page
+#nt_header cr
+#nt_header havekey
+#nt_header input
+#nt_header output
+#nt_header sign
+#nt_header hold
+#nt_header number_sign_greater, "#>"
+#nt_header number_sign_s, "#s"
+#nt_header number_sign, "#"
+#nt_header less_number_sign, "<#"
+#nt_header to_in, ">in"
+#nt_header within
+#nt_header hexstore
+#nt_header cleave
+#nt_header pad
+#nt_header cmove
+#nt_header cmove_up, "cmove>"
+#nt_header move, "move", NN
+#nt_header backslash, "\", IM
+#nt_header star_slash, "*/"
+#nt_header star_slash_mod, "*/mod"
+#nt_header mod
+#nt_header slash_mod, "/mod"
+#nt_header slash, "/"
+#nt_header fm_slash_mod, "fm/mod"
+#nt_header sm_slash_rem, "sm/rem"
+#nt_header um_slash_mod, "um/mod"
+#nt_header star, "*"
+#nt_header um_star, "um*"
+#nt_header m_star, "m*"
+#nt_header count
+#nt_header decimal
+#nt_header hex
+#nt_header to_number, ">number"
+#nt_header number
+#nt_header digit_question, "digit?"
+#nt_header base
+#nt_header evaluate
+#nt_header state
+#nt_header again, "again", CO+IM
+#nt_header begin, "begin", CO+IM
+#nt_header quit
+#nt_header recurse, "recurse", CO+IM
+#nt_header leave, "leave", CO+IM
+nt_unloop:
+#nt_header unloop, "unloop", CO
+#nt_header exit, "exit", AN+CO
+#nt_header plus_loop, "+loop", CO+IM
+#nt_header loop, "loop", CO+IM
+#nt_header j, "j", CO
+#nt_header i, "i", CO
+#nt_header question_do, "?do", CO+IM+NN
+#nt_header do, "do", CO+IM+NN
+#nt_header abort_quote, 'abort"', CO+IM+NN
+#nt_header abort
+#nt_header strip_underflow, "strip-underflow", NN
+#nt_header nc_limit, "nc-limit", NN
+#nt_header allow_native, "allow-native"
+#nt_header always_native, "always-native"
+#nt_header never_native, "never-native"
+#nt_header compile_only, "compile-only"
+#nt_header immediate
+#nt_header postpone, "postpone", IM+CO
+#nt_header s_backslash_quote, 's\"', IM
+#nt_header s_quote, 's"', IM+NN
+#nt_header dot_quote, '."', CO+IM
+#nt_header sliteral, "sliteral", CO+IM
+#nt_header literal, "literal", IM+CO
+#nt_header right_bracket, "]", IM
+#nt_header left_bracket, "[", IM+CO
+#nt_header compile_comma, "compile,", NN
+#nt_header colon_noname, ":noname"
+#nt_header semicolon, ";", CO+IM
+#nt_header colon, ":"
+#nt_header source_id, "source-id"
+#nt_header source
+#nt_header execute_parsing, "execute-parsing"
+#nt_header parse
+#nt_header parse_name, "parse-name", NN
+#nt_header latestnt
+#nt_header latestxt
+#nt_header defer
+#nt_header to_body, ">body"
+#nt_header name_to_string, "name>string"
+#nt_header int_to_name, "int>name"
+#nt_header name_to_int, "name>int"
+#nt_header bracket_tick, "[']", CO+IM
+#nt_header tick, "'"
+#nt_header find_name, "find-name"
+#nt_header fill
+#nt_header blank
+#nt_header erase
+#nt_header d_plus, "d+"
+#nt_header d_minus, "d-"
+#nt_header d_to_s, "d>s"
+#nt_header s_to_d, "s>d"
+#nt_header to, "to", NN+IM
+#nt_header value                        ; same code as CONSTANT
+#nt_header constant
+#nt_header variable
+#nt_header does, "does>", CO+IM
+#nt_header create
+#nt_header allot
+#nt_header keyq, "key?"
+#nt_header key
+#nt_header depth
+#nt_header unused
+#nt_header r_to_input, "r>input", NN
+#nt_header input_to_r, "input>r", NN
+#nt_header accept, "accept", NN
+#nt_header refill
+#nt_header slash_string, "/string"
+#nt_header minus_leading, "-leading"
+#nt_header minus_trailing, "-trailing"
+#nt_header bl
+#nt_header spaces
+#nt_header bounds
+#nt_header c_comma, "c,"
+#nt_header dnegate
+#nt_header negate
+#nt_header invert
+#nt_header two_to_r, "2>r", CO+ST       ; native skips stack juggling
+#nt_header two_r_from, "2r>", CO+ST     ; native skips stack juggling
+#nt_header two_r_fetch, "2r@", CO+ST    ; native skips stack juggling
+#nt_header two_literal, "2literal", IM
+#nt_header two_constant, "2constant"
+#nt_header two_variable, "2variable"
+#nt_header two_fetch, "2@"
+#nt_header two_store, "2!"
+#nt_header two_over, "2over"
+#nt_header two_swap, "2swap"
+#nt_header two_drop, "2drop"
+#nt_header max
+#nt_header min
+#nt_header zero_less, "0<"
+#nt_header zero_greater, "0>"
+#nt_header zero_unequal, "0<>"
+#nt_header zero_equal, "0="
+#nt_header greater_than, ">"
+#nt_header u_greater_than, "u>"
+#nt_header u_less_than, "u<"
+#nt_header less_than, "<"
+#nt_header not_equals, "<>"
+#nt_header equal, "="
+#nt_header here
+#nt_header cell_plus, "cell+"
+#nt_header cells                ; same as 2*
+#nt_header chars                ; no-op (underflow check) during compile
+#nt_header char_plus, "char+"
+#nt_header bracket_char, "[char]", CO+IM
+#nt_header char
+#nt_header pick                 ; underflow check is complicated, leave off here
+#nt_header lshift
+#nt_header rshift
+#nt_header xor
+#nt_header or
+#nt_header and
+#nt_header dabs
+#nt_header abs
+#nt_header two_slash, "2/"
+#nt_header two_star, "2*"
+#nt_header one_plus, "1+"
+#nt_header one_minus, "1-"
+#nt_header minus, "-"
+#nt_header plus, "+"
+#nt_header question_dup, "?dup"
+#nt_header two_dup, "2dup"
+#nt_header space
+#nt_header true
+#nt_header false
+nt_question:
+#nt_header question, "?"
+#nt_header ud_dot_r, "ud.r"
+#nt_header ud_dot, "ud."
+#nt_header m_star_slash, "m*/"
+#nt_header d_dot_r, "d.r"
+#nt_header d_dot, "d."
+#nt_header dot_r, ".r"
+#nt_header u_dot_r, "u.r"
+#nt_header u_dot, "u."
+#nt_header dot, "."
+#nt_header type
+#nt_header emit, "emit", NN
+#nt_header execute
+#nt_header two, "2"
+#nt_header one, "1"
+#nt_header zero, "0"
+#nt_header plus_store, "+!"
+#nt_header c_store, "c!"
+#nt_header c_fetch, "c@"
+#nt_header comma, ","
+#nt_header tuck
+#nt_header not_rot, "-rot"
+#nt_header rot
+#nt_header nip
+#nt_header r_fetch, "r@", CO+ST ; native skips stack juggling
+#nt_header r_from, "r>", CO+ST  ; native skips stack juggling
+#nt_header to_r, ">r", CO+ST    ; native skips stack juggling
+#nt_header over
+#nt_header fetch, "@"
+#nt_header store, "!"
+#nt_header swap
+#nt_header dup
+#nt_header drop                 ; DROP is always the first native word in the Dictionary
+
+dictionary_start = prev_nt
+prev_nt := 0
 
 ; END of FORTH-WORDLIST
 
@@ -1500,77 +520,51 @@ nt_bye:
         ; set the wordlists. These words are also included in the
         ; FORTH-WORDLIST as well.
 
-root_dictionary_start:
 .if "wordlist" in TALI_OPTIONAL_WORDS
-nt_root_set_order:
-        .byte 9, 0
-        .word nt_root_forth, xt_set_order, z_set_order
-        .text "set-order"
-
-nt_root_forth:
-        .byte 5, 0
-        .word nt_root_forth_wordlist, xt_forth, z_forth
-        .text "forth"
-
-nt_root_forth_wordlist: ; shares code with ZERO
-        .byte 14, 0
-        .word nt_root_words, xt_forth_wordlist, z_forth_wordlist
-        .text "forth-wordlist"
-
-nt_root_words:
-        .byte 5, 0
-        .word 0000, xt_words, z_words
-        .text "words"
+#nt_header set_order, "set-order"
+#nt_header forth
+#nt_header forth_wordlist, "forth-wordlist"     ; shares code with ZERO
+#nt_header words
 .endif
+
+root_dictionary_start = prev_nt
+prev_nt := 0
+
 ; END of ROOT-WORDLIST
 
 
 ; EDITOR-WORDLIST
 
-editor_dictionary_start:
 .if "editor" in TALI_OPTIONAL_WORDS && "block" in TALI_OPTIONAL_WORDS
-nt_editor_o:
-        .byte 1, 0
-        .word nt_editor_line, xt_editor_o, z_editor_o
-        .text "o"
-
-nt_editor_line:
-        .byte 4, 0
-        .word nt_editor_l, xt_editor_line, z_editor_line
-        .text "line"
-
-nt_editor_l:
-        .byte 1, 0
-        .word nt_editor_el, xt_editor_l, z_editor_l
-        .text "l"
-
-nt_editor_el:
-        .byte 2, 0
-        .word nt_editor_erase_screen, xt_editor_el, z_editor_el
-        .text "el"
-
-nt_editor_erase_screen:
-        .byte 12, 0
-        .word nt_editor_enter_screen, xt_editor_erase_screen, z_editor_erase_screen
-        .text "erase-screen"
-
-nt_editor_enter_screen:
-        .byte 12, 0
-        .word 0000, xt_editor_enter_screen, z_editor_enter_screen
-        .text "enter-screen"
+#nt_header editor_o, "o"
+#nt_header editor_line, "line"
+#nt_header editor_l, "l"
+#nt_header editor_el, "el"
+#nt_header editor_erase_screen, "erase-screen"
+#nt_header editor_enter_screen, "enter-screen"
 .endif
+
+editor_dictionary_start = prev_nt
+prev_nt := 0
+
 ; END of EDITOR-WORDLIST
 
 
 ; ASSEMBLER-WORDLIST
 
-assembler_dictionary_start:
-
 .if "assembler" in TALI_OPTIONAL_WORDS || "disassembler" in TALI_OPTIONAL_WORDS
+
+; Assembler pseudo-instructions, directives and macros
+; nb. these need to come before the opcode macros since it assumes near previous NT
+
+#nt_header asm_arrow, "-->", IM         ; uses same code as HERE, but immediate
+#nt_header asm_back_jump, "<j", IM      ; syntactic sugar, does nothing
+#nt_header asm_back_branch, "<b", IM
+#nt_header asm_push_a, "push-a", IM+NN
 
 ; Labels for the opcodes have the format "nt_asm_<OPC>" where a futher
 ; underscore replaces any dot present in the SAN mnemonic. The hash sign for
-; immediate addressing is replaced by an "h" (for example, the label code for
+; immediate addressing is replaced by an "h".  For example, the label code for
 ; "lda.#" is "xt_adm_lda_h"). All opcode words are immediate and never-native.
 ;
 ; Each opcode shows the traditional mnemonic as a comment with abbreviations:
@@ -1586,7 +580,7 @@ assembler_dictionary_start:
 ; opcode as well as a simple way to find known opcodes during disassembly.
 ; See assembler.asm for details.
 
-nt_asm_first:   ; ... nt_asm_last bracket the asm words for disasm search
+nt_asm_begin:   ; ... nt_asm_end bracket the asm words for disasm search
 
 nt_asm_adc:     .nt_asm $6d, "adc"      ; ADC llhh
 nt_asm_adc_h:   .nt_asm $69, "adc.#"    ; ADC #dd
@@ -1802,37 +796,15 @@ nt_asm_tsb_z:   .nt_asm $04, "tsb.z"    ; TSB zp
 nt_asm_tsx:     .nt_asm $ba, "tsx"      ; TSX
 nt_asm_txa:     .nt_asm $8a, "txa"      ; TAX
 nt_asm_txs:     .nt_asm $9a, "txs"      ; TXS
+
 nt_asm_tya:     .nt_asm $98, "tya"      ; TYA
 
-nt_asm_last:
+nt_asm_end = prev_nt                    ; mark the end of the linked list of asm opcodes
 
-; Assembler pseudo-instructions, directives and macros
-
-nt_asm_arrow:   ; uses same code as HERE, but immediate
-                .byte 3, IM
-                .word nt_asm_back_jump
-                .word xt_asm_arrow, z_asm_arrow
-                .text "-->"
-
-
-nt_asm_back_jump:  ; syntactic sugar, does nothing
-                .byte 2, IM
-                .word nt_asm_back_branch
-                .word xt_asm_back_jump, z_asm_back_jump
-                .text "<j"
-
-nt_asm_back_branch:
-                .byte 2, IM
-                .word nt_asm_push_a
-                .word xt_asm_back_branch, z_asm_back_branch
-                .text "<b"
-
-nt_asm_push_a:
-                .byte 6, IM+NN
-                .word 0000
-                .word xt_asm_push_a, z_asm_push_a
-                .text "push-a"
-.endif
 ; END of ASSEMBLER-WORDLIST
+.endif
+
+assembler_dictionary_start = prev_nt
+prev_nt := 0
 
 ; END

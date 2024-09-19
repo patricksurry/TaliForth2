@@ -148,8 +148,7 @@ T{ latestxt int>name wordsize  -> 16 }T
 
 
 \ Test never-native.
-\ Because NN is the default, we have to switch to one of the other modes first.
-: four 2 2 ; always-native never-native
+: four 2 2 ; never-native
 \ Four should never natively compile regardless of nc-limit.
 \ It will always be a JSR when used in another word.
 15 nc-limit !
@@ -168,6 +167,19 @@ T{ latestxt int>name wordsize ->  3 }T
 : five 6 [ 0 nc-limit ! ] 7 * ; 16 nc-limit !
 T{ ' five int>name wordsize -> 16 }t
 T{ five -> 42 }T
+
+\ Test large words, relocatable and not
+here
+: lorem ." Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." ;
+T{ ' lorem int>name = -> <true> }T
+T{ ' lorem int>name wordsize 255 > -> <true> }T
+here
+assembler-wordlist >order
+: lorem-nn [ ' cr jmp ] ." Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." ;
+previous
+
+T{ ' lorem-nn int>name = -> <false> }T
+T{ ' lorem-nn int>name wordsize 255 > -> <true> }T
 
 \ Nothing is too trivial for testing!
 T{ 0 -> 0 }T
