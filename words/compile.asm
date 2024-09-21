@@ -44,7 +44,7 @@
 ; The inline forms are typically much simpler since they can use
 ; 65c02 jmp and bxx branch opcodes directly.
 
-;TODO does it make sense to have an actual word, like COMPILE-NT, ?
+; this could be exposed as a forth word but currently isn't
 compile_nt_comma:  ; ( nt -- )
         ; compile, looks up the nt from the xt which is very slow
         ; if we already have the nt, we can get things rolling faster
@@ -76,6 +76,10 @@ w_compile_comma:
                 ; AN flag. We need nt for this.
                 jsr w_dup               ; keep an unadjusted copy of xt
                 jsr w_dup               ; plus one to convert to nt
+
+                ; Nb. this reverse lookup from xt => nt is expensive so it's
+                ; better to use the compile_comma_common entrypoint below
+                ; if the nt is already available, e.g. while interpreting
                 jsr w_int_to_name
                 ; ( xt xt nt )
 
@@ -85,15 +89,12 @@ w_compile_comma:
                 beq cmpl_as_call        ; No nt so unknown size; must compile as a JSR
 
 compile_comma_common:
-                ; Otherwise investigate the nt
-                jsr w_dup
-                jsr w_one_plus         ; status is at nt+1
-                ; ( xt xt nt nt+1 )
-                lda (0,x)               ; get status byte
-                inx                     ; drop pointer
-                inx
                 ; ( xt xt nt )
-                sta tmp3                ; keep copy of status byte
+
+                ; Otherwise investigate the nt
+                lda (0,x)               ; get status flags byte @ NT
+
+                sta tmp3                ; and keep a copy
                 and #AN+NN              ; check if never native (NN)
                 cmp #NN                 ; NN=1, AN=0?  i.e. not ST=AN+AN
                 beq cmpl_as_call
@@ -234,7 +235,7 @@ has_uf_check:
                 ; ( addr -- )
 
                 ; Does addr point at a JSR?
-                lda (0, x)              ; fetch byte @ addr
+                lda (0,x)               ; fetch byte @ addr
                 cmp #OpJSR
                 bne _not_uf             ; not a JSR
 
@@ -242,11 +243,11 @@ has_uf_check:
                 ; We can check 0 <= addr - underflow_1 <= underflow_4 - underflow_1 < 256
                 jsr w_one_plus
                 jsr w_fetch             ; get JSR address to TOS
-                lda 0, x                ; LSB of jsr address
+                lda 0,x                 ; LSB of jsr address
                 sec
                 sbc #<underflow_1
                 tay                     ; stash LSB of result and finish subtraction
-                lda 1, x                ; MSB of jsr address
+                lda 1,x                 ; MSB of jsr address
                 sbc #>underflow_1
                 bne _not_uf             ; MSB of result must be zero
 
@@ -280,8 +281,8 @@ _not_uf:        clc                     ; C=0 means it isn't a UF check
 ; We have have various utility routines here for compiling a word in Y/A
 ; and a single byte in A.
 
-; TODO for all of these we could potentially avoid jmp (and NN) and
-; use BRA instaed.  jump_later is a bit harder since we need to remember NN state
+;TODO for all of these we could potentially avoid jmp (and NN) and
+; use BRA instead.  jump_later is a bit harder since we need to remember NN state
 ; in case something else changed it
 
 cmpl_jump_later:
@@ -498,19 +499,8 @@ zbranch_runtime:
                 sty tmp1+1
 
                 tay             ; test if A = 0 which tells us whether to branch
-                beq _branch
+                bne _nobranch   ; the usual case is to repeat, so fall thru
 
-                ; no branch, just skip the address bytes and erturn
-                clc
-                lda tmp1        ; LSB
-                adc #3          ; skip two bytes plus the extra for jsr/rts behavior
-                sta tmp1
-                bcc _jmp
-
-                inc tmp1+1
-                bra _jmp
-
-_branch:
                 ; Flag is FALSE (0) so we take the jump to the address given in
                 ; the next two bytes. However, the address points to the last
                 ; byte of the JSR instruction, not to the next byte afterwards
@@ -525,3 +515,14 @@ _branch:
 _jmp:
                 ; However we got here, tmp1 has the address to jump to.
                 jmp (tmp1)
+
+_nobranch:
+                ; no branch, continue past the address bytes
+                clc
+                lda tmp1        ; LSB
+                adc #3          ; skip two bytes plus the extra for jsr/rts behavior
+                sta tmp1
+                bcc _jmp
+
+                inc tmp1+1
+                bra _jmp

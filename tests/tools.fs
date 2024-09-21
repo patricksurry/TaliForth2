@@ -146,25 +146,29 @@ T{ blkbuffer 32 capture-output dump restore-output s\" \n
 
 
 : see-/mod-output s\" \n
-nt: *  xt: * \n
-flags: CO 0 IM 0 AN 0 NN 0 HC 0 | UF 1 ST 0 \n
-size (decimal): 26 \n
+nt: *  xt: *  header: 04 04 ?? ?? ?? 1E \n
+flags: HC 0 NN 0 AN 0 IM 0 CO 0 DC 1 LC 0 FP 0 | UF 1 ST 0 \n
+size (decimal): 30 \n
 \n
-*  20 ?? ?? A9 FF 48 20 ??  ?? 20 ?? ?? 20 ?? ?? 20   ??..H ? ? ?? ?? \n
-*  ?? ?? 68 D0 05 20 ?? ??  E8 E8                    ??h.. ?? ..\n
+*  20 ?? ?? A9 FF 48 B5 00  95 FE B5 01 95 FF E8 E8   ??..H.. ........
+*  20 ?? ?? CA CA 20 ?? ??  68 D0 03 20 ?? ??         ??.. ?? h.. ??
 \n
 *  ????? jsr     2 STACK DEPTH CHECK\n
 *     FF lda.#\n
 *        pha\n
-*  ????? jsr     >r\n
-*  ????? jsr     s>d\n
-*  ????? jsr     r>\n
-*  ????? jsr     sm/rem\n
-*        pla\n
-*      5 bne     * v\n
-*  ????? jsr     swap\n
+*      0 lda.zx\n
+*     FE sta.zx\n
+*      1 lda.zx\n
+*     FF sta.zx\n
 *        inx\n
-*        inx\n"
+*        inx\n
+*   ???? jsr     s>d\n
+*        dex\n
+*        dex\n
+*   ???? jsr     sm/rem\n
+*        pla\n
+*      3 bne     ???? v\n
+*   ???? jsr     nip\n"
 ;
 
 \ these tests are a little fiddly since the width of some fields can vary based on the base
@@ -178,8 +182,8 @@ T{ capture-output see /mod restore-output see-/mod-output compare-glob -> 0 }T
 \ CASE has CO+IM+NN flags
 
 : see-case-output s\" \n
-nt: *  xt: * \n
-flags: CO 1 IM 1 AN 0 NN 1 HC 0 | UF 0 ST 0 \n
+nt: *  xt: *  header: 5C 04 ?? ?? ?? 06 \n
+flags: HC 0 NN 1 AN 0 IM 1 CO 1 DC 1 LC 0 FP 0 | UF 0 ST 0 \n
 size (decimal): 6 \n
 \n
 *  CA CA 74 00 74 01                                 ..t.t.\n
@@ -194,8 +198,8 @@ T{ capture-output see case restore-output see-case-output compare-glob -> 0 }T
 \ EXIT has AN flag
 
 : see-exit-output s\" \n
-nt: *  xt: * \n
-flags: CO 1 IM 0 AN 1 NN 0 HC 0 | UF 0 ST 0 \n
+nt: *  xt: *  header: 2C 04 ?? ?? ?? 01 \n
+flags: HC 0 NN 0 AN 1 IM 0 CO 1 DC 1 LC 0 FP 0 | UF 0 ST 0 \n
 size (decimal): 1 \n
 \n
 *  60                                                `\n
@@ -207,11 +211,11 @@ T{ capture-output see exit restore-output see-exit-output compare-glob -> 0 }T
 \ the test variable life (above) has HC flag
 
 : see-life-output s\" \n
-nt: *  xt: * \n
-flags: CO 0 IM 0 AN 0 NN 1 HC 1 | UF 0 ST 0 \n
+nt: *  xt: *  header: C0 04 ?? 05 \n
+flags: HC 1 NN 1 AN 0 IM 0 CO 0 DC 0 LC 0 FP 0 | UF 0 ST 0 \n
 size (decimal): CFA 3  PFA 2 \n
 \n
-*  20 ?? ?? 2A 00   ??*.\n
+*  20 ?? ?? 2A 00                                     ??*.\n
 \n
 *  ????? jsr     \n"
 ;

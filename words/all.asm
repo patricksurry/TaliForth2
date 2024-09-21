@@ -43,9 +43,6 @@ forth_warm:
                 ; can load high-level words with EVALUATE
                 ldx #dsp0
 
-                ; on warm start from valid memory image, skip the rest of setup
-                bcs _turnkey
-
                 ; Set the OUTPUT vector to the default kernel_putc
                 ; We do this really early so we can print error messages
                 ; during debugging
@@ -58,27 +55,22 @@ forth_warm:
                 ldy #cold_zp_table_end-cold_zp_table-1
 
 _load_zp_loop:
-                ; This loop loads them back to front. We can use X here
-                ; because Tali hasn't started using the stack yet.
+                ; This loop loads them back to front.
                 lda cold_zp_table,y
                 sta zpage,y
                 dey
-                bpl _load_zp_loop       ; <128 bytes so loop until y<0
+                bpl _load_zp_loop           ; <128 bytes so safe to loop until y<0
 
                 ; Initialize the user variables.
                 ldy #cold_user_table_end-cold_user_table-1
-
 _load_user_vars_loop:
                 ; Like the zero page variables, these are initialized
                 ; back to front.
                 lda cold_user_table,y
                 sta (up),y
                 dey
-                bne _load_user_vars_loop
+                bpl _load_user_vars_loop    ; again we have <128 bytes so bpl is safe
 
-                ; Copy the 0th element.
-                lda cold_user_table
-                sta (up)
                 jsr w_cr
 
                 ; Define high-level words in forth_words.asc via EVALUATE,
@@ -235,7 +227,8 @@ _stack_ok:
 
                 lda #1                  ; number for "compile" string
 _print:
-                jsr print_string
+                jsr print_string_no_lf
+                jsr w_cr
 
                 ; Awesome line, everybody! Now get the next one.
                 bra _get_line
@@ -251,11 +244,11 @@ z_quit:         ; no RTS required
 .include "tali.asm"
 .include "double.asm"
 .include "string.asm"
+.if "assembler" in TALI_OPTIONAL_WORDS || "disassembler" in TALI_OPTIONAL_WORDS
+    .include "assembler.asm"
+.endif
 .if "disassembler" in TALI_OPTIONAL_WORDS
     .include "disasm.asm"
-.endif
-.if "assembler" in TALI_OPTIONAL_WORDS
-    .include "assembler.asm"
 .endif
 .if "ed" in TALI_OPTIONAL_WORDS
     .include "ed.asm"        ; Line-based editor ed6502

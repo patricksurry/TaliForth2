@@ -74,11 +74,8 @@ T{ 12 s" 12 lda.#" correct-operand? -> true }T
 \ Testing a three-byte instruction for little endian handling
 T{ 1122 s" 1122 sta" little-endian? -> true }T
 
-\ Testing undocumented nops; all three dec.a should be skipped
-: nops [ 3 lda.# nop 22 c, dec.a 5c c, dec.a dec.a push-a ] ;
-T{ nops -> 3 }T
-
 \ Testing all assembler instructions: Opcode and length
+T{ 06D 3 s" 1122 adc" opcode-test -> true true }T
 T{ 069 2 s" 12 adc.#" opcode-test -> true true }T
 T{ 07D 3 s" 1122 adc.x" opcode-test -> true true }T
 T{ 079 3 s" 1122 adc.y" opcode-test -> true true }T

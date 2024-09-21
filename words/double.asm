@@ -193,7 +193,7 @@ w_d_dot_r:
 z_d_dot_r:      rts
 
 
-; ## M_STAR_SLASH ( d1 n1 n2 -- d2 ) "Multiply d1 by n1 and divide by n2.  Note n2 may be negative."
+; ## M_STAR_SLASH ( d1 n1 n2 -- d2 ) "Multiply d1 by n1 and divide the triple result by n2.  All values are signed."
 ; ## "m*/"  auto  ANS double
         ; """https://forth-standard.org/standard/double/MTimesDiv"""
         ; From All About FORTH, MVP-Forth, public domain,
@@ -205,46 +205,73 @@ xt_m_star_slash:
                 jsr underflow_4
 w_m_star_slash:
                 ; DDUP XOR SWAP ABS >R SWAP ABS >R OVER XOR ROT ROT DABS
-                jsr w_two_dup
-                jsr w_xor
-                jsr w_swap
-                jsr w_abs
-                jsr w_to_r
-                jsr w_swap
-                jsr w_abs
-                jsr w_to_r
-                jsr w_over
-                jsr w_xor
-                jsr w_not_rot          ; rot rot
-                jsr w_dabs
+                ; this looks like ( n1^n2^dhi |d1| ) (R: |n2| |n1| )
+                ; but we'll do something slightly different to avoid R:
+                ; we want |d1| |n1| |n2| along with the sign bit from dhi^n1^n2
 
+                lda 1,x
+                eor 3,x
+                eor 5,x
+                pha                     ; stash the sign bit on the return stack
+
+                jsr w_abs               ; ( d1 n1 |n2| )
+                jsr w_swap
+                jsr w_abs               ; ( d1 |n2| |n1| )
+                jsr w_two_swap
+                jsr w_dabs              ; ( |n2| |n1| |d1| )
+
+                ; we want something akin to
                 ; SWAP R@ UM* ROT R> UM* ROT 0 D+ R@ UM/MOD ROT ROT R> UM/MOD
+                ; but we have |n2| and |n1| on the data stack
                 jsr w_swap
-                jsr w_r_fetch
-                jsr w_um_star
+                dex
+                dex
+                lda 6,x                 ; pick |n1|
+                sta 0,x
+                lda 7,x
+                sta 1,x
+
+                jsr w_um_star           ; ( |n2| |n1| |dhi| d|dlo*n1| ) uses tmp1-3
+                jsr w_two_swap          ; ( |n2| d|dhlo*n1| |n1| |dhi| )
+                jsr w_um_star           ; ( |n2| d|dlo*n1| d|dhi*n1| )
                 jsr w_rot
-                jsr w_r_from
-                jsr w_um_star
-                jsr w_rot
+
                 jsr w_zero
-                jsr w_d_plus
-                jsr w_r_fetch
-                jsr w_um_slash_mod
-                jsr w_not_rot          ; rot rot
-                jsr w_r_from
-                jsr w_um_slash_mod
+                jsr w_d_plus            ; ( |n2| t|uvw| )
 
+                dex                     ; pick |n2| from under the triple result
+                dex
+                lda 8,x
+                sta 0,x
+                lda 9,x
+                sta 1,x                 ; ( |n2| |uvw| |n2| )
+
+                ; do the triple division in two double steps (uses tmpdsp)
+                jsr w_um_slash_mod      ; ( |n2| |w| r qhi )
+                lda 0,x                 ; swap qhi with |n2|
+                ldy 6,x
+                sty 0,x
+                sta 6,x
+
+                lda 1,x                 ; leaving ( qhi |w| r |n2| )
+                ldy 7,x
+                sty 1,x
+                sta 7,x
+
+                jsr w_um_slash_mod      ; ( qhi r' qlo )
++
+                ; finally we want
                 ; SWAP DROP SWAP ROT 0< if dnegate then ;
-                jsr w_swap
-                jsr w_drop
-                jsr w_swap
-                jsr w_rot
-                inx                     ; pre-drop TOS
-                inx
-                lda $ff,x               ; and check sign bit MSB
-                bpl z_m_star_slash      ; ... 0< if ...
-                jsr w_dnegate
+                ; which just ditches the last remainder and gets
+                ; the double result in the right order,
+                ; something like NIP SWAP sgn if DNEGATE then ;
+                jsr w_nip
+                jsr w_swap              ; ( |qd| )
 
+                pla                     ; check and apply sign if needed
+                bpl +                   ; ... 0< if ...
+                jsr w_dnegate
++
 z_m_star_slash: rts
 
 
@@ -361,14 +388,14 @@ w_two_variable:
                 ; We just let CREATE and ALLOT do the heavy lifting
                 dex
                 dex
-                lda #4
+                lda #4                  ; ( 4 )
                 sta 0,x
                 stz 1,x
 
-                sta tmpdsp              ; PFA size 4
+                sta tmpdsp              ; tell create our PFA size is 4
                 jsr create_dovar
 
-                jsr w_allot
+                jsr w_allot             ; allocate the data area
 
 z_two_variable: rts
 

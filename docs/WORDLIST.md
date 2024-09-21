@@ -8,9 +8,9 @@ RTS instruction at the end of each word.
 | NAME | FORTH WORD | SOURCE | BYTES | STATUS |
 | :--- | :--------- | :---   | ----: | :----  |
 | DISASM | `disasm` | Tali Forth | 6 | **auto** |
-| COLD | `cold` | Tali Forth | 175 | tested |
-| ABORT | `abort` | ANS core | 81 | tested |
-| QUIT | `quit` | ANS core | 79 | tested |
+| COLD | `cold` | Tali Forth | 178 | tested |
+| ABORT | `abort` | ANS core | 84 | tested |
+| QUIT | `quit` | ANS core | 82 | tested |
 | ALLOW_NATIVE | `allow-native` | Tali Forth | 11 | **auto** |
 | ALWAYS_NATIVE | `always-native` | Tali Forth | 13 | **auto** |
 | BELL | `bell` | Tali Forth | 5 | **auto** |
@@ -18,7 +18,7 @@ RTS instruction at the end of each word.
 | CLEAVE | `cleave` | Tali Forth | 76 | **auto** |
 | DIGIT_QUESTION | `digit?` | Tali Forth | 52 | **auto** |
 | EXECUTE_PARSING | `execute-parsing` | Gforth | 38 | **auto** |
-| FIND_NAME | `find-name` | Gforth | 67 | **auto** |
+| FIND_NAME | `find-name` | Gforth | 78 | **auto** |
 | HAVEKEY | `havekey` | Tali Forth | 10 | tested |
 | HEXSTORE | `hexstore` | Tali | 82 | **auto** |
 | INPUT | `input` | Tali Forth | 10 | tested |
@@ -73,7 +73,7 @@ RTS instruction at the end of each word.
 | CONSTANT | `constant` | ANS core | 17 | **auto** |
 | COUNT | `count` | ANS core | 19 | **auto** |
 | CR | `cr` | ANS core | 5 | **auto** |
-| CREATE | `create` | ANS core | 229 | **auto** |
+| CREATE | `create` | ANS core | 239 | **auto** |
 | DECIMAL | `decimal` | ANS core | 6 | **auto** |
 | DEFER | `defer` | ANS core ext | 18 | **auto** |
 | DEFER_FETCH | `defer@` | ANS core ext | 9 | **auto** |
@@ -92,7 +92,7 @@ RTS instruction at the end of each word.
 | EMIT | `emit` | ANS core | 10 | **auto** |
 | ENDCASE | `endcase` | ANS core ext | 23 | **auto** |
 | ENDOF | `endof` | ANS core ext | 23 | **auto** |
-| ENVIRONMENT_Q | `environment?` | ANS core | 124 | **auto** |
+| ENVIRONMENT_Q | `environment?` | ANS core | 113 | **auto** |
 | EQUAL | `=` | ANS core | 27 | **auto** |
 | BLANK | `blank` | ANS string | 90 | **auto** |
 | ERASE | `erase` | ANS core ext | 77 | **auto** |

@@ -9,3 +9,7 @@ docs/adventure*
 taliforth-adventure.bin
 c65/c65.exe
 docs/minimal-*.txt
+docs/c65-*.txt
+taliforth-c65.bin
+taliforth-minimal.bin
+tests/blocks.bin

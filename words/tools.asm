@@ -254,25 +254,45 @@ w_see:
                 lda #str_see_nt
                 jsr print_string_no_lf
 
-                jsr w_dup              ; ( nt nt )
+                jsr w_dup               ; ( nt nt )
                 jsr w_u_dot
-                jsr w_space            ; ( nt )
+                jsr w_space             ; ( nt )
 
-                jsr w_dup              ; ( nt nt )
-                jsr w_name_to_int      ; ( nt xt )
+                jsr w_dup               ; ( nt nt )
+                jsr w_name_to_int       ; ( nt xt )
 
                 lda #str_see_xt
                 jsr print_string_no_lf
 
-                jsr w_dup              ; ( nt xt xt )
-                jsr w_u_dot
-                jsr w_cr               ; ( nt xt )
+                jsr w_dup               ; ( nt xt xt )
+                jsr w_u_dot             ; ( nt xt )
+                jsr w_space
+
+                lda #str_see_header
+                jsr print_string_no_lf
+                jsr w_over
+                ; calculate header length from status flag byte
+                lda (0,x)               ; fetch status byte
+                and #DC+LC+FP           ; mask length bits
+                lsr                     ; shift FP to carry flag, A = 2*DC + LC
+                adc #4                  ; header length is 4 bytes + 2*DC + LC + FP
+                tay
+_show_header:
+                lda (0,x)
+                jsr byte_to_ascii
+                jsr w_space
+                jsr w_one_plus
+                dey
+                bne _show_header
+
+                jsr w_cr
+                jsr w_drop              ; ( nt xt )
 
                 ; Show flag values from the status byte along with
-                ; several calculated (synthetic) flag values
-                jsr w_over              ; ( nt xt nt )
-                jsr w_one_plus          ; ( nt xt nt+1 )
-                lda (0,x)
+                ; any calculated (synthetic) flag values
+                lda (2, x)              ; grab status flags @ NT
+                dex                     ; make some space
+                dex                     ; ( nt xt flags )
                 sta 0,x                 ; stash status flag byte
                 stz 1,x                 ; placeholder for synthetic flags
                 pha                     ; save a copy of flags for later
@@ -284,15 +304,23 @@ w_see:
                 beq +                   ; C=1 when ST set
                 clc
 +
-                rol 1,x                 ; add to flag byte
+                ror 1,x                 ; add to flag byte
 
                 jsr w_over
                 jsr has_uf_check        ; C=1 when UF set
-                rol 1,x                 ; add to flag byte
+                ror 1,x                 ; add to flag byte
 
                 lda #N_FLAGS            ; count off status byte flags
                 sta tmptos
-
+.if N_FLAGS < 8
+-
+                cmp #8                  ; discard any unused high bits
+                beq +
+                asl 0,x
+                ina
+                bra -
++
+.endif
                 ; use a high-bit terminated template string to show flag names
                 ; and insert flag values at placeholders marked by ascii zeros
                 lda #<see_flags_template
@@ -301,7 +329,7 @@ w_see:
                 sta tmp3+1              ; MSB
 
                 ldy #0                  ; index the string
-_loop:
+_show_flags:
                 lda (tmp3),y            ; next char in template
                 bpl +                   ; end of string?
 
@@ -315,10 +343,10 @@ _loop:
 
                 dec tmptos
                 bmi _synthetic          ; more core status flags?
-                lsr 0,x                 ; shift next flag bit into carry
+                asl 0,x                 ; shift next flag bit into carry
                 bra +
 _synthetic:
-                lsr 1,x                 ; show synthetic flags after core ones
+                asl 1,x                 ; show synthetic flags after core ones
 +
                 lda #'0'                ; convert C=0/1 into '0' or '1'
                 adc #0
@@ -329,11 +357,11 @@ _emit:
                 jsr emit_a
 
                 iny
-                bne _loop
+                bne _show_flags
 
                 jsr w_cr
 
-                inx
+                inx                     ; drop flags
                 inx                     ; ( nt xt )
 
                 ; Figure out the size
@@ -345,7 +373,7 @@ _emit:
                 jsr w_dup               ; ( xt u u )
                 jsr w_decimal
 
-                ; first show word size, potentially split as CFA/PFA
+                ; for HC words we'll split out CFA/PFA
                 pla                     ; fetch flag byte we saved earlier
                 and #HC                 ; does it have CFA?
                 pha                     ; we'll need to check once more
@@ -370,8 +398,8 @@ _emit:
 .endif
                 jsr w_hex
                 jsr w_dump
-.if "disassembler" in TALI_OPTIONAL_WORDS
                 pla                     ; recover HC flag
+.if "disassembler" in TALI_OPTIONAL_WORDS
                 beq +
                 lda #3
                 sta 0,x                 ; for CFA words, just show three bytes
@@ -463,16 +491,19 @@ _loop:
                 lda #AscSP
                 jsr emit_a
 
-                ; get next word, which begins two down
-                jsr w_one_plus         ; 1+
-                jsr w_one_plus         ; 1+
-                jsr w_fetch            ; @ ( nt+1 )
-
-                ; if next address is zero, we're done
                 lda 0,x
-                ora 1,x
-                bne _loop
+                sta tmp1
+                lda 1,x
+                sta tmp1+1
+                jsr nt_to_nt
+                beq _next_list          ; did we reach the end of the list?
+                lda tmp1
+                sta 0,x
+                lda tmp1+1
+                sta 1,x
 
+                bra _loop
+_next_list:
                 ; Move on to the next wordlist in the search order.
                 inc tmp3
                 bra _wordlist_loop
@@ -484,3 +515,5 @@ _words_done:
                 inx
 
 z_words:        rts
+
+

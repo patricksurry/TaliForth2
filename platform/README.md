@@ -141,11 +141,8 @@ The currently available groups are:
 - `environment?` is the ENVIRONMENT? word.  While this is a core word
    for ANS-2012, it uses a lot of strings and therefore takes up a lot of memory. (~0.2K)
 - `assembler` is a 65c02 assembler.
-   The ASSEMBLER-WORDLIST will also be removed if the assembler is removed. (~3.2K)
-- `disassembler` is the disassembler word DISASM. (~0.6K)
-   If both the assembler and dissasembler are removed, the tables
-   (used for both assembling and disassembling) will be removed
-   for additional memory savings. (extra ~1.6K)
+   The ASSEMBLER-WORDLIST will also be removed if the assembler is removed. (~3K)
+- `disassembler` is the disassembler word DISASM. (~0.5K plus assembler)
 - `wordlist` is for the optional SEARCH-ORDER words (eg. wordlists)
    Note: Without "wordlist", you will not be able to use any words from
    the EDITOR or ASSEMBLER wordlists (they should probably be disabled
