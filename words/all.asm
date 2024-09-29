@@ -28,10 +28,6 @@
 ;       """
 xt_cold:
 w_cold:
-                clc
-                ; to warm start into a preloaded RAM image the platform init routine
-                ; should sec and jump to forth_warm
-forth_warm:
                 ; 65c02 resets with this clear, but just in case kernel messed with it...
                 cld
 
@@ -53,7 +49,6 @@ forth_warm:
 
                 ; Load all of the important zero page variables from ROM
                 ldy #cold_zp_table_end-cold_zp_table-1
-
 _load_zp_loop:
                 ; This loop loads them back to front.
                 lda cold_zp_table,y
@@ -71,6 +66,7 @@ _load_user_vars_loop:
                 dey
                 bpl _load_user_vars_loop    ; again we have <128 bytes so bpl is safe
 
+.comment
                 jsr w_cr
 
                 ; Define high-level words in forth_words.asc via EVALUATE,
@@ -95,7 +91,8 @@ _load_user_vars_loop:
                 sta 1,x
 
                 jsr w_evaluate
-_turnkey:
+.endcomment
+
                 lda turnkey+1
                 beq _no_turnkey
                 dex

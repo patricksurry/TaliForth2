@@ -1,8 +1,8 @@
 ; ## CMOVE ( addr1 addr2 u -- ) "Copy bytes going from low to high"
 ; ## "cmove"  auto  ANS string
         ; """https://forth-standard.org/standard/string/CMOVE
-        ; Copy u bytes from addr1 to addr2, going low to high (addr2 is
-        ; larger than addr1). Based on code in Leventhal, Lance A.
+        ; Copy u bytes from addr1 to addr2, working low to high (safe when
+        ; addr2 is less than addr1). Based on code in Leventhal, Lance A.
         ; "6502 Assembly Language Routines", p. 201, where it is called
         ; "move left".
         ;

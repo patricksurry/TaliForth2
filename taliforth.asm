@@ -25,9 +25,6 @@ TALI_OPTION_TERSE :?= 0
 ; Default to ctrl-n/p accept history
 TALI_OPTION_HISTORY :?= 1
 
-; Optional XT of a word to run on startup
-TALI_STARTUP :?= 0
-
 ; Optional hardware/simulator architecture name for customization
 TALI_ARCH :?= ""
 
