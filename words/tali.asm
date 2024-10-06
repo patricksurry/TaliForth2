@@ -276,6 +276,12 @@ xt_find_name:
         ; """
                 jsr underflow_2
 w_find_name:
+                lda cache_valid
+                bne _restart
+
+                jsr bloom_init
+                bra _prime_cache
+_restart:
                 ; check for special case of an empty string (length zero)
                 lda 0,x
                 ora 1,x
@@ -290,6 +296,16 @@ _nonempty:
                 stz 1,x
                 jsr w_min
 
+                jsr w_two_dup
+                jsr bloom_test
+;                jsr byte_to_ascii
+                jsr w_two_drop
+;                lda #AscSP
+;                jsr emit_a
+                cmp #0
+                bne _bloom_done
+
+_prime_cache:
                 ; Set up for traversing the wordlist search order.
                 stz tmp3                ; Start at the beginning
 
@@ -321,9 +337,15 @@ _wordlist_loop:
                 lda (up),y
                 sta tmp1+1
 
+                lda cache_valid
+                bne _find
+                jsr bloom_add_wordlist
+                bra _next
+
+_find:
                 jsr find_nt_by_name
                 bne _success
-
+_next:
                 ; Move on to the next wordlist in the search order.
                 inc tmp3
                 bra _wordlist_loop
@@ -339,6 +361,12 @@ _success:
                 bra _done
 
 _fail_done:
+                lda cache_valid
+                bne +
+                dec cache_valid
+                bra _restart
++
+_bloom_done:
                 stz 2,x         ; failure flag
                 stz 3,x
 _done:
@@ -346,6 +374,26 @@ _done:
                 inx
 
 z_find_name:    rts
+
+
+; ## FNV1A ( addr n -- dhash ) "Calculate the 32-bit FNV1A hash of a byte string"
+; ## "fnv1a" tested Tali Forth
+xt_fnv1a:
+        jsr underflow_2
+w_fnv1a:
+        jsr fnv1a               ; calculate hash in fnv_hash (see cache.asm)
+
+        lda fnv_hash            ; finally swap XINU to NUXI order
+        sta 2,x
+        lda fnv_hash+1
+        sta 3,x
+        lda fnv_hash+2
+        sta 0,x
+        lda fnv_hash+3
+        sta 1,x
+
+z_fnv1a:
+        rts
 
 
 ; ## HAVEKEY ( -- addr ) "Return address of key? vector"

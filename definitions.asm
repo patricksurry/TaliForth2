@@ -124,6 +124,8 @@ status:     .word 0                 ; internal status used by CREATE : :NONAME ;
         ;
         ; status+1 is used by ACCEPT to hold history lengths.
 
+cache_valid:    .byte 0
+
 ; The remaining ZP variables are uninitialized temporaries.
 
     .virtual

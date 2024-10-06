@@ -1156,9 +1156,9 @@ _too_long:
 +
                 ; Check to see if this name already exists.
                 jsr w_two_dup           ; ( cfa addr u addr u )
-                jsr w_find_name         ; ( cfa addr u flag ) (non-zero nt as flag)
+                jsr w_find_name         ; ( cfa addr u nt|0 )
 
-                inx                     ; pre-drop flag (nt) from find-name.
+                inx                     ; pre-drop nt from find-name.
                 inx
 
                 lda $fe,x
@@ -1191,6 +1191,12 @@ _redefined_name:
                 bra _process_name
 
 _new_name:
+                ; ( cfa addr u )
+;TODO
+                jsr w_two_dup
+                jsr bloom_set
+                jsr w_two_drop
+
                 lda #$80                ; Clear status bit 7 to indicate new word.
                 trb status
 
