@@ -28,6 +28,9 @@ TALI_OPTION_HISTORY :?= 1
 ; Optional hardware/simulator architecture name for customization
 TALI_ARCH :?= ""
 
+TALI_CONTRIB :?= []             ; list of file stems from words/contrib, e.g. ["dmp", "dasm"]
+TALI_ALT :?= []                 ; list of alternate implementations, e.g. ["block", "page" ]
+
 ; Label used to calculate UNUSED based on the hardware configuration in platform/
 code0:
 

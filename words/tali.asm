@@ -330,7 +330,7 @@ w_havekey:
 z_havekey:      rts
 
 
-.if ! "noextras" in TALI_OPTIONAL_WORDS
+.if !("noextras" in TALI_OPTIONAL_WORDS)
 
 ; ## HEXSTORE ( addr1 u1 addr2 -- u2 ) "Store a list of numbers"
 ; ## "hexstore"  auto  Tali

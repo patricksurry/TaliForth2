@@ -593,7 +593,7 @@ w_and:
 z_and:          rts
 
 
-.if ! "noextras" in TALI_OPTIONAL_WORDS
+.if !("noextras" in TALI_OPTIONAL_WORDS)
 
 ; ## AT_XY ( m n -- ) "Move cursor to position given"
 ; ## "at-xy"  auto  ANS facility
@@ -2341,7 +2341,7 @@ w_fetch:
 z_fetch:        rts
 
 
-.if ! "noextras" in TALI_OPTIONAL_WORDS
+.if !("noextras" in TALI_OPTIONAL_WORDS)
 
 ; ## FIND ( caddr -- addr 0 | xt 1 | xt -1 ) "Find word in Dictionary"
 ; ## "find"  auto  ANS core
@@ -4046,7 +4046,7 @@ w_pad:
 z_pad:          rts
 
 
-.if ! "noextras" in TALI_OPTIONAL_WORDS
+.if !("page" in TALI_ALT)
 
 ; ## PAGE ( -- ) "Clear the screen"
 ; ## "page"  auto  ANS facility
@@ -5319,7 +5319,7 @@ _colonword:
 
                 lda 1,x
                 beq _setsz              ; one byte size is OK
-.if !TALI_OPTION_TERSE
+.if ! TALI_OPTION_TERSE
                 jsr fixup_long_word
                 bcs +                   ; C=1 means fixup already added RTS
 .else
@@ -5413,7 +5413,7 @@ _semicolon_done:
 z_semicolon:    rts
 
 
-.if !TALI_OPTION_TERSE
+.if ! TALI_OPTION_TERSE
 fixup_long_word:
         ; Handle word with more than 256 bytes of code.  Our header is too
         ; small by one byte since we now need a two byte code length field.
@@ -7267,7 +7267,7 @@ w_within:
 z_within:       rts
 
 
-.if ! "noextras" in TALI_OPTIONAL_WORDS
+.if !("noextras" in TALI_OPTIONAL_WORDS)
 
 ; ## WORD ( char "name " -- caddr ) "Parse input stream"
 ; ## "word"  auto  ANS core

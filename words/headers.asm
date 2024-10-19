@@ -267,19 +267,13 @@ prev_nt := 0
 #nt_header environment_q, "environment?"
 .endif
 
-.weak
-w_disasm = 0
-.endweak
-
-.if w_disasm
+.if "disassembler" in TALI_OPTIONAL_WORDS
 #nt_header disasm
 .endif
 
-TALI_USER_HEADERS :?= ""
-.if TALI_USER_HEADERS
-.include TALI_USER_HEADERS
-+
-.endif
+.for f in TALI_CONTRIB
+    .include "contrib/" .. f .. ".asm"
+.endfor
 
 #nt_header see, "see", NN
 #nt_header buffer_colon, "buffer:"
@@ -300,31 +294,24 @@ TALI_USER_HEADERS :?= ""
 #nt_header if, "if", IM+CO+NN
 #nt_header dot_paren, ".(", IM
 #nt_header paren, "(", IM
-.if ! "noextras" in TALI_OPTIONAL_WORDS
+.if !("noextras" in TALI_OPTIONAL_WORDS)
 #nt_header word
 #nt_header find
 .endif
 #nt_header search, "search", NN
 #nt_header compare
 #nt_header dot_s, ".s"
-
-.weak
-w_dump = 0
-.endweak
-.if w_dump
 #nt_header dump
-.endif
-
 #nt_header bell
 #nt_header align
 #nt_header aligned
 #nt_header wordsize
 #nt_header words
 #nt_header marker, "marker", IM
-.if ! "noextras" in TALI_OPTIONAL_WORDS
+.if !("noextras" in TALI_OPTIONAL_WORDS)
 #nt_header at_xy, "at-xy"
-#nt_header page
 .endif
+#nt_header page
 #nt_header cr
 #nt_header havekey
 #nt_header input
@@ -337,7 +324,7 @@ w_dump = 0
 #nt_header less_number_sign, "<#"
 #nt_header to_in, ">in"
 #nt_header within
-.if ! "noextras" in TALI_OPTIONAL_WORDS
+.if !("noextras" in TALI_OPTIONAL_WORDS)
 #nt_header hexstore
 .endif
 #nt_header cleave

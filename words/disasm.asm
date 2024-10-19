@@ -33,12 +33,6 @@
 xt_disasm:
                 jsr underflow_2
 w_disasm:
-                jsr disassembler
-
-z_disasm:       rts
-
-
-
 disassembler:
                 jsr w_cr            ; ( addr u )
 _byte_loop:
@@ -217,7 +211,7 @@ _printing_done:
 _done:
                 ; Clean up and leave
                 jmp w_two_drop         ; JSR/RTS
-
+z_disasm:
 
 ; Handlers for various special disassembled instructions:
 

@@ -90,8 +90,7 @@ _done:
                 pla
 z_dot_s:        rts
 
-
-.if 0   ; replace with a narrow screen implementation
+.if !("dump" in TALI_ALT)
 
 ; ## DUMP ( addr u -- ) "Display a memory region"
 ; ## "dump"  auto  ANS tools
