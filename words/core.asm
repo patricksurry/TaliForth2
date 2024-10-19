@@ -593,6 +593,7 @@ w_and:
 z_and:          rts
 
 
+.if ! "noextras" in TALI_OPTIONAL_WORDS
 
 ; ## AT_XY ( m n -- ) "Move cursor to position given"
 ; ## "at-xy"  auto  ANS facility
@@ -632,6 +633,7 @@ w_at_xy:
 
 z_at_xy:        rts
 
+.endif
 
 
 ; ## BACKSLASH ( -- ) "Ignore rest of line"
@@ -2339,6 +2341,8 @@ w_fetch:
 z_fetch:        rts
 
 
+.if ! "noextras" in TALI_OPTIONAL_WORDS
+
 ; ## FIND ( caddr -- addr 0 | xt 1 | xt -1 ) "Find word in Dictionary"
 ; ## "find"  auto  ANS core
         ; """https://forth-standard.org/standard/core/FIND
@@ -2394,6 +2398,7 @@ w_find:
 _done:
 z_find:         rts
 
+.endif
 
 
 ; ## FM_SLASH_MOD ( d n1  -- rem n2 ) "Floored signed division"
@@ -4041,6 +4046,7 @@ w_pad:
 z_pad:          rts
 
 
+.if ! "noextras" in TALI_OPTIONAL_WORDS
 
 ; ## PAGE ( -- ) "Clear the screen"
 ; ## "page"  auto  ANS facility
@@ -4067,6 +4073,7 @@ w_page:
 
 z_page:         rts
 
+.endif
 
 
 ; ## PAREN ( -- ) "Discard input up to close paren ( comment )"
@@ -7260,6 +7267,8 @@ w_within:
 z_within:       rts
 
 
+.if ! "noextras" in TALI_OPTIONAL_WORDS
+
 ; ## WORD ( char "name " -- caddr ) "Parse input stream"
 ; ## "word"  auto  ANS core
         ; """https://forth-standard.org/standard/core/WORD
@@ -7333,6 +7342,7 @@ _found_char:
                 inc cp+1
 z_word:         rts
 
+.endif
 
 
 ; ## XOR ( n n -- n ) "Logically XOR TOS and NOS"

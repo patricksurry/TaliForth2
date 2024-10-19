@@ -91,6 +91,7 @@ _done:
 z_dot_s:        rts
 
 
+.if 0   ; replace with a narrow screen implementation
 
 ; ## DUMP ( addr u -- ) "Display a memory region"
 ; ## "dump"  auto  ANS tools
@@ -202,7 +203,7 @@ _done:
 
 z_dump:         rts
 
-
+.endif
 
 ; ## QUESTION ( addr -- ) "Print content of a variable"
 ; ## "?"  auto  ANS tools
@@ -393,13 +394,13 @@ _emit:
                 jsr w_cr
 
                 ; Dump hex and disassemble
-.if "disassembler" in TALI_OPTIONAL_WORDS
+.if w_disasm
                 jsr w_two_dup           ; ( xt u xt u )
 .endif
                 jsr w_hex
                 jsr w_dump
                 pla                     ; recover HC flag
-.if "disassembler" in TALI_OPTIONAL_WORDS
+.if w_disasm
                 beq +
                 lda #3
                 sta 0,x                 ; for CFA words, just show three bytes

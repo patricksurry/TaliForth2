@@ -102,7 +102,7 @@ for Tali's ROM code.
            |   (free space)    |
            |                   |
     $f000  +-------------------+  io_start
-           |  Virtual IO h/w   |  (specific to py65/c65)
+           |  Virtual IO h/w   |  (specific to py65/c65; also configurable)
     $f010  +-------------------+  io_end
            |  Kernel IO code   |
            ~~~~~~~~~~~~~~~~~~~~~

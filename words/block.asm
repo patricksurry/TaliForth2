@@ -450,7 +450,7 @@ w_load:
                 sta 1,x
                 stz 0,x
 
-                ; Jump to a special evluate target. This bypasses the underflow
+                ; Jump to a special evaluate target. This bypasses the underflow
                 ; check and skips the zeroing of BLK.
                 jsr load_evaluate
 
