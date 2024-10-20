@@ -64,6 +64,7 @@ z_block_write_n:
 
 #nt_header block_boot, "block-boot"
 xt_block_boot:      ; ( -- )
+w_block_boot:
 .if TALI_ARCH == "c65"
         jsr w_block_c65_init
 .else

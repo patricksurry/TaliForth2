@@ -47,6 +47,12 @@ w_cold:
                 lda #>kernel_putc
                 sta output+1
 
+                lda #<s_kernel_id
+                sta tmp3
+                lda #>s_kernel_id
+                sta tmp3+1
+                jsr print_common
+
                 ; Load all of the important zero page variables from ROM
                 ldy #cold_zp_table_end-cold_zp_table-1
 _load_zp_loop:

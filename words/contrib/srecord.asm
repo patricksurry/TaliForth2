@@ -1,5 +1,7 @@
 .comment
 
+https://en.wikipedia.org/wiki/SREC_(file_format)
+
 Stnnhhll<dd x n-3>cc
 nn: count including address (llhh), data and checksum
 cc: checksum of count, address, data = (sum(vals) & $ff) ^ $ff

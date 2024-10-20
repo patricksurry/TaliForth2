@@ -35,7 +35,8 @@ _fail:
         lda sd_vectors-blockread_offset,y
         sta (up),y
         dey
-        bpl -
+        cpy #blockread_offset
+        bcs -
 
 z_block_sd_init:
         rts

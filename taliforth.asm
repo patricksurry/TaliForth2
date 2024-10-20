@@ -834,17 +834,20 @@ print_common:
         ; Uses Y.
         ; """
                 ldy #0
+                phx
 _loop:
                 lda (tmp3),y
-                bpl +                           ; strings are high-bit terminated
-
-                and #$7f                        ; last character, clear high bit
-                ldy #$ff                        ; flag end of loop
-+
+                tax
+                and #$7f                        ; clear high bit
                 jsr emit_a                      ; allows vectoring via output
+                txa
+                bmi +
                 iny
                 bne _loop
-
+                inc tmp3+1
+                bra _loop
++
+                plx
                 rts
 
 
