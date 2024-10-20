@@ -4832,29 +4832,6 @@ w_s_backslash_quote:
 z_s_backslash_quote:
                 rts
 
-;TODO cf DIGIT?
-
-; This is a helper function for s_backslash_quote to convert a character
-; from ASCII to the corresponding hex value, eg 'F'->15
-convert_hex_value:
-
-        cmp #'A'
-        bcc _digit
-
-        ; It's A-F
-        and #$DF                ; Make it uppercase.
-        sec
-        sbc #'7'                ; gives value 10 for 'A'
-        bra _done
-
-_digit:
-        ; It's 0-9
-        sec
-        sbc #'0'
-
-_done:
-        rts
-
 
 
 ; ## S_QUOTE ( "string" -- )( -- addr u ) "Store string in memory"
@@ -5008,30 +4985,18 @@ _escaped:
 
                 ; First digit.
                 inc tmp2+1  ; Adjust flag for second digit next time.
-                lda (tmp1)  ; Get the char again.
-
-                ; Convert to hex
-                jsr convert_hex_value
-
-                ; This is the upper nybble, so move it up.
-                asl
-                asl
-                asl
-                asl
-                sta tmp3    ; Save it for later.
+                lda (tmp1)  ; Get the char and stash it.
+                pha
                 jmp _next_character
 
 _esc_x_second_digit:
-
                 ; We are on the second hex digit of a \x sequence. Clear the
                 ; escaped character flag (because we are handling it right
                 ; here)
                 stz tmp2+1
                 lda (tmp1)
-
-                ; Convert to hex, combine with value in tmp3
-                jsr convert_hex_value
-                ora tmp3
+                ply                     ; recover first of pair
+                jsr ascii_to_byte       ; TODO we're ignoring possible C=1 error
 
                 bra _save_character
 
@@ -6113,40 +6078,27 @@ w_to_number:
                 lda 5,x         ; ud-hi MSB
                 sta scratch+3
 
-                ; Push down one on the Data Stack to use TOS for character
-                ; conversion ( ud-lo ud-hi addr u x )
-                dex
+                dex             ; make space on the stack
                 dex
 
 _loop:
                 ; Get one character based on address
                 lda (4,x)
-                sta 0,x                 ; ( ud-lo ud-hi addr u char )
-                stz 1,x                 ; paranoid
+                jsr ascii_to_base
+                bcs _done       ; bad digit
 
-                jsr w_digit_question   ; ( char -- n -1 | char 0 )
-
-                ; This gives us ( ud-lo ud-hi addr u char f | n f ), so we
-                ; check the flag. If it is zero, we return what we have and
-                ; let the caller (usually NUMBER) complain
-                lda 0,x
-                bne _digit_ok
-
-                inx
-                inx
-                bra _done       ; ( ud-lo ud-hi addr u char )
-
-_digit_ok:
                 ; Conversion was successful. We arrive here with
-                ; ( ud-lo ud-hi addr u n -1 ) and can start the
+                ; ( ud-lo ud-hi addr u ? ) and can start the
                 ; math routine
 
-                ; Save n so we don't have to fool around with the
-                ; Data Stack
-                lda 2,x
+                ; Save n
                 sta scratch+4
-                lda 3,x
-                sta scratch+5
+                stz scratch+5
+
+                dex
+                dex
+
+                ; ( ud-lo ud-hi addr u ? ? )
 
                 ; Now multiply ud-hi (the one in the scratchpad, not the
                 ; original one on the Data Stack) with the radix from BASE.
@@ -6224,11 +6176,12 @@ _digit_ok:
 
 _done:
                 ; Counter has reached zero or we have an error. In both
-                ; cases, we clean up the Data Stack and return. Error gives
-                ; us ( ud-lo ud-hi addr u char ), regular end is
+                ; cases, we clean up the Data Stack and return. Regular end is
                 ; ( ud-lo ud-hi addr u ud-lo )
                 inx
-                inx             ; ( ud-lo ud-hi addr u )
+                inx
+
+                ; ( ud-lo ud-hi addr u )
 
                 ; The new ud-lo and ud-hi are still on the scratch pad
                 lda scratch     ; new ud-lo
