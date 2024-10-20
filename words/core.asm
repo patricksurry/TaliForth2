@@ -6043,9 +6043,9 @@ z_to_in:        rts
         ; avoid having to fool around with the Data Stack.
         ;
         ;     +-----+-----+-----+-----+-----+-----+-----+-----+
-        ;     |   UD-LO   |   UD-HI   |     N     | UD-HI-LO  |
-        ;     |           |           |           |           |
-        ;     |  S    S+1 | S+2   S+3 | S+4   S+5 | S+6   S+7 |
+        ;     |   UD-LO   |   UD-HI   |  N  : ZF  | UD-HI-LO  |
+        ;     |           |           |     :     |           |
+        ;     |  S    S+1 | S+2   S+3 | S+4 : S+5 | S+6   S+7 |
         ;     +-----+-----+-----+-----+-----+-----+-----+-----+
         ;
         ; The math routine works by converting one character to its
@@ -6059,6 +6059,8 @@ z_to_in:        rts
         ; a version of D+ to add ( S S+2 ) and ( S+4 S+6) together,
         ; storing the result back in S and S+2, before we start another
         ; round with it as the new UD-LO and UD-HI.
+        ; For the first several digits, UD-HI will be zero, so we
+        ; save some time by tracking whether UD-HI is zero in S+5.
         ; """
 
 xt_to_number:
@@ -6077,43 +6079,47 @@ w_to_number:
                 sta scratch+2
                 lda 5,x         ; ud-hi MSB
                 sta scratch+3
+                ora scratch+2
+                sta scratch+5   ; flag to track ud-hi zero
+
+                stz scratch+6   ; zero out ud-hi-lo in case we're skipping
+                stz scratch+7
 
                 dex             ; make space on the stack
                 dex
+                dex
+                dex
 
 _loop:
-                ; Get one character based on address
-                lda (4,x)
-                jsr ascii_to_base
+                ; Fetch one character from current address
+                lda (6,x)
+                jsr ascii_to_digit
                 bcs _done       ; bad digit
 
                 ; Conversion was successful. We arrive here with
-                ; ( ud-lo ud-hi addr u ? ) and can start the
-                ; math routine
+                ; ( ud-lo ud-hi addr u ? ? ) and can start the math routine
 
-                ; Save n
+                ; Save the digit, n.  Note the MSB is always zero
                 sta scratch+4
-                stz scratch+5
 
-                dex
-                dex
-
-                ; ( ud-lo ud-hi addr u ? ? )
+                lda scratch+5   ; if UD-HI is still zero...
+                beq _skip       ; ... we can skip the first step here
 
                 ; Now multiply ud-hi (the one in the scratchpad, not the
                 ; original one on the Data Stack) with the radix from BASE.
                 ; We can clobber TOS and NOS because we saved n
+                ; The multiply is faster with the smaller base on the left (NOS)
                 lda scratch+2
-                sta 2,x         ; NOS
+                sta 0,x         ; TOS
                 lda scratch+3
-                sta 3,x
+                sta 1,x
 
                 lda base
-                sta 0,x         ; TOS
-                stz 1,x         ; now ( ud-lo ud-hi addr u ud-hi base)
+                sta 2,x         ; NOS
+                stz 3,x         ; ( ud-lo ud-hi addr u base ud-hi )
 
                 ; UM* returns a double-celled number
-                jsr w_um_star  ; ( ud-lo ud-hi addr u ud-hi-lo ud-hi-hi )
+                jsr w_um_star   ; ( ud-lo ud-hi addr u ud-hi-lo ud-hi-hi )
 
                 ; Move ud-hi-lo to safety
                 lda 2,x         ; ud-hi-lo
@@ -6121,63 +6127,56 @@ _loop:
                 lda 3,x
                 sta scratch+7
 
-                ; Now we multiply ud-lo, overwriting the stack entries
+_skip:
+                ; Now we multiply ud-lo, overwriting NOS, TOS
+                ; Again put the smaller base on the left (NOS)
                 lda scratch
-                sta 2,x
+                sta 0,x
                 lda scratch+1
-                sta 3,x         ; ( ud-lo ud-hi addr u ud-lo ud-hi-hi )
+                sta 1,x         ; ( ud-lo ud-hi addr u ? ud-lo )
 
                 lda base
-                sta 0,x
-                stz 1,x         ; ( ud-lo ud-hi addr u ud-lo base )
+                sta 2,x
+                stz 3,x         ; ( ud-lo ud-hi addr u base ud-lo )
 
-                jsr w_um_star  ; ( ud-lo ud-hi addr u ud-lo-lo ud-lo-hi )
-
-                lda 0,x
-                sta scratch+2
-                lda 1,x
-                sta scratch+3
-
-                lda 2,x
-                sta scratch
-                lda 3,x
-                sta scratch+1
+                jsr w_um_star   ; ( ud-lo ud-hi addr u ud-lo-lo ud-lo-hi )
 
                 ; We add ud-lo and n, as well as ud-hi and ud-hi-lo,
                 ; both in the scratch pad
                 clc
-                lda scratch     ; ud-lo LSB
+                lda 2,x         ; ud-lo LSB
                 adc scratch+4   ; n LSB
                 sta scratch     ; this is the new ud-lo
-                lda scratch+1   ; ud-lo MSB
-                adc scratch+5   ; n MSB
+                lda 3,x         ; ud-lo MSB
+                adc #0          ; MSB of digit is 0
                 sta scratch+1
 
-                lda scratch+2   ; LSB
+                lda 0,x         ; ud-hi LSB
                 adc scratch+6
                 sta scratch+2   ; this is the new ud-hi
-                lda scratch+3   ; MSB
+                lda 1,x         ; MSB
                 adc scratch+7
                 sta scratch+3
 
-                ; Clean up: Get rid of one of the two top elements on
-                ; the Data Stack. We don't really care which one
-                inx
-                inx             ; ( ud-lo ud-hi addr u ud-lo-lo )
+                ora scratch+2
+                ora scratch+5
+                sta scratch+5   ; update our ud-hi zero flag
 
-                ; One character down. Move address up
-                inc 4,x
+                ; One character down. Increment address
+                inc 6,x
                 bne +
-                inc 5,x
+                inc 7,x
 +
-                ; Decrease counter
-                dec 2,x
+                ; Decrease counter (< 256)
+                dec 4,x
                 bne _loop
 
 _done:
                 ; Counter has reached zero or we have an error. In both
                 ; cases, we clean up the Data Stack and return. Regular end is
                 ; ( ud-lo ud-hi addr u ud-lo )
+                inx
+                inx
                 inx
                 inx
 

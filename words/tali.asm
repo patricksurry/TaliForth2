@@ -173,7 +173,7 @@ w_digit_question:
 
                 ; Check the character, now in the LSB of NOS.
                 lda 2,x
-                jsr ascii_to_base
+                jsr ascii_to_digit
                 bcs _done               ; failure flag already set
 
                 ; Found a legal number for current base
