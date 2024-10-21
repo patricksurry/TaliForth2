@@ -13,39 +13,23 @@ S9: termination, with entrypoint
 
 parse-s19 S0... S1... S1... S5... S9... ( -- xt )
 
-d65c:
+s" Hello World!" >srec
+S0030000FC
+S10F080048656C6C6F20576F726C6421AB
+S5030001FB
+S9030800F4
 
-S00600004844521B        ; S0: 6 bytes, addr=0, data=HDR, chk=1B
-S1230200B200A274DD4F03F006E810F8291FAA8A4AAABDAC0390044A4A4A4AA0018405B883
-S1230220290FF00A3A4A2605AA6979BDBC03850608A400A50120EB02A2FBA00220CF02882F
-S123024010FAE8F013C60530F1B2009506E600D002E60120EF0280E4A502A20EDDCA03D087
-S123026005BDD703802BCA10F3A208BD03032502DD0B03F003CAD0F3A5028607E008B00B90
-S1230280E005100B46076A46076A186A4A4A2CA9440AAABD14038507BD15038508A203A9F9
-S12302A00A060726082A90F920D102CAD0F120CF0228A506F016A20706069006BD9403203B
-S12302C0D102E005D00320D402CA10ECA90A2CA9204C58064605A504A403B00F9850100827
-S12302E06500A8A50169002810013A20EF0298484A4A4A4A20FA0268290F0930C93A30D159
-S1230300690680CD07031F1FD7031F0704021A12D4030200827C880BE42B0609029D026119
-S1230320601B8698C4A46812E073349D329D3261321C301CD80CD893E464E493309D3061B2
-S12303404621864B864B46213282328326A6F0A430823083961420821814061BE454208387
-S123036052134699129502828615121B26950283A615529982147221C61042A6326172A0D0
-S1230380E6102C1B321CB24B8A13081B301CB04B62114899592C29582C242823E07352B878
-S12303A0209D702102A670A0605384A4B303111130002222DF0955158000666620A0382353
-S12303C0647C672040608096B6BE6C147C1C9C4C898A9EA2AADBEACACB4A4B0B4A09480BEB
-S10F03E015494644474502F077A8C122A5
-S12306006400A9028501200002A501C903D0F700006402A9108501A5028500920048890FA3
-S1230620D00320CC0268200002E602D0E620CC020000A9608DB1026400A9072400D003206B
-S11F0640CC02A500A0084A260288D0FA205802E600D0E620CC0200008D01F060D9
-S5030013E9
-S9030200FA
+srec> S0030000FC S10F080048656C6C6F20576F726C6421AB S5030001FB S9030800F4
+( $800 <true> )
 
 
 .endcomment
 
 
 s19chk = tmp2
-s19mode = tmp2+1                ; %wfxx_xxxx with w=1 for data-write (S1) and f=1 for last (S9)
+s19mode = tmp2+1
 s19len = tmp2+1
-hinbl = tmpdsp
+
 
 #nt_header to_srec, ">srec"
 xt_to_srec:     ; ( addr u -- )
@@ -195,7 +179,7 @@ w_srec_from:
         bra w_srec_from         ; otherwise get next word for SREC string
 +
         lda 2,x                 ; stash the string pointer for easy access
-        sta tmp1                ; and so we can write SREC addresses here
+        sta tmp1                ; we'll overwrite NOS with each SREC address field
         lda 3,x
         sta tmp1+1
 
@@ -204,66 +188,78 @@ w_srec_from:
         lsr 0,x                 ; we'll count pairs of characters
         bcs _fail               ; but must start with an even number of them
 
-        lda (tmp1)
+        lda (tmp1)              ; record should start with S
         cmp #'S'
         bne _fail
 
-        stz s19mode
-        stz s19chk
+        stz s19chk              ; initialize the checksum
 
         ldy #1
-        jsr chr2nbl             ; we'll handle S0,S1,S5 and S9: 0, %1, %101, %1001
-        bcs _fail               ; invalid nibble
-        beq _s0                 ; otherwise check for S0 (with C=0 from above)
+        lda (tmp1),y            ; S0 -> S9
+        iny
+        sbc #'0'                ; carry still set from cmp S
+        sta s19mode             ; save the mode, specifically mode 9 sets bit 4 (%1001)
+        beq _s0
+
+        cmp #10                 ; we'll handle S0,S1,S5 and S9: 0, %1, %101, %1001
+        bcs _fail               ; not 0-9?
+
         lsr                     ; others are odd, so check lsb leaving %0, %10, or %100
         bcc _fail
+
         beq _s1                 ; S1 (with C=1 from above)
+
         lsr                     ; otherwise check zero lsb again leaving %1 or %10
         bcs _fail
+
         dea
         beq _s5                 ; S5 (with C=0 from above)
+
         dea
         bne _fail
-        dec s19mode             ; $ff
 
-        ; otherwise fall through for S9 (with C=0 from above)
-        ; we'll treat all modes the same, except that S1 will write
-        ; data through to the address, others will just checksum it
+        ; otherwise fall through for S9
 _s0:
 _s5:
 _s9:
+        clc
 _s1:
-        ror s19mode             ; S1 sets N=1 (via C=1), S9 has V=1
-        lsr s19mode             ; temporarily disable data write (shift to %0wfx_xxxx)
+        ; s19mode currently has the mode value 0-9.  The carry flag tells us whether
+        ; we want to write data (for S1) but not until we've read count and address
+        rol s19mode             ; temporarily stash carry in lsb leaving %000f_xxxw
 
-        dec 0,x                 ; we consumed the 'S#' pair
+        dec 0,x                 ; count the 'S#' pair
 
         jsr _s19byte            ; read number of encoded bytes, n
         cmp 0,x                 ; should match remaining pairs characters
         bne _fail
 
-        jsr _s19byte            ; read and store S19 address at NOS, ,
+        jsr _s19byte            ; read and store S19 address at NOS,
         sta 3,x                 ; note: big endian order
         jsr _s19byte
         sta 2,x
-        asl s19mode             ; restore write mode
 
+        ; now move stashed carry to indicate whether
+        ; we're writing data (mode S1), leaving %w000_0fxx
+        lsr s19mode
+        ror s19mode
 -
-        lda 0,x                 ; stop when we get to checksum byte
+        lda 0,x
         dea
-        beq +
-        jsr _s19byte            ; read, checksum and maybe write reamining data bytes
+        beq _chk                ; last byte?
+        jsr _s19byte            ; read, checksum and maybe write remaining bytes
         bra -
-+
-        jsr str2byte            ; read the checksum byte
-        bcs _fail
-        eor #$ff
-        cmp s19chk
+_chk:
+        lsr s19mode             ; disable write for checksum byte, leaving %0w00_00fx
+        jsr _s19byte
+        inc s19chk              ; checksum including itself should be #$ff
         bne _fail
 
-        bit s19mode
-        lda #$ff                ; in case we're done
-        bvs +                   ; S9 so we're done
+        lda s19mode             ; check if this is the S9 record via f bit
+        lsr
+        lsr
+        bcs +                   ; if we're done, fall through with A=0 from the checksum
+
         inx
         inx
         inx
@@ -271,75 +267,49 @@ _s1:
         jmp w_srec_from
 
 _fail:
-        lda #0
+        lda #1
 +
+        dea                     ; 1 -> 0 for failure, 0 -> $ff for success
         sta 0,x
         sta 1,x
         rts
 
 
 _s19byte:
-    ; parse two characters as a byte, dec count of pairs,
-    ; and write value to addr++ if mode bit set.
-    ; Accumulate result in running checksum.  Returns A=value
+    ; parse two characters as a byte, dec count of pairs;
+    ; if s19mode bit 7 is set, the result is written to addr++
+    ; while bit 6 is clear the result is accumulated to the running checksum
+    ; Returns A=value, C=0 on success
     ; Failure breaks out to top-level failure.
-        jsr str2byte
+        lda (tmp1),y
+        iny
+        phy
+        pha
+        lda (tmp1),y
+        ply
+        jsr ascii_to_byte
+        ply
+        iny
         bcc _ok
-        pla                     ; pop this return and fail at top level
+
+        pla                     ; drop this return and fail above
         pla
         bra _fail
 _ok:
-        bit s19mode             ; write data if bit 7 set
+        dec 0,x                 ; consumed a pair
+
+        ; check if we should write data
+        bit s19mode
         bpl +
-        sta (2,x)
+        sta (2,x)               ; write data if bit 7 set
         inc 2,x
         bne +
         inc 3,x
 +
-        dec 0,x                 ; consumed a pair
-        pha
-        adc s19chk
-        sta s19chk              ; update and return checksum
+        pha                     ; update checksum
+        adc s19chk              ; note C=0 from _ok
+        sta s19chk
         pla
 z_srec_from:
-        rts
-
-str2byte:
-        ; convert two ascii chars from (tmp1),y to a hex byte
-        ; incrementing y by two.
-        ; return C=0 on success with A=value, else C=1
-        jsr chr2nbl
-        bcs chr2nbl_done
-
-        asl
-        asl
-        asl
-        asl
-        sta hinbl               ; save high nibble
-        ; fall thru, skipping stz zp
-        .byte $2c
-
-chr2nbl:
-        ; convert A from ascii 0-9A-Fa-f to hex $0-f
-        ; with C=0 on success, C=1 on invalid char
-        stz hinbl
-        lda (tmp1),y
-
-        cmp #$40
-        bcs _hi
-
-        sbc #$2F                ; < '0' => large
-        cmp #10                 ; C=1 if >= 10 (error)
-        bra _done
-
-_hi:
-        and #$1f                ; mask to accept uc & lc
-        beq _done               ; @ or ` is error (C=1 from above)
-        adc #8                  ; A=1 => 1+8+1=10
-        cmp #$10                ; set C=1 if not $a-$f
-_done:
-chr2nbl_done:
-        iny
-        ora hinbl               ; combine high nibble
         rts
 
