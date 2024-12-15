@@ -462,7 +462,7 @@ z_search:       rts
 
 
 
-; ## SLASH_STRING ( addr u n -- addr u ) "Shorten string by n"
+; ## SLASH_STRING ( addr u n -- addr u ) "Shorten string by removing first n characters"
 ; ## "/string"  auto  ANS string
         ; """https://forth-standard.org/standard/string/DivSTRING
         ;

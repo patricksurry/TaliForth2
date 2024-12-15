@@ -39,6 +39,8 @@ w_cold:
                 ; can load high-level words with EVALUATE
                 ldx #dsp0
 
+                bcs _warm
+
                 ; Set the OUTPUT vector to the default kernel_putc
                 ; We do this really early so we can print error messages
                 ; during debugging
@@ -99,6 +101,7 @@ _load_user_vars_loop:
                 jsr w_evaluate
 .endcomment
 
+_warm:
                 lda turnkey+1
                 beq _no_turnkey
                 dex

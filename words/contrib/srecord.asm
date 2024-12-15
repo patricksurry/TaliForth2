@@ -30,6 +30,8 @@ s19chk = tmp2
 s19mode = tmp2+1
 s19len = tmp2+1
 
+;TODO
+.comment
 
 #nt_header to_srec, ">srec"
 xt_to_srec:     ; ( addr u -- )
@@ -156,6 +158,8 @@ _s19emit:
         sta s19chk
 z_to_srec:
         rts
+
+.endcomment
 
 
 #nt_header srec_from, "srec>"

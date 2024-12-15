@@ -44,6 +44,7 @@ w_asciiz:
         pha             ; save original high byte
         dex             ; push uint16 len
         dex
+        stz 1,x
 
         ldy #0
 -
@@ -51,17 +52,12 @@ w_asciiz:
         beq +
         iny
         bne -
-        inc tmp1+1
+        inc tmp1+1      ; count a page
+        inc 1,x
         bra -
 +
-        tya
-        sta 0,x         ; low byte of len
+        sty 0,x         ; low byte of len
         pla             ; starting page
-        tay
-        clc             ; subtract one more
-        sbc tmp1+1      ; page_start - page_end - 1
-        eor #$ff        ; 255 - (page_start - page_end - 1)
-        sta 1,x         ; # of pages
-        sty tmp1+1      ; reset original addr
+        sta tmp1+1      ; reset original addr
 z_asciiz:
         rts
