@@ -5,6 +5,7 @@
 *~
 c65-*.dat
 c65/c65
+bin/
 docs/adventure*
 taliforth-adventure.bin
 c65/c65.exe
