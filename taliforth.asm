@@ -283,7 +283,8 @@ _nibble_to_ascii:
 ; so might not be worth it for "real" forth code.
 ; An alternative would be a simple cache of recently used words.
 
-nt_to_nt:
+nt_to_nt:       ; with tmp1 pointing to an NT, set tmp1 => (tmp1)->prev
+
                 ; If the header structure goes off the rails we can get hung up here
                 ; and start looping through non-NT addresses.  A simple safety check is
                 ; to watch (tmp1)+1 for a length byte >= 32.  For example:

@@ -296,9 +296,13 @@ _nonempty:
                 stz 1,x
                 jsr w_min
 
-                jsr w_two_dup
+                lda 0,x
+                sta djb_len
+                lda 2,x
+                sta djb_sptr
+                lda 3,x
+                sta djb_sptr+1
                 jsr bloom_test
-                jsr w_two_drop
 ;TODO debug
 ;                pha
 ;                jsr byte_to_ascii
@@ -307,7 +311,7 @@ _nonempty:
 ;                pla
 ;TODO
                 cmp #0
-                bne _bloom_done
+                bne _bloom_done         ; hash is not in the filter, so name is unknown
 
 _prime_cache:
                 ; Set up for traversing the wordlist search order.
@@ -378,26 +382,6 @@ _done:
                 inx
 
 z_find_name:    rts
-
-
-; ## FNV1A ( addr n -- dhash ) "Calculate the 32-bit FNV1A hash of a byte string"
-; ## "fnv1a" tested Tali Forth
-xt_fnv1a:
-        jsr underflow_2
-w_fnv1a:
-        jsr fnv1a               ; calculate hash in fnv_hash (see cache.asm)
-
-        lda fnv_hash            ; finally swap XINU to NUXI order
-        sta 2,x
-        lda fnv_hash+1
-        sta 3,x
-        lda fnv_hash+2
-        sta 0,x
-        lda fnv_hash+3
-        sta 1,x
-
-z_fnv1a:
-        rts
 
 
 ; ## HAVEKEY ( -- addr ) "Return address of key? vector"

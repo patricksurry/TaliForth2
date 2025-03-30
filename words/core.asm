@@ -1192,10 +1192,10 @@ _redefined_name:
 
 _new_name:
                 ; ( cfa addr u )
+
 ;TODO
-                jsr w_two_dup
-                jsr bloom_set
-                jsr w_two_drop
+                ; skip recalculating the hash since w_find_name already did it
+                jsr bloom_set2
 
                 lda #$80                ; Clear status bit 7 to indicate new word.
                 trb status
