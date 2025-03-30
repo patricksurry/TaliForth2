@@ -52,7 +52,7 @@ w_cold:
 _load_zp_loop:
                 ; This loop loads them back to front.
                 lda cold_zp_table,y
-                sta zpage,y
+                sta user0,y
                 dey
                 bpl _load_zp_loop           ; <128 bytes so safe to loop until y<0
 
