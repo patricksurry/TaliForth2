@@ -394,6 +394,7 @@ nt_unloop:
 #nt_header tick, "'"
 #nt_header find_name, "find-name"
 #nt_header fnv1a
+#nt_header djb2d
 #nt_header fill
 #nt_header blank
 #nt_header erase

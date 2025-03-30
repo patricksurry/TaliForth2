@@ -298,10 +298,14 @@ _nonempty:
 
                 jsr w_two_dup
                 jsr bloom_test
-;                jsr byte_to_ascii
                 jsr w_two_drop
+;TODO debug
+;                pha
+;                jsr byte_to_ascii
 ;                lda #AscSP
 ;                jsr emit_a
+;                pla
+;TODO
                 cmp #0
                 bne _bloom_done
 

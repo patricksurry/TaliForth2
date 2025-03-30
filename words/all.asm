@@ -229,6 +229,7 @@ z_quit:         ; no RTS required
 .include "tali.asm"
 .include "double.asm"
 .include "string.asm"
+.include "djb2d.asm"
 .if "assembler" in TALI_OPTIONAL_WORDS || "disassembler" in TALI_OPTIONAL_WORDS
     .include "assembler.asm"
 .endif
