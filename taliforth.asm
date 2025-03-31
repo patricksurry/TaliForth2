@@ -414,6 +414,9 @@ _adjoint:
                 rts
 
 
+name_len = $380 - 33
+name_buf = $380 - 32
+
 find_nt_by_name:
         ; """Given a string on the stack ( addr  n ) with n at most 31
         ; and tmp1 pointing at an NT header, search each
@@ -426,81 +429,84 @@ find_nt_by_name:
 
                 lda tmp1                ; Start by checking if initial NT is zero
                 ora tmp1+1
-                beq _done
+                beq _rts                ; fail with tmp1 and A=0, Z=1
 
+                ; truncate the string to at most 31 characters
+
+                lda 1,x
+                bne _maxlen
+                lda 0,x
+                cmp #31
+                bcc +
+_maxlen:
+                lda #31
++
+                sta name_len
+
+                ; copy normalized target string to buffer
+                ldy #0
+-
+                lda (2,x)
+                ; normalize to lowercase
+                cmp #'Z'+1
+                bcs +
+                cmp #'A'
+                bcc +
+                ora #$20
++
+                sta name_buf,y
+                inc 2,x
+                bne +
+                inc 3,x
++
+                iny
+                cpy name_len
+                bne -
+
+                ; now loop over the linked list of NTs
+                phx
 _loop:
                 ; first quick test: Are strings the same length?
                 ldy #1                  ; length is at header offset 1
                 lda (tmp1),y
-                cmp 0,x
-                beq _maybe
+                cmp name_len
+                beq _compare
 
 _next_nt:
                 jsr nt_to_nt
-
                 bne _loop        ; A=0 means failure, otherwise try again
-                bra _done
+_done:
+                plx
+                tay             ; reset Z status
+_rts:
+                rts
 
-_maybe:
-                ; second quick test: could first characters be equal?
-                ; Use header status flags to calculate offset to name (header size)
-                lda (tmp1)              ; Fetch status flags
+_compare:
+                ; Compare all characters from back to front, which is quicker
+                ; for words like CELLS and CELL+
+
+                ; Get offset to last character in NT name
+                lda (tmp1)
                 and #DC+LC+FP
                 lsr
-                adc #4
+                adc #3
+                adc name_len    ; name starts at A+4, so A+3+name_len is final char
                 tay
 
-                lda (tmp1),y            ; first character of candidate
-                eor (2,x)               ; flag any mismatched bits
-                and #%11011111          ; but ignore upper/lower case bit
-                bne _next_nt            ; definitely not equal if any bits differ
+                ldx name_len
 
-                ; Same length and probably same first character
-                ; (though we still have to check properly).
-                ; Suck it up and compare all characters. We go
-                ; from back to front, because words like CELLS and CELL+ would
-                ; take longer otherwise.
-
-                sty tmptos              ; stash header length, the name offset
-                sec
-                lda 2,x                 ; Copy mystery string addr - Y to tmp2
-                sbc tmptos
-                sta tmp2
-                lda 3,x
-                sbc #0
-                sta tmp2+1
-
-                clc
-                lda 0,x                 ; string length
-                sta tmptos+1            ; our loop counter
-                adc tmptos              ; add offset
-                tay
-                dey
-
-_next_char:
-                lda (tmp2),y            ; last char of mystery string
-                ; Lowercase the incoming charcter.
-                cmp #'Z'+1
-                bcs _check_char
-                cmp #'A'
-                bcc _check_char
-
-                ; Convert uppercase letter to lowercase.
-                ora #$20
-
-_check_char:
-                cmp (tmp1),y            ; last char of word we're testing against
-                bne _next_nt
+-
+                lda (tmp1),y
+                cmp name_buf-1,x        ; X runs from n...1
+                bne _next_nt    ; fail
 
                 dey
-                dec tmptos+1
-                bne _next_char
+                dex
+                bne -
 
-                ; fall through on success with non-zero result
+                ; success if we fall through; set non-zero result
                 lda #$ff
-
-_done:
-                rts
+                bra _done
 
 
 find_nt_by_xt:
