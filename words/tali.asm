@@ -242,17 +242,16 @@ xt_find_name:
                 jsr underflow_2
 w_find_name:
                 lda cache_valid
-                bne _restart
+                bne _warm
 
                 jsr bloom_init
                 bra _prime_cache
-_restart:
+_warm:
                 ; check for special case of an empty string (length zero)
                 lda 0,x
                 ora 1,x
                 beq _fail_done
 
-_nonempty:
                 ; Truncate names longer than the max allowed (31).
                 dex
                 dex
@@ -261,13 +260,9 @@ _nonempty:
                 stz 1,x
                 jsr w_min
 
-                lda 0,x
-                sta djb_len
-                lda 2,x
-                sta djb_sptr
-                lda 3,x
-                sta djb_sptr+1
-                jsr bloom_test
+                ; check name hash in bloom filter
+                ; TODO should be case-insensitive?
+                jsr bloom_test_tos
 ;TODO debug
 ;                pha
 ;                jsr byte_to_ascii
@@ -277,6 +272,25 @@ _nonempty:
 ;TODO
                 cmp #0
                 bne _bloom_done         ; hash is not in the filter, so name is unknown
+
+                ; check if we have this word cached
+                lda djb_hash
+                and #%1111_1110
+                tay
+                lda nt_cache,y
+                sta tmp1
+                lda nt_cache+1,y
+                sta tmp1+1
+                ora tmp1
+                beq +                   ; no cache entry
+
+                ldy #1
+                lda (tmp1),y
+                cmp 0,x
+                bne +
+                jsr name_compare
+                beq _success
++
 
 _prime_cache:
                 ; Set up for traversing the wordlist search order.
@@ -326,18 +340,24 @@ _next:
 _success:
                 ; The strings match. Put correct nt NOS, because we'll drop
                 ; TOS before we leave
+                lda djb_hash            ; cache the matching NT
+                and #%1111_1110
+                tay
+
                 lda tmp1
                 sta 2,x
+                sta nt_cache,y
                 lda tmp1+1
                 sta 3,x
+                sta nt_cache+1,y
 
                 bra _done
 
 _fail_done:
                 lda cache_valid
                 bne +
-                dec cache_valid
-                bra _restart
+                dec cache_valid ; 0 -> $ff
+                jmp _warm
 +
 _bloom_done:
                 stz 2,x         ; failure flag

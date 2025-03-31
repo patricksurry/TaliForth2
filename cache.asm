@@ -1,10 +1,14 @@
-bloom_bits = address($7b00)              ; TODO
+bloom_bits = address($7b00)             ; TODO
+
+nt_cache = address($7a00)               ; TODO
+
 
 bloom_init:
         ldy #0
         tya
 -
         sta bloom_bits,y
+        sta nt_cache,y
         iny
         bne -
         rts
@@ -76,6 +80,14 @@ bloom_set2:     ; alternate entrypoint if hash is already calculated
         bit demux3to8 + 6       ; set overflow flag
         bra bloom_common
 
+bloom_test_tos:         ; inputs in (addr n) where n < 256
+        lda 0,x
+        sta djb_len
+        lda 2,x
+        sta djb_sptr
+        lda 3,x
+        sta djb_sptr+1
+
 bloom_test:     ; djb_sptr, djb_len -> djb_hash, A =?= 0
     ; returns A=0 if might be present, A>0 if definitely not present (with failing hash index)
         jsr djb2d               ; calculate 32 bit hash in djb_hash
@@ -135,6 +147,11 @@ _absent:
 
 ; with djb32d + bloom
 ; bye c65: PC=f016 A=98 X=78 Y=98 S=f6 FLAGS=<N0 V0 B1 D0 I1 Z0 C1> ticks=66468642
+
+; name_compare
+; bye c65: PC=f016 A=98 X=78 Y=98 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C1> ticks=67313807
+; cache find
+; bye c65: PC=f016 A=98 X=78 Y=98 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C1> ticks=41201603
 
 ; master
 ; bye c65: PC=f016 A=98 X=78 Y=98 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C1> ticks=76380293

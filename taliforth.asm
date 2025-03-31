@@ -415,87 +415,6 @@ _adjoint:
                 rts
 
 
-.comment
-hash_str_name:
-        ; given ( addr n ) on the stack calculate hash as NT name
-        ; but convert upper to lower case
-        ; stash last and N past TOS
-
-                lda 0,x
-                sta $ff,x               ; save N
-
-                dea                     ; write addr+N-1 @ TOS-2
-                clc
-                adc 2,x
-                sta $fc,x
-                lda 3,x
-                adc #0
-                sta $fd,x
-
-                bit hash_done           ; set V=1
-                lda ($fc,x)             ; last char
--
-                cmp #'A'
-                bcc +
-                cmp #'Z'+1
-                bcs +
-                ora #$20                ; to lower case
-+
-                bvc hash_common         ; exit with first char in A
-
-                sta $fe,x               ; last char
-                clv
-                lda (2,x)               ; now first char
-                bra -
-
-hash_nt_name:
-        ; given tmp1 pointing at an NT header, calculate a one byte
-        ; hash for its name as (name[0] <o< 3 + name[-1]) <o< 3 + len
-        ; where <o< 3 means circular rotate left by three bits
-
-                ldy #1                  ; length is at header offset 1
-                lda (tmp1),y
-                sta $ff,x               ; save N
-
-                lda (tmp1)              ; Fetch status flags
-                and #DC+LC+FP
-                lsr
-                adc #4                  ; leaves C=0
-
-                pha                     ; stash offset to first char
-                adc $ff,x
-                dea                     ; index of last char
-                tay
-                lda (tmp1),y            ; last char
-                sta $fe,x               ; save last char
-                ply                     ; recover offset to first char
-                lda (tmp1),y            ; A = first char
-
-hash_common:
-        ; arrive with first char in A and <last, N> past TOS
-                dex
-                dex
-
-        ; rotate A left 3 bits (despite 6502's usual roll-thru-carry semantics)
-        ; the letters a-h show acc bits from MSB -> LSB, followed by the carry flag
-                ldy #2
--
-                            ; abcd efgh  ?   (carry unknown)
-                asl         ; bcde fgh0  a   (the MSB 'a' -> carry)
-                adc #$80    ; Bcde fgha  b   (adc trick: 'a' -> LSB and b -> carry with MSB = "not b")
-                rol         ; cdef ghab  B   (rol cycles in 'b' and drops the unneeded B -> carry)
-                asl         ; defg hab0  c   (discard B and gets c -> carry)
-                ; fold adc #0 step with following     adc
-                ; adc #0    ; defg habc  0   (adc to set the LSB, with 0 -> carry)
-
-                adc 0,x     ; fold byte from TOS
-                inx
-                dey
-                bne -
-hash_done:
-                rts
-.endcomment
-
 find_nt_by_name:
         ; """Given a string on the stack ( addr n ) with n at most 31
         ; and tmp1 pointing at an NT header, search each
@@ -508,23 +427,36 @@ find_nt_by_name:
 
                 lda tmp1                ; Start by checking if initial NT is zero
                 ora tmp1+1
-                beq _done
+                beq _fail
 
 _loop:
                 ; first quick test: Are strings the same length?
                 ldy #1                  ; length is at header offset 1
                 lda (tmp1),y
                 cmp 0,x
-                beq _maybe
+                beq _compare
 
 _next_nt:
                 jsr nt_to_nt
 
                 bne _loop        ; A=0 means failure, otherwise try again
-                bra _done
+_fail:
+                rts
 
-_maybe:
-                ; second quick test: could first characters be equal?
+_compare:
+                jsr name_compare
+                bne _next_nt
+
+                ; fall through on success with non-zero result
+                lda #$ff
+                rts
+
+
+name_compare:   ; (addr n -- addr n)
+                ; tmp1 points to NT
+                ; return Z=1 if equal
+                ; assume length is already compared equal
+
                 ; Use header status flags to calculate offset to name (header size)
                 lda (tmp1)              ; Fetch status flags
                 and #DC+LC+FP
@@ -532,14 +464,15 @@ _maybe:
                 adc #4
                 tay
 
+                ; partial test of first characters
+
                 lda (tmp1),y            ; first character of candidate
                 eor (2,x)               ; flag any mismatched bits
                 and #%11011111          ; but ignore upper/lower case bit
-                bne _next_nt            ; definitely not equal if any bits differ
+                bne _done               ; definitely not equal if any bits differ
 
-                ; Same length and probably same first character
-                ; (though we still have to check properly).
-                ; Suck it up and compare all characters. We go
+                ; Same length and likely same first character
+                ; Now do full case-insensitive comparison
                 ; from back to front, because words like CELLS and CELL+ would
                 ; take longer otherwise.
 
@@ -561,7 +494,7 @@ _maybe:
 
 _next_char:
                 lda (tmp2),y            ; last char of mystery string
-                ; Lowercase the incoming charcter.
+                ; Lowercase the incoming character.
                 cmp #'Z'+1
                 bcs _check_char
                 cmp #'A'
@@ -572,14 +505,11 @@ _next_char:
 
 _check_char:
                 cmp (tmp1),y            ; last char of word we're testing against
-                bne _next_nt
+                bne _done               ; failed, return with Z=0
 
                 dey
                 dec tmptos+1
-                bne _next_char
-
-                ; fall through on success with non-zero result
-                lda #$ff
+                bne _next_char          ; fall thru with Z=1 on success
 
 _done:
                 rts
