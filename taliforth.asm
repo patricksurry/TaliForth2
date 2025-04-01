@@ -494,7 +494,6 @@ _compare:
                 tay
 
                 ldx name_len
-
 -
                 lda (tmp1),y
                 cmp name_buf-1,x        ; X runs from n...1
@@ -507,6 +506,13 @@ _compare:
                 ; success if we fall through; set non-zero result
                 lda #$ff
                 bra _done
+
+
+; name buf
+; bye c65: PC=f016 A=98 X=78 Y=98 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C1> ticks=76224718
+
+; master
+; bye c65: PC=f016 A=98 X=78 Y=98 S=f6 FLAGS=<N0 V0 B0 D0 I1 Z0 C1> ticks=75861441
 
 
 find_nt_by_xt:

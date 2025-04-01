@@ -1184,8 +1184,7 @@ _redefined_name:
                 lda #str_redefined
                 jsr print_string_no_lf
 
-                jsr w_two_dup           ; ( cfa addr u addr u )
-                jsr w_type
+                jsr w_type              ; ( cfa )
                 jsr w_space
 
                 bra _process_name
@@ -1193,9 +1192,10 @@ _redefined_name:
 _new_name:
                 lda #$80                ; Clear status bit 7 to indicate new word.
                 trb status
+                jsr w_two_drop          ; ( cfa )
 
 _process_name:
-                ; ( cfa addr u )
+                ; ( cfa )
 
                 ; We need to decide on the flexible sizes in the header before
                 ; we know how much memory to allot.  We'll always generate adjoining
@@ -1253,9 +1253,9 @@ _process_name:
                 ; correctly with DOES> and CREATE. See the discussion at
                 ; http://forum.6502.org/viewtopic.php?f=9&t=5182 for details
 
-                ; ( cfa addr u )
+                ; ( cfa )
 
-                ldy 5,x                 ; check MSB of CFA
+                ldy 1,x                 ; check MSB of CFA
                 beq +                   ; 0 means no CFA, don't set HC
 
                 ora #HC                 ; otherwise set the HC bit
@@ -1267,7 +1267,7 @@ _process_name:
                 lsr                     ; FP -> C tells us 1 or 2 byte last nt
 
                 ; HEADER BYTE 1: length of name
-                lda 0,x
+                lda name_len
                 jsr cmpl_a
 
                 ; HEADER BYTE 2 or 2,3: last nt
@@ -1283,7 +1283,7 @@ _process_name:
                 ; Interlude: Point start of dictionary (DP) at our new header (old CP)
                 ; and update the CURRENT wordlist with the new DP
                 ; unless it's a ":" word with no CFA which ";" will add to dictionary later
-                lda 5,x                 ; has cfa?
+                lda 1,x                 ; has cfa?
                 beq +
 
                 lda tmp1
@@ -1299,7 +1299,7 @@ _process_name:
                 ; If there's no CFA this is zero since we have no code yet,
                 ; otherwise it's three bytes for the subroutine call we'll compile below
                 ; along with the size of the parameter field area (PFA) from tmpdsp
-                lda 5,x                 ; has CFA?
+                lda 1,x                 ; has CFA?
                 beq +                   ; leave A=0
 
                 clc
@@ -1312,33 +1312,15 @@ _process_name:
                 ; We have ( cfa addr u ) and will compile bytes
                 ; by hand so we can translate to lowercase
 
-                ldy 0,x                 ; Y = name length
-                inx                     ; drop name length
-                inx                     ; ( cfa addr )
+                ldy #0
 _name_loop:
-                lda (0,x)               ; get next character of name
-
-                ; Make sure it goes into the dictionary in lower case.
-                cmp #'Z'+1
-                bcs +
-                cmp #'A'
-                bcc +
-
-                ora #$20                ; uppercase to lowercase
-+
+                lda name_buf,y          ; get next character of name
                 jsr cmpl_a
-                dey
-                beq _end
-
-                inc 0,x                 ; increment string address
+                iny
+                cpy name_len
                 bne _name_loop
-
-                inc 1,x
-                bra _name_loop
-
 _end:
-                inx                     ; drop address leaving ( cfa )
-                inx
+                ; ( cfa )
 
                 ; After the name string comes the code field, starting at the
                 ; current xt of this word, which for CREATE is a subroutine call
