@@ -1,10 +1,118 @@
 ; Core Forth compilation routines
+
 ; Tali Forth 2 for the 65c02
 ; Scot W. Stevenson <scot.stevenson@gmail.com>
 ; Sam Colwell
 ; Patrick Surry
 ; First version: 1. Jan 2014
 ; This version: 11. May 2024
+
+
+; ## BRACKET_CHAR ( "c" -- ) "Compile character"
+; ## "[char]"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/BracketCHAR
+        ; Compile the ASCII value of a character as a literal. This is an
+        ; immediate, compile-only word.
+        ;
+        ; A definition given in
+        ; http://forth-standard.org/standard/implement is
+        ; : [CHAR]  CHAR POSTPONE LITERAL ; IMMEDIATE
+        ; """
+xt_bracket_char:
+w_bracket_char:
+                jsr w_char
+                jsr w_literal
+z_bracket_char: rts
+
+
+
+; ## BRACKET_TICK ( -- ) "Store xt of following word during compilation"
+; ## "[']"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/BracketTick"""
+xt_bracket_tick:
+w_bracket_tick:
+                jsr w_tick
+                jsr w_literal
+z_bracket_tick: rts
+
+
+
+; ## COLON ( "name" -- ) "Start compilation of a new word"
+; ## ":"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/Colon
+        ;
+        ; Use the CREATE routine and fill in the rest by hand.
+        ; """
+xt_colon:
+w_colon:
+                ; If we're already in the compile state, complain and quit
+                lda state
+                ora state+1
+                beq +
+
+                lda #err_state
+                jmp error
++
+                ; switch to compile state
+                dec state
+                dec state+1
+
+                ; Set bit 6 in status to tell ";" and RECURSE this is a normal word
+                ; and bit 7 to tell CREATE not to warn on duplicate name.
+                ; Also set bit 4 to initially flag as allow-native
+                lda #%11010000
+                tsb status
+
+                ; Save cp in WORKWORD so that ";" can add it to the dictionary later.
+                ; Otherwise FIND-NAME etc could find a half-finished word when
+                ; looking in the Dictionary.
+                lda cp
+                sta workword
+                lda cp+1
+                sta workword+1
+
+                ldy #0                  ; Tell CREATE we want neither CFA nor dictionary update
+                jsr create_common
+
+z_colon:        rts
+
+
+
+; ## COLON_NONAME ( -- ) "Start compilation of a new word""
+; ## ":NONAME"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/ColonNONAME
+        ; Compile a word with no nt.  ";" will put its xt on the stack.
+        ; """
+xt_colon_noname:
+w_colon_noname:
+                ; If we're already in the compile state, complain
+                ; and quit
+                lda state
+                ora state+1
+                beq +
+
+                lda #err_state
+                jmp error
++
+                ; switch to compile state
+                dec state
+                dec state+1
+
+                ; Clear bit 6 in status to tell ";" and RECURSE this is
+                ; a :NONAME word.
+                lda #%01000000
+                trb status
+
+                ; Put cp (the xt for this word) in WORKWORD. The flag above
+                ; lets both ";" and RECURSE know that is is an xt instead of an
+                ; nt and they will modify their behavior.
+                lda cp
+                sta workword
+                lda cp+1
+                sta workword+1
+z_colon_noname:        rts
+
+
 
 ; The user-visible word COMPILE, is defined here along with various
 ; supporting cmpl_xxx routines.  These generate 65c02 assembler
@@ -526,3 +634,448 @@ _nobranch:
 
                 inc tmp1+1
                 bra _jmp
+
+
+
+; ## COMPILE_ONLY ( -- ) "Mark most recent word as COMPILE-ONLY"
+; ## "compile-only"  tested  Tali Forth
+        ; """Set the Compile Only flag (CO) of the most recently defined
+        ; word.
+        ;
+        ; The alternative way to do this is to define a word
+        ; ?COMPILE that makes sure  we're in compile mode
+        ; """
+xt_compile_only:
+w_compile_only:
+                jsr current_to_dp
+                lda (dp)        ; status flags are @ NT
+                ora #CO        ; make sure bit 7 is set
+                sta (dp)
+
+z_compile_only: rts
+
+
+
+; ## IMMEDIATE ( -- ) "Mark most recent word as IMMEDIATE"
+; ## "immediate"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/IMMEDIATE
+        ; Make sure the most recently defined word is immediate. Will only
+        ; affect the last word in the dictionary. Note that if the word is
+        ; defined in ROM, this will have no affect, but will not produce an
+        ; error message.
+        ; """
+xt_immediate:
+w_immediate:
+                jsr current_to_dp
+                lda (dp)        ; status flags are first header byte
+                ora #IM         ; ensure IM bit is set
+                sta (dp)
+
+z_immediate:    rts
+
+
+
+; ## LEFT_BRACKET ( -- ) "Enter interpretation state"
+; ## "["  auto  ANS core
+        ; """https://forth-standard.org/standard/core/Bracket
+        ; This is an immediate and compile-only word
+        ; """
+xt_left_bracket:
+w_left_bracket:
+                stz state
+                stz state+1
+
+z_left_bracket: rts
+
+
+
+; ## POSTPONE ( -- ) "Change IMMEDIATE status (it's complicated)"
+; ## "postpone"  auto   ANS core
+        ; """https://forth-standard.org/standard/core/POSTPONE
+        ; Add the compilation behavior of a word to a new word at
+        ; compile time. If the word that follows it is immediate, include
+        ; it so that it will be compiled when the word being defined is
+        ; itself used for a new word. Tricky, but very useful.
+        ;
+        ; Because POSTPONE expects a word (not an xt) in the input stream (not
+        ; on the Data Stack). This means we cannot build words with
+        ; "jsr w_postpone, jsr <word>" directly.
+        ; """
+
+xt_postpone:
+w_postpone:
+                jsr w_parse_name               ; ( -- addr n )
+
+                ; if there was no word provided, complain and quit
+                lda 0,x
+                ora 1,x
+                bne +
+
+                lda #err_noname
+                jmp error
++
+                jsr w_find_name                 ; ( -- nt | 0 )
+
+                ; if word not in Dictionary, complain and quit
+                bne +
+                lda #err_noname
+                jmp error
+
++
+                ; Grab status flag byte from NT
+                lda (0,x)
+                and #IM                         ; check Immediate status flag
+                beq _not_immediate
+
+                ; We're immediate, so instead of executing it right now, we
+                ; compile it. nt is TOS, so this is easy.
+                jsr compile_nt_comma
+                bra _done
+
+_not_immediate:
+                ; This is not an immediate word, so we enact "deferred
+                ; compilation" by including ' <NAME> COMPILE-NT, which we do by
+                ; compiling the literal xt, and a subroutine jump to COMPILE-NT,
+                jsr w_literal                   ; ( nt -- )
+
+                ; Last, compile COMPILE,
+                ldy #>compile_nt_comma
+                lda #<compile_nt_comma
+                jsr cmpl_subroutine
+_done:
+z_postpone:     rts
+
+
+
+; ## RIGHT_BRACKET ( -- ) "Enter the compile state"
+; ## "]"  auto  ANS core
+        ; """https://forth-standard.org/standard/right-bracket
+        ; This is an immediate word.
+        ; """
+xt_right_bracket:
+w_right_bracket:
+                lda #$FF
+                sta state
+                sta state+1
+z_right_bracket:
+                rts
+
+
+
+; ## SEMICOLON ( -- ) or ( -- xt ) for :noname "End compilation of new word"
+; ## ";"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/Semi
+        ; End the compilation of a new word into the Dictionary.
+        ;
+        ; When we enter, WORKWORD is pointing to the nt of this word in the
+        ; Dictionary, DP to the previous word, and CP to the next free byte.
+        ; See more details in create_common which sets the stage for us.
+        ;
+        ; A Forth definition would be (see "Starting Forth"):
+        ; : POSTPONE EXIT  REVEAL POSTPONE ; [ ; IMMEDIATE  Following the
+        ; practice of Gforth, we warn here if a word has been redefined.
+        ; """
+
+xt_semicolon:
+w_semicolon:
+                dex
+                dex
+                lda workword
+                sta 0,x
+                lda workword+1
+                sta 1,x                 ; ( xt|nt )
+
+                ; Check if this is a : word or a :NONAME word.
+                bit status              ; check bit 6 (overflow flag)
+                bvs _colonword
+
+                ; This is a :NONAME word - just put an RTS on the end and
+                ; leave workword (xt) on the stack.
+                lda #OpRTS
+                jsr cmpl_a
+
+                bra _semicolon_done
+
+_colonword:
+                ; ( nt )
+
+                ; if status bit 4 is still 1, we didn't compile any never-native
+                ; code so we can safely clear the NN flag
+                lda #%00010000
+                and status
+                beq +
+                lda (workword)
+                and #255-NN
+                sta (workword)
++
+                ; Calculate code size by subtracting xt from CP.
+                dex
+                dex
+                lda cp
+                sta 0,x
+                lda cp+1
+                sta 1,x                 ; ( nt cp )
+
+                jsr w_swap              ; ( cp nt )
+                jsr w_name_to_int       ; ( cp xt )
+                jsr w_minus             ; ( cp-xt )
+
+                ; We've optimistically saved only one byte for the code size
+                ; in the header.  If the code is too big we have work to do...
+
+                lda 1,x
+                beq _setsz              ; one byte size is OK
+.if !TALI_OPTION_TERSE
+                jsr fixup_long_word
+                bcs +                   ; C=1 means fixup already added RTS
+.else
+                ; we currently only use the word size for SEE so in the
+                ; minimal case we'll just call the length 255,
+                ; make the word NN, and move on...
+                stz 1,x
+                lda #$ff
+                sta 0,x
+                lda (workword)
+                ora #NN
+                sta (workword)
+.endif
+_setsz:
+                ; Compile the closing RTS instruction
+                lda #OpRTS
+                jsr cmpl_a
++
+                ; ( codesize )
+
+                ; Use header status flags to calculate offset to code size
+                lda (workword)          ; Fetch status flags
+                and #DC+FP
+                lsr                     ; A=0 or 2 with FP in carry
+                adc #3
+                tay
+
+                lda 0,x                 ; LSB of code size
+                sta (workword),y        ; write LSB
+                lda 1,x
+                beq +
+
+                iny                     ; write MSB only if non-zero
+                sta (workword),y
++
+                inx                     ; drop codesize
+                inx
+
+                ; Before we formally add the word to the Dictionary, we
+                ; check to see if it is already present, and if yes, we
+                ; warn the user.
+
+                ; See if word already in Dictionary.
+                ; (STATUS bit 7 will be high as CREATE already
+                ;  checked for us.)
+                bit status
+                bpl _new_word   ; Bit 7 is clear = new word
+
+                ; This word is already in the Dictionary, so we print a
+                ; warning to the user.
+
+                ; Start by putting nt on the stack, using WORKWORD.
+                ; Note LATESTNT won't work since we haven't added the
+                ; new word to the Dictionary yet
+                dex
+                dex
+                lda workword
+                sta 0,x
+                lda workword+1
+                sta 1,x
+
+                jsr w_name_to_string    ; ( nt -- addr u )
+
+                lda #str_redefined      ; address of string "redefined"
+                jsr print_string_no_lf
+
+                ; Now we print the offending word.
+                jsr w_type
+                jsr w_space
+
+                ; Clear bit 7 of status (so future words will print message
+                ; by defaut)
+                lda #%10000000
+                trb status
+
+_new_word:
+                ; Let's get this over with. Save beginning of our word
+                ; as new last word in the Dictionary
+                lda workword
+                sta dp
+                lda workword+1
+                sta dp+1
+                jsr dp_to_current       ; Save the updated DP to the
+                                        ; CURRENT wordlist.
+_semicolon_done:
+                ; Word definition complete. Return compile flag to zero
+                ; to return to interpret mode
+                stz state
+                stz state+1
+
+z_semicolon:    rts
+
+
+.if !TALI_OPTION_TERSE
+fixup_long_word:
+        ; Handle word with more than 256 bytes of code.  Our header is too
+        ; small by one byte since we now need a two byte code length field.
+        ; We've got two options:
+        ;
+        ; - if the word is relocatable (no NN) then we can shuffle
+        ;   the code up one byte to make room for the extra size byte.
+        ;
+        ; - if the word is NN then we instead move the header itself,
+        ;   writing the bigger one immediately after the code.  This
+        ;   wastes the original header bytes but is a rare case.
+
+                ; In both cases we need to allocate an extra byte after the code.
+                ; For the shuffle case this is a dummy that gets overwritten
+                ; when we move up by one.  For the new header case this is
+                ; the actual RTS after the original code body.
+
+                lda #OpRTS
+                jsr cmpl_a
+
+                ; Either way we'll need the word's name (pointer and lengt)
+                dex
+                dex
+                lda workword
+                sta 0,x
+                lda workword+1
+                sta 1,x
+                jsr w_name_to_string
+
+                ; ( codesize nameptr namelen )
+
+                lda (workword)
+                and #NN
+
+                bne _mvhdr              ; NN so we'll need a new header
+
+                ; we'll shuffle the name string and code up one byte
+                ; nameptr is the start of the block we want to move,
+                ; and the number of bytes is namelen + codesize
+
+                ; ( codesize nameptr namelen )
+                jsr w_swap
+                jsr w_dup
+                jsr w_one_plus
+                jsr w_rot
+                ; ( codesize nameptr nameptr+1 namelen )
+                clc
+                lda 6,x
+                adc 0,x
+                sta 0,x
+                lda 7,x
+                adc 1,x
+                sta 1,x
+                ; ( codesize nameptr nameptr+1 codesize+namelen )
+                jsr w_cmove_up
+                ; ( codesize )
+
+                lda (workword)
+                ora #LC
+                sta (workword)          ; update the flag bit to indicate two-byte code size
+
+                clc                     ; we still need to add the final RTS
+                rts
+
+_mvhdr:
+                ; moving the header means back to the drawing board
+                ; we'll need two bytes each for prev NT (FP=1),
+                ; code size (LC=1) and code pointer (DC=1)
+                ; which means an eight byte header, plus the name string
+
+                ; keep a copy of the current header pointer
+                lda workword
+                sta tmp1
+                lda workword+1
+                sta tmp1+1
+
+                ; the new header will land at CP, after the RTS we wrote above
+                lda cp
+                sta workword
+                lda cp+1
+                sta workword+1
+
+                ; ( codesize nameptr namelen )
+
+                ; allocate namelen + 8 bytes for the new header
+                dex
+                dex
+                clc
+                lda 2,x
+                adc #8                  ; full header size
+                sta 0,x
+                stz 1,x                 ; no MSB since name length <32
+                jsr w_allot
+
+                ; Now fill in the new header
+                ldy #0                  ; nt+0
+                lda (tmp1),y
+                ora #FP+LC+DC           ; need long form for everything
+                sta (workword),y        ; status byte
+                iny                     ; nt+1
+                lda (tmp1),y
+                sta (workword),y        ; name length
+
+                jsr nt_to_xt            ; get XT from tmp1 as Y=MSB, A=LSB
+                phy
+                ldy #4                  ; nt+4
+                sta (workword),y        ; XT LSB
+                pla
+                iny                     ; nt+5
+                sta (workword),y        ; XT MSB
+
+                jsr nt_to_nt            ; rewrite tmp1 as prev NT
+                ldy #2                  ; nt+2
+                lda tmp1
+                sta (workword),y
+                iny                     ; nt+3
+                lda tmp1+1
+                sta (workword),y
+
+                ; finally copy the name string
+                ; ( codesize nameptr namelen )
+                dex
+                dex
+                clc
+                lda workword
+                adc #8                  ; offset to name in new header
+                sta 0,x
+                lda workword+1
+                adc #0
+                sta 1,x
+                jsr w_swap
+                ; ( codesize nameptr newnameptr namelen )
+                jsr w_cmove_up
+
+                sec                     ; we already have the RTS
+                rts
+.endif
+
+
+
+; ## STATE ( -- addr ) "Return the address of compilation state flag"
+; ## "state"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/STATE
+        ; STATE is true when in compilation state, false otherwise. Note
+        ; we do not return the state itself, but only the address where
+        ; it lives. The state should not be changed directly by the user; see
+        ; http://forth.sourceforge.net/standard/dpans/dpans6.htm#6.1.2250
+        ; """
+xt_state:
+w_state:
+                dex
+                dex
+                lda #<state
+                sta 0,x
+                lda #>state
+                sta 1,x
+
+z_state:        rts
+

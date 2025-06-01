@@ -1,3 +1,89 @@
+; Core Forth words that don't fit neatly in other categories
+
+; Tali Forth 2 for the 65c02
+; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
+; Patrick Surry
+; First version: 19. Jan 2014
+; This version: 21. Apr 2024
+
+
+; ## BASE ( -- addr ) "Push address of radix base to stack"
+; ## "base"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/BASE
+        ; The ANS Forth standard sees the base up to 36, so we can cheat and
+        ; ingore the MSB
+        ; """
+xt_base:
+w_base:
+                dex
+                dex
+                lda #<base
+                sta 0,x         ; LSB
+                stz 1,x         ; MSB is always 0
+
+z_base:         rts
+
+
+
+; ## BUFFER_COLON ( u "<name>" -- ; -- addr ) "Create an uninitialized buffer"
+; ## "buffer:"  auto  ANS core ext
+                ; """https://forth-standard.org/standard/core/BUFFERColon
+                ; Create a buffer of size u that puts its address on the stack
+                ; when its name is used.
+                ; """
+xt_buffer_colon:
+w_buffer_colon:
+                jsr w_create            ; will report default PFA size of 2 in SEE
+                jsr w_allot
+z_buffer_colon: rts
+
+
+
+; ## COUNT ( c-addr -- addr u ) "Convert character string to normal format"
+; ## "count"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/COUNT
+        ; Convert old-style character string to address-length pair. Note
+        ; that the length of the string c-addr is stored in character length
+        ; (8 bit), not cell length (16 bit). This is rarely used these days,
+        ; though COUNT can also be used to step through a string character by
+        ; character.
+        ; """
+xt_count:
+                jsr underflow_1
+w_count:
+                lda (0,x)       ; Get number of characters (255 max)
+                tay
+
+                ; move start address up by one
+                inc 0,x         ; LSB
+                bne +
+                inc 1,x         ; MSB
+
+                ; save number of characters to stack
++               tya
+                dex
+                dex
+                sta 0,x         ; LSB
+                stz 1,x         ; MSB, always zero
+
+z_count:        rts
+
+
+
+; ## DECIMAL ( -- ) "Change radix base to decimal"
+; ## "decimal"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/DECIMAL"""
+xt_decimal:
+w_decimal:
+                lda #10
+                sta base
+                stz base+1              ; paranoid
+
+z_decimal:      rts
+
+
+
 .if "environment?" in TALI_OPTIONAL_WORDS
 ; ## ENVIRONMENT_Q  ( addr u -- 0 | i*x true )  "Return system information"
 ; ## "environment?"  auto  ANS core
@@ -185,6 +271,20 @@ env_results_double:
         .word $7FFF, $FFFF      ; MAX-D
         .word $FFFF, $FFFF      ; MAX-UD
 .endif
+
+
+
+; ## HEX ( -- ) "Change base radix to hexadecimal"
+; ## "hex"  auto  ANS core ext
+        ; """https://forth-standard.org/standard/core/HEX"""
+xt_hex:
+w_hex:
+                lda #16
+                sta base
+                stz base+1              ; paranoid
+
+z_hex:          rts
+
 
 
 

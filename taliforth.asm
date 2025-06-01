@@ -34,7 +34,7 @@ code0:
 ; Entry point for Tali Forth after kernel hardware setup
 forth:
 
-.include "words/all.asm"           ; Native Forth words. Starts with COLD
+.include "words/all.asm"        ; Native Forth words. Starts with COLD
 .include "definitions.asm"      ; Top-level definitions, memory map
                                 ; included here to put relocatable tables after native words
 
@@ -50,8 +50,8 @@ user_words_start:
 .binary "user_words.asc"
 user_words_end:
 
-.include "words/headers.asm"          ; Headers of native words
-.include "strings.asm"          ; Strings, including error messages
+.include "words/headers.asm"    ; Headers of native words
+.include "stringtable.asm"      ; Strings, including error messages
 
 
 ; =====================================================================

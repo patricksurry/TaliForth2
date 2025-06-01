@@ -1,3 +1,13 @@
+; Core Forth words for memory and string handling
+
+; Tali Forth 2 for the 65c02
+; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
+; Patrick Surry
+; First version: 19. Jan 2014
+; This version: 21. Apr 2024
+
+
 ; ## ALIGN ( -- ) "Make sure CP is aligned on word size"
 ; ## "align"  auto  ANS core
         ; """https://forth-standard.org/standard/core/ALIGN
@@ -630,6 +640,382 @@ w_pad:
                 sta 1,x
 
 z_pad:          rts
+
+
+
+; ## S_BACKSLASH_QUOTE ( "string" -- )( -- addr u ) "Store string in memory"
+; ## "s\""  auto  ANS core
+        ; """https://forth-standard.org/standard/core/Seq
+        ; Store address and length of string given, returning ( addr u ).
+        ; ANS core claims this is compile-only, but the file set expands it
+        ; to be interpreted, so it is a state-sensitive word, which in theory
+        ; are evil. We follow general usage. This is just like S" except
+        ; that it allows for some special escaped characters.
+        ; """
+
+xt_s_backslash_quote:
+w_s_backslash_quote:
+                ; tmp2 will be used to determine if we are handling
+                ; escaped characters or not. In this case, we are,
+                ; so set it to $FF (the upper byte will be used to
+                ; determine if we just had a \ and the next character
+                ; needs to be modifed as an escaped character).
+                lda #$FF
+                sta tmp2
+                stz tmp2+1
+
+                ; Now that the flag is set, jump into s_quote to process
+                ; the string.
+                jsr s_quote_start
+z_s_backslash_quote:
+                rts
+
+
+
+; ## S_QUOTE ( "string" -- )( -- addr u ) "Store string in memory"
+; ## "s""  auto  ANS core
+        ; """https://forth-standard.org/standard/core/Sq
+        ; Store address and length of string given, returning ( addr u ).
+        ; ANS core claims this is compile-only, but the file set expands it
+        ; to be interpreted, so it is a state-sensitive word, which in theory
+        ; are evil. We follow general usage.
+        ;
+        ; Can also be realized as
+        ;     : S" [CHAR] " PARSE POSTPONE SLITERAL ; IMMEDIATE
+        ; but it is used so much we want it in code.
+        ; """
+
+xt_s_quote:
+w_s_quote:
+                ; tmp2 will be used to determine if we are handling
+                ; escaped characters or not.  In this case, we are
+                ; not, so set it to zero.  (cf S_BACKSLASH_QUOTE)
+                stz tmp2
+                stz tmp2+1
+
+s_quote_start:
+                ; S" has undefined interpretation semantics in the CORE word set, but
+                ; the FILE wordset permits it provided "no standard words other than S"
+                ; ... [should overwrite the] interpreted string"
+                ; (see https://forth-standard.org/standard/file/Sq for the details).
+                ; One approach would be to reserve a fixed buffer of at least 80
+                ; bytes somewhere outside the dictionary, like we do for command history
+                ; or the block buffer.  The alternative adopted here is to always
+                ; allocate space for the string in the dictionary.  This means
+                ; that every interactive use of S" allocates space you won't get back
+                ; (without MARKER or the like) but has the big advantage that strings
+                ; stay where you put them and don't get overwritten by other operations.
+
+                ; We will save a bit of space when interpreting by writing the string
+                ; literal directly HERE.  When we're compiling we'll use SLITERAL
+                ; which needs a five byte prologue (jsr sliteral_runtime / .word length)
+                ; so we'll leave space for that.
+
+                lda state               ; check whether we're interpreting (0) or compiling (-1)
+                ora state+1             ; paranoid
+
+                pha                     ; save zero / nonzero for post-processing
+                beq _interpreting       ; just write string directly
+
+                ; we're compiling, so reserve just enough space for SLITERAL to later
+                ; add the prologue before the string data
+
+                clc
+                lda cp
+                adc #5                  ; reserve five bytes for the prologue (see below)
+                sta cp
+                bcc +
+                inc cp+1
++
+_interpreting:
+                ; Now we'll compile the string bytes into the dictionary
+                ; But first remember the address where we started
+
+                jsr w_here              ; ( addr )
+
+_savechars_loop:
+                ; Start saving the string into the dictionary up to the
+                ; ending double quote. First, check to see if the input
+                ; buffer is empty.
+                lda toin+1              ; MSB
+                cmp ciblen+1
+                bcc _input_fine         ; unsigned comparison
+
+                lda toin                ; LSB
+                cmp ciblen
+                bcc _input_fine
+
+                ; Input buffer is empty. Refill it. Refill calls accept,
+                ; which uses tmp2 and tmp3. Save and restore them.
+                lda tmp2
+                pha
+                lda tmp2+1
+                pha
+                lda tmp3    ; Only tmp3 used, so don't bother with tmp3+1
+                pha
+
+                jsr w_refill           ; ( -- f )
+
+                pla
+                sta tmp3
+                pla
+                sta tmp2+1
+                pla
+                sta tmp2
+
+                ; Check result of refill.
+                lda 0,x
+                ora 1,x
+                bne _refill_ok
+
+                ; Something when wrong with refill.
+                lda #err_refill
+                jmp error
+
+_refill_ok:
+                ; Remove the refill flag from the data stack.
+                inx
+                inx
+
+                ; For refill success, jump back up to the empty check, just in
+                ; case refill gave us an empty buffer (eg. empty/blank line of
+                ; input)
+                bra _savechars_loop
+
+_input_fine:
+                ; There should be at least one valid char to use.
+                ; Calculate it's address at CIB+TOIN into tmp1
+                lda cib
+                clc
+                adc toin        ; LSB
+                sta tmp1
+                lda cib+1
+                adc toin+1      ; MSB
+                sta tmp1+1
+
+                ; Get the character
+                lda (tmp1)
+
+                ; Check to see if we are handling escaped characters.
+                bit tmp2
+                bmi _handle_escapes    ; Only checking bit 7
+                jmp _regular_char
+
+_handle_escapes:
+                ; We are handling escaped characters.  See if we have
+                ; already seen the backslash.
+                bit tmp2+1
+                bmi _escaped
+                jmp _not_escaped
+
+_escaped:
+
+                ; We have seen a backslash (previous character). Check to see if
+                ; we are in the middle of a \x sequence (bit 6 of tmp2+1 will
+                ; be clear in that case )
+                bvs _check_esc_chars
+
+                ; We are in the middle of a \x sequence. Check to see if we
+                ; are on the first or second digit.
+                lda #1
+                bit tmp2+1
+                bne _esc_x_second_digit
+
+                ; First digit.
+                inc tmp2+1  ; Adjust flag for second digit next time.
+                lda (tmp1)  ; Get the char and stash it.
+                pha
+                jmp _next_character
+
+_esc_x_second_digit:
+                ; We are on the second hex digit of a \x sequence. Clear the
+                ; escaped character flag (because we are handling it right
+                ; here)
+                stz tmp2+1
+                lda (tmp1)
+                ply                     ; recover first of pair
+                jsr ascii_to_byte       ; TODO we're ignoring possible C=1 error
+
+                bra _save_character
+
+_check_esc_chars:
+                ; Clear the escaped character flag (because we are
+                ; handling it right here)
+                stz tmp2+1
+
+                ; is it character a-z ?
+                cmp #'a'
+                bmi _check_esc_quote
+                cmp #'z'+1
+                bpl _check_esc_quote
+                ; check translation table
+                tay
+                lda escape_tr_table - 'a',y   ; fake base address to index with a-z directly
+                bne _esc_replace
+                tya                     ; revert if no translation
+                bra _check_esc_quote
+
+_esc_replace:   bpl _save_character     ; simple replacement
+                ; handle specials with hi bit set (NUL and CR/LF)
+                and #$7F                ; clear hi bit
+                beq _save_character     ; NUL we can just output
+                jsr cmpl_a              ; else output first char (CR)
+                lda #10                 ; followed by LF
+                bra _save_character
+
+_check_esc_quote:
+                cmp #'"'
+                beq _save_character
+
+                cmp #'x'
+                bne _check_esc_backslash
+
+                ; This one is difficult. We need to get the next TWO
+                ; characters (which might require a refill in the middle)
+                ; and combine them as two hex digits. We do this by
+                ; clearing bit 6 of tmp2+1 to indicate we are in a digit
+                ; and using bit 0 to keep track of which digit we are on.
+                lda #%10111110        ; Clear bits 6 and 0
+                sta tmp2+1
+                bra _next_character
+
+_check_esc_backslash:
+                cmp #'\'
+                bne _regular_char
+                bra _save_character
+
+_not_escaped:
+                ; Check for the backslash to see if we should escape
+                ; the next char.
+                cmp #'\'
+                bne _regular_char
+
+                ; We found a backslash.  Don't save anyhing, but set
+                ; a flag (in tmp2+1) to handle the next char. We don't
+                ; try to get the next char here as it may require a
+                ; refill of the input buffer.
+                lda #$FF
+                sta tmp2+1
+                bra _next_character
+
+_regular_char:
+                ; Check if the current character is the end of the string.
+                cmp #'"'
+                beq _found_string_end
+
+_save_character:
+                ; If we didn't reach the end of the string, compile this
+                ; character into the dictionary
+                jsr cmpl_a
+
+_next_character:
+                ; Move on to the next character.
+                inc toin
+                bne _savechars_loop_longjump
+                inc toin+1
+
+_savechars_loop_longjump:
+                jmp _savechars_loop
+
+_found_string_end:
+                ; Use up the delimiter.
+                inc toin
+                bne +
+                inc toin+1
++
+                ; Finally we've compiled all the string data into the dictionary
+                ; We still have the start address and need the string length
+
+                ; ( addr )
+                jsr w_here
+                jsr w_over
+                jsr w_minus    ; HERE - addr gives string length
+                ; ( addr u )
+
+                ; What happens next depends on the state (which is bad, but
+                ; that's the way it works at the moment). If we are
+                ; interpreting (state=0), we're done because we've saved the string
+                ; to a buffer.  (In fact we've over-delivered by compiling the string
+                ; to permanent storage in the dictionary!)
+
+                ; If we're compiling, we need to turn the string into an SLITERAL.
+                ; We'll just rewind the CP to where it was when we started -
+                ; five bytes before the string we've written - and let sliteral
+                ; work its magic.  It'll write the five byte prologue and copy
+                ; the string data onto itself (a no-op) while re-allocating the space.
+
+                pla                     ; fetch the state flag (0 = interpret)
+                beq _done
+
+                sec                     ; rewind the CP to addr-5
+                lda 2,x
+                sbc #5
+                sta cp
+                lda 3,x
+                sbc #0
+                sta cp+1
+
+                ; write the prologue, "copy" the string and reallocate the space
+                jsr w_sliteral         ; ( addr u -- )
+
+_done:
+z_s_quote:      rts
+
+
+
+escape_tr_table:
+    ; 26 character translation for simple escapes
+    ; 0 indicates no translation, hi bit indicates special
+    .byte   7               ; a -> BEL (ASCII value 7)
+    .byte   8               ; b -> Backspace (ASCII value 8)
+    .byte   0,0             ; c, d no escape
+    .byte   27              ; e -> ESC (ASCII value 27)
+    .byte   12              ; f -> FF (ASCII value 12)
+    .byte   0,0,0,0,0       ; g,h,i,j,k
+    .byte   10              ; l -> LF (ASCII value 10)
+    .byte   13+128          ; m -> CR/LF pair (ASCII values 13, 10)
+    ; n has configurable behavior which we hard-code in the table
+.if "cr" in TALI_OPTION_CR_EOL
+.if "lf" in TALI_OPTION_CR_EOL
+    .byte   13+128          ; n behaves like m --> cr/lf
+.else
+    .byte   13              ; n behaves like r --> cr
+.endif
+.else
+    .byte   10              ; n behaves like l --> lf
+.endif
+    .byte   0,0             ; o,p
+    .byte   34              ; q -> Double quote (ASCII value 34)
+    .byte   13              ; r ->  CR (ASCII value 13)
+    .byte   0               ; s
+    .byte   9               ; t -> Horizontal TAB (ASCII value 9)
+    .byte   0               ; u
+    .byte   11              ; v -> Vertical TAB (ASCII value 11)
+    .byte   0,0,0           ; w,x,y   (x is a special case later)
+    .byte   0+128           ; z -> NULL (ASCII value 0)
+
+
+
+; ## S_TO_D ( u -- d ) "Convert single cell number to double cell"
+; ## "s>d"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/StoD"""
+
+xt_s_to_d:
+                jsr underflow_1
+w_s_to_d:
+                dex
+                dex
+                stz 0,x
+                stz 1,x
+
+                lda 3,x
+                bpl _done
+
+                ; negative, extend sign
+                dec 0,x
+                dec 1,x
+_done:
+z_s_to_d:       rts
 
 
 

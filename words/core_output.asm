@@ -1,5 +1,12 @@
 ; Core Forth words for formatted output
 
+; Tali Forth 2 for the 65c02
+; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
+; Patrick Surry
+; First version: 19. Jan 2014
+; This version: 21. Apr 2024
+
 
 ; ## AT_XY ( m n -- ) "Move cursor to position given"
 ; ## "at-xy"  auto  ANS facility

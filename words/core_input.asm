@@ -1,3 +1,13 @@
+; Core Forth words for input
+
+; Tali Forth 2 for the 65c02
+; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
+; Patrick Surry
+; First version: 19. Jan 2014
+; This version: 21. Apr 2024
+
+
 ; ## ACCEPT ( addr n -- n ) "Receive a string of characters from the keyboard"
 ; ## "accept"  auto  ANS core
         ; """https://forth-standard.org/standard/core/ACCEPT

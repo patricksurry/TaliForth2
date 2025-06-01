@@ -351,15 +351,15 @@ _line_done:
                 rts
 
 
-.include "core.asm"
-.include "core_juggle.asm"
-.include "core_mem.asm"
-.include "core_math.asm"
+.include "core_compile.asm"
 .include "core_flow.asm"
 .include "core_input.asm"
+.include "core_juggle.asm"
+.include "core_math.asm"
+.include "core_mem.asm"
+.include "core_meta.asm"
+.include "core_misc.asm"
 .include "core_output.asm"
-.include "core_env.asm"
-.include "compile.asm"
 .include "tools.asm"
 .include "tali.asm"
 .include "double.asm"
