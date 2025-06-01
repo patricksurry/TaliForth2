@@ -223,7 +223,142 @@ z_abort:
 z_quit:         ; no RTS required
 
 
+interpret:
+        ; """Core routine for the interpreter called by EVALUATE and QUIT.
+        ; Process one line only. Assumes that the address of name is in
+        ; cib and the length of the whole input line string is in ciblen
+        ; """
+                ; Normally we would use PARSE here with the SPACE character as
+                ; a parameter (PARSE replaces WORD in modern Forths). However,
+                ; Gforth's PARSE-NAME makes more sense as it uses spaces as
+                ; delimiters per default and skips any leading spaces, which
+                ; PARSE doesn't
+_loop:
+                jsr w_parse_name       ; ( "string" -- addr u )
+
+                ; If PARSE-NAME returns 0 (empty line), no characters were left
+                ; in the line and we need to go get a new line
+                lda 0,x
+                ora 1,x
+                beq _line_done
+
+                ; Go to FIND-NAME to see if this is a word we know. We have to
+                ; make a copy of the address in case it isn't a word we know and
+                ; we have to go see if it is a number
+                jsr w_two_dup          ; ( addr u -- addr u addr u )
+                jsr w_find_name        ; ( addr u addr u -- addr u nt|0 )
+
+                ; A zero signals that we didn't find a word in the Dictionary
+                lda 0,x
+                ora 1,x
+                bne _got_name_token
+
+                ; We didn't get any nt we know of, so let's see if this is
+                ; a number.
+                inx                     ; ( addr u 0 -- addr u )
+                inx
+
+                ; If the number conversion doesn't work, NUMBER will do the
+                ; complaining for us
+                jsr w_number           ; ( addr u -- u|d )
+
+                ; Otherwise, if we're interpreting, we're done
+                lda state
+                beq _loop
+
+                ; We're compiling, so there is a bit more work.  Check
+                ; status bit 5 to see if it's a single or double-cell
+                ; number.
+                lda #%00100000
+                bit status
+                bne _double_number
+
+                jsr w_literal
+                ; That was so much fun, let's do it again!
+                bra _loop
+
+_double_number:
+                ; It's a double cell number.
+                jsr w_two_literal
+                bra _loop
+
+_got_name_token:
+                ; We have a known word's nt TOS and need to calculate its xt
+
+                ; We arrive here with ( addr u nt ), so we NIP twice
+                lda 0,x
+                sta 4,x
+                lda 1,x
+                sta 5,x
+
+                inx
+                inx
+                inx
+                inx                     ; ( nt )
+
+                ; Whether interpreting or compiling we'll need to check the
+                ; status byte at nt so let's save it now
+                lda (0,x)
+                pha
+
+                ; See if we are in interpret or compile mode, 0 is interpret
+                lda state
+                lsr                     ; C=1 for compile, 0 for interpret
+                pla                     ; A=flags
+                bcs _compile
+
+                ; We are interpreting, so EXECUTE the xt that is TOS. First,
+                ; though, see if this isn't a compile-only word, which would be
+                ; illegal.
+                and #CO                 ; mask everything but Compile Only bit
+                bne _compileonly
+
+_interpret:
+                ; We JSR to EXECUTE instead of calling the xt directly because
+                ; the RTS of the word we're executing will bring us back here,
+                ; skipping EXECUTE completely during RTS. If we were to execute
+                ; xt directly, we have to fool around with the Return Stack
+                ; instead, which is actually slightly slower
+                jsr w_name_to_int      ; ( nt - xt )
+                jsr w_execute
+
+                ; That's quite enough for this word, let's get the next one
+                bra _loop
+
+_compileonly:
+                lda #err_compileonly
+                jmp error
+
+_compile:
+                ; We're compiling! However, we need to see if this is an
+                ; IMMEDIATE word, which would mean we execute it right now even
+                ; during compilation mode. Fortunately, we saved the header flags
+                ; so life is easier.
+                and #IM                 ; Mask all but IM bit
+                bne _interpret          ; IMMEDIATE word, execute right now
+
+                ; Compile the word into the Dictionary using nt entry for COMPILE,
+                jsr compile_nt_comma
+                bra _loop
+
+_line_done:
+                ; drop stuff from PARSE_NAME
+                inx
+                inx
+                inx
+                inx
+
+                rts
+
+
 .include "core.asm"
+.include "core_juggle.asm"
+.include "core_mem.asm"
+.include "core_math.asm"
+.include "core_flow.asm"
+.include "core_input.asm"
+.include "core_output.asm"
+.include "core_env.asm"
 .include "compile.asm"
 .include "tools.asm"
 .include "tali.asm"
