@@ -350,8 +350,11 @@ z_endcase:      rts
 xt_execute:
                 jsr underflow_1
 w_execute:
-                ; EXECUTE is never native so that the word we're calling
-                ; can always return to the caller of EXECUTE
+                jsr doexecute   ; do not combine to JMP (native coding)
+
+z_execute:      rts
+
+doexecute:
                 lda 0,x
                 sta ip
                 lda 1,x
@@ -364,7 +367,7 @@ w_execute:
                 ; the word we're calling to get back to xt_execute
                 jmp (ip)
 
-z_execute:      ; never reached
+; end of doexecute
 
 
 
