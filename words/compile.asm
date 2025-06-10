@@ -390,6 +390,13 @@ cmpl_0branch_tos:
                 lda #<zero_branch_runtime
                 jsr cmpl_subroutine             ; call the 0branch runtime
 
+;TODO optionally add w_here, and avoid the math in cmpl_0branch_later
+
+;TODO the fetch-two-bytes past return address in forth words thing is in the compile-word branch
+
+;TODO the jsr zero-branch <two bytes> construct isn't inline-able but probably isn't checked.  should
+we just always use native branching?  or make that jsr 0branch <rel16>?
+
                 jmp w_comma                    ; add the payload and return
 
 _inline:
