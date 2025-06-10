@@ -3920,26 +3920,37 @@ z_number_sign_s:
 
 xt_of:
 w_of:
-                ; Check if value is equal to this case.
-                ; Postpone over (eg. compile a jsr to it)
-                ldy #>w_over
-                lda #<w_over
-                jsr cmpl_subroutine
+                ; Postpone the runtime
+                ldy #>of_runtime
+                lda #<of_runtime
+                jsr cmpl_subroutine             ; set up A with comparison result
 
-                ; Postpone = (EQUAL), that is, compile a jsr to it
-                ldy #>w_equal
-                lda #<w_equal
-                jsr cmpl_subroutine
-
-                jsr w_if
-
-                ; If it's true, consume the original value.
-                ; Postpone DROP (eg. compile a jsr to it)
-                ldy #>w_drop
-                lda #<w_drop
-                jsr cmpl_subroutine
+                jsr w_here                      ; save pointer to branch target
+                jsr w_zero                      ; write a zero placeholder
+                jsr w_comma
 
 z_of:           rts
+
+of_runtime:
+                ; ( x1 x2 -- | x1; A=true/false )
+                ldy #0                  ; default not-equal (false)
+
+                lda 0,x                 ; LSB
+                cmp 2,x
+                bne _neq
+
+                lda 1,x                 ; MSB
+                cmp 3,x
+                bne _neq
+
+                dey                     ; equal, flag as true
+                inx                     ; and drop an extra value
+                inx
+_neq:
+                inx                     ; always drop at least one value
+                inx
+                tya                     ; comparison status
+                jmp zbranch_runtime
 
 
 
