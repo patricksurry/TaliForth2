@@ -51,7 +51,7 @@ user_words_start:
 user_words_end:
 
 .include "words/headers.asm"          ; Headers of native words
-.include "strings.asm"          ; Strings, including error messages
+.include "stringtable.asm"          ; Strings, including error messages
 
 
 ; =====================================================================
@@ -270,6 +270,53 @@ _nibble_to_ascii:
                 rts
 
 
+ascii_to_byte:
+        ; convert two ascii hex digit characters in Y (hi) and A (lo) to a byte,
+        ; returning the result in A with C=0 on success, C=1 if invalid.
+        ; Uses tmpdsp.
+        phx
+        ldx base
+        phx
+        ldx #16                 ; parsing hex digits
+        stx base
+        jsr ascii_to_digit      ; lower nibble
+        bcs _done
+        sta tmpdsp
+        tya
+        jsr ascii_to_digit      ; high nibble
+        bcs _done
+        asl                     ; $0-$f on success so shifts leave C=0
+        asl
+        asl
+        asl
+        ora tmpdsp              ; combine with lower nibble
+_done:
+        plx
+        stx base                ; restore original base
+        plx
+        rts
+
+
+ascii_to_digit:
+        ; convert A from ASCII character [0-9A-Za-z] to a digit in the
+        ; current base, with C=0 on success or C=1 with invalid char
+        cmp #$40
+        bcs _hi
+
+        sbc #'0'-1              ; < '0' => large
+        cmp #10                 ; C=1 if >= 10 (error)
+        bcc _chk
+        bcs _done               ; invalid
+_hi:
+        and #$1f                ; mask to accept uc & lc
+        beq _done               ; @ or ` is error (C=1 from above)
+        adc #8                  ; A=1 => 1+8+1=10
+_chk
+        cmp base                ; set C=1 if not < base
+_done:
+        rts
+
+
 ; =====================================================================
 ; HEADER HELPER FUNCTIONS
 ;
@@ -293,7 +340,7 @@ nt_to_nt:
                 ;       cmp #32
                 ;       bcc +
                 ;       lda #str_see_nt
-                ;       jsr print_string_no_lf
+                ;       jsr print_string_n
                 ;       lda #$0a
                 ;       jsr kernel_putc
                 ; -     bra -
@@ -736,82 +783,25 @@ _done:
                 rts
 
 
-; Underflow tests. We jump to the label with the number of cells (not: bytes)
-; required for the word. This routine flows into the generic error handling
-; code
-underflow_1:
-        ; """Make sure we have at least one cell on the Data Stack"""
-                cpx #dsp0-1
-                bpl underflow_error
-                rts
-underflow_2:
-        ; """Make sure we have at least two cells on the Data Stack"""
-                cpx #dsp0-3
-                bpl underflow_error
-                rts
-underflow_3:
-        ; """Make sure we have at least three cells on the Data Stack"""
-                cpx #dsp0-5
-                bpl underflow_error
-                rts
-underflow_4:
-        ; """Make sure we have at least four cells on the Data Stack"""
-                cpx #dsp0-7
-                bpl underflow_error
-                rts
-
-underflow_error:
-                ; Entry for COLD/ABORT/QUIT
-                lda #err_underflow      ; fall through to error
-
-error:
-        ; """Given the error number in a, display the error and call abort. Uses tmp3.
-        ; """
-                pha                     ; save error
-                jsr print_error
-                jsr w_cr
-                pla
-                cmp #err_underflow      ; should we display return stack?
-                bne _no_underflow
-
-                lda #err_returnstack
-                jsr print_error
-
-                ; dump return stack from SP...$1FF to help debug source of underflow
-                ; the data stack pointer in X is already corrupted so safe to reuse here
-                tsx
--
-                inx
-                beq +
-                jsr w_space
-                lda $100,x
-                jsr byte_to_ascii
-                bra -
-+
-                jsr w_cr
-
-_no_underflow:
-                jmp w_abort            ; no jsr, as we clobber return stack
-
 ; =====================================================================
 ; PRINTING ROUTINES
 
-; print_string_no_lf prints a high-bit terminated string
-; from string_table (see strings.asm) indexed by the accumulator,
+; print_string_n prints a high-bit terminated string from string_table
+; (see stringtable.asm) indexed by the accumulator,
 ; with no trailing line ending.
 
-; print_error does likewise, with A indexing error_table
+; print_error_n does likewise, with A indexing error_table
 
-; print_common provides a lower-level alternative for error
+; print_shift_string provides a lower-level alternative for error
 ; handling and anything else that provides the address of a
 ; high-bit terminated string directly in tmp3. These routines assume that
 ; printing should be more concerned with size than speed, because anything to
 ; do with humans reading text is going to be slow.
 
-print_string_no_lf:
-        ; """Given the number of a zero-terminated string in A, print it to the
+print_string_n:
+        ; """Given the index of a high-bit terminated message in A, print it to the
         ; current output without adding a LF. Uses Y and tmp3 by falling
-        ; through to print_common
+        ; through to print_shift_string
         ; """
                 ; Get the entry from the string table
                 asl
@@ -821,28 +811,26 @@ print_string_no_lf:
                 lda string_table+1,y
                 sta tmp3+1              ; MSB
 
-                ; fall through to print_common
-print_common:
+                ; fall through to print_shift_string
+print_shift_string:
         ; """Common print routine used by both printing routines.
-        ; Assumes tmp3 points to a high-bit terminated string.
+        ; Assumes tmp3 points to a high-bit terminated string of at most 256 characters.
         ; Uses Y.
         ; """
                 ldy #0
 _loop:
                 lda (tmp3),y
-                bpl +                           ; strings are high-bit terminated
-
-                and #$7f                        ; last character, clear high bit
-                ldy #$ff                        ; flag end of loop
-+
+                php                             ; save the sign bit (terminator) status
+                and #$7f                        ; ensure high bit is clear
                 jsr emit_a                      ; allows vectoring via output
                 iny
-                bne _loop
+                plp                             ; was this the last character?
+                bpl _loop
 
                 rts
 
 
-print_error:
+print_error_n:
         ; """Given the error number in a, print the associated error string. Uses tmp3.
         ; """
                 asl
@@ -853,14 +841,14 @@ print_error:
                 lda error_table,y
                 sta tmp3+1                      ; MSB
 
-                bra print_common
+                bra print_shift_string
 
 
-print_u:
+print_tos:
         ; """basic printing routine used by higher-level constructs,
         ; the equivalent of the forth word  0 <# #s #> type  which is
         ; basically u. without the space at the end. used for various
-        ; outputs
+        ; outputs.   Compare w
         ; """
                 jsr w_zero                     ; 0
                 jsr w_less_number_sign         ; <#

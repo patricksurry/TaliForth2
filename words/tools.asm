@@ -38,17 +38,13 @@ w_dot_s:
                 pha
 
                 ; print unsigned number without the trailing space
-                dex             ; DUP
-                dex
-                sta 0,x
-                stz 1,x
+                jsr w_dup
 
-                jsr print_u
+                jsr print_tos
 
                 lda #'>'
                 jsr emit_a
-                lda #AscSP      ; ASCII for SPACE
-                jsr emit_a
+                jsr w_space
 
                 inx
                 inx
@@ -63,7 +59,7 @@ w_dot_s:
                 ; from bottom to top
                 ply
 
-                lda #dsp0-1     ; go up one to avoid garbage
+                lda #+dsp0-1     ; go up one to avoid garbage
                 sta tmp3
                 stz tmp3+1      ; must be zero page on the 65c02
 _loop:
@@ -252,7 +248,7 @@ w_see:
                 jsr w_hex
 
                 lda #str_see_nt
-                jsr print_string_no_lf
+                jsr print_string_n
 
                 jsr w_dup               ; ( nt nt )
                 jsr w_u_dot
@@ -262,14 +258,14 @@ w_see:
                 jsr w_name_to_int       ; ( nt xt )
 
                 lda #str_see_xt
-                jsr print_string_no_lf
+                jsr print_string_n
 
                 jsr w_dup               ; ( nt xt xt )
                 jsr w_u_dot             ; ( nt xt )
                 jsr w_space
 
                 lda #str_see_header
-                jsr print_string_no_lf
+                jsr print_string_n
                 jsr w_over
                 ; calculate header length from status flag byte
                 lda (0,x)               ; fetch status byte
@@ -321,8 +317,8 @@ _show_header:
                 bra -
 +
 .endif
-                ; use a high-bit terminated template string to show flag names
-                ; and insert flag values at placeholders marked by ascii zeros
+                ; use a zero-terminated template string to show flag names with placeholders
+                ; marked by shifted characters
                 lda #<see_flags_template
                 sta tmp3                ; LSB
                 lda #>see_flags_template
@@ -331,12 +327,11 @@ _show_header:
                 ldy #0                  ; index the string
 _show_flags:
                 lda (tmp3),y            ; next char in template
-                bpl +                   ; end of string?
+                bpl _emit               ; normal char?  just show it
 
-                ldy #$ff                ; flag end of loop
-                and #$7f                ; clear high bit of A to get last character
-+
-                bne _emit               ; flag placeholder?
+                ; otherwise insert a flag first
+                and #$7f                ; clear hi bit and save char that follows flag
+                pha
 
                 ; for each flag, print "<space><flag><space>"
                 jsr w_space             ; no stack effect
@@ -351,13 +346,16 @@ _synthetic:
                 lda #'0'                ; convert C=0/1 into '0' or '1'
                 adc #0
                 jsr emit_a              ; write the flag digit
+                jsr w_space             ; and a space
 
-                lda #' '                ; fall through and add trailing space
+                pla                     ; recover following character
+                beq _done
 _emit:
                 jsr emit_a
 
                 iny
                 bne _show_flags
+_done:
 
                 jsr w_cr
 
@@ -366,7 +364,7 @@ _emit:
 
                 ; Figure out the size
                 lda #str_see_size
-                jsr print_string_no_lf
+                jsr print_string_n
 
                 jsr w_swap              ; ( xt nt )
                 jsr w_wordsize          ; ( xt u )
@@ -380,7 +378,7 @@ _emit:
                 beq +
 
                 lda #str_see_cfapfa
-                jsr print_string_no_lf  ; print "CFA: 3  PFA: "
+                jsr print_string_n  ; print "CFA: 3  PFA: "
 
                 sec
                 lda 0,x                 ; reduce to u-3
