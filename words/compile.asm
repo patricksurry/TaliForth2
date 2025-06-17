@@ -364,9 +364,9 @@ _done:
 cmpl_0branch_later:
         ; compile a 0BRANCH where we don't know the target yet
         ; leaves pointer to the target on TOS
-                jsr w_zero             ; dummy placeholder, which forces long jmp in native version
+                jsr w_zero              ; dummy placeholder, which forces long jmp in native version
                 jsr cmpl_0branch_tos    ; generate native or subroutine branch code
-                jsr w_here             ; either way the target address is two bytes before here
+                jsr w_here              ; either way the target address is two bytes before here
                 sec
                 lda 0,x
                 sbc #2
@@ -390,7 +390,7 @@ cmpl_0branch_tos:
                 lda #<zero_branch_runtime
                 jsr cmpl_subroutine             ; call the 0branch runtime
 
-;TODO optionally add w_here, and avoid the math in cmpl_0branch_later
+;TODO conditonally call w_here, and avoid the math in cmpl_0branch_later
 
 ;TODO the fetch-two-bytes past return address in forth words thing is in the compile-word branch
 
