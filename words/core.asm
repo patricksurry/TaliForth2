@@ -1459,18 +1459,10 @@ xt_question_do:
 w_question_do:
                 ; ?DO shares most of its code with DO.
                 ; But first compile its runtime.
-                dex
-                dex
-                lda #<question_do_runtime
-                sta 0,x
-                lda #>question_do_runtime
-                sta 1,x
-                jsr w_dup              ; xt and xt' are the same
-                dex
-                dex
-                lda #question_do_runtime_size
-                sta 0,x
-                stz 1,x
+                jsr two_literal_runtime                 ; TODO always available?
+                .word question_do_runtime_size          ; TOS with NUXI order
+                .word question_do_runtime               ; NOS
+
                 jsr cmpl_by_limit
                 bcc _native
 
@@ -3081,17 +3073,9 @@ literal_runtime:
 xt_loop:
 w_loop:
                 ; Compile LOOP-specific runtime
-                dex
-                dex
-                dex
-                dex
-                lda #<loop_runtime
-                sta 2,x
-                lda #>loop_runtime
-                sta 3,x
-                lda #loop_runtime_size
-                sta 0,x
-                stz 1,x
+                jsr two_literal_runtime
+                .word loop_runtime_size         ; TOS
+                .word loop_runtime              ; NOS
 
                 ; Now compile the runtime shared with +LOOP
                 bra loop_common
@@ -3114,24 +3098,14 @@ w_loop:
 xt_plus_loop:
 w_plus_loop:
                 ; Compile +LOOP-specific runtime
-                dex
-                dex
-                dex
-                dex
-                lda #<plus_loop_runtime
-                sta 2,x
-                lda #>plus_loop_runtime
-                sta 3,x
-                lda #plus_loop_runtime_size
-                sta 0,x
-                stz 1,x
+                jsr two_literal_runtime
+                .word plus_loop_runtime_size    ; TOS
+                .word plus_loop_runtime         ; NOS
 
                 ; fall through to shared runtime
 
 loop_common:
-                jsr w_over
-                jsr w_swap             ; xt and xt' are the same
-                ; ( xt xt u )
+                ; ( xt u )
                 jsr cmpl_by_limit
 
                 ; The address we need to loop back to is TOS
@@ -3897,7 +3871,7 @@ w_of:
 z_of:           rts
 
 of_runtime:
-                ; ( x1 x2 -- | x1; A=true/false )
+                ; ( x x -- ) if equal or ( x y -- x ) if not equal with A=true/false
                 ldy #0                  ; default not-equal (false)
 
                 lda 0,x                 ; LSB

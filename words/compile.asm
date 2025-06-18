@@ -13,7 +13,7 @@
 ;
 ; We can compile words inline or as JSR calls based on the nc-limit
 ; variable:  COMPILE, has internal entry points cmpl_by_limit,
-; cmpl_inline and cmpl_as_call.  Inline compilation copies the
+; cmpl_inline[_drop] and cmpl_call_[nos|tos].  Inline compilation copies the
 ; source code for a word between xt_<word> and <z_word>,
 ; optionally removing the initial stack depth check.
 ; For some words we also discard leading and trailing stack
@@ -51,8 +51,7 @@ compile_nt_comma:  ; ( nt -- )
 
         jsr w_dup                       ; ( nt nt )
         jsr w_name_to_int               ; ( nt xt )
-        jsr w_dup                       ; ( nt xt xt )
-        jsr w_rot                       ; ( xt xt nt )
+        jsr w_swap                      ; ( xt nt )
         bra compile_comma_common
 
 
@@ -74,61 +73,56 @@ xt_compile_comma:
 w_compile_comma:
                 ; See if this is an Always Native (AN) word by checking the
                 ; AN flag. We need nt for this.
-                jsr w_dup               ; keep an unadjusted copy of xt
-                jsr w_dup               ; plus one to convert to nt
+                jsr w_dup               ; copy of xt to convert to nt
 
                 ; Nb. this reverse lookup from xt => nt is expensive so it's
                 ; better to use the compile_comma_common entrypoint below
                 ; if the nt is already available, e.g. while interpreting
                 jsr w_int_to_name
-                ; ( xt xt nt )
+                ; ( xt nt )
 
                 ; Does this xt even have a valid (non-zero) nt?
                 lda 0,x
                 ora 1,x
-                beq cmpl_as_call        ; No nt so unknown size; must compile as a JSR
+                beq cmpl_call_nos       ; No nt so unknown size; must compile as a JSR
 
 compile_comma_common:
-                ; ( xt xt nt )
+                ; ( xt nt )
 
                 ; Otherwise investigate the nt
                 lda (0,x)               ; get status flags byte @ NT
-
                 sta tmp3                ; and keep a copy
                 and #AN+NN              ; check if never native (NN)
                 cmp #NN                 ; NN=1, AN=0?  i.e. not ST=AN+AN
-                beq cmpl_as_call
+                beq cmpl_call_nos
 
-                ; ( xt xt nt )          ; maybe native, let's check
+                ; ( xt nt )             ; could possibly inline, keep checking
                 jsr w_wordsize
-                ; ( xt xt u )
+                ; ( xt u )
 
                 ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHING ---
 
                 lda tmp3
                 and #ST                 ; Check the Stack Thrash flag (ST=NN+AN)
-                cmp #ST
-                bne _check_uf
+                cmp #ST                 ; C=1 if equal, C=0 otherwise
+                bcc _no_st
+                jsr w_over              ; if ST, preserve original xt for call
+                bra +
+_no_st:
+                jsr w_zero              ; else safe to call whatever we strip down to
++
+                jsr w_not_rot
+
+                ; ( xt xt u ) if ST else ( 0 xt u )
+                bcc _check_uf           ; no stack juggling to skip?
 
 _strip_sz = 10  ; skip the standard 10 byte header which saves return address + 1 to tmp1
 
-                ; Start later: xt += sz
-                clc
-                lda 2,x
-                adc #_strip_sz
-                sta 2,x
-                bcc +
-                inc 3,x                 ; we just care about the carry
-+
-                ; Quit earlier: u -= sz
-                sec
-                lda 0,x
-                sbc #_strip_sz
-                sta 0,x
-                bcs +
-                dec 1,x                 ; we just care about the borrow
-+
-                ; ( xt xt+sz u-sz )
+                jsr literal_runtime
+                .word _strip_sz         ; TODO bliteral
+                jsr w_slash_string
+
+                ; ( xt|0 xt+sz u-sz )
 
                 ; --- SPECIAL CASE 2: REMOVE UNDERFLOW CHECKING ---
 _check_uf:
@@ -149,81 +143,77 @@ _check_uf:
 
                 ; Ready to remove the 3 byte underflow check.
 
-                ; Start later: xt += 3
-                clc
-                lda 2,x
-                adc #3
-                sta 2,x
-                bcc +
-                inc 3,x                  ; we just care about the carry
-+
-                ; End earlier: u -= 3
-                sec
-                lda 0,x
-                sbc #3
-                sta 0,x
-                bcs +
-                dec 1,x                  ; we just care about the borrow
-+
+                jsr literal_runtime     ; TODO bliteral
+                .word 3
+                jsr w_slash_string
+
 _check_limit:
                 ; --- END OF SPECIAL CASES ---
-                ; ( xt xt' u )
+                ; ( 0|xt xt' u )
 
                 lda tmp3
                 and #AN+NN              ; check Always Native (AN) bit
                 cmp #AN                 ; AN=1, NN=0?  (i.e. not ST=AN+NN)
-                beq cmpl_inline         ; always natively compile
+                beq cmpl_inline_drop    ; always natively compile
+                bne cmpl_by_limit_st
 
 cmpl_by_limit:
+        ; simplified entrypoint for cmpl_by_limit_st where xt == xt'
+                jsr w_over
+                jsr w_swap
+
+cmpl_by_limit_st:
                 ; Compile either inline or as subroutine depending on
                 ; whether native code size <= user limit
                 ; Returns C=0 if native, C=1 if subroutine
-                ; ( xt xt' u )
+                ; ( 0|xt xt' u )
                 ldy #nc_limit_offset+1
                 lda 1,x                 ; MSB of word size
                 cmp (up),y              ; user-defined limit MSB
-                bcc cmpl_inline         ; borrow (C=0) means size < limit
-                bne cmpl_as_call        ; else non-zero means size > limit
+                bcc cmpl_inline_drop    ; borrow (C=0) means size < limit
+                bne +                   ; else non-zero means size > limit
 
                 ; Check the wordsize LSB against the user-defined limit.
                 dey
                 lda (up),y              ; user-defined limit LSB
                 cmp 0,x
-                bcs cmpl_inline         ; not bigger, so good to go
+                bcs cmpl_inline_drop    ; not bigger, so good to go
 
-cmpl_as_call:
-        ; Compile xt as a subroutine call, return with C=0
-        ; Stack is either ( xt xt nt ) or ( xt xt' u )
-        ; If the word has stack juggling, we need to use original xt
-        ; otherwise use the middle value to respect strip-underflow.
-                lda tmp3
-                and #ST
-                bne +
-                jsr w_drop              ; no stack juggling, use middle (xt or xt')
-                jsr w_nip
-                bra _cmpl
 +
-                jsr w_two_drop          ; stack juggling, must use first (xt)
-_cmpl:
-                ; ( jsr_address -- )
+                ; Prepare for cmpl_call_nos.  We have:
+                ;  ( 0|xt xt' u )
+                ; and want to call xt' unless the original xt was preserved with stack juggling
+                jsr w_drop              ; discard size
+                ; ( 0|xt xt' )
+                lda 3,x                 ; if MSB of NOS is non-zero we had stack juggling
+                bne cmpl_call_nos       ; use original xt from ( xt xt' )
+                jsr w_swap              ; use stripped xt via ( xt' 0 )
+
+cmpl_call_nos:
+        ; Compile xt as a subroutine call, return with C=1
+                ; ( xt ? )
+                jsr w_drop
+cmpl_call_tos:
+                ; ( target -- )
                 lda #OpJSR
                 jsr cmpl_a
                 jsr w_comma
                 sec
                 rts
 
+cmpl_inline_drop:
+        ; compile inline, with extraneous arg to drop, returning C=0
+                ; ( 0|xt xt' u -- )
+                jsr w_rot
+                jsr w_drop              ; discard the 0|xt
 cmpl_inline:
-        ; compile inline, returning C=1
-                ; ( xt xt' u -- )
+                ; ( xt' u -- )
                 jsr w_here
                 jsr w_swap
-                ; ( xt xt' cp u -- )
+                ; ( xt' cp u -- )
                 jsr w_dup
-                jsr w_allot            ; allocate space for the word
-                ; Enough of this, let's move those bytes already!
-                ; ( xt xt' cp u ) on the stack at this point
-                jsr w_move
-                jsr w_drop             ; drop original xt
+                jsr w_allot             ; allocate space for the word
+                jsr w_move              ; let's move those bytes already!
                 clc
 z_compile_comma:
                 rts
@@ -395,7 +385,7 @@ cmpl_0branch_tos:
 ;TODO the fetch-two-bytes past return address in forth words thing is in the compile-word branch
 
 ;TODO the jsr zero-branch <two bytes> construct isn't inline-able but probably isn't checked.  should
-we just always use native branching?  or make that jsr 0branch <rel16>?
+; we just always use native branching?  or make that jsr 0branch <rel16>?
 
                 jmp w_comma                    ; add the payload and return
 
