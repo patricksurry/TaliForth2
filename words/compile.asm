@@ -351,60 +351,47 @@ _done:
                 rts
 
 
-cmpl_0branch_later:
+cmpl_0branch_later:                     ; ( -- target )
         ; compile a 0BRANCH where we don't know the target yet
-        ; leaves pointer to the target on TOS
-                jsr w_zero              ; dummy placeholder, which forces long jmp in native version
-                jsr cmpl_0branch_tos    ; generate native or subroutine branch code
-                jsr w_here              ; either way the target address is two bytes before here
-                sec
-                lda 0,x
-                sbc #2
-                sta 0,x
-                bcs +
-                dec 1,x
-+
-                rts
-
+        ; leaveing a pointer to the target on TOS
+                clc
+                bra cmpl_0branch_common
+                ; fall through to generate native or subroutine branch code
 
 cmpl_0branch_tos:
+                sec
+cmpl_0branch_common:
+                stz tmpdsp                      ; set up tmpdsp as 0 if branch target not known yet, 1 if known
+                rol tmpdsp
+
                 ; compare A > 0 to nc-limit, setting C=0 if A <= nc-limit (should native compile)
 
-                lda #ztest_runtime_size+5       ; typical size of inline form
-                jsr check_nc_limit              ; returns C=0 if we should native compile
+                ; First decide whether to inline or call the runtime.
+                ; Both start with the zero test
+                jsr two_literal_runtime
+                ; TODO strictly should test with +5 but only compile size
+                .word ztest_runtime_size        ; TOS with NUXI order
+                .word zero_branch_runtime       ; NOS
+                jsr cmpl_by_limit               ; leaves C=1 if inline
+
+                lda tmpdsp                      ; sets Z=1 if branch target unknown, preserving carry
                 bcc _inline
 
-                ; non-native, just generate a call with two-byte address payload
-
-                ldy #>zero_branch_runtime
-                lda #<zero_branch_runtime
-                jsr cmpl_subroutine             ; call the 0branch runtime
-
-;TODO conditonally call w_here, and avoid the math in cmpl_0branch_later
-
+                bne +                           ; branch target non-zero?
+                jsr w_here                      ; else save address of placeholder address
+                jsr w_zero                      ; and just compile a zero for now
+                ; ( here 0 )
++
 ;TODO the fetch-two-bytes past return address in forth words thing is in the compile-word branch
-
-;TODO the jsr zero-branch <two bytes> construct isn't inline-able but probably isn't checked.  should
-; we just always use native branching?  or make that jsr 0branch <rel16>?
 
                 jmp w_comma                    ; add the payload and return
 
 _inline:
-                ; inline the test code
-                ldy #0
--
-                lda ztest_runtime,y
-                jsr cmpl_a
-                iny
-                cpy #ztest_runtime_size
-                bne -
 
                 ; now we'll compile the branch to test the zero flag
                 ; first check if we can use a short relative branch or need a long jmp
                 ; the short form 'beq target' will work if addr - (here + 2) fits in a signed byte
 
-                lda 0,x
-                ora 1,x
                 beq _long               ; always use the long form if target is 0
 
                 ; ( addr )
@@ -452,6 +439,13 @@ _long:
                 jsr cmpl_a
                 lda #3
                 jsr cmpl_a
+                lda tmpdsp
+                bne +
+                jsr w_here              ; if target unknown, keep a pointer to the jmp target
+                jsr w_one_plus
+                jsr w_zero              ; and use a dummy placeholder for now
+                ; ( here+1 0 )
++
                 jmp cmpl_jump_tos
 
 
@@ -475,15 +469,13 @@ _long:
 ; important than speed.
 
 zero_branch_runtime:
-
-ztest_runtime:
         ; Drop TOS of stack setting Z flag, for optimizing short branches (see xt_then)
                 inx
                 inx
                 lda $FE,x           ; wraparound so inx doesn't wreck Z status
                 ora $FF,x
         ; The inline form ends here and is follwed by a native beq or bne / jmp
-ztest_runtime_size = * - ztest_runtime
+ztest_runtime_size = * - zero_branch_runtime
 
 zbranch_runtime:
         ; The subroutine continues here, and is also used as an alternate entry point
