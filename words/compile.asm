@@ -351,6 +351,8 @@ _done:
                 rts
 
 
+xt_if:
+w_if:
 cmpl_0branch_later:                     ; ( -- target )
         ; compile a 0BRANCH where we don't know the target yet
         ; leaveing a pointer to the target on TOS
@@ -374,6 +376,7 @@ cmpl_0branch_common:
                 .word zero_branch_runtime       ; NOS
                 jsr cmpl_by_limit               ; leaves C=1 if inline
 
+cmpl_zbranch_common:
                 lda tmpdsp                      ; sets Z=1 if branch target unknown, preserving carry
                 bcc _inline
 
@@ -397,7 +400,7 @@ _inline:
                 ; ( addr )
                 jsr w_dup
                 jsr w_here
-                clc
+                clc                     ; 2+
                 lda #2
                 adc 0,x
                 sta 0,x
@@ -447,7 +450,7 @@ _long:
                 ; ( here+1 0 )
 +
                 jmp cmpl_jump_tos
-
+z_if:
 
 ; =====================================================================
 ; 0BRANCH runtime

@@ -2680,13 +2680,8 @@ z_i:            rts
 ; ## IF (C: -- orig) (flag -- ) "Conditional flow control"
 ; ## "if"  auto  ANS core
         ; """http://forth-standard.org/standard/core/IF"""
-
-xt_if:
-w_if:
-;TODO this should be dummy wrapper rather than extra jsr
-                jsr cmpl_0branch_later
-z_if:           rts
-
+        ;
+        ; This is a dummy entry, the actual code is cmpl_0branch_later
 
 
 ; ## IMMEDIATE ( -- ) "Mark most recent word as IMMEDIATE"
@@ -3859,16 +3854,15 @@ z_number_sign_s:
 
 xt_of:
 w_of:
-                ; Postpone the runtime
-                ldy #>of_runtime
-                lda #<of_runtime
-                jsr cmpl_subroutine             ; set up A with comparison result
+                jsr two_literal_runtime
+                ; TODO strictly should test with +5 but only compile size
+                .word of_runtime_size           ; TOS with NUXI order
+                .word of_runtime                ; NOS
+                jsr cmpl_by_limit               ; leaves C=1 if inline
 
-                jsr w_here                      ; save pointer to branch target
-                jsr w_zero                      ; write a zero placeholder
-                jsr w_comma
-
-z_of:           rts
+                stz tmpdsp
+                jmp cmpl_zbranch_common
+z_of:
 
 of_runtime:
                 ; ( x x -- ) if equal or ( x y -- x ) if not equal with A=true/false
@@ -3889,6 +3883,7 @@ _neq:
                 inx                     ; always drop at least one value
                 inx
                 tya                     ; comparison status
+of_runtime_size = * - of_runtime
                 jmp zbranch_runtime
 
 

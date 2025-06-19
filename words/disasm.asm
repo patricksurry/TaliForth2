@@ -412,7 +412,7 @@ _special_handlers:
 
     .word literal_runtime
         .byte str_disasm_lit, 1
-_sliteral_handler:
+_sliteral_handler:          ; special case to skip payload
     .word sliteral_runtime
         .byte str_disasm_lit, 1 + ('S'-32)*4
     .word two_literal_runtime
@@ -427,6 +427,8 @@ _sliteral_handler:
         .byte str_disasm_do, 0
     .word question_do_runtime
         .byte str_disasm_do, 1 + ('?'-32)*4
+    .word of_runtime
+        .byte str_disasm_of, 1
 _end_handlers:
 
 
