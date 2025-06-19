@@ -2961,6 +2961,7 @@ z_less_than:    rts
 xt_literal:
                 jsr underflow_1
 w_literal:
+; TODO compile by limit
                 lda #template_push_tos_size
                 jsr check_nc_limit
                 bcc _inline
@@ -3016,6 +3017,38 @@ template_push_tos:
                 sta 0,x
                 .byte $ff, 1    ; this will become either sty 1,x or stz 1,x
 template_push_tos_size = * - template_push_tos
+
+
+generic_literal_runtime:
+; something like this but should take argument in A
+; which has a one-delimited stack picture in the lsb's and a couple of control bits
+; so choose postprocessing (none, string, jsr)
+; e.g. xx010101 consumes two bytes into two stack words
+;      xx000111 consumes two bytes into one stack word
+;      xx011100 for string literal puts count TOS with blank NOS
+                pla             ; LSB of address
+                sta tmp1
+                ply             ; MSB of address
+                sty tmp1+1
+
+                clc             ; add four to the return address
+                adc #4
+                bcc +
+                iny
++
+                phy             ; and re-stack
+                pha
+
+                ldy #4
+-
+                lda (tmp1),y    ; copy trailing four bytes to the stack
+                dex
+                sta 0,x
+                dey
+                bne -
+
+                rts
+
 
 
 literal_runtime:
