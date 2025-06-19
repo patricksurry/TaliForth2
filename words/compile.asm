@@ -299,7 +299,7 @@ cmpl_jump_tos:
 cmpl_jump:
                 ; This is the entry point to compile JMP <ADDR=Y/A>
                 pha             ; save LSB of address
-                lda #%00010000  ; unset bit 4 to flag as never-native
+                lda #%00010000  ; unset bit 4 to flag as never-native (NN)
                 trb status
                 lda #OpJMP      ; load opcode for JMP
                 bra +
@@ -386,6 +386,9 @@ cmpl_zbranch_common:
                 ; ( here 0 )
 +
 ;TODO the fetch-two-bytes past return address in forth words thing is in the compile-word branch
+                ; we're adding an absolute address, so flag this word as never-native (NN)
+                lda #%00010000                  ; unset bit 4 to for NN
+                trb status
 
                 jmp w_comma                    ; add the payload and return
 
