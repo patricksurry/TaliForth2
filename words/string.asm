@@ -559,7 +559,7 @@ w_sliteral:
 
 z_sliteral:     rts
 
-
+.if 0
 sliteral_runtime:
         ; """Run time behaviour of SLITERAL: Push ( addr u ) of the string to
         ; the Data Stack.  The length and string data follows the JSR here,
@@ -606,3 +606,4 @@ sliteral_runtime:
                 sta tmp1+1
 
                 jmp (tmp1)
+.endif

@@ -3019,38 +3019,112 @@ template_push_tos:
 template_push_tos_size = * - template_push_tos
 
 
+sliteral_runtime:
+        lda #%10001111
+        bra generic_literal_runtime
+
+two_literal_runtime:
+        lda #%00111111
+        bra generic_literal_runtime
+
+literal_runtime:
+        lda #%00001110
+
 generic_literal_runtime:
-; something like this but should take argument in A
-; which has a one-delimited stack picture in the lsb's and a couple of control bits
-; so choose postprocessing (none, string, jsr)
-; e.g. xx010101 consumes two bytes into two stack words
-;      xx000111 consumes two bytes into one stack word
-;      xx011100 for string literal puts count TOS with blank NOS
+        ; Copies 1-4 bytes following the calling JSR to the data stack.
+        ; The accumulator contains flags defining the mapping from bytes to stack values.
+        ;
+        ;       msb                  lsb
+        ;        N  V  p  p  p  p  p  n
+        ;
+        ; The lsb (bit 0) creates either one (0) or two (1) new stack entries.
+        ; Bits 1-5 are a one-terminated stack picture mapping payload bytes to stack bytes.
+        ; For one stack entry the picture is 00/xx with / the 1 terminator and xx
+        ; mapping the payload to the stack.
+        ; A one bit maps a payload byte, a zero bit adds a zero.
+        ; For two stack entries the picture is /xxxx.
+        ; Parameter bytes are copied to the data stack in memory order, i.e. the
+        ; first byte after the JSR will be nearest TOS (lowest in data stack memory).
+        ; In these examples, / is the terminating one bit of the stack picture:
+        ;       xx00/110 consumes two parameter bytes as the LSB/MSB of one stack word
+        ;       xx00/010 consumes one parameter byte as the LSB of TOS, with MSB=0
+        ;       xx/01011 consumes two parameter bytes as the LSB of two words on the data stack
+        ;       xx/00111 creates an empty NOS and consumes two parameter bytes as LSB/MSB of TOS
+        ;       xx00/111 creates undef NOS and consumes two parameter bytes as LSB/MSB of TOS
+        ; The remaining high bits (N and V) control post-processing:
+        ;       N = 0, V = 0 : no further processing
+        ;       N = 0, V = 1 : cmpl_call_tos
+        ;       N = 1, V = x : string payload, set NOS to addr and return to addr+TOS
+
+                sta tmptos+1    ; save for flag bits
+                and #%00111111
+                sta tmptos      ; save masked picture
+
                 pla             ; LSB of address
                 sta tmp1
-                ply             ; MSB of address
-                sty tmp1+1
+                pla             ; MSB of address
+                sta tmp1+1
 
-                clc             ; add four to the return address
-                adc #4
-                bcc +
-                iny
-+
-                phy             ; and re-stack
-                pha
-
-                ldy #4
--
-                lda (tmp1),y    ; copy trailing four bytes to the stack
+                dex             ; add one stack entry
                 dex
+                lsr tmptos      ; conditionally add a second?
+                bcc +
+                dex
+                dex
++
+                phx             ; save stack pointer
+                dex             ; initial decrement so we can pre-increment
+_loop:
+                inx             ; next data stack byte to fill
+                lsr tmptos      ; fetch next picture bit to carry
+                bcc _zero
+
+                inc tmp1        ; inc data pointer to next param byte
+                bne +           ; (or next instruction with terminator)
+                inc tmp1+1
++
+                lda tmptos
+                beq _post       ; terminator?
+
+                lda (tmp1)      ; copy a payload byte to the stack
                 sta 0,x
-                dey
-                bne -
+                bra _loop
 
-                rts
+_zero:
+                stz 0,x         ; fill with zero
+                bra _loop
+
+_post:
+                plx             ; reset stack pointer
+
+                bit tmptos+1    ; check flag bits
+
+                bpl _notstring
+
+                ; put the string address, (tmp1), into NOS
+                lda tmp1
+                sta 2,x
+                lda tmp1+1
+                sta 3,x
+
+                ; add TOS to point at next instruction to execute
+                clc
+                lda tmp1
+                adc 0,x
+                sta tmp1
+                lda tmp1+1
+                adc 1,x
+                sta tmp1+1
+
+-
+                jmp (tmp1)      ; continue past the payload
+
+_notstring:
+                bvc -
+                jmp cmpl_call_tos       ; continue elsewhere
 
 
-
+.if 0
 literal_runtime:
                 ; During runtime, we push the value following this word back
                 ; on the Data Stack. The subroutine jump that brought us
@@ -3086,7 +3160,7 @@ literal_runtime:
                 phy
 
                 rts
-
+.endif
 
 ; ## LOOP ( -- ) "Finish loop construct"
 ; ## "loop"  auto  ANS core

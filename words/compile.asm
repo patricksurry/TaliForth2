@@ -331,7 +331,7 @@ _done:
                 rts
 
 
-
+; TODO remove
 check_nc_limit:
         ; compare A > 0 to nc-limit, setting C=0 if A <= nc-limit (native compile ok)
                 pha
@@ -355,7 +355,7 @@ xt_if:
 w_if:
 cmpl_0branch_later:                     ; ( -- target )
         ; compile a 0BRANCH where we don't know the target yet
-        ; leaveing a pointer to the target on TOS
+        ; leaving a pointer to the target on TOS
                 clc
                 bra cmpl_0branch_common
                 ; fall through to generate native or subroutine branch code

@@ -337,6 +337,8 @@ _no_inline:
 z_two_literal:  rts
 
 
+; TODO
+.if 0
 two_literal_runtime:
         ; """Run time behavior of 2LITERAL, which stacks two words
         ; following the jsr to the stack in the same memory order.
@@ -373,6 +375,7 @@ two_literal_runtime:
                 bne -
 
                 rts
+.endif
 
 
 ; ## TWO_VARIABLE ( "name" -- ) "Create a variable for a double word"
