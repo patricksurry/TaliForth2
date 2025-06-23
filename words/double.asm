@@ -259,7 +259,7 @@ w_m_star_slash:
                 sta 7,x
 
                 jsr w_um_slash_mod      ; ( qhi r' qlo )
-+
+
                 ; finally we want
                 ; SWAP DROP SWAP ROT 0< if dnegate then ;
                 ; which just ditches the last remainder and gets

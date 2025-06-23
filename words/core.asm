@@ -3135,7 +3135,6 @@ _string:
 
                 bvs _indirect
 
-_inc_ip:
                 ; add TOS to point at instruction after the string
                 clc
                 lda tmp1
