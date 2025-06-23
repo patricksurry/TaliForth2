@@ -540,13 +540,12 @@ w_sliteral:
                 ;   .word u
                 ;   .byte < u data bytes >
 
-                ldy #>sliteral_runtime
-                lda #<sliteral_runtime
-                jsr cmpl_subroutine     ; jsr sliteral_runtime
+                jsr cmpl_call_literal
+                .word sliteral_runtime
 
-                lda 0,x
-                ldy 1,x
-                jsr cmpl_word           ; .word u
+                jsr w_comma             ; compile the payload u
+                dex                     ; but keep it on the stack
+                dex
 
                 jsr w_here
                 jsr w_swap
@@ -558,52 +557,3 @@ w_sliteral:
                 jsr w_move              ; .text < u bytes >
 
 z_sliteral:     rts
-
-.if 0
-sliteral_runtime:
-        ; """Run time behaviour of SLITERAL: Push ( addr u ) of the string to
-        ; the Data Stack.  The length and string data follows the JSR here,
-        ; for example if we have
-        ;
-        ;       jsr sliteral_runtime
-        ;       .word u
-        ;    _addr:
-        ;       .byte < u string bytes >
-        ;
-        ; Then we want to stack ( _str u ) and return past the end of the string.
-        ; """
-                dex             ; make space on the stack
-                dex
-                dex
-                dex
-
-                ; fetch return address which points one byte before u
-                clc
-                pla             ; LSB of return address
-                sta tmp1
-                adc #3          ; calculate string offset
-                sta 2,x         ; LSB of string address
-                ply             ; MSB of address
-                sty tmp1+1
-                bcc +
-                iny
-+
-                sty 3,x         ; MSB of string address
-
-                ldy #2          ; copy u to TOS
-                lda (tmp1),y
-                sta 1,x         ; MSB of u
-                dey
-                lda (tmp1),y
-                sta 0,x         ; LSB of u
-
-                ; we want to continue past the string, i.e. NOS+TOS
-                clc             ; A still has LSB of u
-                adc 2,x         ; LSB of continuation address
-                sta tmp1
-                lda 1,x
-                adc 3,x
-                sta tmp1+1
-
-                jmp (tmp1)
-.endif

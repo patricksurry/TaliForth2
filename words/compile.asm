@@ -31,7 +31,7 @@
 ;
 ; Forth uses only two branching constructs, an unconditional jump
 ; and a conditional 0branch.  TaliForth doesn't expose 0BRANCH as
-; a user word but see cmpl_jump, cmpl_jump_later, cmpl_jump_tos,
+; a user word but see cmpl_jump_ya, cmpl_jump_later, cmpl_jump_tos,
 ; cmpl_0branch_tos and cmpl_0branch_later.  The xxx_later variants
 ; let us compile forward references where we need to come back
 ; and fill in the branch address after we've reached the target.
@@ -155,18 +155,19 @@ _check_limit:
                 and #AN+NN              ; check Always Native (AN) bit
                 cmp #AN                 ; AN=1, NN=0?  (i.e. not ST=AN+NN)
                 beq cmpl_inline_drop    ; always natively compile
-                bne cmpl_by_limit_st
+                bne cmpl_by_limit2
 
 cmpl_by_limit:
-        ; simplified entrypoint for cmpl_by_limit_st where xt == xt'
+        ; simplified entrypoint for cmpl_by_limit2 where xt == xt'
                 jsr w_over
                 jsr w_swap
 
-cmpl_by_limit_st:
+cmpl_by_limit2:
+                ; ( 0|xt xt' u )
                 ; Compile either inline or as subroutine depending on
                 ; whether native code size <= user limit
+                ; xt' is always used for inlining; with xt preferred for call if non-zero
                 ; Returns C=0 if native, C=1 if subroutine
-                ; ( 0|xt xt' u )
                 ldy #nc_limit_offset+1
                 lda 1,x                 ; MSB of word size
                 cmp (up),y              ; user-defined limit MSB
@@ -266,7 +267,7 @@ _not_uf:        clc                     ; C=0 means it isn't a UF check
 ;
 ;               ldy #>addr      ; MSB   ; "Young"
 ;               lda #<addr      ; LSB   ; "Americans"
-;               jsr cmpl_subroutine
+;               jsr cmpl_word_ya
 ;
 ; We have have various utility routines here for compiling a word in Y/A
 ; and a single byte in A.
@@ -285,37 +286,27 @@ cmpl_jump_later:
                 lda cp
                 inc a
                 sta 0,x
-                bne cmpl_jump
+                bne cmpl_jump_ya
                 inc 1,x
-                bra cmpl_jump
+                bra cmpl_jump_ya
 
 cmpl_jump_tos:
                 ; compile a jump to the address at TOS, consuming it
-                lda 0,x         ; set up for cmpl_jump Y/A
+                lda 0,x         ; set up for cmpl_jump_ya
                 ldy 1,x
                 inx
                 inx
 
-cmpl_jump:
+cmpl_jump_ya:
                 ; This is the entry point to compile JMP <ADDR=Y/A>
                 pha             ; save LSB of address
                 lda #%00010000  ; unset bit 4 to flag as never-native (NN)
                 trb status
                 lda #OpJMP      ; load opcode for JMP
-                bra +
-
-cmpl_subroutine:
-                ; This is the entry point to compile JSR <ADDR=Y/A>
-                pha             ; save LSB of address
-                lda #OpJSR      ; load opcode for JSR and fall through
-
-+
-                ; At this point, A contains the opcode to be compiled,
-                ; the LSB of the address is on the 65c02 stack, and the MSB of
-                ; the address is in Y
                 jsr cmpl_a      ; compile opcode
                 pla             ; retrieve address LSB; fall thru to cmpl_word
-cmpl_word:
+                ; fall through
+cmpl_word_ya:
                 ; This is the entry point to compile a word in Y/A (little-endian)
                 jsr cmpl_a      ; compile LSB of address
                 tya             ; fall thru for MSB
@@ -331,26 +322,6 @@ _done:
                 rts
 
 
-; TODO remove
-check_nc_limit:
-        ; compare A > 0 to nc-limit, setting C=0 if A <= nc-limit (native compile ok)
-                pha
-                sec
-                ldy #nc_limit_offset+1
-                lda (up),y              ; if MSB non zero we're good, leave with C=0
-                beq +
-                clc
-+
-                pla
-                bcc _done
-                dea                     ; simplify test to A-1 < nc-limit
-                dey
-                cmp (up),y              ; A-1 < LSB leaves C=0, else C=1
-                ina                     ; restore A, preserves carry
-_done:
-                rts
-
-
 xt_if:
 w_if:
 cmpl_0branch_later:                     ; ( -- target )
@@ -360,7 +331,11 @@ cmpl_0branch_later:                     ; ( -- target )
                 bra cmpl_0branch_common
                 ; fall through to generate native or subroutine branch code
 
+xt_until:
+                jsr underflow_1
+w_until:
 cmpl_0branch_tos:
+                ; The (known) address to branch back to is TOS.
                 sec
 cmpl_0branch_common:
                 stz tmpdsp                      ; set up tmpdsp as 0 if branch target not known yet, 1 if known
@@ -376,7 +351,8 @@ cmpl_0branch_common:
                 .word zero_branch_runtime       ; NOS
                 jsr cmpl_by_limit               ; leaves C=1 if inline
 
-cmpl_zbranch_common:
+cmpl_zbranch_common:                            ; entrypoint for w_of
+
                 lda tmpdsp                      ; sets Z=1 if branch target unknown, preserving carry
                 bcc _inline
 
@@ -385,7 +361,6 @@ cmpl_zbranch_common:
                 jsr w_zero                      ; and just compile a zero for now
                 ; ( here 0 )
 +
-;TODO the fetch-two-bytes past return address in forth words thing is in the compile-word branch
                 ; we're adding an absolute address, so flag this word as never-native (NN)
                 lda #%00010000                  ; unset bit 4 to for NN
                 trb status
@@ -393,7 +368,6 @@ cmpl_zbranch_common:
                 jmp w_comma                    ; add the payload and return
 
 _inline:
-
                 ; now we'll compile the branch to test the zero flag
                 ; first check if we can use a short relative branch or need a long jmp
                 ; the short form 'beq target' will work if addr - (here + 2) fits in a signed byte
@@ -454,6 +428,7 @@ _long:
 +
                 jmp cmpl_jump_tos
 z_if:
+z_until:
 
 ; =====================================================================
 ; 0BRANCH runtime
