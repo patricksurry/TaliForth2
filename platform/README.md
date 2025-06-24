@@ -234,7 +234,6 @@ interrupt running code and return to the prompt. For example, the 6502's
 NMI input could be used with a simple push-button that vectors to code that
 jumps to `error` as described above.
 
-
 ## Contributing
 
 To submit your configuration file, pick a name with the form `platform-*.asm`
