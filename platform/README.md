@@ -218,18 +218,21 @@ the input prompt.
 For platforms that have an interrupt-driven serial console, this can be
 implemented by checking to see if an input character read in the interrupt
 service routine is the "break" key (e.g. Ctrl-C). If so, instead of
-buffering the input character and returning from the interrupt, remove
-the return address and the program status word from the stack, set A to the
+buffering the input character and returning from the interrupt, set A to
 error code `err_usersigint` (see `stringtable.asm`) and jump to Taliforth's
-`error` re-entry point. The "user interrupt" error message will be displayed
-and Taliforth will await the next input from the user. You may also wish to
-flush the input buffer before jumping to `error`.
+`error` entry point. After printing the "User interrupt" message, Taliforth
+will jump to `ABORT` which resets the Forth data stack and the return stack.
+
+Before jumping to `error` you should re-enable interrupts (since no RTI
+instruction will be executed), and flush your input buffer so that characters
+buffered before the break key was detected will not be processed as new
+input when Taliforth next awaits user input.
 
 Any other mechanism that can respond to a hardware input via an interrupt
 service routine could be used in a similar manner to allow a user to
 interrupt running code and return to the prompt. For example, the 6502's
 NMI input could be used with a simple push-button that vectors to code that
-cleans up the stack and jumps to `error` as described above.
+jumps to `error` as described above.
 
 
 ## Contributing
