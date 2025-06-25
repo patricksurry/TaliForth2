@@ -20,7 +20,7 @@
 ram_end = $8000-1
         * = $8000
 
-.include "../taliforth.asm" ; zero page variables, definitions
+.include "../../taliforth.asm" ; zero page variables, definitions
 
 ; =====================================================================
 ; ; Of the 32 KiB we use, 24 KiB are reserved for Tali (from $8000 to $DFFF)

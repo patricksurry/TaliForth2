@@ -21,7 +21,7 @@ ram_end = $28ff
         * = $2900
 
 
-.include "../taliforth.asm" ; zero page variables, definitions
+.include "../../taliforth.asm" ; zero page variables, definitions
 
 
 kernel_init:

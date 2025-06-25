@@ -34,9 +34,8 @@ TALI_OPTION_CR_EOL := [ "cr" ]
 
 kernel_init:
         ; """Initialize the hardware. This is called with a JMP and not
-        ; a JSR because we don't have anything set up for that yet. With
-        ; py65mon, of course, this is really easy. -- At the end, we JMP
-        ; back to the label forth to start the Forth system.
+        ; a JSR because we don't have anything set up for that yet.
+        ; At the end, we JMP to the label forth to start the Forth system.
         ; """
 
                 ; Nothing special to set up here.
@@ -64,7 +63,7 @@ kernel_bye:
 
 
 ; Put the guts of Tali Forth 2 here.
-.include "../taliforth.asm" ; zero page variables, definitions
+.include "../../taliforth.asm" ; zero page variables, definitions
 
 ; Leave the following string as the last entry in the kernel routine so it
 ; is easier to see where the kernel ends in hex dumps. This string is

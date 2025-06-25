@@ -84,7 +84,7 @@ TALI_OPTION_TERSE := 0
 ; Include Tali Forth 2 code
 ; Make sure the above options are set BEFORE this include.
 
-.include "../taliforth.asm" ; zero page variables, definitions
+.include "../../taliforth.asm" ; zero page variables, definitions
 
 ; Now we've got all of Tali's native code.  This requires about 24Kb
 ; with all options, or as little as 12Kb for a minimal build.

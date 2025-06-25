@@ -40,7 +40,7 @@ kernel_init:
 _done:
                 ;jmp forth
 
-.include "../taliforth.asm" ; zero page variables, definitions
+.include "../../taliforth.asm" ; zero page variables, definitions
 
 
 kernel_bye:
