@@ -62,7 +62,7 @@ clean:
 	$(RM) *.bin *.prg
 	make -C c65 clean
 
-taliforth-%.bin: platform/%/kernel.asm $(COMMON_SOURCES)
+taliforth-%.bin: platform/%/platform.asm $(COMMON_SOURCES)
 	64tass --nostart \
 	--list=docs/$*-listing.txt \
 	--vice-labels \
@@ -70,7 +70,7 @@ taliforth-%.bin: platform/%/kernel.asm $(COMMON_SOURCES)
 	--output $@ \
 	$<
 
-taliforth-%.prg: platform/%/kernel.asm $(COMMON_SOURCES)
+taliforth-%.prg: platform/%/platform.asm $(COMMON_SOURCES)
 	64tass --cbm-prg \
 	--list=docs/$*-listing.txt \
 	--labels=docs/$*-labelmap.txt \
