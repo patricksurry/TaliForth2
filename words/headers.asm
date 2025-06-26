@@ -176,7 +176,7 @@ prev_nt ::= _nt
 
 
 ; prev_nt tracks the previous header, and is reset after each wordlist
-prev_nt := 0
+prev_nt :?= 0
 
 
 ; FORTH-WORDLIST
