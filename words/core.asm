@@ -6487,8 +6487,10 @@ w_two_r_fetch:
                 dex
                 dex
 
-                ; rather than actually copying from the CPU stack it's quicker
-                ; to pull the values we want, and then restore the SP to unpull them
+                ; rather than indexing into the CPU stack to copy bytes
+                ; we can take advantage of the fact that CPU pull instructions
+                ; just increment the SP, leaving the data in place.
+                ; so we can pull all values we need and then reset the SP to restore them
                 phx             ; put DSP on the stack
                 tsx
                 txa             ; save SP -> X -> A
@@ -6504,7 +6506,7 @@ w_two_r_fetch:
                 sty 3,x
 
                 tax
-                txs             ; restore SP
+                txs             ; restore SP (including the DSP value)
                 plx             ; pull original DSP again
 
                 ; --- CUT FOR NATIVE COMPILE ---
