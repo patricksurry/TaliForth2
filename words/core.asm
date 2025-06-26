@@ -4612,14 +4612,7 @@ xt_r_fetch:
 w_r_fetch:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                pla                     ; LSB
-                ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr save_rts_address
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -4657,14 +4650,7 @@ xt_r_from:
 w_r_from:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                pla                     ; LSB
-                ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr save_rts_address
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -6283,6 +6269,26 @@ _done:
 z_to_number:    rts
 
 
+save_rts_address:
+                pla
+                ply
+                inc a
+                sta tmptos
+                bne +
+                iny
++
+                sty tmptos+1
+
+                pla                     ; LSB
+                ply                     ; MSB
+                inc a
+                sta tmp1                ; LSB
+                bne +
+                iny
++
+                sty tmp1+1              ; MSB
+                jmp (tmptos)
+
 
 ; ## TO_R ( n -- )(R: -- n) "Push TOS to the Return Stack"
 ; ## ">r"  auto  ANS core
@@ -6296,14 +6302,7 @@ xt_to_r:
 w_to_r:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                pla                     ; LSB
-                ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr save_rts_address
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -6471,45 +6470,42 @@ z_two_over:     rts
         ; """https://forth-standard.org/standard/core/TwoRFetch
         ;
         ; This is R> R> 2DUP >R >R SWAP but we can do it a lot faster in
-        ; assembler. We use trickery to access the elements on the Return
-        ; Stack instead of pulling the return address first and storing
-        ; it somewhere else like for 2R> and 2>R. In this version, we leave
-        ; it as Never Native; at some point, we should compare versions to
-        ; see if an Always Native version would be better
+        ; assembler.
         ; """
 xt_two_r_fetch:
 w_two_r_fetch:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                pla                     ; LSB
-                ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr save_rts_address
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
                 ; copy four bytes from return stack to the data stack
 
-                txa             ; arrange for Y = SP; X -= 4
-                tsx
-                phx             ; 65c02 has no TXY, so do it the hard way
-                ply
-                sec
-                sbc #4
-                tax
+                dex             ; make space on the data stack
+                dex
+                dex
+                dex
 
-                lda $101,y
-                sta 0,x
-                lda $102,y
-                sta 1,x
-                lda $103,y
-                sta 2,x
-                lda $104,y
-                sta 3,x
+                ; rather than actually copying from the CPU stack it's quicker
+                ; to pull the values we want, and then restore the SP to unpull them
+                phx             ; put DSP on the stack
+                tsx
+                txa             ; save SP -> X -> A
+                plx             ; restore DSP
+
+                ply             ; copy four elements
+                sty 0,x
+                ply
+                sty 1,x
+                ply
+                sty 2,x
+                ply
+                sty 3,x
+
+                tax
+                txs             ; restore SP
+                plx             ; pull original DSP again
 
                 ; --- CUT FOR NATIVE COMPILE ---
 
@@ -6532,14 +6528,7 @@ xt_two_r_from:
 w_two_r_from:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                pla
-                ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr save_rts_address
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -6691,14 +6680,7 @@ xt_two_to_r:
 w_two_to_r:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                pla                     ; LSB
-                ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr save_rts_address
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 

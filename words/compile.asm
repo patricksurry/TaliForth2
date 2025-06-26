@@ -116,7 +116,7 @@ _no_st:
                 ; ( xt xt u ) if ST else ( 0 xt u )
                 bcc _check_uf           ; no stack juggling to skip?
 
-_strip_sz = 10  ; skip the standard 10 byte header which saves return address + 1 to tmp1
+_strip_sz = 3  ; skip the standard 3 byte header which saves return address + 1 to tmp1
 
                 jsr bliteral_runtime
                 .byte _strip_sz
