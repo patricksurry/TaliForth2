@@ -1,8 +1,4 @@
 ; Skeleton configuration
-; Scot W. Stevenson <scot.stevenson@gmail.com>
-; Patrick Surry
-; Sam Colwell
-; First version: 19. Jan 2014
 ; This version: 26. Jun 2025
 
         ; 65C02 processor (Tali will not compile on older 6502)
@@ -135,31 +131,21 @@ kernel_kbhit:
                 rts
 
 
-; =====================================================================
-; Include any forth words written in assembly.  These will be added to
-; the FORTH-WORDLIST.  This must be done BEFORE including taliforth.asm
-; below.
-.include "platform_words.asm"
-
-; =====================================================================
-; Include Tali Forth 2 code
-; Make sure the above options are set BEFORE this include.
-
-.include "../taliforth.asm" ; zero page variables, definitions
-
-; Now we've got all of Tali's native code.  This requires about 24Kb
-; with all options, or as little as 12Kb for a minimal build.
-; In the default configuraiton, we've filled ROM from $8000
-; to about $dfff, leaving about 8Kb.
-
-
-
 ; Leave the following string as the last entry in the kernel routine so it
 ; is easier to see where the kernel ends in hex dumps. This string is
 ; displayed after a successful boot
 
 s_kernel_id:
-        .text "Tali Forth 2 default kernel for c65 (01. Jun 2024)", AscLF, 0
+        .text "Tali Forth 2 default kernel for skeleton platform (27. Jun 2025)", AscLF, 0
+
+
+; =====================================================================
+; Include Tali Forth 2 code
+; Make sure the options at the top of this file are set BEFORE this include.
+
+.include "../../taliforth.asm" ;
+
+
 
 ; Define the interrupt vectors.  For the simulator we redirect them all
 ; to the kernel_init routine and restart the system hard.  If you want to
