@@ -46,8 +46,8 @@
 
 ; this could be exposed as a forth word but currently isn't
 compile_nt_comma:  ; ( nt -- )
-        ; compile, looks up the nt from the xt which is very slow
-        ; if we already have the nt, we can get things rolling faster
+        ; cf. COMPILE, which finds the nt from an xt (very slow)
+        ; This entrypoint is handy if we already have an nt
 
         jsr w_dup                       ; ( nt nt )
         jsr w_name_to_int               ; ( nt xt )
@@ -118,8 +118,8 @@ _no_st:
 
 _strip_sz = 10  ; skip the standard 10 byte header which saves return address + 1 to tmp1
 
-                jsr literal_runtime
-                .word _strip_sz         ; TODO bliteral
+                jsr bliteral_runtime
+                .byte _strip_sz
                 jsr w_slash_string
 
                 ; ( xt|0 xt+sz u-sz )
@@ -143,8 +143,8 @@ _check_uf:
 
                 ; Ready to remove the 3 byte underflow check.
 
-                jsr literal_runtime     ; TODO bliteral
-                .word 3
+                jsr bliteral_runtime
+                .byte 3
                 jsr w_slash_string
 
 _check_limit:
@@ -290,6 +290,9 @@ cmpl_jump_later:
                 inc 1,x
                 bra cmpl_jump_ya
 
+xt_again:
+                jsr underflow_1
+w_again:
 cmpl_jump_tos:
                 ; compile a jump to the address at TOS, consuming it
                 lda 0,x         ; set up for cmpl_jump_ya
@@ -316,9 +319,10 @@ cmpl_a:
                 ; routine does not modify Y.
                 sta (cp)
                 inc cp
-                bne _done
+                bne +
                 inc cp+1
-_done:
++
+z_again:
                 rts
 
 

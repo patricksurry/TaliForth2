@@ -418,14 +418,8 @@ z_action_of:           rts
 ; ## AGAIN ( addr -- ) "Code backwards branch to address left by BEGIN"
 ; ## "again"  tested  ANS core ext
         ; """https://forth-standard.org/standard/core/AGAIN"""
-xt_again:
-                jsr underflow_1
-w_again:
-                ; Compile a JMP back to TOS address.
-                jsr cmpl_jump_tos
-
-z_again:        rts
-
+        ;
+        ; This is a dummy header, the actual implementation is in cmpl_jump_tos
 
 
 ; ## ALIGN ( -- ) "Make sure CP is aligned on word size"
@@ -1894,13 +1888,14 @@ z_emit:         ; never reached
 xt_endcase:
                 jsr underflow_1
 w_endcase:
-                ; Postpone DROP to remove the item
-                ; being checked.
-                jsr cmpl_call_literal
-                .word w_drop
+                ; Postpone DROP to remove the item being checked.
+                jsr two_literal_runtime
+                .word z_drop - w_drop           ; TOS with NUXI order
+                .word w_drop                    ; NOS
+                jsr cmpl_by_limit               ; rather than compile_nt_comma to always skip UF test
 
                 ; There are a number of address (of branches that need their
-                ; jump addressed filled in with the address of right here).
+                ; jump addresses filled in with the address of right here).
                 ; Keep calling THEN to deal with them until we reach the
                 ; 0 that CASE put on the stack at the beginning.
 _endcase_loop:
@@ -2949,24 +2944,36 @@ z_less_than:    rts
 xt_literal:
                 jsr underflow_1
 w_literal:
+                lda 1,x                         ; is it a byte value?
+                bne +
+
                 jsr literal_runtime
-                .word literal_runtime           ; if we're calling
+                .word bliteral_runtime
+                jsr two_literal_runtime
+                .word template_push_tos_size-2  ; TOS
+                .word template_push_tos+2       ; NOS, if we're inlining
+                bra _cmpl
++
+                jsr literal_runtime
+                .word literal_runtime
                 jsr two_literal_runtime
                 .word template_push_tos_size    ; TOS
                 .word template_push_tos         ; NOS, if we're inlining
-                ; ( n call inline sz )
-                lda 7,x         ; is n a byte value?
-                bne +
-                jsr w_two
-                jsr w_slash_string
-                ; ( n call inline+2 sz-2 )
-+
+_cmpl:
+                ; ( n call-addr inline-addr inline-sz )
+
                 jsr cmpl_by_limit2
                 ; ( n )
                 bcc _inline                     ; C=0 if inlined
 
                 ; Compile the value to be pushed to data stack at runtime
+                lda 1,x
+                bne +
+                jsr w_c_comma
+                bra _done
++
                 jsr w_comma
+_done:
                 sec                             ; tell w_two_literal we didn't inline
                 rts
 
@@ -2996,7 +3003,7 @@ _inline:
 z_literal:      rts
 
 
-
+;TODO cleanup
 ; lit:
 ;                 jsr literal_runtime
 ;                 .word $1234
@@ -3047,8 +3054,14 @@ cmpl_call_literal:
                 jsr cmpl_call_tos
                 jmp (tmp1)
 
+; TODO rename these like
+;  push_literal, push_byte_literal, push_string_literal, push_pictured_literal
 literal_runtime:
                 lda #%00001110
+                bra generic_literal_runtime
+
+bliteral_runtime:
+                lda #%00001010
 
 generic_literal_runtime:
         ; Copies 1-4 bytes following the calling JSR to the data stack.
@@ -3243,13 +3256,12 @@ _noleave:
                 lda 1,x
                 sta loopleave+1
 
-                ; reuse TOS
 
                 ; Clean up the loop params by appending unloop
-                lda #<nt_unloop
-                sta 0,x
-                lda #>nt_unloop
-                sta 1,x
+                inx
+                inx
+                jsr literal_runtime
+                .word nt_unloop
                 jsr compile_nt_comma    ; use the faster entry with the NT
 
                 ; Finally we're left with qdo-skip which either

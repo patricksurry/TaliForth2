@@ -311,27 +311,26 @@ w_two_literal:
                 ; If we end up inlining using two w_literal sequences
                 ; we need the runtime to push the current NOS=XI first.
                 ; But if we can't inline we want two_literal_runtime .word NU, XI.
+                lda cp                  ; remember LSB of cp so we can rewind
+                pha
                 jsr w_over
                 ; ( XI NU XI)
                 jsr w_literal           ; leaves C=0 if we inlined
+                pla                     ; recover cp LSB
                 bcs _no_inline
+
                 jsr w_literal           ; inline the second word
                 jmp w_drop              ; drop the spare copy of XI
 
 _no_inline:
-                ; we didn't inline so we currently have
-                ;       jsr literal_runtime
-                ;       .word XI
-                ; with ( XI NU ) remaining on the data stack
-                ; but we actually want
+                ; inline failed so rewind and use ( XI NU ) to compile:
                 ;       jsr two_literal_runtime
                 ;       .word NU, XI
-                lda cp                  ; undo the call to literal_runtime
-                sbc #5                  ; note C=1 on entry to this section
-                sta cp
-                bcs +
+                cmp cp                  ; compare old cp in A with current cp
+                bcc +                   ; if A > cp (C=1) we wrapped a page
                 dec cp+1
 +
+                sta cp
                 jsr cmpl_call_literal
                 .word two_literal_runtime
 
