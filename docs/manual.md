@@ -182,7 +182,7 @@ Tali Forth 2 in the simulator.
 To exit, you can type `bye` or use CTRL-C to break out of the simulator.
 
 Note: If running on Windows in a git bash shell, you will need to use winpty,
-eg. `winpty make csim`. This is only needed for the git bash shell. Running
+e.g. `winpty make csim`. This is only needed for the git bash shell. Running
 Tali in c65 from the Windows command prompt or Windows Subsystem for Linux (WSL)
 works fine.
 
@@ -2837,7 +2837,7 @@ made.
 > <http://www.bradrodriguez.com/papers/moving1.htm> by Brad Rodriguez.
 
 Spoiler alert: Tali Forth is a subroutine-threaded (STC) variant with a 16-bit
-cell size and a dictionary that keeps headers and code separate. If you don’t
+cell size and a dictionary that allows separated headers and code. If you don’t
 care and just want to use the program, skip ahead.
 
 #### Characteristics of the 65c02
@@ -2883,7 +2883,7 @@ Our lack of registers and the goal of creating a simple and easy to understand
 Forth makes subroutine threading the most attractive solution, so Tali 2 is an
 STC Forth. We try to mitigate the pain caused by the 12 cycle cost of each and
 every `jsr`-`rts` combination by including a relatively high number of native
-words.
+words, as well as in-built support for inlining of most words.
 
 #### Register Use
 
@@ -2918,11 +2918,12 @@ no checks for overflow because those cases tend to be rare.
 
 #### Dictionary Structure
 
-Each Forth word consists of the actual code and the header that holds the
-meta-data. The headers are arranged as a simple single-linked list.
+The implementation of each Forth word consists of its actual assembly code
+along with a header that holds meta-data for the word.
+The headers are arranged as a simple single-linked list.
 
 In contrast to Tali Forth 1, which kept the header and body of the words
-together, Tali Forth 2 keeps them separate. This lets us play various tricks
+together, Tali Forth 2 allows them to be separated. This lets us play various tricks
 with the code to make it more effective.
 
 ### Deeper down the rabbit hole
@@ -3012,8 +3013,11 @@ Underflow detection adds three bytes and 16 cycles to the words that have it.
 However, it increases the stability of the program. There is an option for
 stripping it out when compiling user-defined words (see below).
 
-Tali Forth does not check for overflow, which in normal operation is too rare
-to justify the computing expense.
+Tali Forth does not explicitly check for overflow, which in normal operation is too rare
+to justify the computing expense. However, the underlow checks use a signed test which
+triggers both when the stack depth is negative and when the stack exceeds 128 bytes:
+also negative as far as the 65c02 is concerned!
+This means the maximum stack size is 64 words with an implicit overflow test at that depth.
 
 #### Double Cell Values
 
@@ -3040,42 +3044,59 @@ of the byte below the DSP.
 ### Dictionary
 
 Tali Forth follows the traditional model of a Forth dictionary — a linked list
-of words terminated with a zero pointer. The headers and code are kept separate
+of words terminated with a zero pointer. The headers and code can be separated
 to allow various tricks in the code.
 
 #### Elements of the Header
 
-Each header is at least eight bytes long:
+Each word has a `name token` (nt, `nt_word` in the code) that points to the
+first byte of its header. The header can vary in size from four to eight bytes,
+plus the length of the string containing the word’s name.
+Conceptually the header looks like this:
 
 <figure>
-<img src="pics/header_diagram.png" alt="header diagram" />
+<img src="pics/header_simple.png" alt="header simple" />
 </figure>
 
-Each word has a `name token` (nt, `nt_word` in the code) that points to the
-first byte of the header. This is the length of the word’s name string, which
-is limited to 255 characters.
+In practice headers are usually generated using the `#nt_header` macro
+seen in `words/headers.asm`.
+This ensures that the various header fields are defined consistently.
+However, it’s helpful to understand
+the header structure as you start tinkering with TaliForth’s internals.
 
-The second byte in the header (index 1) contains the status flags. It is created by
-the flags defined in the file `definitions.asm`:
+The first byte of the header, at offset 0, is the **status byte**.
+It contains eight bit flags defined in the file `definitions.asm`:
+
+<figure>
+<img src="pics/status_flags.png" alt="status flags" />
+</figure>
+
+Five of the flags define metadata for the word,
+while three control the format of the header itself.
+The builtin word `see` displays all of these flags for any Forth word,
+along with a calculated **UF** flag indicating whether the word includes an (optional) underflow check.
+
+The first three metadata flags — **HC**, **NN** and **AN** — are rarely needed for user words,
+while the last two — **CO** and **IM** — are useful for words with special compilation semantics:
 
 |  |  |
 |----|----|
-| CO | **Compile Only.** This word may only be used inside definitions of new words. |
-| IM | **Immediate.** This Word is executed immediately during definitions of new words. |
+| HC | **Has CFA.** The word’s first three bytes are considered the Code Field Area (CFA).
+The CFA is a `jsr` to either a known handler like `dovar` or indirectly to `dodefer`
+and is followed by the Parameter Field Area (PFA) with any data used by the CFA.
+This is used by words defined with `create` so that `>body` returns the correct value. |
 | NN | **Never Native.** This Word is never inlined. This is usually because the word needs
 the caller’s return address for processing, or because the word
 contains some non-relocatable data or code like the absolute `jmp` generated by flow control words.
 TaliForth automatically flags user words as **NN** when it detects `jmp` instructions. |
-| AN | **Always Native.** This Word must always be inlined, usually because it depends on the
-return stack state. Setting both **NN** and **AN** together indicates a Word which can be either
-inlined or not with a specific return stack prologue that is removed when inlined.
+| AN | **Always Native.** This word must always be inlined, usually because it depends on the
+return stack state. Setting both **NN** and **AN** together indicates a word which can be either
+inlined or not with a specific return stack prologue/epilogue that is removed when inlined.
 This is limited to the words `R>`, `R@`, `>R`, `2R>`, `2R@`, and `2>R`. |
-| HC | **Has CFA.** The Word’s first three bytes are considered the Code Field Area (CFA).
-The CFA is a `jsr` to either a known handler like `dovar` or indirectly to `dodefer`
-and is followed by the Parameter Field Area (PFA) with any data used by the CFA.
-This is used by words defined with `create` so that `>body` returns the correct value. |
+| IM | **Immediate.** This word is executed immediately during definitions of new words. |
+| CO | **Compile Only.** This word may only be used inside definitions of new words. |
 
-The **NN** and **AN** flags are intrepreted together like this:
+The **NN** and **AN** flags are interpreted together like this:
 
 | NN | AN | Interpretation |
 |----|----|----|
@@ -3084,26 +3105,73 @@ The **NN** and **AN** flags are intrepreted together like this:
 | 0 | 1 | Word can only be inlined (always native; AN). |
 | 1 | 1 | Normal word with return stack juggling removed when inlining (ST). |
 
-Note there are currently three bits unused.
+The last three flags — **DC**, **LC** and **FP** — control the header layout to optimize memory usage,
+often allowing us to halve the header from eight to four bytes (not counting the name string).
+This full picture of the header illustrates how they work:
 
-The status byte is followed by the **pointer to the next header** in the linked
-list, which makes it the name token of the next word. A 0000 in this position
-signals the end of the linked list, which by convention is the word `bye` for
-the native code words.
+<figure>
+<img src="pics/header_detail.png" alt="header detail" />
+</figure>
 
-This is followed by the current word’s **execution token** (xt, `xt_word`) that
-points to the start of the actual code. Some words that have the same
-functionality point to the same code block.
+|  |  |
+|----|----|
+| DC | **Disjoint code.** When DC=1, the word’s code can be located
+anywhere in memory, with the xt_word value added to the header.
+However when DC=0 the word’s code immediately follows the header,
+reducing the header size by two bytes. Most `:` words
+added to the dictionary use this format, since compiled code
+is added to the dictionary immediately after the header. |
+| LC | **Long code.** The length of the word body can be recorded in
+either one or two bytes. The length is only required
+if the word is inlined, and for `DISASM`. If we don’t care about
+inlining long words we can save some complexity by always using one byte
+and just reporting a maximum length of 255 (see `fixup_long_word`). |
+| FP | **Far previous.** Normally we store a two byte `nt_prev` pointer
+for the previous header in the linked list.
+However, if the previous header is within the preceding 256 bytes,
+we only need to store the LSB and can infer the MSB, saving a byte.
+This is often the case with small `:` words that are consecutively
+added to the dictionary, and with builtin words where we define
+all headers consecutively. |
+
+The length of the header, excluding the name itself, is 4 + 2\*DC + LC + FP bytes.
+The specific position of these flags in the status byte makes this easy to calculate in assembly:
+
+            lda flags       ; start with status flags in the accumulator
+            and #DC+LC+FP   ; mask the three header length bits
+            lsr             ; shift FP to carry flag, so Acc = 2*DC + LC
+            adc #4          ; header length is 4 + 2*DC + LC + FP bytes
+
+> [!NOTE]
+> We could also reorganize the built-in dictionary to save a little more memory
+> but currently have preferred readability, keeping word headers disjoint
+> from their assembly implementations.
+
+The second byte of the header — following the status byte — is the **length of the word’s name string**, which
+is currently limited to 31 characters.
+
+The length byte is followed by the **pointer to the previous header** in the linked
+list, i.e. the name token of that word. A 0000 in this position
+signals the beginning of the linked list, which by convention is the word `bye` for
+the native code words. If the `FP` flag is zero we only store the LSB of the previous header,
+and infer the MSB depending on whether its LSB is less than or greater than that of the
+current header.
+
+Next is the current word’s **execution token** (xt, `xt_word`) which
+points to the start of the actual assembly code. Some words that have the same
+functionality point to the same code block. If the `DC` flag is zero we omit
+this pointer and calculate it based on the length of the header.
 
 > [!NOTE]
 > Because Tali uses a subroutine threaded model (STC), the classic Forth
 > distinction between the Code Field Area (CFA) and the Parameter Field Area
 > (PFA, also Data Field Area) is meaningless — it’s all "payload".
 
-The next pointer is for the **end of the code** (`z_word`) to enable native
+The next field stores the **length of the word’s code** (`z_word` - `xt_word`) as either
+one or two bytes based on the `LC` flag. This is used for native
 compilation of the word (if allowed and requested).
 
-The **name string** starts at the eighth byte. The string is *not*
+Finally we have the **name string** at offset between 4 and 8. The string is *not*
 zero-terminated. Tali Forth lowercases names as they are copied into the
 dictionary and also lowercases during lookup, so `quarian` is the same word as
 `QUARIAN`. If the name in the dictionary is directly modified, it is important
@@ -3205,7 +3273,7 @@ The word \`evaluate\`is used to execute commands that are in a string. A simple 
 Tali Forth uses `evaluate` to load high-level Forth words from the file
 `forth_words.fs` and, if present, any extra, user-defined words from
 `user_words.fs`. The code in these files has all comments removed and all
-whitespace replaced with a single splace between words. This minimized version
+whitespace replaced with a single space between words. This minimized version
 is assembled directly into the ROM image as a string that will be evaluated at
 startup.
 
@@ -3797,12 +3865,14 @@ To recompile the documentation for Tali Forth 2, you will need the following too
 `Ditaa` is used to generate the diagrams from text file descriptions and is
 available at <https://ditaa.sourceforge.net/> Ditaa is not required if you are not
 going to change any of the diagrams.
-
 Ditaa is a java program, so I made a helper script (named just `ditaa`) to help
 run it. You’ll need to replace the path to the jar file for your system.
 
     #!/bin/sh
     java -jar /path/to/jarfile/ditaa0_9.jar $@
+
+> [!NOTE]
+> For OS X users, `brew install ditaa` gives you an executable `ditaa` without the helper script.
 
 `asciidoctor` and `asciidoctor-pdf` are used to generate the html and PDF versions
 of this manual. These are rubygems are are installed by first installing ruby
@@ -3813,7 +3883,7 @@ and then running the following commands:
 
 These tools have an annoying "feature" of having their version number in the
 executable name. To work around this, I created symbolic links in my personal
-bin folder (eg. a folder in my path) as shown below. You will need to adjust
+bin folder (e.g. a folder in my path) as shown below. You will need to adjust
 with the name of these utilities on your system.
 
     ln -s /usr/bin/asciidoctor.ruby3.2 asciidoctor
@@ -3909,9 +3979,12 @@ installed). This also updates the file listings in the `docs` folder.
 - The Y register, however, is free to be changed by subroutines. This also means
   it should not be expected to survive subroutines unchanged.
 
-- Natively coded words generally should have exactly one point of entry — the
+- Natively coded words generally should have exactly one external point of entry — the
   `xt_word` link — and exactly one point of exit at `z_word`. In may cases,
   this requires a branch to an internal label `_done` right before `z_word`.
+
+- Most words also include an internal `w_word` entrypoint that skips any underflow test.
+  This allows native code to call each other more efficiently.
 
 - Because of the way native compiling works, the trick of combining
   `jsr`-`rts` pairs to a single `jmp` instruction (usually) doesn’t work.
@@ -3962,12 +4035,12 @@ with examples. Take each word in the definition, determine which type of word
 it is, and then follow the steps outlined below for that word type.
 
 Once the word has been converted, a dictionary header needs to be added for it
-in words/headers.asm. This process is covered in detail at the end of this section.
+in `words/headers.asm`. This process is covered in detail at the end of this section.
 
 #### Processing Regular (Non-Immediate) Words
 
 If the definition word you are processing is not immediate (you can check this
-with `see`, eg. `see dup` and make sure the IM flag is 0) then it just
+with `see`, e.g. `see dup` and make sure the IM flag is 0) then it just
 translates into a JSR to the native code implementing the xt (execution token) of that word.
 Most words have an external entrypoint which begins with `xt_` followed by the name
 (spelled out, in the case of numbers and symbols) of the word. Once your
@@ -3984,7 +4057,7 @@ Translates into:
     ; ## "getstate" coded Custom
     xt_getstate:
     w_getstate:     ; no underflow check so w_ entrypoint is the same as xt_
-                    jsr w_state
+                    jsr w_state ; note we use the internal entrypoint for efficiency
                     jsr w_fetch ; @ is pronounced "fetch" in Forth.
     z_getstate:
                     rts
@@ -4003,7 +4076,7 @@ parameters in standard Forth format, and a string that has a short description
 of what the word does. The second line has a string showing the name as it
 would be typed in Forth (useful for words with symbols in them), the current
 testing status (coded, tested, auto), and where the word comes from (ANS,
-Gforth, etc.) See the top of words/headers.asm for more information on the
+Gforth, etc.) See the top of `words/headers.asm` for more information on the
 status field, but "coded" is likely to be the right choice until you’ve
 thoroughly tested your new word.
 
@@ -4011,11 +4084,11 @@ Local labels begin with an underscore "\_" and are only visible within the same
 scope (between two regular labels). This allows multiple words to all have a
 `_done:` label, for example, and each word will only branch to its own local
 version of `_done:` found within its scope. Any branching within the word
-(eg. for ifs and loops) should be done with local labels. Labels without an
+(e.g. for ifs and loops) should be done with local labels. Labels without an
 underscore at the beginning are globally available.
 
 The labels xt_xxxx and z_xxxx need to be the entry and exit point, respectively,
-of your word. The xxxx portion should be your word spelled out (eg. numbers and
+of your word. The xxxx portion should be your word spelled out (e.g. numbers and
 symbols spelled out with underscores between them). Although allowed in the
 Forth word, the dash "-" symbol is not allowed in the label (the assembler will
 try to do subtraction), so it is replaced with an underscore anywhere it is
@@ -4032,7 +4105,7 @@ searching for "@" (including the quotes) if you didn’t know its name.
 
 #### Processing Immediate Words
 
-To determine if a word is immediate, use the word `see` on it (eg. `see [char]`
+To determine if a word is immediate, use the word `see` on it (e.g. `see [char]`
 for the example below). Processing an immediate word takes a little more
 detective work. You’ll need to determine what these words do to the word being
 compiled and then do it yourself in assembly, so that only what is actually
@@ -4103,7 +4176,7 @@ being too long. The definition in Forth looks like:
 
 This has an `IF` in it, which we will need to translate into branches and will
 be a good demonstration of using local labels. This word has stateful behavior
-(eg. it acts differently in INTERPRET mode than it does in COMPILE mode). While
+(e.g. it acts differently in INTERPRET mode than it does in COMPILE mode). While
 we could translate the "state @" portion at the beginning into JSRs to xt_state
 and xt_fetch, it will be much faster to look in the state variable directly in
 assembly. You can find all of the names of internal Tali variables in
@@ -4162,8 +4235,8 @@ run the code for the `else` section, we use a BRA to a \_done label.
 The `else` section of the `if` just has two regular words, so they are just
 translated into JSRs.
 
-The `immediate` on the end is handled in the header in headers.asm by adding IM
-to the status flags. See the top of headers.asm for a description of all of the
+The `immediate` on the end is handled in the header in `words/headers.asm` by adding IM
+to the status flags. See the top of `words/headers.asm` for a description of all of the
 header fields.
 
 #### Processing DOES\>
@@ -4231,49 +4304,38 @@ All of the other words other than `does>` in this definition are regular words,
 so they just turn into JSRs. The word `does>` turns into a `jsr does_runtime`
 followed by a `jsr dodoes`.
 
-#### Adding the Header in headers.asm
+#### Adding the Header in words/headers.asm
 
-Once your word has been entered into one of the words/\*.asm files with the appropriate
-comment block over it and the xt_xxxx, w_xxxx and z_xxxx labels for the entry and exit
+Once your word has been entered into one of the `words/*.asm` files with the appropriate
+comment block over it and the `xt_xxxx`, `w_xxxx` and `z_xxxx` labels for the entry and exit
 points, it is time to add the dictionary header for your word to link it into
 one of the existing wordlists. The words here are not in alphabetical order and
 are loosely grouped by function. If you aren’t sure where to put your word, then
-put it near the top of the file just under the header for `drop`.
+put it near the end of the file just before the header for `drop`:
 
-Each header is simply a declaration of bytes and words that provides some basic
-information that Tali needs to use the word, as well as the addresses of the
-beginning and ending (not including the rts at the end) of your word. That’s
-why you need the xt_xxxx and z_xxxx labels in your word (where xxxx is the
+    #nt_header drop                 ; DROP is always the first native word in the Dictionary
+
+Each header simply provides some basic information that Tali needs to use the word,
+as well as the where the code for the word starts and ends (excluding the final `rts`).
+That’s why you need the `xt_xxxx` and `z_xxxx` labels in your word (where `xxxx` is the
 spelled-out version of your word’s name).
 
-Before we dicuss adding a word, let’s go over the form a dictionary header. The
-fields we will be filling in are described right at the top of headers.asm for
-reference. We’ll look at an easy to locate word, `drop`, which is used to
-remove the top item on the stack. It’s right near the top of the list. We’ll also
-show the word `dup`, which is the next word is the dictionary.
-The headers for these two words currently look like:
+Before we discuss adding a word, let’s go over the form a dictionary header.
+The fields we’ll be defining are described in words/headers.asm
+with more detail in [Elements of the Header](#_elements_of_the_header).
+In most cases we can simply use the `#nt_header` macro:
 
-    nt_drop:
-            .byte 4, 0
-            .word nt_dup, xt_drop, z_drop
-            .text "drop"
+    #nt_header label[, "name"[,flags]]
 
-    nt_dup:
-            .byte 3, 0
-            .word nt_swap, xt_dup, z_dup
-            .text "dup"
+Here `label` is the `xxxx` in `xt_xxxx` and `z_xxxx`;
+"name" is the actual string to use for the word’s name if different `"xxxx"`
+(usually if it contains special characters other than `[_a-z0-9]`);
+and `flags` is any combination of required flags from `CO, IM, AN, NN, HC`
+as detailed in [Elements of the Header](#_elements_of_the_header).
+For example:
 
-The first component of a dictionary header is the label, which comes in the form
-nt_xxxx where xxxx is the spelled out version of your word’s name. The xxxx
-should match whatever you used in your xt_xxxx and z_xxxx labels.
-
-The next two fields are byte fields, so we create them with the 64tass assembler
-`.byte` directive. The first field is the length of the name, in characters, as
-it will be typed in Tali. The second field is the status of the word, where
-each bit has a special meaning. If there is nothing special about your word,
-you will just put 0 here. If your word needs some of the status flags, you add
-them together (with +) here to form the status byte. The table below gives the
-constants you will use and a brief description of when to use them.
+    #nt_header m_star_slash, "m*/" ; uses special characters in the name
+    #nt_header exit, "exit", AN+CO ; needs special flags so "exit" must also be added
 
 |  |  |
 |----|----|
@@ -4299,67 +4361,40 @@ This is used for words like R\>, R@ and \>R but you’re unlikely to need this f
 your own words in assembly. |
 
 If you created a short word made out of just JSRs, and
-you wanted it to be an immediate, compile-only word, you might put `IM+CO` for this field.
+you wanted it to be an immediate, compile-only word, you might add the `IM+CO` flags.
 
-The next line contains three addresses, so the 64tass `.word` directive is used
-here. The first address is the nt_xxxx of the next word in the word list (with 0
-used for the very last word in the word list). The
-words are listed in dictionary order, so this will normally be the nt_xxxx of
-the word just below (there may be some anonymous labels used if the next word is
-conditionally assembled). The second address is the xt (execution token), or
-entry point, of your new word. This will be your xt_xxxx label for your word.
-The third address is the end of your routine, just before the RTS instruction.
-You will use your z_xxxx label here. The xt_xxxx and z_xxxx are used as the
-bounds of your word if it ends up being natively compiled.
-
-In the sample headers above, you can see that `drop` links to `dup` as the next
-word, and `dup` links to `swap` (not shown) as the next word. When you go to
-add your own word, you will need to adjust these linkages.
-
-The last line is the actual name of the word, as it will be typed in forth, in
-lowercase. It uses the 64tass `.text` directive and 64tass allows literal
-strings, so you can just put the name of your word in double-quotes. If your
-word has a double-quote in it, look up `nt_s_quote` in the headers to see how
-this is handled.
+The macro automatically chains words together in the dictionary using
+the `prev_nt` compiler variable.
+If you’re adding the last word in a new wordlist you should capture
+the current head of the dictionary (the latest NT header)
+by assigning from this variable, e.g. `dictionary_start = prev_nt`.
+You can then start a new wordlist by resetting `prev_nt := 0`.
 
 Although Tali is not case-sensitive, all words in the dictionary headers **must be
-in lowercase** or Tali will not be able to find them. The length of this string
-also needs to match the length given as the first byte, or Tali will not be able
-to find this word.
+in lowercase** or Tali will not be able to find them.
+Names should be at most 31 characters.
 
 As an example, we’ll add the words `star` and `is` from the previous examples.
 Technically, `is` is already in the dictionary, but this example will show
 you how to create the header for a regular word (`star`) and for one that
 requires one of the status flags (`is`).
 
-    nt_drop:
-            .byte 4, 0
-            .word nt_star_word, xt_drop, z_drop
-            .text "drop"
+    ...
+    #nt_header dup
+    #nt_header is, "is", IM
+    #nt_header star_word, "*"
+    #nt_header drop                 ; DROP is always the first native word in the Dictionary
 
-    nt_star_word:
-            .byte 4, 0
-            .word nt_is, xt_star_word, z_star_word
-            .text "star"
+The first thing to note is the updated linked list of words.
+By adding our new headers between `dup` and `drop`
+they are automatically inserted into the linked word list \` …​ → dup → is → \* -→ drop\`.
+If you use the `words` command, you will find the new words near the beginning of the list.
 
-    nt_is:
-            .byte 2, IM
-            .word nt_dup, xt_is, z_is
-            .text "is"
-    nt_dup:
-            .byte 3, 0
-            .word nt_swap, xt_dup, z_dup
-            .text "dup"
-
-The first thing to note is the updated linked list of words. In order to put
-the new words between `drop` and `dup`, we make `drop` link to `star`, which then
-links to `is`, and that links back to `dup`. If you use the `words` command, you will
-find the new words near the beginning of the list.
-
-The second thing to note is the status byte of each word. If the word doesn’t
-need any special status, then just use 0. Neither of our added words contain
-the JMP instruction (branches are OK, but JMP is not), so neither is required to
-carry the NN (Never Native) flag. The word `is`, in it’s original Forth form,
+The second thing to note are the flags for each word.
+If the word doesn’t need any special status, we can ignore the flags argument.
+Neither of our added words contain the JMP instruction (branches are OK, but JMP is not),
+so neither needs the NN (Never Native) flag.
+The word `is`, in its original Forth form,
 was marked as an immediate word, and we do that by putting the IM flag on it
 here in the dictionary header.
 
@@ -4494,13 +4529,15 @@ single-cell quotient n5. |
 Store TOS at current place in memory. |
 | `-` | *ANS core* ( n n — n ) "Subtract TOS from NOS"
 <https://forth-standard.org/standard/core/Minus> |
-| `-leading` | *Tali String* ( addr1 u1 — addr2 u2 ) "Remove leading spaces"
-Remove leading whitespace. This is the reverse of -TRAILING |
+| `-leading` | *Tali String* ( addr1 u1 — addr2 u2 ) "Remove leading whitespace"
+Remove leading whitespace. This is the reverse of -TRAILING except
+that it removes any whitespace, not just BL |
 | `-rot` | *Gforth* ( a b c — c a b ) "Rotate upwards"
 <http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Data-stack.html> |
 | `-trailing` | *ANS string* ( addr u1 — addr u2 ) "Remove trailing spaces"
 <https://forth-standard.org/standard/string/MinusTRAILING>
-Remove trailing spaces |
+Remove trailing spaces. Note this ANSI word only removes ASCII \$20
+not other whitespace like -LEADING. |
 | `.` | *ANS core* ( u — ) "Print TOS"
 <https://forth-standard.org/standard/core/d> |
 | `."` | *ANS core ext* ( "string" — ) "Print string from compiled word"
@@ -4917,6 +4954,8 @@ start up and cold boot. In contrast to ACCEPT, we need to, uh,
 accept more than 255 characters here, even though it’s a pain in
 the 8-bit. |
 | `execute` | *ANS core* ( xt — ) "Jump to word based on execution token"
+This word is never natively compiled so that the return
+from the xt will always return to the caller of EXECUTE
 <https://forth-standard.org/standard/core/EXECUTE> |
 | `execute-parsing` | *Gforth* ( addr u xt — ) "Pass a string to a parsing word"
 <https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/The-Input-Stream.html>
