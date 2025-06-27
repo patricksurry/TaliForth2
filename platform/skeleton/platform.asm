@@ -140,10 +140,17 @@ s_kernel_id:
 
 
 ; =====================================================================
-; Include Tali Forth 2 code
-; Make sure the options at the top of this file are set BEFORE this include.
+; Include any forth words written in assembly.  These will be added to
+; the FORTH-WORDLIST.  This must be done BEFORE including taliforth.asm
+; below.
+.include "platform_words.asm"
 
 .include "../../taliforth.asm" ;
+
+; Now we've got all of Tali's native code.  This requires about 24Kb
+; with all options, or as little as 12Kb for a minimal build.
+; In the default configuraiton, we've filled ROM from $8000
+; to about $dfff, leaving about 8Kb.
 
 
 
