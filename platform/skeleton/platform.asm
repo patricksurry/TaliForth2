@@ -152,6 +152,19 @@ s_kernel_id:
 ; In the default configuraiton, we've filled ROM from $8000
 ; to about $dfff, leaving about 8Kb.
 
+; =====================================================================
+; Include any forth words written in forth.  Your forth code goes into
+; the platform_forth.fs file.  The Makefile will turn that into
+; platform_forth.asc, which is the same code but with all comments
+; removed and all whitespace reduced to single space (to reduce size).
+; It's this reduced-size version of the code that we bring in here.
+; Note that Make normally deletes this .asc file after the build
+; process completes.
+forth_words_start:
+user_words_start:
+.binary "platform_forth.asc"
+forth_words_end:
+user_words_end:
 
 
 ; Define the interrupt vectors.  For the simulator we redirect them all
