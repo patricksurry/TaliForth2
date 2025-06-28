@@ -4612,7 +4612,9 @@ xt_r_fetch:
 w_r_fetch:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                jsr save_rts_address
+                pla                     ; LSB
+                ply                     ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -4634,6 +4636,16 @@ w_r_fetch:
 z_r_fetch:      jmp (tmp1)
 
 
+rts_to_jmp:
+        ; given an rts address in YA, increment and store in tmp1
+        ; preparing for a later jmp (tmp1)
+                inc a
+                sta tmp1                ; LSB
+                bne +
+                iny
++
+                sty tmp1+1              ; MSB
+                rts
 
 
 ; ## R_FROM ( -- n )(R: n --) "Move top of Return Stack to TOS"
@@ -4650,7 +4662,9 @@ xt_r_from:
 w_r_from:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                jsr save_rts_address
+                pla                     ; LSB
+                ply                     ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -5014,7 +5028,7 @@ _refill_ok:
                 inx
 
                 ; For refill success, jump back up to the empty check, just in
-                ; case refill gave us an empty buffer (eg. empty/blank line of
+                ; case refill gave us an empty buffer (e.g. empty/blank line of
                 ; input)
                 bra _savechars_loop
 
@@ -6269,26 +6283,6 @@ _done:
 z_to_number:    rts
 
 
-save_rts_address:
-                pla
-                ply
-                inc a
-                sta tmptos
-                bne +
-                iny
-+
-                sty tmptos+1
-
-                pla                     ; LSB
-                ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
-                jmp (tmptos)
-
 
 ; ## TO_R ( n -- )(R: -- n) "Push TOS to the Return Stack"
 ; ## ">r"  auto  ANS core
@@ -6302,7 +6296,9 @@ xt_to_r:
 w_to_r:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                jsr save_rts_address
+                pla                     ; LSB
+                ply                     ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -6476,7 +6472,9 @@ xt_two_r_fetch:
 w_two_r_fetch:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                jsr save_rts_address
+                pla                     ; LSB
+                ply                     ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -6487,10 +6485,8 @@ w_two_r_fetch:
                 dex
                 dex
 
-                ; rather than indexing into the CPU stack to copy bytes
-                ; we can take advantage of the fact that CPU pull instructions
-                ; just increment the SP, leaving the data in place.
-                ; so we can pull all values we need and then reset the SP to restore them
+                ; rather than actually copying from the CPU stack it's quicker
+                ; to pull the values we want, and then restore the SP to unpull them
                 phx             ; put DSP on the stack
                 tsx
                 txa             ; save SP -> X -> A
@@ -6504,9 +6500,8 @@ w_two_r_fetch:
                 sty 2,x
                 ply
                 sty 3,x
-
                 tax
-                txs             ; restore SP (including the DSP value)
+                txs             ; restore SP
                 plx             ; pull original DSP again
 
                 ; --- CUT FOR NATIVE COMPILE ---
@@ -6530,7 +6525,9 @@ xt_two_r_from:
 w_two_r_from:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                jsr save_rts_address
+                pla
+                ply                     ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -6682,7 +6679,9 @@ xt_two_to_r:
 w_two_to_r:
                 ; --- START FOR JSR (save return address + 1) ---
 
-                jsr save_rts_address
+                pla                     ; LSB
+                ply                     ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 

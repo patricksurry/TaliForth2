@@ -168,7 +168,7 @@ T{ latestxt int>name wordsize ->  3 }T
 T{ ' five int>name wordsize -> 16 }t
 T{ five -> 42 }T
 
-\ Test inlined zero_branch call
+\ Test inlined zero_branch call (issue #158)
 
 0 nc-limit !      \ force zero_branch call with absolute address
 : test1 0 if then ;

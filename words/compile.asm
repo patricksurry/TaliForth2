@@ -116,7 +116,7 @@ _no_st:
                 ; ( xt xt u ) if ST else ( 0 xt u )
                 bcc _check_uf           ; no stack juggling to skip?
 
-_strip_sz = 3  ; skip the standard 3 byte header which saves return address + 1 to tmp1
+_strip_sz = 5  ; skip the standard 5 byte header which saves return address + 1 to tmp1
 
                 jsr bliteral_runtime
                 .byte _strip_sz
@@ -365,6 +365,10 @@ cmpl_zbranch_common:                            ; entrypoint for w_of
                 jsr w_zero                      ; and just compile a zero for now
                 ; ( here 0 )
 +
+                ; we're adding an absolute address, so flag this word as never-native (NN)
+                lda #%00010000                  ; unset bit 4 to for NN
+                trb status
+
                 ; we're adding an absolute address, so flag this word as never-native (NN)
                 lda #%00010000                  ; unset bit 4 to for NN
                 trb status

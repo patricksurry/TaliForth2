@@ -1,10 +1,14 @@
+\ The word `roman>` converts a roman numeral string into an integer.
+\ This was written to exercise the case/of construct.
+
 variable prior
 
 : roman> ( "MCMXIX" -- u )
-    \ use like: roman> MCMXIX .
-    \ this should handle valid roman numbers and recognizes valid digits
-    \ but will currently give unexpected results for invalid arrangements like IIIX
-    \ we could assert that non-subtractive digits are non-decreasing
+    \ Example usage: roman> MCMXIX .
+    \ This routine handles valid roman numbers and will abort" on invalid digits
+    \ but will give unexpected results for invalid arrangements of valid digits like IIIX
+    \ This could be fixed by asserting that non-subtractive digits are always in non-decreasing
+    \ order reading from right to left.  An exercise for the reader?
     0 prior !
     parse-name
     ( addr n )
@@ -43,7 +47,8 @@ variable prior
     -1 +loop
 ;
 
-\ From Leo Brodie's Thinking Forth, e.g. https://www.forth.com/wp-content/uploads/2018/11/thinking-forth-color.pdf
+\ The inverse word `roman` converts an integer into a roman numeral string.
+\ Ported from Leo Brodie's Thinking Forth, e.g. https://www.forth.com/wp-content/uploads/2018/11/thinking-forth-color.pdf
 create romans
         ( ones ) char I c, char V c,
         ( tens ) char X c, char L c,
