@@ -56,6 +56,8 @@ str_disasm_loop    = ix
 ix += 1
 str_disasm_do      = ix
 ix += 1
+str_disasm_of      = ix
+ix += 1
 .endif
 
 ; Since we can't fit a 16-bit address in a register, we use indexes as offsets
@@ -67,7 +69,7 @@ string_table:
 .endif
         .word s_see_nt, s_see_xt, s_see_header, s_see_size, s_see_cfapfa            ; 7-11
 .if "disassembler" in TALI_OPTIONAL_WORDS
-        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do ; 12-15
+        .word s_disasm_sdc, s_disasm_lit, s_disasm_0bra, s_disasm_loop, s_disasm_do, s_disasm_of ; 12-16
 .endif
 
 ; note .shift is like .text but terminates the string by setting bit 7 of the last character
@@ -102,6 +104,7 @@ s_disasm_lit: .shift "LITERAL "
 s_disasm_0bra: .shift "0BRANCH "
 s_disasm_loop: .shift "LOOP "
 s_disasm_do: .shift "DO "
+s_disasm_of: .shift "OF "
 .endif
 
 ; ## ERROR STRINGS
@@ -124,7 +127,7 @@ err_negallot     = 10
 err_wordlist     = 11
 err_blockwords   = 12
 err_returnstack  = 13
-err_toolong      = 14
+err_toolong      = 14           ;TODO no longer used since CREATE just truncates long names
 err_usersigint   = 15
 
 error_table:

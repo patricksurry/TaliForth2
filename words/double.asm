@@ -303,38 +303,41 @@ z_two_constant: rts
         ; """https://forth-standard.org/standard/double/TwoLITERAL"""
         ; """
 xt_two_literal:
-                jsr underflow_2 ; double number
+                jsr underflow_2         ; double number
 w_two_literal:
-                lda #2 * template_push_tos_size
-                jsr check_nc_limit
+                ; the four byte double word UNIX is represented on the data stack
+                ; as TOS .byte N, U and NOS .byte X, I
+                ; ( XI NU )
+                ; If we end up inlining using two w_literal sequences
+                ; we need the runtime to push the current NOS=XI first.
+                ; But if we can't inline we want push_inline_2literal .word NU, XI.
+                lda cp                  ; remember LSB of cp so we can rewind
+                pha
+                jsr w_over
+                ; ( XI NU XI)
+                jsr w_literal           ; leaves C=0 if we inlined
+                pla                     ; recover cp LSB
                 bcs _no_inline
 
-                jsr w_swap
-                jsr w_literal
-                jmp w_literal
+                jsr w_literal           ; inline the second word
+                jmp w_drop              ; drop the spare copy of XI
 
 _no_inline:
-                ; Compile a subroutine jump that copies the four following
-                ; bytes to the stack, in the same order.  For example
-                ; a four byte double word written from MSB to LSB as UNIX
-                ; is represented on the stack as TOS: .byte N,U and NOS: X,I
-                ; so we'll generate code like:
-                ;       jsr two_literal_runtime
-                ;       .byte N, U, X, I
-
+                ; inline failed so rewind and use ( XI NU ) to compile:
+                ;       jsr push_inline_2literal
+                ;       .word NU, XI
+                cmp cp                  ; compare old cp in A with current cp
+                bcc +                   ; if A > cp (C=1) we wrapped a page
+                dec cp+1
++
+                sta cp
                 ldy #>two_literal_runtime
                 lda #<two_literal_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
-                ldy #4
--
-                lda 0,x         ; move four bytes from the stack to cp
-                jsr cmpl_a
-                inx
-                dey
-                bne -
-
-z_two_literal:  rts
+                jsr w_comma             ; add the two payload words
+                jmp w_comma
+z_two_literal:
 
 
 two_literal_runtime:
@@ -397,7 +400,8 @@ w_two_variable:
 
                 jsr w_allot             ; allocate the data area
 
-z_two_variable: rts
+z_two_variable:
+                rts
 
 
 
@@ -415,7 +419,8 @@ w_ud_dot:
                 jsr w_type
                 jsr w_space
 
-z_ud_dot:        rts
+z_ud_dot:       rts
+
 
 
 ; ## UD_DOT_R ( d u -- ) "Print unsigned double right-justified u wide"

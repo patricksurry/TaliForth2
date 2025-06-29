@@ -221,12 +221,18 @@ dovar:
 ; Push the accumulator to TOS
 ; This only saves a byte but improves readability
 ; This routine is also used as a template by the assembler "push-a" word
+; It's also used as a template by w_literal to push Y/A TOS
+; where we'll change stz 1,x to sty 1,x if MSB is non-zero
+template_push_tos:
+                ldy #$ff        ; we'll omit this if MSB is zero
+                lda #$ff
 push_a_tos:  ; ( -- A )
                 dex
                 dex
                 sta 0,x
                 stz 1,x
 z_push_a_tos:
+template_push_tos_size = * - template_push_tos
                 rts
 
 push_upvar_tos:
