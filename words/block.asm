@@ -187,7 +187,7 @@ w_block_ramdrive_init:
                 ; See SLITERAL for the format information. This way, we
                 ; don't have the words defined below in the Dictionary until
                 ; we really use them.
-                jsr sliteral_runtime
+                jsr push_inline_sliteral
                 .word ramdrive_code_end-ramdrive_code
 ramdrive_code:
                 .text "base @ swap decimal"

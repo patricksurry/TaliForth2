@@ -302,45 +302,76 @@ _next:          dey
 _found_handler:
                 sty scratch+5               ; store the offset for later
                 lda _special_handlers+3,y   ; payload + prefix
-                pha                         ; stash a copy for payload later
+                pha
+                cmp #4
+                bcc _no_prefix
+
+                lsr                         ; extract the prefix char stored as (ch - 32) << 2
                 lsr
-                lsr
-                beq _no_prefix
                 clc
                 adc #32
-                jsr emit_a                  ; print the char stored as (ch - 32) << 2
+                jsr emit_a
+
 _no_prefix:
-                lda _special_handlers+2,y   ; string index
+                lda _special_handlers+2,y   ; display the handler's label
                 jsr print_string_n
+
                 pla
-                and #3                      ; payload is 0, 1 or 2 words
+                and #3                      ; extract payload 0-3
                 beq _done
-                cmp #3                      ; where 3 means a double-word
-                bne _show_payload
-                jsr _print_2literal
+
+                ; we have a payload of 1, 2 or 4 bytes, coded as Y=1,2,3
+                tay                         ; Y is 1,2 or 3
+
+                ; ( addr u )
+                lda 2,x                     ; save payload addr for pictured literal
+                sta tmp1
+                lda 3,x
+                sta tmp1+1
+
+                tya
+                cmp #3
+                php                         ; save "is it a double?" status
+                bne +
+                inc a
++
+                jsr push_a_tos              ; and advance ( addr u ) past payload
+                jsr w_slash_string
+
+                lda _pictures-1,y
+                jsr push_pictured_common    ; fetch the payload to TOS
+
+                plp                         ; is it a double?
+                bne +
+                jsr w_d_dot
                 bra _done
-
-_show_payload:
-                pha
-                jsr _print_literal
-                pla
-                dea
-                bne _show_payload
-
-                lda scratch+5
-                cmp #_sliteral_handler - _special_handlers
++
+                lda scratch+5               ; check if it was string handler
+                cmp #_sliteral_handler_offset
+                php                         ; save "is it a string?" status
+                bne +
+                jsr w_dup                   ; keep a copy of the string length ( addr u len )
++
+                jsr w_dot                   ; print TOS
+                plp
                 bne _done
+                jsr _print_string           ; uses tmp1/tmpdsp
+_done:
+                sec
+                rts
 
+_pictures:
+    ; templates for push_pictured_common, mirroring psuh_inline_[bliteral, literal, 2literal]
+        .byte %01001010, %01001110, %01111111
+
+
+_print_string:
                 ; for sliteral we want to skip past the string data
-                ; we have ( addr n ) on the stack where addr points
+                ; we have ( addr n u ) on the stack where addr points
                 ; to the last byte of the string length u.
                 ; we want to finish with ( addr+u n-u )
                 ; and print at least a snippet of the string
                 ; which is at addr+1
-
-                jsr w_over
-                jsr w_one_minus
-                jsr w_fetch         ; ( addr n u )
 
                 ; detour to show snippet of string up to 16 chr
                 lda 1,x
@@ -371,61 +402,33 @@ _snippet:
                 bne _snippet
 
                 ; ( addr n u -- addr+u n-u )
-                jsr w_slash_string
-
-_done:          sec
-                rts
-
-_print_literal:
-                ; ( addr u ) address of last byte of JSR and bytes left on the stack.
-                ; We need to print the value just after the address and move along two bytes.
-                jsr w_over
-                jsr w_one_plus              ; ( addr u addr+1 )
-                jsr w_question              ; Print the value at the address
-                jsr slash_string_1
-                jmp slash_string_1          ; leaving (addr+2 u-2)
-
-_print_2literal:
-                jsr w_over                  ; ( addr u addr+1 )
-                jsr w_one_plus
-                jsr w_two_fetch
-                jsr w_d_dot                 ; fetch and print double word
-                lda #4
-                jsr push_a_tos
-                jmp w_slash_string          ; ( addr+4 u-4 )
+                jmp w_slash_string
 
 
-; Table of special handlers with address, strings index, payload in words + prefix
-; payload is stored as 0, 1 or 2 words with 3 meaning a double-word (i.e. $1234 vs $34, $12)
+; Table of special handlers with symbol address, label index (with optional prefix character), and payload size
+; The payload is the number of inlined bytes following the jsr; 0, 1, 2 or 4.  Note 4 is actually stored as 3
+disasm_handler .macro sym, label, payload, prefix=32
+    .word \sym
+    .byte \label, ((\prefix-32)<<2) | ((\payload <? 3) & 3)
+.endmacro
+
+
 _special_handlers:
-    .word underflow_1
-        .byte str_disasm_sdc, 0 + ('1'-32)*4
-    .word underflow_2
-        .byte str_disasm_sdc, 0 + ('2'-32)*4
-    .word underflow_3
-        .byte str_disasm_sdc, 0 + ('3'-32)*4
-    .word underflow_4
-        .byte str_disasm_sdc, 0 + ('4'-32)*4
-
-    .word literal_runtime
-        .byte str_disasm_lit, 1
-_sliteral_handler:          ; special case to skip payload
-    .word sliteral_runtime
-        .byte str_disasm_lit, 1 + ('S'-32)*4
-    .word two_literal_runtime
-        .byte str_disasm_lit, 3 + ('2'-32)*4
-    .word zero_branch_runtime
-        .byte str_disasm_0bra, 1
-    .word loop_runtime
-        .byte str_disasm_loop, 1
-    .word plus_loop_runtime
-        .byte str_disasm_loop, 1 + ('+'-32)*4
-    .word do_runtime
-        .byte str_disasm_do, 0
-    .word question_do_runtime
-        .byte str_disasm_do, 1 + ('?'-32)*4
-    .word of_runtime
-        .byte str_disasm_of, 1
+    #disasm_handler underflow_1, str_disasm_sdc, 0, '1'
+    #disasm_handler underflow_2, str_disasm_sdc, 0, '2'
+    #disasm_handler underflow_3, str_disasm_sdc, 0, '3'
+    #disasm_handler underflow_4, str_disasm_sdc, 0, '4'
+    #disasm_handler push_inline_literal, str_disasm_lit, 2
+    #disasm_handler push_inline_bliteral, str_disasm_lit, 1, 'B'
+_sliteral_handler_offset = * - _special_handlers        ; special case to show string data
+    #disasm_handler push_inline_sliteral, str_disasm_lit, 2, 'S'
+    #disasm_handler push_inline_2literal, str_disasm_lit, 4, '2'
+    #disasm_handler zero_branch_runtime, str_disasm_0bra, 2
+    #disasm_handler loop_runtime, str_disasm_loop, 2
+    #disasm_handler plus_loop_runtime, str_disasm_loop, 2, '+'
+    #disasm_handler do_runtime, str_disasm_do, 0
+    #disasm_handler question_do_runtime, str_disasm_do, 2, '?'
+    #disasm_handler of_runtime, str_disasm_of, 2
 _end_handlers:
 
 

@@ -19,7 +19,7 @@ w_abort_quote:
                 jsr w_s_quote          ; S"
 
                 ; compile run-time part
-                jsr cmpl_call_literal
+                jsr cmpl_call_inline_literal
                 .word abort_quote_runtime
 
 z_abort_quote:  rts
@@ -402,7 +402,7 @@ w_action_of:
                 jsr w_bracket_tick
 
                 ; Postpone DEFER@ by compiling a JSR to it.
-                jsr cmpl_call_literal
+                jsr cmpl_call_inline_literal
                 .word w_defer_fetch
 
                 bra _done
@@ -1447,7 +1447,7 @@ xt_question_do:
 w_question_do:
                 ; ?DO shares most of its code with DO.
                 ; But first compile its runtime.
-                jsr two_literal_runtime
+                jsr push_inline_2literal
                 .word question_do_runtime_size          ; TOS with NUXI order
                 .word question_do_runtime               ; NOS
 
@@ -1510,7 +1510,7 @@ do_common:
 
                 ; compile runtime part of DO.
                 ; do this as a subroutine since it only happens once and is a big chunk of code
-                jsr cmpl_call_literal
+                jsr cmpl_call_inline_literal
                 .word do_runtime
 
                 ; Now we're ready for the loop body.  We also push HERE
@@ -1623,13 +1623,13 @@ do_runtime:
 xt_does:
 w_does:
                 ; compile a subroutine jump to runtime of DOES>
-                jsr cmpl_call_literal
+                jsr cmpl_call_inline_literal
                 .word does_runtime
 
                 ; compile a subroutine jump to DODOES. In traditional
                 ; terms, this is the Code Field Area (CFA) of the new
                 ; word
-                jsr cmpl_call_literal
+                jsr cmpl_call_inline_literal
                 .word dodoes
 
 z_does:         rts
@@ -1740,7 +1740,7 @@ w_dot_quote:
                 jsr w_s_quote
 
                 ; We then let TYPE do the actual printing
-                jsr cmpl_call_literal
+                jsr cmpl_call_inline_literal
                 .word w_type
 
 z_dot_quote:    rts
@@ -1889,7 +1889,7 @@ xt_endcase:
                 jsr underflow_1
 w_endcase:
                 ; Postpone DROP to remove the item being checked.
-                jsr two_literal_runtime
+                jsr push_inline_2literal
                 .word z_drop - w_drop           ; TOS with NUXI order
                 .word w_drop                    ; NOS
                 jsr cmpl_by_limit               ; rather than compile_nt_comma to always skip UF test
@@ -2722,7 +2722,7 @@ w_is:
                 jsr w_bracket_tick
 
                 ; Postpone DEFER! by compiling a JSR to it.
-                jsr cmpl_call_literal
+                jsr cmpl_call_inline_literal
                 .word w_defer_store
 
                 bra _done
@@ -2937,7 +2937,7 @@ z_less_than:    rts
         ; """https://forth-standard.org/standard/core/LITERAL
         ; Compile-only word to store TOS so that it is pushed on stack
         ; during runtime. This is a immediate, compile-only word. At runtime,
-        ; it works by calling JSR literal_runtime, or using an inline equivalent.
+        ; it works by calling JSR push_inline_literal, or using an inline equivalent.
         ;
         ; Note the cmpl_ routines use TMPTOS
         ; """
@@ -2947,16 +2947,16 @@ w_literal:
                 lda 1,x                         ; is it a byte value?
                 bne +
 
-                jsr literal_runtime
-                .word bliteral_runtime
-                jsr two_literal_runtime
+                jsr push_inline_literal
+                .word push_inline_bliteral
+                jsr push_inline_2literal
                 .word template_push_tos_size-2  ; TOS
                 .word template_push_tos+2       ; NOS, if we're inlining
                 bra _cmpl
 +
-                jsr literal_runtime
-                .word literal_runtime
-                jsr two_literal_runtime
+                jsr push_inline_literal
+                .word push_inline_literal
+                jsr push_inline_2literal
                 .word template_push_tos_size    ; TOS
                 .word template_push_tos         ; NOS, if we're inlining
 _cmpl:
@@ -3003,67 +3003,23 @@ _inline:
 z_literal:      rts
 
 
-;TODO cleanup
-; lit:
-;                 jsr literal_runtime
-;                 .word $1234
-; next:
-;
-; ...
-;                 ; disasm
-;                 jsr lit
-; cont:
-;
-; after jsr lit => jsr literal_runtime
-; we have RS: <next-1> <cont-1>
-; using `rts` without restacking will return to cont:
-; using `jmp (tmp1)` will continue at next:
-;
-;               jsr wrapper
-;               .word $1234
-; next:
-;
-; wrapper:
-;               jsr indirect_literal_runtime
-; cont:
-;
-; after jsr wrapper => jsr indirect_literal_runtime
-; we have RS: <cont-1> <next-1>
-; we want to fetch payload from next but then return to cont-1
-; if we swap pair on RS we can do our normal thing and return to cont-1
 
-
-sliteral_runtime:
+push_inline_sliteral:
                 lda #%10001111
-                bra generic_literal_runtime
+                bra push_inline_pictured
 
-two_literal_runtime:
+push_inline_2literal:
                 lda #%00111111
-                bra generic_literal_runtime
+                bra push_inline_pictured
 
-cmpl_call_literal:
-                ; set up the payload address
-                ply             ; <payload-1>
-                sty tmp1
-                ply             ; MSB of address
-                sty tmp1+1
-
-                ; like literal_runtime, but returns to caller (us) instead of (tmp1)
-                lda #%01001110
-                jsr generic_literal_common
-                jsr cmpl_call_tos
-                jmp (tmp1)
-
-; TODO rename these like
-;  push_literal, push_byte_literal, push_string_literal, push_pictured_literal
-literal_runtime:
+push_inline_literal:
                 lda #%00001110
-                bra generic_literal_runtime
+                bra push_inline_pictured
 
-bliteral_runtime:
+push_inline_bliteral:
                 lda #%00001010
 
-generic_literal_runtime:
+push_inline_pictured:
         ; Copies 1-4 bytes following the calling JSR to the data stack.
         ; The accumulator contains flags defining the mapping from bytes to stack values.
         ;
@@ -3094,7 +3050,7 @@ generic_literal_runtime:
                 ply             ; MSB of address
                 sty tmp1+1
 
-generic_literal_common:
+push_pictured_common:
                 sta tmptos+1    ; save for flag bits
                 and #%00111111
                 sta tmptos      ; save masked picture
@@ -3162,6 +3118,19 @@ _indirect:
                 rts             ; return to caller's caller
 
 
+cmpl_call_inline_literal:
+                ; set up the payload address
+                ply             ; <payload-1>
+                sty tmp1
+                ply             ; MSB of address
+                sty tmp1+1
+
+                ; like push_inline_literal, but returns to caller (us) instead of (tmp1)
+                lda #%01001110
+                jsr push_pictured_common
+                jsr cmpl_call_tos
+                jmp (tmp1)
+
 
 ; ## LOOP ( -- ) "Finish loop construct"
 ; ## "loop"  auto  ANS core
@@ -3176,7 +3145,7 @@ _indirect:
 xt_loop:
 w_loop:
                 ; Compile LOOP-specific runtime
-                jsr two_literal_runtime
+                jsr push_inline_2literal
                 .word loop_runtime_size         ; TOS
                 .word loop_runtime              ; NOS
 
@@ -3201,7 +3170,7 @@ w_loop:
 xt_plus_loop:
 w_plus_loop:
                 ; Compile +LOOP-specific runtime
-                jsr two_literal_runtime
+                jsr push_inline_2literal
                 .word plus_loop_runtime_size    ; TOS
                 .word plus_loop_runtime         ; NOS
 
@@ -3260,7 +3229,7 @@ _noleave:
                 ; Clean up the loop params by appending unloop
                 inx
                 inx
-                jsr literal_runtime
+                jsr push_inline_literal
                 .word nt_unloop
                 jsr compile_nt_comma    ; use the faster entry with the NT
 
@@ -3958,7 +3927,7 @@ z_number_sign_s:
 
 xt_of:
 w_of:
-                jsr two_literal_runtime
+                jsr push_inline_2literal
                 ; TODO strictly should test with +5 but only compile size
                 .word of_runtime_size           ; TOS with NUXI order
                 .word of_runtime                ; NOS
@@ -4567,7 +4536,7 @@ _not_immediate:
                 jsr w_literal                   ; ( nt -- )
 
                 ; Last, compile COMPILE,
-                jsr cmpl_call_literal
+                jsr cmpl_call_inline_literal
                 .word compile_nt_comma
 _done:
 z_postpone:     rts
@@ -4958,7 +4927,7 @@ s_quote_start:
 
                 ; We will save a bit of space when interpeting by writing the string
                 ; literal directly HERE.  When we're compiling we'll use SLITERAL
-                ; which needs a five byte prologue (jsr sliteral_runtime / .word length)
+                ; which needs a five byte prologue (jsr push_inline_sliteral / .word length)
                 ; so we'll leave space for that.
 
                 lda state               ; check whether we're interpeting (0) or compiling (-1)
@@ -6022,7 +5991,7 @@ w_to:
 
                 jsr w_literal      ; generate the runtime for LITERAL tmp1
 
-                jsr cmpl_call_literal   ; write the runtime for !
+                jsr cmpl_call_inline_literal   ; write the runtime for !
                 .word w_store
 
                 bra _done

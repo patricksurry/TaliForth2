@@ -511,7 +511,7 @@ slash_string_1:       ; ( addr u -- addr+1 u-1)
                 dec 1,x
 +
                 dec 0,x
-rts
+                rts
 
 
 
@@ -529,12 +529,12 @@ w_sliteral:
                 ; We'll compile the length and string data into the dictionary
                 ; using move along with runtime code that stacks the new ( addr' u )
                 ;
-                ;   jsr sliteral_runtime
+                ;   jsr push_inline_sliteral
                 ;   .word u
                 ;   .byte < u data bytes >
 
-                jsr cmpl_call_literal
-                .word sliteral_runtime
+                jsr cmpl_call_inline_literal
+                .word push_inline_sliteral
 
                 jsr w_comma             ; compile the payload u
                 dex                     ; but keep it on the stack

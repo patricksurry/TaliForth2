@@ -310,7 +310,7 @@ w_two_literal:
                 ; ( XI NU )
                 ; If we end up inlining using two w_literal sequences
                 ; we need the runtime to push the current NOS=XI first.
-                ; But if we can't inline we want two_literal_runtime .word NU, XI.
+                ; But if we can't inline we want push_inline_2literal .word NU, XI.
                 lda cp                  ; remember LSB of cp so we can rewind
                 pha
                 jsr w_over
@@ -324,15 +324,15 @@ w_two_literal:
 
 _no_inline:
                 ; inline failed so rewind and use ( XI NU ) to compile:
-                ;       jsr two_literal_runtime
+                ;       jsr push_inline_2literal
                 ;       .word NU, XI
                 cmp cp                  ; compare old cp in A with current cp
                 bcc +                   ; if A > cp (C=1) we wrapped a page
                 dec cp+1
 +
                 sta cp
-                jsr cmpl_call_literal
-                .word two_literal_runtime
+                jsr cmpl_call_inline_literal
+                .word push_inline_2literal
 
                 jsr w_comma             ; add the two payload words
                 jmp w_comma

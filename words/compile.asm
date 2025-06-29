@@ -118,7 +118,7 @@ _no_st:
 
 _strip_sz = 5  ; skip the standard 5 byte header which saves return address + 1 to tmp1
 
-                jsr bliteral_runtime
+                jsr push_inline_bliteral
                 .byte _strip_sz
                 jsr w_slash_string
 
@@ -143,7 +143,7 @@ _check_uf:
 
                 ; Ready to remove the 3 byte underflow check.
 
-                jsr bliteral_runtime
+                jsr push_inline_bliteral
                 .byte 3
                 jsr w_slash_string
 
@@ -349,7 +349,7 @@ cmpl_0branch_common:
 
                 ; First decide whether to inline or call the runtime.
                 ; Both start with the zero test
-                jsr two_literal_runtime
+                jsr push_inline_2literal
                 ; TODO strictly should test with +5 but only compile size
                 .word ztest_runtime_size        ; TOS with NUXI order
                 .word zero_branch_runtime       ; NOS
