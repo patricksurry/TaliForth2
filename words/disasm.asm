@@ -338,8 +338,8 @@ _no_prefix:
                 jsr push_a_tos              ; and advance ( addr u ) past payload
                 jsr w_slash_string
 
-                lda _pictures-1,y
-                jsr push_pictured_common    ; fetch the payload to TOS
+                lda _pictured_literals-1,y
+                jsr push_pictured_common    ; fetch the payload to TOS, indexed by Y-1
 
                 plp                         ; is it a double?
                 bne +
@@ -360,7 +360,7 @@ _done:
                 sec
                 rts
 
-_pictures:
+_pictured_literals:
     ; templates for push_pictured_common, mirroring psuh_inline_[bliteral, literal, 2literal]
         .byte %01001010, %01001110, %01111111
 
