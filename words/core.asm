@@ -3834,7 +3834,7 @@ z_number_sign_s:
 xt_of:
 w_of:
                 jsr two_literal_runtime
-                ; TODO strictly should test with +5 but only compile size
+                ; TODO strictly speaking we include the appended branch size
                 .word of_runtime_size           ; TOS with NUXI order
                 .word of_runtime                ; NOS
                 jsr cmpl_by_limit               ; leaves C=1 if inline for cmpl_zbranch_common

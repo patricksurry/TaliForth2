@@ -353,7 +353,7 @@ cmpl_0branch_setup:
                 ; First decide whether to inline or call the runtime.
                 ; Both start with the zero test
                 jsr two_literal_runtime
-                ; TODO strictly should test with +5 but only compile size
+                ; TODO strictly speaking we include the appended branch size
                 .word ztest_runtime_size        ; TOS with NUXI order
                 .word zero_branch_runtime       ; NOS
                 jsr cmpl_by_limit               ; leaves C=1 if inline
@@ -420,11 +420,10 @@ _long:
                 ;       bne +3
                 ;       jmp target
 
-;TODO cmpl_word_ya
+
                 lda #OpBNE
-                jsr cmpl_a
-                lda #3
-                jsr cmpl_a
+                ldy #3
+                jsr cmpl_word_ya
                 lda tmpdsp              ; destination known?
                 bne +
                 jsr w_here              ; if dest unknown, keep a pointer to the jmp target

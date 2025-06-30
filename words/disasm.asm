@@ -424,6 +424,8 @@ _sliteral_handler:
         .byte str_disasm_do, 0
     .word question_do_runtime
         .byte str_disasm_do, 1 + ('?'-32)*4
+    .word of_runtime
+        .byte str_disasm_of, 1
 _end_handlers:
 
 
