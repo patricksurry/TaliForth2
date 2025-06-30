@@ -48,7 +48,7 @@ else
 	PYTHON = python3
 endif
 
-COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) headers.asm strings.asm forth_words.asc user_words.asc opcodes.asm
+COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) stringtable.asm forth_words.asc user_words.asc
 TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
     tests/facility.fs tests/ed.fs tests/asm.fs tests/tali.fs \
     tests/tools.fs tests/block.fs tests/search.fs tests/user.fs tests/cycles.fs
@@ -65,6 +65,7 @@ clean:
 taliforth-%.bin: platform/platform-%.asm $(COMMON_SOURCES)
 	64tass --nostart \
 	--list=docs/$*-listing.txt \
+	--vice-labels \
 	--labels=docs/$*-labelmap.txt \
 	--output $@ \
 	$<
@@ -97,7 +98,7 @@ $(C65): $(C65_SOURCES)
 tests:	tests/results.txt
 
 # Run all of the tests.
-ctests: $(C65) taliforth-py65mon.bin $(TEST_SOURCES)
+ctests: $(C65) taliforth-c65.bin $(TEST_SOURCES)
 	cd tests && $(PYTHON) ./talitest_c65.py
 
 tests/results.txt:	taliforth-py65mon.bin $(TEST_SOURCES)
@@ -113,8 +114,8 @@ ptests:	taliforth-py65mon.bin $(TEST_SOURCES)
 sim: taliforth-py65mon.bin
 	py65mon -m 65c02 -r taliforth-py65mon.bin
 
-csim: $(C65) taliforth-py65mon.bin
-	$(C65) -r taliforth-py65mon.bin
+csim: $(C65) taliforth-c65.bin
+	$(C65) -r taliforth-c65.bin
 
 # Some convenience targets for the documentation.
 docs/manual.html: docs/*.adoc

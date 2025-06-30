@@ -2,6 +2,7 @@
 ; ## "bye"  tested  ANS tools ext
         ; """https://forth-standard.org/standard/tools/BYE"""
 xt_bye:
+w_bye:
                 ; Use the kernel_bye routine provided in the platform
                 ; file.  For simulators, this is traditionally just a
                 ; brk instruction, but platforms with another OS can
@@ -13,7 +14,7 @@ z_bye:
 
 
 ; ## DOT_S ( -- ) "Print content of Data Stack"
-; ## ".s"  tested  ANS tools
+; ## ".s"  auto  ANS tools
         ; """https://forth-standard.org/standard/tools/DotS
         ; Print content of Data Stack non-distructively. We follow the format
         ; of Gforth and print the number of elements first in brackets,
@@ -23,7 +24,8 @@ z_bye:
         ; """
 
 xt_dot_s:
-                jsr xt_depth    ; ( -- u )
+w_dot_s:
+                jsr w_depth    ; ( -- u )
 
                 ; Print stack depth in brackets
                 lda #'<'
@@ -36,17 +38,13 @@ xt_dot_s:
                 pha
 
                 ; print unsigned number without the trailing space
-                dex             ; DUP
-                dex
-                sta 0,x
-                stz 1,x
+                jsr w_dup
 
-                jsr print_u
+                jsr print_tos
 
                 lda #'>'
                 jsr emit_a
-                lda #AscSP      ; ASCII for SPACE
-                jsr emit_a
+                jsr w_space
 
                 inx
                 inx
@@ -61,7 +59,7 @@ xt_dot_s:
                 ; from bottom to top
                 ply
 
-                lda #dsp0-1     ; go up one to avoid garbage
+                lda #+dsp0-1     ; go up one to avoid garbage
                 sta tmp3
                 stz tmp3+1      ; must be zero page on the 65c02
 _loop:
@@ -77,7 +75,7 @@ _loop:
                 dec tmp3
                 phy
 
-                jsr xt_dot
+                jsr w_dot
 
                 ply
                 dey
@@ -91,147 +89,136 @@ z_dot_s:        rts
 
 
 ; ## DUMP ( addr u -- ) "Display a memory region"
-; ## "dump"  tested  ANS tools
+; ## "dump"  auto  ANS tools
         ; """https://forth-standard.org/standard/tools/DUMP
         ;
         ; DUMP's exact output is defined as "implementation dependent".
         ; This is in assembler because it is
         ; useful for testing and development, so we want to have it work
-        ; as soon as possible. Uses TMP2
+        ; as soon as possible. Uses tmp1, tmp2
         ; """
 
 xt_dump:
                 jsr underflow_2
+w_dump:
 _row:
-                ; start counter for 16 numbers per row
-                ldy #16
-
-                ; We use TMP2 as the index for the ASCII characters
-                ; that we print at the and of the hex block. We
-                ; start saving them at HERE (CP)
-                stz tmp2
-
-                jsr xt_cr
-
-                ; print address number
+                ; track current address in tmp2
                 lda 3,x
-                jsr byte_to_ascii
+                sta tmp2+1
                 lda 2,x
-                jsr byte_to_ascii
+                sta tmp2
 
-                jsr xt_space
-                jsr xt_space
-_loop:
-                ; if there are zero bytes left to display, we're done
-                lda 0,x
-                ora 1,x
-                beq _all_printed
+                jsr w_cr
 
-                ; dump the contents
-                lda (2,x)
-                pha                     ; byte_to_ascii destroys A
-                jsr byte_to_ascii
-                jsr xt_space
-                pla
-
-                ; Handle ASCII printing
-                jsr is_printable
-                bcs _printable
-                lda #'.'                 ; Print dot if not printable
-_printable:
-                phy                     ; save counter
-                ldy tmp2
-                sta (cp),y
-                inc tmp2
-                ply
-
-                ; extra space after eight bytes
-                cpy #9
-                bne _next_char
-                jsr xt_space
-
-_next_char:
-                inc 2,x
-                bne _counter
-                inc 3,x
-
-_counter:
-                ; loop counter
-                lda 0,x
+                ; set Y to number of characters for this row
+                ldy #16                 ; max 16
+                lda 1,x                 ; if u > 256 keep 16
                 bne +
-                dec 1,x
-+
-                dec 0,x
-                dey
-                bne _loop               ; next byte
 
-                ; Done with one line, print the ASCII version of these
-                ; characters
-                jsr xt_space
-                jsr dump_print_ascii
+                lda 0,x                 ; if u = 0 we're done
+                beq _done
+
+                cmp #16                 ; if u < 16 do what's left
+                bcs +
+                tay
++
+                sty tmp1                ; temporary storage for loop counter
+                lda #$40                ; bit 6 set on first pass and bit 7 on second
+                sta tmp1+1              ; so we can use bit tmp1+1 to check N flag
+
+                ; print current address for the row
+                ldy #1
+-
+                lda tmp2,y
+                jsr byte_to_ascii
+                dey
+                bpl -
+
+                jsr w_space
+_pass:                                  ; loop once for bytes, then for ascii
+                ldy #0
+_bytes:                                 ; loop over each byte in the row
+                tya
+                and #7
+                bne +
+                jsr w_space             ; extra space before bytes 0 and 8
++
+                ; dump the contents
+                lda (tmp2),y
+                bit tmp1+1              ; which pass are we on?
+                bmi _ascii              ; bit 7 set on second pass
+
+                jsr byte_to_ascii       ; show byte value
+                jsr w_space
+                bra _nextbyte
+_ascii:
+                jsr is_printable        ; show ascii char
+                bcs +
+                lda #'.'                ; use dot if not printable
++
+                jsr emit_a
+_nextbyte:
+                iny
+                cpy tmp1
+                bne _bytes
+
+                asl tmp1+1              ; $40 -> $80 -> 0
+                beq +                   ; done both passes?
+
+                ; add spaces to align partial lines
+                ; after writing Y bytes, we need to add padding of
+                ; of 3*(16-Y) + (1 if Y<9)
+                dey                     ; Y-1 is 0...15
+                tya
+                eor #$f                 ; 15-(Y-1) is 16-Y
+                sta tmpdsp
+                asl a                   ; A is 2*(16-Y)
+                ; y < 9 when 16-y > 7 and when 16-y >= 8
+                ; so with A=2*(16-y), cmp #2*8 sets C=1 when true
+                cmp #16
+                adc tmpdsp              ; 3*(16-Y) + 1 if Y<9
+
+                jsr push_a_tos
+                jsr w_spaces
+
+                bra _pass
++
+                ; done this row, increment address and decrement count
+                lda tmp1
+                jsr push_a_tos
+                jsr w_slash_string      ; ( addr n k -- addr+k n-k )
 
                 bra _row                ; new row
 
-_all_printed:
-                ; See if there are any ASCII characters in the buffer
-                ; left to print
-                lda tmp2
-                beq _done
-
-                ; In theory, we could try to make the ASCII part line
-                ; up with the line before it. But that is a hassle (we
-                ; use three bytes for each missed hex entry, and
-                ; then there is the gap after eight entries) and it
-                ; makes it harder to read. We settle for one extra
-                ; space instead for the moment
-                jsr xt_space
-                jsr dump_print_ascii
 _done:
-                jsr xt_two_drop         ; one byte less than 4x INX
+                inx
+                inx
+                inx
+                inx
+
 z_dump:         rts
-
-
-dump_print_ascii:
-                ; Print the ASCII characters that we have saved from
-                ; HERE (CP) to HERE plus whatever is in TMP2. This routine
-                ; is not compiled (DUMP is probably never compiled anyway)
-                ; but we keep it inside the scope of DUMP.
-                ldy #0
-_ascii_loop:
-                lda (cp),y
-                jsr emit_a
-                iny
-
-                ; extra space after eight chars
-                cpy #8
-                bne +
-                jsr xt_space
-+
-                dec tmp2
-                bne _ascii_loop
-
-                rts
 
 
 
 ; ## QUESTION ( addr -- ) "Print content of a variable"
-; ## "?"  tested  ANS tools
+; ## "?"  auto  ANS tools
         ; """https://forth-standard.org/standard/tools/q
         ;
         ; Only used interactively. Since humans are so slow, we
         ; save size and just go for the subroutine jumps
         ; """
 xt_question:
+w_question:
                 ; FETCH takes care of underflow check
-                jsr xt_fetch
-                jsr xt_dot
+                jsr w_fetch
+                jsr w_dot
 
 z_question:     rts
 
 
 
 ; ## SEE ( "name" -- ) "Print information about a Forth word"
-; ## "see" tested  ANS tools
+; ## "see" auto  ANS tools
         ; """https://forth-standard.org/standard/tools/SEE
         ; SEE takes the name of a word and prints its name token (nt),
         ; execution token (xt), size in bytes, flags used, and then dumps the
@@ -239,8 +226,9 @@ z_question:     rts
         ; """
 
 xt_see:
-                jsr xt_parse_name       ; ( addr u )
-                jsr xt_find_name        ; ( nt | 0 )
+w_see:
+                jsr w_parse_name       ; ( addr u )
+                jsr w_find_name        ; ( nt | 0 )
 
                 ; If we got back a zero we don't know that word and so we quit
                 ; with an error
@@ -251,83 +239,171 @@ xt_see:
                 lda #err_noname
                 jmp error
 +
-                jsr xt_cr
+                jsr w_cr
 
                 ; We have a legal word, so let's get serious. Save the current
                 ; number base and use hexadecimal instead.
                 lda base
                 pha
-                jsr xt_hex
+                jsr w_hex
 
                 lda #str_see_nt
-                jsr print_string_no_lf
+                jsr print_string_n
 
-                jsr xt_dup              ; ( nt nt )
-                jsr xt_u_dot
-                jsr xt_space            ; ( nt )
+                jsr w_dup               ; ( nt nt )
+                jsr w_u_dot
+                jsr w_space             ; ( nt )
 
-                jsr xt_dup              ; ( nt nt )
-                jsr xt_name_to_int      ; ( nt xt )
+                jsr w_dup               ; ( nt nt )
+                jsr w_name_to_int       ; ( nt xt )
 
                 lda #str_see_xt
-                jsr print_string_no_lf
+                jsr print_string_n
 
-                jsr xt_dup              ; ( nt xt xt )
-                jsr xt_u_dot
-                jsr xt_cr               ; ( nt xt )
+                jsr w_dup               ; ( nt xt xt )
+                jsr w_u_dot             ; ( nt xt )
+                jsr w_space
 
-                ; We print letters for flags and then later follow it with 1 or
-                ; 0 to mark if which flag is set
-                lda #str_see_flags
-                jsr print_string_no_lf
-
-                jsr xt_over             ; ( nt xt nt )
-                jsr xt_one_plus         ; ( nt xt nt+1 )
-                jsr xt_fetch            ; ( nt xt flags )
-
-                lda 0,x
-
-                ; This is crude, but for the moment it is good enough
-                ldy #6                  ; Not all bits are used
-_flag_loop:
-                pha
-                and #%00000001
-                clc
-                adc #'0'
-                jsr emit_a
-                jsr xt_space
-
-                pla
-                ror                     ; Next flag
-
+                lda #str_see_header
+                jsr print_string_n
+                jsr w_over
+                ; calculate header length from status flag byte
+                lda (0,x)               ; fetch status byte
+                and #DC+LC+FP           ; mask length bits
+                lsr                     ; shift FP to carry flag, A = 2*DC + LC
+                adc #4                  ; header length is 4 bytes + 2*DC + LC + FP
+                tay
+_show_header:
+                lda (0,x)
+                jsr byte_to_ascii
+                jsr w_space
+                jsr w_one_plus
                 dey
-                bne _flag_loop
+                bne _show_header
 
-                jsr xt_cr
+                jsr w_cr
+                jsr w_drop              ; ( nt xt )
 
-                inx
+                ; Show flag values from the status byte along with
+                ; any calculated (synthetic) flag values
+                lda (2,x)               ; grab status flags @ NT
+                dex                     ; make some space
+                dex                     ; ( nt xt flags )
+                sta 0,x                 ; stash status flag byte
+                stz 1,x                 ; placeholder for synthetic flags
+                pha                     ; save a copy of flags for later
+
+                                        ; ( nt xt flags )
+                ; collect synthetic flags in reverse order for template
+                and #ST                 ; calculate ST flag
+                cmp #ST
+                beq +                   ; C=1 when ST set
+                clc
++
+                ror 1,x                 ; add to flag byte
+
+                jsr w_over
+                jsr has_uf_check        ; C=1 when UF set
+                ror 1,x                 ; add to flag byte
+
+                lda #N_FLAGS            ; count off status byte flags
+                sta tmptos
+.if N_FLAGS < 8
+-
+                cmp #8                  ; discard any unused high bits
+                beq +
+                asl 0,x
+                ina
+                bra -
++
+.endif
+                ; use a zero-terminated template string to show flag names with placeholders
+                ; marked by shifted characters
+                lda #<see_flags_template
+                sta tmp3                ; LSB
+                lda #>see_flags_template
+                sta tmp3+1              ; MSB
+
+                ldy #0                  ; index the string
+_show_flags:
+                lda (tmp3),y            ; next char in template
+                bpl _emit               ; normal char?  just show it
+
+                ; otherwise insert a flag first
+                and #$7f                ; clear hi bit and save char that follows flag
+                pha
+
+                ; for each flag, print "<space><flag><space>"
+                jsr w_space             ; no stack effect
+
+                dec tmptos
+                bmi _synthetic          ; more core status flags?
+                asl 0,x                 ; shift next flag bit into carry
+                bra +
+_synthetic:
+                asl 1,x                 ; show synthetic flags after core ones
++
+                lda #'0'                ; convert C=0/1 into '0' or '1'
+                adc #0
+                jsr emit_a              ; write the flag digit
+                jsr w_space             ; and a space
+
+                pla                     ; recover following character
+                beq _done
+_emit:
+                jsr emit_a
+
+                iny
+                bne _show_flags
+_done:
+
+                jsr w_cr
+
+                inx                     ; drop flags
                 inx                     ; ( nt xt )
 
                 ; Figure out the size
                 lda #str_see_size
-                jsr print_string_no_lf
+                jsr print_string_n
 
-                jsr xt_swap             ; ( xt nt )
-                jsr xt_wordsize         ; ( xt u )
-                jsr xt_dup              ; ( xt u u ) for DUMP and DISASM
-                jsr xt_decimal
-                jsr xt_u_dot            ; ( xt u )
-                jsr xt_hex
-                jsr xt_cr
+                jsr w_swap              ; ( xt nt )
+                jsr w_wordsize          ; ( xt u )
+                jsr w_dup               ; ( xt u u )
+                jsr w_decimal
+
+                ; for HC words we'll split out CFA/PFA
+                pla                     ; fetch flag byte we saved earlier
+                and #HC                 ; does it have CFA?
+                pha                     ; we'll need to check once more
+                beq +
+
+                lda #str_see_cfapfa
+                jsr print_string_n  ; print "CFA: 3  PFA: "
+
+                sec
+                lda 0,x                 ; reduce to u-3
+                sbc #3
+                sta 0,x                 ; assume u < 256
++
+                jsr w_u_dot             ; print u (or u-3 for PFA)
+
+                ; ( xt u )
+                jsr w_cr
 
                 ; Dump hex and disassemble
 .if "disassembler" in TALI_OPTIONAL_WORDS
-                jsr xt_two_dup          ; ( xt u xt u )
+                jsr w_two_dup           ; ( xt u xt u )
 .endif
-                jsr xt_dump
-                jsr xt_cr
+                jsr w_hex
+                jsr w_dump
+                pla                     ; recover HC flag
 .if "disassembler" in TALI_OPTIONAL_WORDS
-                jsr xt_disasm
+                beq +
+                lda #3
+                sta 0,x                 ; for CFA words, just show three bytes
+                stz 1,x
++
+                jsr w_disasm
 .endif
                 pla
                 sta base
@@ -337,16 +413,17 @@ z_see:          rts
 
 
 ; ## WORDS ( -- ) "Print known words from Dictionary"
-; ## "words"  tested  ANS tools
+; ## "words"  auto  ANS tools
         ; """https://forth-standard.org/standard/tools/WORDS
         ; This is pretty much only used at the command line so we can
         ; be slow and try to save space.
         ; """
 
 xt_words:
+w_words:
                 ; we follow Gforth by starting on the next
                 ; line
-                jsr xt_cr
+                jsr w_cr
 
                 ; We pretty-format the output by inserting a line break
                 ; before the end of the line. We can get away with pushing
@@ -389,8 +466,8 @@ _have_wordlist:
                 sta 1,x
 
 _loop:
-                jsr xt_dup              ; ( nt nt )
-                jsr xt_name_to_string   ; ( nt addr u )
+                jsr w_dup              ; ( nt nt )
+                jsr w_name_to_string   ; ( nt addr u )
 
                 ; Insert line break if we're about to go past the end of the
                 ; line
@@ -401,27 +478,30 @@ _loop:
                 cmp #MAX_LINE_LENGTH    ; usually 79
                 bcc +
 
-                jsr xt_cr
+                jsr w_cr
 
                 lda 0,x                 ; After going to next line, start
                 ina                     ; with length of this word.
 +
                 pha
-                jsr xt_type             ; ( nt )
+                jsr w_type             ; ( nt )
 
                 lda #AscSP
                 jsr emit_a
 
-                ; get next word, which begins two down
-                jsr xt_one_plus         ; 1+
-                jsr xt_one_plus         ; 1+
-                jsr xt_fetch            ; @ ( nt+1 )
-
-                ; if next address is zero, we're done
                 lda 0,x
-                ora 1,x
-                bne _loop
+                sta tmp1
+                lda 1,x
+                sta tmp1+1
+                jsr nt_to_nt
+                beq _next_list          ; did we reach the end of the list?
+                lda tmp1
+                sta 0,x
+                lda tmp1+1
+                sta 1,x
 
+                bra _loop
+_next_list:
                 ; Move on to the next wordlist in the search order.
                 inc tmp3
                 bra _wordlist_loop
@@ -433,3 +513,5 @@ _words_done:
                 inx
 
 z_words:        rts
+
+

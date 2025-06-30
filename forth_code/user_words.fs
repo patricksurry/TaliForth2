@@ -15,8 +15,11 @@
 \ in bytes. It can be used to test the effects of different native
 \ compile parameters.  It only displays words from the current
 \ wordlist (usually FORTH-WORDLIST).
+        \ : previousnt dup  2 + @  over  c@ 1 and 0= if
+        \     $ff and over $ff00 and or 2dup > 0= if 256 - then
+        \ then nip ;
         \ : words&sizes  latestnt begin dup 0<> while dup name>string
-        \ type space  dup wordsize u. cr  2 + @ repeat drop ;
+        \ type space  dup wordsize u. cr  previousnt  repeat drop ;
 
 \ -------------------------------------------------------
 \ FIBONACCI, contributed by leepivonka at
@@ -58,38 +61,38 @@
         \  40 constant maxval
         \  20 5 lshift constant rescale
         \ rescale 4 * constant s_escape
-        \ 
+        \
         \ ( these variables hold values during the escape calculation )
         \ variable creal
         \ variable cimag
         \ variable zreal
         \ variable zimag
         \ variable count
-        \ 
+        \
         \ ( compute squares, but rescale to remove extra scaling factor)
         \ : zr_sq zreal @ dup rescale */ ;
         \ : zi_sq zimag @ dup rescale */ ;
-        \ 
-        \ ( translate escape count to ascii greyscale 
+        \
+        \ ( translate escape count to ascii greyscale
         \ : .char
-        \          s ..,'~!^:;[/<&?oxox#  
+        \          s ..,'~!^:;[/<&?oxox#
         \          drop + 1
         \          type ;
-        \ 
+        \
         \ ( numbers above 4 will always escape, so compare to a scaled value)
         \ : escapes? s_escape > ;
-        \ 
+        \
         \ ( increment count and compare to max iterations)
         \ : count_and_test?
         \          count @ 1+ dup count !
         \          maxiter > ;
-        \ 
+        \
         \ ( stores the row column values from the stack for the escape calculation)
         \ : init_vars
         \          5 lshift dup creal ! zreal !
         \          5 lshift dup cimag ! zimag !
         \          1 count ! ;
-        \ 
+        \
         \ ( performs a single iteration of the escape calculation)
         \ : doescape
         \          zr_sq zi_sq 2dup +
@@ -103,7 +106,7 @@
         \          zreal !                   ( store stack item into zreal )
         \          count_and_test?
         \          then ;
-        \ 
+        \
         \ ( iterates on a single cell to compute its escape factor)
         \ : docell
         \          init_vars
@@ -112,7 +115,7 @@
         \          until
         \          count @
         \          .char ;
-        \ 
+        \
         \ ( for each cell in a row)
         \ : dorow
         \          maxval minval do
@@ -120,7 +123,7 @@
         \          docell
         \          loop
         \          drop ;
-        \ 
+        \
         \ ( for each row in the set)
         \ : mandelbrot
         \          cr

@@ -10,7 +10,7 @@
         ; """
 xt_cmove:
                 jsr underflow_3
-
+w_cmove:
                 ; move destination address to where we can work with it
                 lda 2,x
                 sta tmp2        ; use tmp2 because easier to remember
@@ -59,7 +59,7 @@ _done:          ; clear the stack
 z_cmove:        rts
 
 
-; ## CMOVE_UP ( add1 add2 u -- ) "Copy bytes from high to low"
+; ## CMOVE_UP ( addr1 addr2 u -- ) "Copy bytes from high to low"
 ; ## "cmove>"  auto  ANS string
         ; """https://forth-standard.org/standard/string/CMOVEtop
         ; Based on code in Leventhal, Lance A. "6502 Assembly Language
@@ -69,7 +69,7 @@ z_cmove:        rts
         ; """
 xt_cmove_up:
                 jsr underflow_3
-
+w_cmove_up:
                 ; Move destination address to where we can work with it
                 lda 2,x
                 sta tmp2        ; use tmp2 because easier to remember
@@ -132,7 +132,7 @@ z_cmove_up:     rts
         ; """
 xt_compare:
                 jsr underflow_4
-
+w_compare:
                 ; Load the two string addresses into tmp1 and tmp2.
                 lda 2,x
                 sta tmp2
@@ -226,14 +226,15 @@ z_compare:      rts
 
 
 
-; ## MINUS_LEADING ( addr1 u1 -- addr2 u2 ) "Remove leading spaces"
+; ## MINUS_LEADING ( addr1 u1 -- addr2 u2 ) "Remove leading whitespace"
 ; ## "-leading"  auto  Tali String
-        ; """Remove leading whitespace. This is the reverse of -TRAILING
+        ; """Remove leading whitespace. This is the reverse of -TRAILING except
+        ; that it removes any whitespace, not just BL
         ; """
 
 xt_minus_leading:
                 jsr underflow_2
-
+w_minus_leading:
 _loop:
                 ; Quit if we were given an empty string. This also terminates
                 ; the main loop
@@ -246,8 +247,7 @@ _loop:
                 bcc _done
 
                 ; It's whitespace, move one down
-                jsr xt_one              ; ( addr u 1 )
-                jsr xt_slash_string     ; ( addr+ u-1 )
+                jsr slash_string_1      ; ( addr+1 u-1 )
 
                 bra _loop
 _done:
@@ -259,65 +259,45 @@ z_minus_leading:
 ; ## MINUS_TRAILING ( addr u1 -- addr u2 ) "Remove trailing spaces"
 ; ## "-trailing"  auto  ANS string
         ; """https://forth-standard.org/standard/string/MinusTRAILING
-        ; Remove trailing spaces
+        ; Remove trailing spaces.  Note this ANSI word only removes ASCII $20
+        ; not other whitespace like -LEADING.
         ; """
 
 xt_minus_trailing:
                 jsr underflow_2
-
-                ; if length entry is zero, return a zero and leave the
-                ; address part untouched
+w_minus_trailing:
+                ; if length is zero we're done
                 lda 0,x         ; LSB of n
                 ora 1,x         ; MSB of n
                 beq _done
 
-                ; Compute address of last char in tmp1 as
-                ; addr + u1 - 1
-
-                ; addr + u1
-                clc
-                lda 2,x         ; LSB of addr
-                adc 0,x
-                sta tmp1
-                lda 3,x         ; MSB of addr
-                adc 1,x
-                sta tmp1+1
-
-                ; - 1
-                lda tmp1
-                bne +
-                dec tmp1+1
-+
-                dec tmp1
+                ; Compute address past last character: addr + u1
+                jsr w_two_dup
+                jsr w_plus
+                ; ( addr u addr' )
 
 _loop:
-                ; While spaces are found, move tmp1 backwards and
-                ; decrease the count on the data stack.
-                lda (tmp1)
-                cmp #AscSP
-                bne _done
+                ; Move back to point at last character
+                jsr w_one_minus
 
-                ; Move back one address.
-                lda tmp1
-                bne +
-                dec tmp1+1
-+
-                dec tmp1
+                ; While spaces are found,
+                ; decrease the count on the data stack and repeat
+                lda (0,x)
+                cmp #AscSP
+                bne _drop_done
 
                 ; Decrement count by one.
-                lda 0,x
+                lda 2,x
                 bne +
-                dec 1,x
+                dec 3,x
 +
-                dec 0,x
-
-                ; Check if there are any characters left.
-                lda 0,x
-                ora 1,x
-                beq _done       ; Count has reached zero - we're done!
-
-                bra _loop
-
+                dea
+                sta 2,x
+                ora 3,x         ; If count reaches zero - we're also done!
+                bne _loop
+_drop_done:
+                inx             ; drop the end-of-string pointer
+                inx
 _done:
 z_minus_trailing:
                 rts
@@ -337,7 +317,7 @@ z_minus_trailing:
 
 xt_search:
                 jsr underflow_4
-
+w_search:
                 ; ANS says if the second string is a zero-length string it
                 ; automatically matches.
                 lda 0,x
@@ -355,7 +335,7 @@ xt_search:
 
 _start_search:
                 ; Put an offset (starting at zero) on the stack.
-                jsr xt_zero
+                jsr w_zero
 
 _search_loop:
                 ; We stop (not found) when u2 + offset > u1
@@ -425,7 +405,7 @@ _comparison_loop:
 
                 ; One of the letters didn't match.
                 ; Increment the offset and try again.
-                jsr xt_one_plus
+                jsr w_one_plus
                 bra _search_loop
 
 _letters_match:
@@ -496,7 +476,7 @@ z_search:       rts
 
 xt_slash_string:
                 jsr underflow_3
-
+w_slash_string:
                 clc             ; 3OS+TOS
                 lda 0,x
                 adc 4,x
@@ -520,9 +500,22 @@ xt_slash_string:
 
 z_slash_string: rts
 
+; for internal use we often need to remove a single character
+slash_string_1:       ; ( addr u -- addr+1 u-1)
+                inc 2,x
+                bne +
+                inc 3,x
++
+                lda 0,x
+                bne +
+                dec 1,x
++
+                dec 0,x
+rts
 
 
-; ## SLITERAL ( addr u -- )( -- addr u ) "Compile a string for runtime"
+
+; ## SLITERAL (C: addr u -- ) ( -- addr u ) "Compile a string for runtime"
 ; ## "sliteral" auto  ANS string
         ; """https://forth-standard.org/standard/string/SLITERAL
         ; Add the runtime for an existing string.
@@ -530,120 +523,79 @@ z_slash_string: rts
 
 xt_sliteral:
                 jsr underflow_2
-
+w_sliteral:
                 ; We can't assume that ( addr u ) of the current string is in
-                ; a stable area (eg. already in the dictionary.)
-                ; We'll compile the string data into the dictionary using move
-                ; along with code that stacks the new ( addr' u )
-                ;   jmp _end
-                ; _str:
-                ;   < u data bytes >
-                ; _end: jsr sliteral_runtime
-                ;   < _str u >
+                ; a stable area (e.g. already in the dictionary.)
+                ; We'll compile the length and string data into the dictionary
+                ; using move along with runtime code that stacks the new ( addr' u )
+                ;
+                ;   jsr sliteral_runtime
+                ;   .word u
+                ;   .byte < u data bytes >
 
-                jsr cmpl_jump_later
-                jsr xt_to_r
-                ; ( addr u  R: jmp-target )
-                jsr xt_here
-                jsr xt_swap
-                ; ( addr addr' u )
-                jsr xt_dup
-                jsr xt_allot            ; reserve u bytes for string
-                jsr xt_here
-                ; ( addr addr' u addr'+u )
-                jsr xt_r_from
-                jsr xt_store            ; point jmp past string
-                jsr xt_two_dup
-                jsr xt_two_to_r
-                ; ( addr addr' u  R: addr' u )
-                jsr xt_move             ; copy u bytes from addr -> addr'
-                jsr xt_two_r_from
-                ; Stack is now ( addr' u ) with the new string location
-
-cmpl_sliteral:
-cmpl_two_literal:
-                ; Compile a subroutine jump to the runtime of SLITERAL that
-                ; pushes the new ( addr u ) pair to the Data Stack.
-                ; When we're done, the code will look like this:
-
-                ; xt -->    jmp a
-                ;           <string data bytes>
-                ;  a -->    jsr sliteral_runtime
-                ;           <string address>
-                ;           <string length>
-                ; rts -->
-
-                ; This means we'll have to adjust the return address for two
-                ; cells, not just one
                 ldy #>sliteral_runtime
                 lda #<sliteral_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_subroutine     ; jsr sliteral_runtime
 
-                ; We want to have the address end up as NOS and the length
-                ; as TOS, so we store the address first
-                ldy 3,x                ; address MSB
-                lda 2,x                ; address LSB
-                jsr cmpl_word
+                lda 0,x
+                ldy 1,x
+                jsr cmpl_word           ; .word u
 
-                ldy 1,x                ; length MSB
-                lda 0,x                ; length LSB
-                jsr cmpl_word
+                jsr w_here
+                jsr w_swap
+                ; ( addr addr' u )
 
-                ; clean up and leave
-                inx
-                inx
-                inx
-                inx
+                jsr w_dup               ; allocate space for the string
+                jsr w_allot
+
+                jsr w_move              ; .text < u bytes >
 
 z_sliteral:     rts
 
 
-
 sliteral_runtime:
-
-        ; """Run time behaviour of SLITERAL: Push ( addr u ) of string to
-        ; the Data Stack. We arrive here with the return address as the
-        ; top of Return Stack, which points to the address of the string.
-        ; Also used for double word where we have ( lo hi ).
+        ; """Run time behaviour of SLITERAL: Push ( addr u ) of the string to
+        ; the Data Stack.  The length and string data follows the JSR here,
+        ; for example if we have
+        ;
+        ;       jsr sliteral_runtime
+        ;       .word u
+        ;    _addr:
+        ;       .byte < u string bytes >
+        ;
+        ; Then we want to stack ( _str u ) and return past the end of the string.
         ; """
-                dex
+                dex             ; make space on the stack
                 dex
                 dex
                 dex
 
-                ; We arrived from code like
-                ;   jsr sliteral_runtime
-                ;   .word addr
-                ;   .word length
-                ; So the return address points one byte before addr.
-                ; Pull that to tmp1 and put tmp1+4 to return past two data words
-                pla
-                sta tmp1        ; LSB of address
-                ply
-                sty tmp1+1      ; MSB of address
+                ; fetch return address which points one byte before u
                 clc
-                adc #4
+                pla             ; LSB of return address
+                sta tmp1
+                adc #3          ; calculate string offset
+                sta 2,x         ; LSB of string address
+                ply             ; MSB of address
+                sty tmp1+1
                 bcc +
                 iny
 +
-                phy
-                pha
+                sty 3,x         ; MSB of string address
 
-                ; Walk through both and save them
-                ldy #1          ; adjust for JSR/RTS mechanics on 65c02
+                ldy #2          ; copy u to TOS
                 lda (tmp1),y
-                sta 2,x         ; LSB of address
-                iny
-
+                sta 1,x         ; MSB of u
+                dey
                 lda (tmp1),y
-                sta 3,x         ; MSB of address
-                iny
+                sta 0,x         ; LSB of u
 
-                lda (tmp1),y
-                sta 0,x         ; LSB of length
-                iny
+                ; we want to continue past the string, i.e. NOS+TOS
+                clc             ; A still has LSB of u
+                adc 2,x         ; LSB of continuation address
+                sta tmp1
+                lda 1,x
+                adc 3,x
+                sta tmp1+1
 
-                lda (tmp1),y
-                sta 1,x         ; MSB of length
-
-                rts
+                jmp (tmp1)

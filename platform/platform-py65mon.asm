@@ -1,101 +1,27 @@
+; Platform file for Tali Forth 2 for the py65mon simulator (https://github.com/mnaberez/py65)
+; Scot W. Stevenson <scot.stevenson@gmail.com>
+; Sam Colwell
+; Patrick Surry
+; First version: 19. Jan 2014
+; This version: 27. Feb 2025
+
+
         ; 65C02 processor (Tali will not compile on older 6502)
         .cpu "65c02"
-        ; No special text encoding (eg. ASCII)
+        ; No special text encoding (e.g. ASCII)
         .enc "none"
 
-        ; Where to start Tali Forth 2 in ROM (or RAM if loading it)
+TALI_ARCH := "py65mon"
+
+; Set the address for the end of RAM
+; In simulators or all-RAM systems, this will generally be at $7FFF
+; This address is for 32K of RAM
+; The code for Tali will generally live above this address (e.g. in ROM)
+ram_end = $7fff
+
+        ; Set the origin for Tali Forth 2 in ROM (or RAM if loading it)
+        ; This will be labeled `forth` aka `xt_cold`
         * = $8000
-
-; I/O facilities and memory layout are handled in these separate platform files
-; to isolate hardware dependencies. See docs/memorymap.txt for a discussion of Tali's
-; memory layout.
-
-; MEMORY MAP OF RAM
-
-; Drawing is not only very ugly, but also not to scale. See the manual for
-; details on the memory map. Note that some of the values are hard-coded in
-; the testing routines, especially the size of the input history buffer, the
-; offset for PAD, and the total RAM size. If these are changed, the tests will
-; have to be changed as well
-
-
-;    $0000  +-------------------+  ram_start, zpage, user0
-;           |   Tali zp vars    |
-;           +-------------------+
-;           |                   |
-;           |                   |
-;           +~~~~~~~~~~~~~~~~~~~+  <-- dsp
-;           |                   |
-;           |  ^  Data Stack    |
-;           |  |                |
-;    $0078  +-------------------+  dsp0, stack
-;           |    flood plain    |
-;    $007F  +-------------------+
-;           |                   |
-;           |   (free space)    |
-;           |                   |
-;    $0100  +-------------------+
-;           |                   |
-;           |  ^  Return Stack  |  <-- rsp
-;           |  |                |
-;    $0200  +-------------------+  rsp0, buffer, buffer0
-;           |    Input Buffer   |
-;    $0300  +-------------------+
-;           | Native forth vars |
-;    $0400  +-------------------+
-;           |  1K block buffer  |
-;    $0800  +-------------------+  cp0
-;           |  |                |
-;           |  v  Dictionary    |
-;           |       (RAM)       |
-;           |                   |
-;   (...)   ~~~~~~~~~~~~~~~~~~~~~  <-- cp aka HERE
-;           |                   |
-;           |                   |
-;           |                   |
-;           |                   |
-;           |                   |
-;           |                   |
-;    $7C00  +-------------------+  hist_buff, cp_end
-;           |   Input History   |
-;           |    for ACCEPT     |
-;           |  8x128B buffers   |
-;    $7fff  +-------------------+  ram_end
-
-
-; HARD PHYSICAL ADDRESSES
-
-; Some of these are somewhat silly for the 65c02, where for example
-; the location of the Zero Page is fixed by hardware. However, we keep
-; these for easier comparisons with Liara Forth's structure and to
-; help people new to these things.
-
-ram_start = $0000          ; start of installed 32 KiB of RAM
-ram_end   = $8000-1        ; end of installed RAM
-zpage     = ram_start      ; begin of Zero Page ($0000-$00ff)
-zpage_end = $7F            ; end of Zero Page used ($0000-$007f)
-stack0    = $0100          ; begin of Return Stack ($0100-$01ff)
-hist_buff = ram_end-$03ff  ; begin of history buffers
-
-
-; SOFT PHYSICAL ADDRESSES
-
-; Tali currently doesn't have separate user variables for multitasking. To
-; prepare for this, though, we've already named the location of the user's
-; Zero-Page System Variables user0. Note cp0 starts one byte further down so
-; that it currently has the address $300 and not $2FF. This avoids crossing
-; the page boundry when accessing the RAM System Variables table, which would
-; cost an extra cycle.
-
-user0     = zpage            ; TaliForth2 system variables
-rsp0      = $ff              ; initial Return Stack Pointer (65c02 stack)
-bsize     = $ff              ; size of input/output buffers
-buffer0   = stack0+$100      ; input buffer ($0200-$027f)
-cp0       = buffer0+bsize+1  ; Dictionary starts after last buffer
-                             ; The RAM System Variables and BLOCK buffer are
-                             ; placed right at the beginning of the dictionary.
-cp_end    = hist_buff        ; Last RAM byte available for code
-padoffset = $ff              ; offset from CP to PAD (holds number strings)
 
 
 ; OPTIONAL WORDSETS
@@ -123,7 +49,7 @@ TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "a
 ;     If both the assembler and dissasembler are removed, the tables
 ;     (used for both assembling and disassembling) will be removed
 ;     for additional memory savings. (extra ~1.6K)
-; "wordlist" is for the optional SEARCH-ORDER words (eg. wordlists)
+; "wordlist" is for the optional SEARCH-ORDER words (e.g. wordlists)
 ;     Note: Without "wordlist", you will not be able to use any words from
 ;     the EDITOR or ASSEMBLER wordlists (they should probably be disabled
 ;     by also removing "editor" and "assembler"), and all new words will
@@ -134,52 +60,154 @@ TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "a
 ; CR in order to move the cursor to the next line.  The default is "lf"
 ; for a line feed character (#10).  "cr" will use a carriage return (#13).
 ; Having both will use a carriage return followed by a line feed.  This
-; only affects output.  Either CR or LF can be used to terminate lines
-; on the input.
+; only affects output.  Either carriage returns or line feeds can be used
+; to terminate lines on the input.
 
 TALI_OPTION_CR_EOL := [ "lf" ]
 ;TALI_OPTION_CR_EOL := [ "cr" ]
 ;TALI_OPTION_CR_EOL := [ "cr", "lf" ]
 
-; The history option enables editable input history buffers via ctrl-n/ctrl-p
-; These buffers are disabled when set to 0 (~0.2K Tali, 1K RAM)
-;TALI_OPTION_HISTORY := 0
-TALI_OPTION_HISTORY := 1
+; TALI_OPTION_HISTORY enables editable input history buffers via ctrl-n/ctrl-p
+; These buffers are disabled when set to 0 (saving about ~0.2K Tali ROM, 1K RAM)
 
-; The terse option strips or shortens various strings to reduce the memory
+TALI_OPTION_HISTORY := 1
+;TALI_OPTION_HISTORY := 0
+
+; TALI_OPTION_TERSE strips or shortens various strings to reduce the memory
 ; footprint when set to 1 (~0.5K)
+
 TALI_OPTION_TERSE := 0
 ;TALI_OPTION_TERSE := 1
 
-; =====================================================================
-; FINALLY
 
+; =====================================================================
+; Include Tali Forth 2 code
 ; Make sure the above options are set BEFORE this include.
 
 .include "../taliforth.asm" ; zero page variables, definitions
 
-; Of the 32 KiB we use, 24 KiB are reserved for Tali (from $8000 to $DFFF)
-; and the last eight (from $E000 to $FFFF) are left for whatever the user
-; wants to use them for.
+; Now we've got all of Tali's native code.  This requires about 24Kb
+; with all options, or as little as 12Kb for a minimal build.
+; In the default configuraiton, we've filled ROM from $8000
+; to about $dfff, leaving about 8Kb.
 
-; By default Tali is set up for I/O with the py65mon or c65 simulator
-; (see docs/MANUAL.md for details).  You can configure Tali for your
-; own hardware setup by defining your own kernel routines as follows:
-;
-;       kernel_init - Initialize the low-level hardware
-;       kernel_getc - Get single character in A from the keyboard (blocks)
-;       kernel_putc - Prints the character in A to the screen
-;       kernel_bye  - Exit forth, e.g. to a monitor program or just `brk`
-;       s_kernel_id - The zero-terminated string printed at boot;
+; Both py65mon and c65 use $f000-$f010 as their default IO interface
+; and we don't want to change that because it would make it harder to
+; use out of the box, so we just advance past the virtual hardware addresses.
+; (We could also choose to put our kernel routines before the IO addresses.)
 
-.include "simulator.asm"
+io_start = $f000                ; virtual hardware addresses for the simulators
+
+* = io_start
+
+; Define the py65mon magic IO addresses relative to $f000
+                .byte ?
+io_putc:        .byte ?         ; $f001     write byte to stdout
+                .byte ?
+                .byte ?         ;
+io_getc:        .byte ?         ; $f004     non-blocking read input character (0 if no key)
+                .byte ?
+io_clk_start:   .byte ?         ; $f006     *read* to start cycle counter
+io_clk_stop:    .byte ?         ; $f007     *read* to stop the cycle counter
+io_clk_cycles:  .word ?,?       ; $f008-b   32-bit cycle count in NUXI order
+                .word ?,?
+
+.cerror * != io_start + $10, "Mismatched magic IO interface"
+
+
+; Here we add the required kernel routines to interface to
+; our "hardware" which is a simulator in this configuration.
+; Only kernel_init, kernel_bye, kernel_getc, and kernel_putc, are required.
+; kernel_kbhit is optional and only affects the Forth word KEY?
+
+kernel_init:
+        ; """Initialize the hardware. This is called with a JMP and not
+        ; a JSR because we don't have the 6502 stack ready yet. With
+        ; py65mon, of course, this is really easy. At the end, we JMP
+        ; back to the label `forth` to start the Forth system.
+        ; This will also typically be the target of the reset vector.
+        ; """
+                ; Since the default case for Tali is the py65mon emulator, we
+                ; have no use for interrupts. If you are going to include
+                ; them in your system in any way, you're going to have to
+                ; do it from scratch. Sorry.
+                sei             ; Disable interrupts
+
+                ; We've successfully set everything up, so print the kernel
+                ; string
+                ldx #0
+-               lda s_kernel_id,x
+                beq _done
+                jsr kernel_putc
+                inx
+                bra -
+_done:
+                jmp forth
+
+; The kernel_bye routine will be called when the Forth word BYE is run.
+; It should go back to the OS or monitor, if there is one.
+; Here, we just run the BRK instruction, which stops the simulation on some
+; simulators and will end up restarting Tali on others.
+kernel_bye:
+        ; """Forth shutdown called from BYE"""
+                brk
+
+kernel_putc:
+        ; """Print a single character (in the A register) to the console.
+        ;
+        ; Note this routine must preserve X, Y but that's easy here.
+        ; If your code is more complex, wrap it with PHX, PHY ... PLY, PHX
+        ; """
+                sta io_putc
+                rts
+
+; c65 and py65mon have different implementations of kernel_getc and kernel_kbhit
+
+
+; py65mon doesn't have kbhit so we roll our own, using a spare byte in the IO area
+; as a single byte buffer.
+io_bufc = io_putc+1
+
+kernel_getc:
+        ; """Get a single character from the keyboard and return in A register.
+        ; py65mon's io_getc is non-blocking, returning 0 when no key is pressed.
+        ; We'll convert to blocking by waiting for a non-zero result.
+        ; We also check the single character io_bufc buffer (used by kbhit) first
+        ;
+        ; Note this routine must preserve X and Y but that's easy here.
+        ; If your code is more complex, wrap it with PHX, PHY ... PLY, PHX
+        ; """
+                lda io_bufc             ; first check the buffer
+                stz io_bufc
+                bne _done
+_loop:                                  ; otherwise wait for a character
+                lda io_getc
+                beq _loop
+_done:
+                rts
+
+kernel_kbhit:
+        ; """Check if a character is available.  py65mon doesn't have a native kbhit
+        ; so we buffer the result of the non-blocking io_getc instead
+        ; This routine is only required if you use the KEY? word.
+        ; If you do not implement this word, KEY? always returns TRUE.
+        ; """
+                lda io_bufc             ; do we already have a character?
+                bne _done
+
+                lda io_getc             ; otherwise check and buffer the result
+                sta io_bufc
+_done:
+                rts
+
 
 ; Leave the following string as the last entry in the kernel routine so it
 ; is easier to see where the kernel ends in hex dumps. This string is
 ; displayed after a successful boot
 
 s_kernel_id:
-        .text "Tali Forth 2 default kernel for py65mon (04. Dec 2022)", AscLF, 0
+        .text "Tali Forth 2 default kernel for py65mon (27. Feb 2025)", AscLF, 0
+
 
 ; Define the interrupt vectors.  For the simulator we redirect them all
 ; to the kernel_init routine and restart the system hard.  If you want to

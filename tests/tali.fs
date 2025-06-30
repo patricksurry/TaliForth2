@@ -104,11 +104,11 @@ decimal
 \ Test for OUTPUT not implemented
 \ Test for UF-STRIP not implemented
 
-( TODO BELL test missing)
+T{ capture-output BELL restore-output s\" \a" compare -> 0 }T
 ( TODO COMPILE-ONLY test missing)
 
 \ Test int>name, latestnt, latestxt, and wordsize
-: one 1 ;
+: one 1 ; never-native
 T{ ' one int>name wordsize    -> 8 }T
 T{ latestxt int>name wordsize -> 8 }T
 T{ latestnt wordsize          -> 8 }T
@@ -148,8 +148,7 @@ T{ latestxt int>name wordsize  -> 16 }T
 
 
 \ Test never-native.
-\ Because NN is the default, we have to switch to one of the other modes first.
-: four 2 2 ; always-native never-native
+: four 2 2 ; never-native
 \ Four should never natively compile regardless of nc-limit.
 \ It will always be a JSR when used in another word.
 15 nc-limit !
@@ -163,6 +162,32 @@ T{ ' four-b int>name wordsize ->  3 }T
 \ Sneak in extra tests for latestnt and latestxt.
 T{ latestnt wordsize          ->  3 }T
 T{ latestxt int>name wordsize ->  3 }T
+
+\ Test inline vs jsr+payload literals
+: five 6 [ 0 nc-limit ! ] 7 * ; 16 nc-limit !
+T{ ' five int>name wordsize -> 16 }t
+T{ five -> 42 }T
+
+\ Test inlined zero_branch call (issue #158)
+
+0 nc-limit !      \ force zero_branch call with absolute address
+: test1 0 if then ;
+16 nc-limit !
+: test2 test1 5 ; \ test1 should be NN and leave 5 on stack
+T{ test2 -> 5 }T
+
+\ Test large words, relocatable and not
+here
+: lorem ." Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." ;
+T{ ' lorem int>name = -> <true> }T
+T{ ' lorem int>name wordsize 255 > -> <true> }T
+here
+assembler-wordlist >order
+: lorem-nn [ ' cr jmp ] ." Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." ;
+previous
+
+T{ ' lorem-nn int>name = -> <false> }T
+T{ ' lorem-nn int>name wordsize 255 > -> <true> }T
 
 \ Nothing is too trivial for testing!
 T{ 0 -> 0 }T
@@ -218,7 +243,7 @@ T{ s" /:@[`{"  ( addr u )  drop  constant digit_bad -> }T
 
 : digit_oneoff ( -- f )
    true
-   7 0 ?do
+   6 0 ?do
       digit_bad i + c@
       dup emit
       digit?  ( char 0 )

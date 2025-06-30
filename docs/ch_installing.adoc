@@ -7,7 +7,7 @@ git(((git))) or simply download it. To just test Tali Forth using the
 py65mon simulator, all you need is the binary file
 `taliforth-py65mon.bin`.
 
-=== Running 
+=== Running
 
 Tali currently supports two simulators, py65mon and c65.  Py65mon will need to
 be downloaded separately (see below) and c65 comes with Tali in the c65
@@ -25,7 +25,7 @@ Tali Forth 2 in the simulator.
 To exit, you can type `bye` or use CTRL-C to break out of the simulator.
 
 Note: If running on Windows in a git bash shell, you will need to use winpty,
-eg. `winpty make csim`.  This is only needed for the git bash shell.  Running
+e.g. `winpty make csim`.  This is only needed for the git bash shell.  Running
 Tali in c65 from the Windows command prompt or Windows Subsystem for Linux (WSL)
 works fine.
 
@@ -33,8 +33,7 @@ works fine.
 
 Tali was written to run out of the box on the py65mon simulator from
 https://github.com/mnaberez/py65.(((py65mon))) This is a Python(((Python)))
-program that should run on various operating systems. Py65mon is also required
-for the test suite.
+program that should run on various operating systems.
 
 To install py65mon on Linux(((Linux))), use one of the following commands
 
@@ -56,9 +55,9 @@ first.  Once Python is installed, the above commands should work from
 a Windows command prompt.
 
 
-==== Running the Binary
+==== Running the Binary in py65mon
 
-To start the emulator, run:
+To start Tali in the py65mon simulator, run:
 
 [source,bash]
 ----
@@ -67,7 +66,7 @@ py65mon -m 65c02 -r taliforth-py65mon.bin
 
 Note that the option `-m 65c02` is required, because Tali Forth makes extensive
 use of the additional commands of the CMOS version and will not run on a stock
-6502 MPU.  If you have `make` installed
+6502 MPU.
 
 If you downloaded the full Tali Forth 2 source code and have `make`
 installed, you can also just type:
@@ -85,7 +84,7 @@ command for you).
 The Tali Forth project started out as a way to run Forth on my own 65c02
 computer, the Übersquirrel(((Übersquirrel))). Though it soon developed a life of
 its own, a central aim of the project is to provide a working, modern Forth that
-people can install on their projects. 
+people can install on their projects.
 
 [#img_uebersquirrel]
 .The functioning Übersquirrel Mark Zero prototype, August 2013. Photo by Scot W. Stevenson
@@ -102,7 +101,7 @@ for details.
 Once you have configured your platform file in the plaform folder, you
 can build a binary (typically programmed into an EEPROM) for your
 hardware with make.  If you made a platform file named
-`platform-mycomp.asm`, then you should `cd` to the main Tali folder 
+`platform-mycomp.asm`, then you should `cd` to the main Tali folder
 and run
 
 [source,bash]

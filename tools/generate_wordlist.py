@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# Generate wordlist for documentation from native_words.asm
+# Generate wordlist for documentation from words/*.asm
 # For Tali Forth 2
 # Scot W. Stevenson <scot.stevenson@gmail.com>
 # First version: 21. Nov 2017
 # This version: 21. June 2018
 """Creates a markdown formated list of native words based on the header
-comments in native_words.asm. It is called by the Makefile on the top level
+comments in words/*.asm. It is called by the Makefile on the top level
 """
 
 import sys
@@ -23,30 +23,26 @@ not_tested = 0
 auto_tested = 0
 
 def get_sizes(label_dict):
-    """Use the Ophis labelmap to calculate the length of the native words
+    """Use the VICE format labels to calculate the length of the native words
     in bytes. Returns a dictionary that contains them based on the
-    names. Assumes lines in label map are of the format
+    names. Assumes lines in label map are of the format:
 
-    "cp  = $0000"
-
+        al 8666 .xt_dup
     """
 
     with open(LABELS) as f:
-        raw_list = f.readlines()
+        raw_list = f.read().splitlines()
 
     for line in raw_list:
-        ws = line.split('=')
-
-        if not ws[0].startswith('xt_') and not ws[0].startswith('z_'):
+        ws = line.split()
+        if len(ws) != 3 or ws[0] != 'al' or ':' in ws[2]:
             continue
 
-        #print("Debug: ", ws)
-        addr_hex = ws[1].replace('$', '0x')
-        addr = int(addr_hex, 16)
+        if not ws[2].startswith('.xt_') and not ws[2].startswith('.z_'):
+            continue
 
-        label_dict[ws[0].strip()] = addr
+        label_dict[ws[2][1:]] = int(ws[1], 16)
 
-    #print(label_dict)
     return label_dict
 
 
@@ -89,7 +85,7 @@ def print_footer(size):
     global not_tested
 
     print()
-    print('Found **{0}** native words in `native_words.asm`.'.format(size))
+    print('Found **{0}** native words in `words/*.asm`.'.format(size))
     print('Of those, **{0}** were automatically tested and'.format(auto_tested))
     print('          **{0}** are not marked as tested at all.'.format(not_tested-auto_tested))
     print()

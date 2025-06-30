@@ -2,11 +2,12 @@
 ; ## "also"  auto  ANS search ext
         ; """http://forth-standard.org/standard/search/ALSO"""
 xt_also:
-                jsr xt_get_order
-                jsr xt_over
-                jsr xt_swap
-                jsr xt_one_plus
-                jsr xt_set_order
+w_also:
+                jsr w_get_order
+                jsr w_over
+                jsr w_swap
+                jsr w_one_plus
+                jsr w_set_order
 
 z_also:         rts
 
@@ -27,6 +28,7 @@ z_also:         rts
 ; ## DEFINITIONS ( -- ) "Make first wordlist in search order the current wordlist"
 ; ## "definitions" auto ANS search
 xt_definitions:
+w_definitions:
                 ldy #search_order_offset    ; Transfer byte variable
                 lda (up),y                  ; SEARCH_ORDER[0] to
                 ldy #current_offset         ; byte variable CURRENT.
@@ -53,6 +55,7 @@ z_definitions:  rts
 ; ## "forth"  auto  ANS search ext
         ; """https://forth-standard.org/standard/search/FORTH"""
 xt_forth:
+w_forth:
                 ldy #search_order_offset
                 lda #0          ; The WID for Forth is 0.
 
@@ -74,6 +77,7 @@ z_forth:
         ; """https://forth-standard.org/standard/search/GET-CURRENT"""
 
 xt_get_current:
+w_get_current:
                 ; This is a little different than some of the variables
                 ; in the user area as we want the value rather than
                 ; the address.
@@ -93,6 +97,7 @@ z_get_current:  rts
         ; """https://forth-standard.org/standard/search/GET-ORDER"""
 
 xt_get_order:
+w_get_order:
                 ; Get #ORDER - the number of wordlists in the search order.
                 ldy #num_order_offset
                 lda (up),y
@@ -140,10 +145,11 @@ z_get_order:    rts
         ; """https://forth-standard.org/standard/search/ONLY"""
 
 xt_only:
+w_only:
                 ; Put -1 on data stack.
-                jsr xt_true
+                jsr w_true
                 ; Invoke set-order to set the minimum search order.
-                jsr xt_set_order
+                jsr w_set_order
 
 z_only:         rts
 
@@ -176,43 +182,41 @@ z_only:         rts
         ; """
 
 xt_order:
-                jsr xt_cr
-                jsr xt_get_order        ; ( wid_n ... wid_1 n )
+w_order:
+                jsr w_cr
+                jsr w_get_order         ; ( wid_n ... wid_1 n )
+
+                inx                     ; pre-drop n
+                inx
 
                 ; Paranoid: Check if there are no wordlists, a rather
                 ; pathological case. this would mean ( 0 ) on the stack. In
                 ; that case, we just drop n and run
-                lda 0,x                 ; assumes no more than 255 wordlists
-                beq _drop_done
+                lda $fe,x                 ; assumes no more than 255 wordlists
+                beq _done
 
-                ; We arrive here with the LSB of TOS in A, the number of WIDs
-                ; on the stack
-                tay
+                ; ( wid_n ... wid_1 ) with A=n
+                sta tmpdsp
 _loop:
+                lda 0,x                 ; fetch wid to A and drop it
                 inx
-                inx                     ; DROP, now ( wid_n ... wid_1 )
-                lda 0,x
+                inx
 
-                phy
                 jsr order_print_wid_string   ; internal helper function
-                ply
 
-                dey
+                dec tmpdsp
                 bne _loop
 
                 ; We've printed the wordlists, now we add the current wordlist.
                 ; This follows the convention of Gforth
-                jsr xt_space
-                jsr xt_space
-                jsr xt_get_current      ; ( wid )
+                jsr w_space
+                jsr w_space
+                jsr w_get_current      ; ( wid )
 
                 lda 0,x
                 jsr order_print_wid_string
-                jsr xt_cr
-
-_drop_done:
-                inx
-                inx
+                jsr w_cr
+_done:
 z_order:
                 rts
 
@@ -221,9 +225,9 @@ order_print_wid_string:
         ; corresponding string. If there is no such word list defined, just
         ; print the number. Assumes we will not have more than 256 WIDs; also
         ; assumes we have just loaded A so Z reflects status of byte.  In
-        ; theory, we could speed this up by having the WID be the same as the
-        ; number of the strings. However, ORDER is used rather infrequently and
-        ; this would make changes to the strings.asm file very dangerous, so we
+        ; theory, we could speed this up by having the WID be the same as
+        ; string table index. However, ORDER is used rather infrequently and
+        ; this would make changes to the stringtable.asm file very dangerous, so we
         ; follow the slightly more complicated route with a translation table.
         ; """
                 ; If the WID is larger than 3, we have no string avaliable and
@@ -235,11 +239,8 @@ order_print_wid_string:
 
                 ; Our WID is not less than 4, that is, 4 or larger. We just
                 ; print the number
-                dex
-                dex
-                sta 0,x
-                stz 1,x
-                jmp xt_u_dot            ; JSR/RTS as this routine is not compiled
+                jsr push_a_tos
+                jmp w_u_dot            ; JSR/RTS as this routine is not compiled
 
 _output_string:
                 ; Get the string number based on WID 0 to 3
@@ -247,15 +248,14 @@ _output_string:
                 lda _wid_data,y
 
                 ; Print without a line feed
-                jmp print_string_no_lf  ; JSR/RTS as this routine is not compiled
+                jmp print_string_n  ; JSR/RTS as this routine is not compiled
 
 _wid_data:
-        ; Table of string numbers (see strings.asm) indexed by the WID if
-        ; less than 4.
-        .byte str_wid_forth            ; WID 0: "Forth"
-        .byte str_wid_editor           ; WID 1: "Editor"
-        .byte str_wid_assembler        ; WID 2: "Assembler"
-        .byte str_wid_root             ; WID 3: "Root"
+        ; Table of string numbers for word list names 0-3 (see stringtable.asm)
+        .byte str_wid_forth            ; WID 0: "Forth "
+        .byte str_wid_editor           ; WID 1: "Editor "
+        .byte str_wid_assembler        ; WID 2: "Assembler "
+        .byte str_wid_root             ; WID 3: "Root "
 
 
 
@@ -264,10 +264,11 @@ _wid_data:
         ; """http://forth-standard.org/standard/search/PREVIOUS"""
 
 xt_previous:
-                jsr xt_get_order
-                jsr xt_nip
-                jsr xt_one_minus
-                jsr xt_set_order
+w_previous:
+                jsr w_get_order
+                jsr w_nip
+                jsr w_one_minus
+                jsr w_set_order
 
 z_previous:     rts
 
@@ -276,6 +277,7 @@ z_previous:     rts
 ; ## ROOT_WORDLIST ( -- u ) "WID for the Root (minimal) wordlist"
 ; ## "root-wordlist"  tested  Tali Editor
 xt_root_wordlist:
+w_root_wordlist:
                 dex             ; The WID for the Root wordlist is 3.
                 dex
                 lda #3
@@ -293,7 +295,7 @@ z_root_wordlist:
 
 xt_search_wordlist:
                 jsr underflow_3
-
+w_search_wordlist:
                 ; Set up tmp1 with the wordlist indicated by wid
                 ; on the stack. Start by putting the base address
                 ; of the wordlists in tmp2.
@@ -309,41 +311,35 @@ xt_search_wordlist:
                 lda 0,x
                 asl             ; Convert wid to offset in cells (x2)
                 adc tmp2
-                sta tmp2
+                sta tmp2        ; set tmp2 to the dp for the given wordlist
                 bcc +
                 inc tmp2+1      ; Propagate carry if needed.
-
-                ; tmp2 now holds the address of the dictionary pointer
-                ; for the given wordlist.
 +
-                ; Remove the wid from the stack.
+                ; Remove the wid from the stack leaving ( caddr u )
                 inx
                 inx
 
                 ; check for special case of an empty string (length zero)
                 lda 0,x
                 ora 1,x
-                beq _done
+                beq _drop_fail
 
                 ; Check for special case of empty wordlist
                 ; (dictionary pointer, in tmp2, is 0)
                 lda tmp2
                 ora tmp2+1
-                beq _done
+                beq _drop_fail
 
                 ; set up first loop iteration
-                lda (tmp2)              ; nt of first word in Dictionary
-                sta tmp1
+                ldy #1
+-
+                lda (tmp2),y             ; nt of first word in Dictionary
+                sta tmp1,y
+                dey
+                bpl -
 
-                inc tmp2                ; Move to the upper byte
-                bne +
-                inc tmp2+1
-+
-                lda (tmp2)
-                sta tmp1+1
-
-                jsr find_header_name
-                beq _fail_done
+                jsr find_nt_by_name
+                beq _drop_fail
 
                 ; The strings match. Drop the count and put correct nt TOS
                 inx
@@ -353,42 +349,36 @@ xt_search_wordlist:
                 lda tmp1+1
                 sta 1,x
 
-                ; Change the nt into an xt, but save a copy of the nt
-                ; to look up whether the word is immediate or not.
-                jsr xt_dup              ; ( nt nt )
-                jsr xt_name_to_int      ; ( nt xt )
-                jsr xt_swap             ; ( xt nt )
-
-                ldy #0                  ; Prepare flag
-
-                ; The flags are in the second byte of the header
-                inc 0,x
+                ; Grab the status flags from the nt (compare "FIND")
+                ldy #1                  ; assume immediate, returning 1
+                lda (0,x)
+                and #IM                 ; is IM set?
                 bne +
-                inc 1,x                 ; ( xt nt+1 )
+                ldy #$ff                ; not immediate, return -1
 +
-                lda (0,x)               ; ( xt char )
-                and #IM
-                bne _immediate          ; bit set, we're immediate
+                phy                     ; stash the 1 or -1
 
-                lda #$FF                ; We're not immediate, return -1
-                sta 0,x
-                sta 1,x
-                bra _done_nodrop
+                ; Change the nt into an xt
+                jsr w_name_to_int      ; ( xt )
 
-_immediate:
-                lda #1                  ; We're immediate, return 1
-                sta 0,x
-                stz 1,x
+                dex                     ; make space for the result
+                dex
 
-                bra _done_nodrop
-
-_fail_done:
-                stz 2,x         ; failure flag
-                stz 3,x
+                pla                     ; result 1 or -1
+                bra +
+ _drop_fail:
+                ; we arrive with A=0 and ( caddr u )
+                ; so drop one stack element and write the 0 result
+                inx
+                inx
++
+                sta 0,x                 ; A is -1, 0 or 1
+                cmp #1
+                bne +
+                dec a                   ; for 1 we store <1,0>
++
+                sta 1,x                 ; for 0 and -1 we store the same value twice
 _done:
-                inx
-                inx
-_done_nodrop:
 z_search_wordlist:
                 rts
 
@@ -400,7 +390,7 @@ z_search_wordlist:
 
 xt_set_current:
                 jsr underflow_1
-
+w_set_current:
                 ; Save the value from the data stack.
                 ldy #current_offset
                 lda 0,x         ; CURRENT is byte variable
@@ -418,12 +408,10 @@ z_set_current:  rts
         ; """https://forth-standard.org/standard/search/SET-ORDER"""
 
 xt_set_order:
-                ; Test for -1 TOS
-                lda #$FF
-                cmp 1,x
-                bne _start
-                cmp 0,x
-                bne _start
+w_set_order:
+                ; Test for -1 TOS.
+                lda 1,x         ; just check MSB sign bit since other negative
+                bpl _start      ; values have undefined behavior anyway
 
                 ; There is a -1 TOS.  Replace it with the default
                 ; search order, which is just the FORTH-WORDLIST.
@@ -440,21 +428,20 @@ xt_set_order:
 _start:
                 ; Set #ORDER - the number of wordlists in the search order.
                 ldy #num_order_offset
-                lda 0,x
+                inx             ; Pre-drop the count so we can preserve Z flag
+                inx
+                lda $fe,x
+
                 sta (up),y      ; #ORDER is a byte variable.
                 sta tmp1        ; Save a copy for zero check and looping.
                                 ; Only the low byte is saved in tmp1 as
                                 ; only 8 wordlists are allowed.
 
-                inx             ; Drop the count off the data stack.
-                inx
-
                 ; Check if there are zero wordlists.
-                lda tmp1
                 beq _done       ; If zero, there are no wordlists.
 
                 ; Move the wordlist ids from the data stack to the search order.
-                ldy #search_order_offset
+                ldy #search_order_offset        ; offset to start of byte array
 _loop:
                 ; Move one wordlist id over into the search order.
                 lda 0,x         ; The search order is a byte array
@@ -475,23 +462,24 @@ z_set_order:    rts
 
 
 ; ## TO_ORDER ( wid -- ) "Add wordlist at beginning of search order"
-; ## ">order"  tested  Gforth search
+; ## ">order"  auto  Gforth search
         ; """https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Word-Lists.html"""
 
 xt_to_order:
+w_to_order:
                 ; Put the wid on the return stack for now.
-                jsr xt_to_r
+                jsr w_to_r
 
                 ; Get the current search order.
-                jsr xt_get_order
+                jsr w_get_order
 
                 ; Get back the wid and add it to the list.
-                jsr xt_r_from
-                jsr xt_swap
-                jsr xt_one_plus
+                jsr w_r_from
+                jsr w_swap
+                jsr w_one_plus
 
                 ; Set the search order with the new list.
-                jsr xt_set_order
+                jsr w_set_order
 
 z_to_order:     rts
 
@@ -505,6 +493,7 @@ z_to_order:     rts
         ; """
 
 xt_wordlist:
+w_wordlist:
                 ; Get the current number of wordlists
                 ldy #num_wordlists_offset
                 lda (up),y      ; This is a byte variable, so only
