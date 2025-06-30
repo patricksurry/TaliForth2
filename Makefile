@@ -78,8 +78,10 @@ taliforth-%.prg: platform/platform-%.asm $(COMMON_SOURCES)
 	$<
 
 # Convert the high-level Forth words to ASCII files that Ophis can include
+# This will only process the file if it exists.
+# The || true on the end causes make to always think this command succeeds.
 %.asc: forth_code/%.fs
-	$(PYTHON) forth_code/forth_to_ophisbin.py -i $< > $@
+	test -f $< && $(PYTHON) forth_code/forth_to_ophisbin.py -i $< > $@ || true
 
 # Automatically update the wordlist which also gives us the status of the words
 # We need for the binary to be generated first or else we won't be able to find
