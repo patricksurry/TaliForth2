@@ -1,11 +1,11 @@
 ; This is the platform file for 65C02 based Apple 1 machines
-; This version has a memory layout for RAM based TaliForth2
-; Jump to $2900 from the WOZMON with "2900R" after loading the
-; Forth into RAM.
+; This version has a memory layout for ROM based TaliForth2
+; Jump to $E000 from the WOZMON with "E000R" after burning the
+; Forth into ROM.
 ; The original Apple 1 has a 6502, so TaliForth2 will not work
 ; on an origial Apple 1. But some replica machines (such as the
 ; Replica 1 from Vince Briel) have a 65C02.
-; There are also Apple 1 emulators containing emulation for 65C02
+; There is also Apple 1 emulators containing emulation for 65C02
 ; based Apple 1 machines:
 ;  * Pom 1 enhanced by Ken Wessen:
 ;    http://school.anhb.uwa.edu.au/personalpages/kwessen/apple1/krusader.htm
@@ -17,19 +17,31 @@
         ; No special text encoding (e.g. ASCII)
         .enc "none"
 
-ram_end = $28ff
-        * = $2900
+ram_end = $8000-1
+        * = $8000
 
+.include "../../taliforth.asm" ; zero page variables, definitions
 
-.include "../taliforth.asm" ; zero page variables, definitions
+; =====================================================================
+; ; Of the 32 KiB we use, 24 KiB are reserved for Tali (from $8000 to $DFFF)
+; and the last eight (from $E000 to $FFFF) are left for whatever the user
+; wants to use them for.
 
+* = $e000
 
+; All vectors currently end up in the same place - we restart the system
+; hard. If you want to use them on actual hardware, you'll have to redirect
+; them all.
+v_nmi:
+v_reset:
+v_irq:
 kernel_init:
         ; """Initialize the hardware. This is called with a JMP and not
         ; a JSR because we don't have anything set up for that yet.
         ; In an Apple 1, the machine is already initialized from WOZROM
         ; so we just print the Kernel message and leave.
         ; """
+
                 sei             ; Disable interrupts
 
                 ; We've successfully set everything up, so print the kernel
@@ -43,6 +55,7 @@ kernel_init:
 _done:
                 jmp forth
 
+
 kernel_getc:
         ; """The high bit in the Apple 1 Keyboard Control Register KBDCR
         ; indicates a waiting keypress which will be read from the keyboard
@@ -50,6 +63,7 @@ kernel_getc:
         ; and TaliForth2 needs lower case Forth words, we shift all upper case
         ; ASCII characters between 'A' and 'Z' to lower case 'a' to 'z'.
         ; """
+
 KBD   = $D010		; Apple 1 keyboard register
 KBDCR = $D011 		; Apple 1 keyboard control register
 
@@ -65,6 +79,7 @@ _loop:
   eor #$20                      ; make lower case
 _exit:
   rts
+
 
 DSP = $D012 		; Display output register
 
@@ -91,6 +106,7 @@ nolf:
   sta DSP			; write out char
   rts
 
+
 ; platform dependend "bye" behaviour. for now, brk is retained like in platform-py65mon
 kernel_bye:
     brk
@@ -100,12 +116,9 @@ kernel_bye:
 ; is easier to see where the kernel ends in hex dumps. This string is
 ; displayed after a successful boot
 s_kernel_id:
-        .text AscCR, AscCR, "Tali Forth 2 default kernel for Apple 1 (15.06.2019)", AscCR, 0
+        .text AscLF, AscLF, "Tali Forth 2 default kernel for Apple 1 (15.06.2019)", AscLF, 0
 
-_taliend:	NOP
 
 ;TODO these don't have wozmon or vectors?
 
 ; END
-
-
