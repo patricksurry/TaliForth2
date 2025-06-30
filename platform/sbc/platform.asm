@@ -9,7 +9,7 @@ cp_end    = acia_buff      ; Last RAM byte available for code
 
         * = $8000
 
-.include "../taliforth.asm" ; Top-level definitions, memory map
+.include "../../taliforth.asm" ; Top-level definitions, memory map
 
 ; Put the I/O routines in the last 1K of ROM
         * = $FC00
