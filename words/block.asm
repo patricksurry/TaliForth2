@@ -131,21 +131,13 @@ w_block_c65_init:
                 tya                     ; check zero status
                 beq z_block_c65_init    ; if failed, skip vector setup
 
-                dex                     ; set block read/write vectors
-                dex
-                lda #<c65_blk_read
-                sta 0,x
-                lda #>c65_blk_read
-                sta 1,x
+                jsr literal_runtime     ; set block read/write vectors
+                .word c65_blk_read
                 jsr w_block_read_vector
                 jsr w_store
 
-                dex
-                dex
-                lda #<c65_blk_write
-                sta 0,x
-                lda #>c65_blk_write
-                sta 1,x
+                jsr literal_runtime
+                .word c65_blk_write
                 jsr w_block_write_vector
                 jsr w_store
 

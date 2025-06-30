@@ -353,7 +353,7 @@ cmpl_0branch_setup:
                 ; First decide whether to inline or call the runtime.
                 ; Both start with the zero test
                 jsr two_literal_runtime
-                ; TODO strictly speaking we include the appended branch size
+                ;TODO strictly speaking we should include the appended branch size
                 .word ztest_runtime_size        ; TOS with NUXI order
                 .word zero_branch_runtime       ; NOS
                 jsr cmpl_by_limit               ; leaves C=1 if inline

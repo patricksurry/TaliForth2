@@ -1588,15 +1588,11 @@ ed_last_line:
                 stz tmp1
                 stz tmp1+1
 
-                dex
-                dex                     ; ( ? )
-                lda #<ed_head
-                sta 0,x
-                lda #>ed_head
-                sta 1,x                 ; ( addr )
+                jsr literal_runtime     ; ( addr )
+                .word ed_head
 
 _last_line_loop:
-                jsr w_fetch            ; ( addr | 0 )
+                jsr w_fetch             ; ( addr | 0 )
 
                 ; If that's over, we're at the end of the list and we're done
                 lda 0,x
@@ -1653,12 +1649,8 @@ ed_num_to_addr:
 
                 ; One way or another we're going to start with the
                 ; address of the pointer to the head of the list
-                dex
-                dex                     ; ( u ? )
-                lda #<ed_head
-                sta 0,x
-                lda #>ed_head
-                sta 1,x                 ; ( u addr-h )
+                jsr literal_runtime     ; ( u addr-h )
+                .word ed_head
 
                 ; Handle the case where the line number is zero
                 lda 2,x

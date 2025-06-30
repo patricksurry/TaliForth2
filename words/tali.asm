@@ -282,7 +282,7 @@ z_find_name:    rts
 ; ## HAVEKEY ( -- addr ) "Return address of key? vector"
 ; ## "havekey" tested Tali Forth
 
-xt_havekey:
+xt_havekey:             ; TODO  push_word_tos ??
 w_havekey:
                 dex
                 dex
@@ -371,7 +371,7 @@ z_hexstore:     rts
 ; ## INPUT ( -- addr ) "Return address of input vector"
 ; ## "input" tested Tali Forth
 
-xt_input:
+xt_input:               ; TODO push_word_tos
 w_input:
                 dex
                 dex
@@ -905,7 +905,7 @@ w_output:
         ; kernel_putc routine, but this can be changed by the user, hence this
         ; routine.
         ; """
-                dex
+                dex             ; TODO push_word_tos
                 dex
                 lda #<output
                 sta 0,x
@@ -991,7 +991,7 @@ z_two:          rts
 ; ## USERADDR ( -- addr ) "Push address of base address of user variables"
 ; ## "useraddr"  tested  Tali Forth
 xt_useraddr:
-w_useraddr:
+w_useraddr:                     ; TODO push_word_tos
                 dex
                 dex
                 lda #<up
