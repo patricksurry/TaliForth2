@@ -2956,13 +2956,13 @@ w_literal:
                 bne +
 
                 jsr two_literal_runtime
-                .word template_push_tos_size-2  ; TOS
-                .word template_push_tos+2       ; NOS, if we're inlining
+                .word template_push_byte_tos_size       ; TOS
+                .word template_push_byte_tos            ; NOS, if we're inlining
                 bra _cmpl
 +
                 jsr two_literal_runtime
-                .word template_push_tos_size    ; TOS
-                .word template_push_tos         ; NOS, if we're inlining
+                .word template_push_word_tos_size       ; TOS
+                .word template_push_word_tos            ; NOS, if we're inlining
 _cmpl:
                 ; ( n call-addr inline-addr inline-sz )
 
@@ -2980,17 +2980,15 @@ _inline:
                 ; update the placeholders in the template we compiled
                 ; temporarily reduce cp by 256 to make reverse indexing easier
                 dec cp+1
+                ldy #256-9
                 ; update the template
                 lda 1,x                         ; MSB non-zero?
                 beq +
-                ldy #256-9
                 sta (cp),y                      ; ldy #<MSB>
-                lda #$94                        ; opcode for STY
-                ldy #256-2
-                sta (cp),y                      ; <sty> 1,x rather than stz
 +
+                iny
+                iny
                 lda 0,x
-                ldy #256-7
                 sta (cp),y                      ; lda #<LSB>
 
                 inc cp+1                        ; reset HERE

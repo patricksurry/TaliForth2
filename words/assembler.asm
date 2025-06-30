@@ -200,15 +200,11 @@ xt_asm_push_a:
         ; data stack as the TOS. This is a convenience routine that
         ; just copies the code for push_a_tos from disasm.asm
         ; """
-                ldy #0
-_loop:
-                lda push_a_tos,y
-                jsr cmpl_a      ; does not change Y
-                iny
-                cpy #z_push_a_tos - push_a_tos
-                bne _loop
+                jsr two_literal_runtime
+                .word z_push_a_tos - push_a_tos ; TOS with NUXI order
+                .word push_a_tos                ; NOS
+                jmp cmpl_inline
 z_asm_push_a:
-                rts
 
 
 ; ==========================================================

@@ -72,23 +72,10 @@ _load_user_vars_loop:
                 ; followed by any user-defined words from user_words.asc.
                 ; These are stored sequentially in ROM so we can evaluate them together.
                 ; If you have neither, this section can be commented out.
-                dex
-                dex
-                dex
-                dex
 
-                ; start address goes NOS
-                lda #<forth_words_start
-                sta 2,x
-                lda #>forth_words_start
-                sta 3,x
-
-                ; length goes TOS; let the assembler do the math
-                lda #<(user_words_end-forth_words_start)
-                sta 0,x
-                lda #>(user_words_end-forth_words_start)
-                sta 1,x
-
+                jsr two_literal_runtime
+                .word user_words_end-forth_words_start  ; length goes TOS
+                .word forth_words_start                 ; start address goes NOS
                 jsr w_evaluate
 
 .if TALI_OPTION_HISTORY
