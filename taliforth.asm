@@ -257,6 +257,7 @@ push_ya_tos:  ; ( -- YA )
                 dex
                 sta 0,x
                 sty 1,x
+z_push_ya_tos:
 template_push_word_tos_size = * - template_push_word_tos
 z_useraddr:
                 rts

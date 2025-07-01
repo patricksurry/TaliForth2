@@ -206,6 +206,16 @@ xt_asm_push_a:
                 jmp cmpl_inline
 z_asm_push_a:
 
+xt_asm_push_ya:
+        ; """push-ya puts the word <Y, A> to TOS on the data stack,
+        ; with Y as the MSB and A as the LSB.  This
+        ; just copies the code for push_ya_tos from disasm.asm
+        ; """
+                jsr two_literal_runtime
+                .word z_push_ya_tos - push_ya_tos ; TOS with NUXI order
+                .word push_ya_tos                ; NOS
+                jmp cmpl_inline
+z_asm_push_ya:
 
 ; ==========================================================
 ; DIRECTIVES

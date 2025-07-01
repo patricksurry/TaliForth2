@@ -561,6 +561,7 @@ prev_nt := 0
 #nt_header asm_back_jump, "<j", IM      ; syntactic sugar, does nothing
 #nt_header asm_back_branch, "<b", IM
 #nt_header asm_push_a, "push-a", IM+NN
+#nt_header asm_push_ya, "push-ya", IM+NN
 
 ; Labels for the opcodes have the format "nt_asm_<OPC>" where a futher
 ; underscore replaces any dot present in the SAN mnemonic. The hash sign for
