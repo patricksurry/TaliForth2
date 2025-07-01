@@ -14,13 +14,13 @@
 
         ; 65C02 processor (Tali will not compile on older 6502)
         .cpu "65c02"
-        ; No special text encoding (eg. ASCII)
+        ; No special text encoding (e.g. ASCII)
         .enc "none"
 
 ram_end = $8000-1
         * = $8000
 
-.include "../taliforth.asm" ; zero page variables, definitions
+.include "../../taliforth.asm" ; zero page variables, definitions
 
 ; =====================================================================
 ; ; Of the 32 KiB we use, 24 KiB are reserved for Tali (from $8000 to $DFFF)

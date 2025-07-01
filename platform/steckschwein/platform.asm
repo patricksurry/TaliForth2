@@ -1,6 +1,6 @@
         ; 65C02 processor (Tali will not compile on older 6502)
         .cpu "65c02"
-        ; No special text encoding (eg. ASCII)
+        ; No special text encoding (e.g. ASCII)
         .enc "none"
 
 ; from the steckos jumptable
@@ -40,7 +40,7 @@ kernel_init:
 _done:
                 ;jmp forth
 
-.include "../taliforth.asm" ; zero page variables, definitions
+.include "../../taliforth.asm" ; zero page variables, definitions
 
 
 kernel_bye:

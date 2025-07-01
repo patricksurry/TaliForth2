@@ -1,6 +1,6 @@
         ; 65C02 processor (Tali will not compile on older 6502)
         .cpu "65c02"
-        ; No special text encoding (eg. ASCII)
+        ; No special text encoding (e.g. ASCII)
         .enc "none"
 
 ; This file is based upon the steckschwein version which in turn seems to
@@ -145,7 +145,7 @@ hist_buff = $E000          ; begin of "RAM under kernel"
 cp0       = tali_end       ; Dictionary starts after code
 cp_end    = ram_end        ; Last RAM byte available for code
 
-.include "../taliforth.asm" ; zero page variables, definitions
+.include "../../taliforth.asm" ; zero page variables, definitions
 
 
 ; routine called when leaving Tali Forth 2: just call the reset vector.

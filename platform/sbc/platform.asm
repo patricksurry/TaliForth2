@@ -1,6 +1,6 @@
         ; 65C02 processor (Tali will not compile on older 6502)
         .cpu "65c02"
-        ; No special text encoding (eg. ASCII)
+        ; No special text encoding (e.g. ASCII)
         .enc "none"
 
 ram_end = $7f00-1
@@ -9,7 +9,7 @@ cp_end    = acia_buff      ; Last RAM byte available for code
 
         * = $8000
 
-.include "../taliforth.asm" ; Top-level definitions, memory map
+.include "../../taliforth.asm" ; Top-level definitions, memory map
 
 ; Put the I/O routines in the last 1K of ROM
         * = $FC00

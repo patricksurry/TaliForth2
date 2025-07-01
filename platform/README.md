@@ -1,13 +1,14 @@
 # Platform configurations for Tali Forth 2
 
 First version: 17. Oct 2018
-This version: 01. Jun 2024
+This version: 27. Jun 2025
 
 This folder contains platform-specific configurations for building Tali Forth 2.
+Each configuration is in its own folder in a file named platform.asm.
 The default configuration for testing with the py65 emulator is
-`platform-py65mon.asm`.   A similar configuration supporting external block
-IO with the c65 emulator is `platform-c65.asm`.   These both assume a memory layout
-with at least 32Kb of ROM.  The `platform-minimal.asm` configuration strips out
+`py65mon/platform.asm`.   A similar configuration supporting external block
+IO with the c65 emulator is `c65/platform.asm`.   These both assume a memory layout
+with at least 32Kb of ROM.  The `minimal/platform.asm` configuration strips out
 a number of optional features to run in 12-16Kb of ROM.
 
 Other configurations are included to make life easier for individual developers
@@ -18,15 +19,24 @@ A configuration file is simply a [64tass](https://tass64.sourceforge.net/)
 `.asm` file that customizes Tali's memory layout and feature set by
 overriding default parameters.  The configuration then includes the global
 `taliforth.asm` and finally defines the basic I/O routines that Tali uses
-to get and put characters.
+to get and put characters.  The configuration can optionally include platform-specific
+words written in either assembly or Forth.
 
-By default the top-level `make` will build `platform-py65mon.bin`.
+By default the top-level `make` will build `taliforth-py65mon.bin`.
 To build for a different platform simply specify the binary corresponding
-to the platform's `.asm` file here. For example build a 16K image with:
+to the platform's folder name on the end. For example build a 16K image with:
 
     make taliforth-minimal.bin
 
+This will use the platform.asm file from the minimal folder.
+
 ## Creating or modifying a configuration
+
+To get starting creating your own configuration, it is recommended that you
+create your own folder in the platform directory and copy the files from
+the skeleton platform into it.  These are heavily commented on what your
+options are and what you need to do.  The main configuration will be in the
+`platform.asm` file in your folder.
 
 The configuration has these responsibilities:
 
@@ -36,9 +46,9 @@ The configuration has these responsibilities:
 2. Which Tali Forth 2 features should be included?
 
 3. Provide the I/O routines `kernel_init`, `kernel_bye`, `kernel_getc`, `kernel_putc`
-   and `kernel_kbhit`, along with the `s_kernel_id` string to show on startup.
+   and `kernel_kbhit` (optional), along with the `s_kernel_id` string to show on startup.
 
-4. Define the 65c02 reset and interrupt vectors at $fffa-$ffff.
+4. Define the 65c02 reset and interrupt vectors at $fffa-$ffff, if needed.
 
 ### Tali Forth 2 memory layout
 
@@ -46,10 +56,10 @@ Tali's memory usage is highly configurable although you probably won't need to
 change much at first.  See "Memory map" in the Developer's Guide for further discussion.
 The diagram below sketches how Tali uses memory.
 Note: it's not only ugly, but also not to scale.
-The addresses shown on the left refer to the standard py65/c65 configuration.
+The addresses shown on the left refer to the standard py65mon/c65 configuration.
 You can modify for your needs by customizing the variables shown on the right.
 
-As you can see in simulator.asm, shared by the py65mon and c65 platforms,
+As you can see in the skeleton platform.asm,
 you likely only need to define ram_end and choose the starting location
 for Tali's ROM code.
 
@@ -143,7 +153,7 @@ The currently available groups are:
 - `assembler` is a 65c02 assembler.
    The ASSEMBLER-WORDLIST will also be removed if the assembler is removed. (~3K)
 - `disassembler` is the disassembler word DISASM. (~0.5K plus assembler)
-- `wordlist` is for the optional SEARCH-ORDER words (eg. wordlists)
+- `wordlist` is for the optional SEARCH-ORDER words (e.g. wordlists)
    Note: Without "wordlist", you will not be able to use any words from
    the EDITOR or ASSEMBLER wordlists (they should probably be disabled
    by also removing "editor" and "assembler"), and all new words will
@@ -189,33 +199,87 @@ to provide the following kernel routines:
   It should preserve the X and Y registers, but need not preserve A.
 - `kernel_kbhit` Return a non-zero value in the accumulator if an input character
   is ready (i.e. kernel_getc won't block).  It should preserve the X and Y registers.
+  This is the only optional routine and a version that always returns true will
+  be created if you do not define the label.
 - `kernel_bye` Exit forth, e.g. to a monitor program or just `brk` to reset.
 - `s_kernel_id` Labels a zero-terminated string to be printed at startup.
 
-You can use the examples in `simulator.asm` shared by `platform-py65mon.asm`
-and `platform-c65.asm` for inspiration as you configure for your own hardware.
+You can use the examples in the existing platforms for inspiration as you
+configure for your own hardware.
 
 Note that `kernel_kbhit` only returns a flag that a character is ready,
 but doesn't actually return the character.  It's only required if you use the KEY? word.
 If your hardware requires you to read the character while checking whether one is
 ready, you should buffer it and make sure that `kernel_getc` checks the buffer.
-(See `platform-py65mon.asm` as one example.)
+(See `py65mon/platform.asm` as one example.)
 If your hardware doesn't support kbhit, or you don't care about KEY?,
 taliforth.asm will provide a default implementation which always returns true,
 so that any subequent call to KEY would block until a key is actually ready.
 
 ### Reset and interrupt vectors
 
-Your platform configuration should define the 6502 NMI, Reset and IRQ vectors
-at $fffa-$ffff.  Typically at least Reset ($fffc) should point to `kernel_init`.
+Your platform configuration should define the 6502 NMI, Reset and IRQ vectors at
+$fffa-$ffff if you are going to boot directly into Tali.  Typically at least
+Reset ($fffc) should point to `kernel_init`.  If you are going to load Tali from
+another monitor or OS, then you likely do not need to define the vectors.
+
+### Supporting User Interrupt (e.g. Ctrl-C to break)
+
+If your platform has support for hardware interrupts, you can easily
+support the ability for a user to stop running (runaway?) code and return to
+the input prompt.
+
+For platforms that have an interrupt-driven serial console, this can be
+implemented by checking to see if an input character read in the interrupt
+service routine is the "break" key (e.g. Ctrl-C). If so, instead of
+buffering the input character and returning from the interrupt, set A to
+error code `err_usersigint` (see `stringtable.asm`) and jump to Taliforth's
+`error` entry point. After printing the "User interrupt" message, Taliforth
+will jump to `ABORT` which resets the Forth data stack and the return stack.
+
+Before jumping to `error` you should re-enable interrupts (since no RTI
+instruction will be executed), and flush your input buffer so that characters
+buffered before the break key was detected will not be processed as new
+input when Taliforth next awaits user input.
+
+Any other mechanism that can respond to a hardware input via an interrupt
+service routine could be used in a similar manner to allow a user to
+interrupt running code and return to the prompt. For example, the 6502's
+NMI input could be used with a simple push-button that vectors to code that
+jumps to `error` as described above.
+
+### Supporting User Interrupt (e.g. Ctrl-C to break)
+
+If your platform has support for hardware interrupts, you can easily
+support the ability for a user to stop running (runaway?) code and return to
+the input prompt.
+
+For platforms that have an interrupt-driven serial console, this can be
+implemented by checking to see if an input character read in the interrupt
+service routine is the "break" key (e.g. Ctrl-C). If so, instead of
+buffering the input character and returning from the interrupt, set A to
+error code `err_usersigint` (see `stringtable.asm`) and jump to Taliforth's
+`error` entry point. After printing the "User interrupt" message, Taliforth
+will jump to `ABORT` which resets the Forth data stack and the return stack.
+
+Before jumping to `error` you should re-enable interrupts (since no RTI
+instruction will be executed), and flush your input buffer so that characters
+buffered before the break key was detected will not be processed as new
+input when Taliforth next awaits user input.
+
+Any other mechanism that can respond to a hardware input via an interrupt
+service routine could be used in a similar manner to allow a user to
+interrupt running code and return to the prompt. For example, the 6502's
+NMI input could be used with a simple push-button that vectors to code that
+jumps to `error` as described above.
 
 ## Contributing
 
-To submit your configuration file, pick a name with the form `platform-*.asm`
-that is not taken yet and initiate a pull request with it. A few comment lines
-at the beginning with some background information would be nice. You'll probably
-want to include your own boot string (see the bottom of the file) because that's
-pretty cool.
+To submit your configuration file, pick a name for your platform folder that is
+not taken yet and initiate a pull request with it. A few comment lines at the
+beginning with some background information would be nice. You'll probably want
+to include your own boot string (see the platform_forth.fs file from the
+skeleton folder) because that's pretty cool.
 
 Submitting your code implies that you are okay with other people using or
 adapting it for their own systems. If your routines contain code for control of

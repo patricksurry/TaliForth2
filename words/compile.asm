@@ -110,7 +110,7 @@ compile_comma_common:
                 cmp #ST
                 bne _check_uf
 
-_strip_sz = 10  ; skip the standard 10 byte header which saves return address + 1 to tmp1
+_strip_sz = 5  ; skip the standard 5 byte header which saves return address + 1 to tmp1
 
                 ; Start later: xt += sz
                 clc
@@ -389,6 +389,10 @@ cmpl_0branch_tos:
                 ldy #>zero_branch_runtime
                 lda #<zero_branch_runtime
                 jsr cmpl_subroutine             ; call the 0branch runtime
+
+                ; we're adding an absolute address, so flag this word as never-native (NN)
+                lda #%00010000                  ; unset bit 4 to for NN
+                trb status
 
                 jmp w_comma                    ; add the payload and return
 

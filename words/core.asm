@@ -619,11 +619,11 @@ w_at_xy:
                 lda #'['
                 jsr emit_a
                 jsr w_one_plus ; AT-XY is zero based, but ANSI is 1 based
-                jsr print_u
+                jsr print_tos
                 lda #';'
                 jsr emit_a
                 jsr w_one_plus ; AT-XY is zero based, but ANSI is 1 based
-                jsr print_u
+                jsr print_tos
                 lda #'H'
                 jsr emit_a
 
@@ -1184,7 +1184,7 @@ _too_long:
 _redefined_name:
                 ; Print the message that the name is redefined.
                 lda #str_redefined
-                jsr print_string_no_lf
+                jsr print_string_n
 
                 jsr w_two_dup           ; ( cfa addr u addr u )
                 jsr w_type
@@ -2105,7 +2105,7 @@ z_environment_q:
 
 ; Tables for ENVIRONMENT?. We use two separate ones, one for the single-cell
 ; results and one for the double-celled results. The strings themselves
-; are defined consecutively in strings.asm so that we can calculate
+; are defined consecutively in stringtable.asm so that we can calculate
 ; length as the difference in offsets.
 
 env_table_single:
@@ -2276,15 +2276,12 @@ z_fill:         rts
 
 ; ## EXECUTE ( xt -- ) "Jump to word based on execution token"
 ; ## "execute"  auto  ANS core
+        ; This word is never natively compiled so that the return
+        ; from the xt will always return to the caller of EXECUTE
         ; """https://forth-standard.org/standard/core/EXECUTE"""
 xt_execute:
                 jsr underflow_1
 w_execute:
-                jsr doexecute   ; do not combine to JMP (native coding)
-
-z_execute:      rts
-
-doexecute:
                 lda 0,x
                 sta ip
                 lda 1,x
@@ -2297,7 +2294,7 @@ doexecute:
                 ; the word we're calling to get back to xt_execute
                 jmp (ip)
 
-; end of doexecute
+z_execute:      ; never reached
 
 
 
@@ -2829,7 +2826,7 @@ key_a:
                 jmp (input)             ; JSR/RTS
 
 
-; ## KEY? ( -- char ) "Return true if a character is available"
+; ## KEY_QUESTION ( -- char ) "Return true if a character is available"
 ; ## "key?"  tested  ANS core
 xt_keyq:
 w_keyq:
@@ -3920,14 +3917,24 @@ z_number_sign_s:
 
 xt_of:
 w_of:
-                ; Postpone the runtime
-                ldy #>of_runtime
-                lda #<of_runtime
-                jsr cmpl_subroutine             ; set up A with comparison result
+                ; Check if value is equal to this case.
+                ; Postpone over (e.g. compile a jsr to it)
+                ldy #>w_over
+                lda #<w_over
+                jsr cmpl_subroutine
 
-                jsr w_here                      ; save pointer to branch target
-                jsr w_zero                      ; write a zero placeholder
-                jsr w_comma
+                ; Postpone = (EQUAL), that is, compile a jsr to it
+                ldy #>w_equal
+                lda #<w_equal
+                jsr cmpl_subroutine
+
+                jsr w_if
+
+                ; If it's true, consume the original value.
+                ; Postpone DROP (e.g. compile a jsr to it)
+                ldy #>w_drop
+                lda #<w_drop
+                jsr cmpl_subroutine
 
 z_of:           rts
 
@@ -4580,12 +4587,7 @@ w_r_fetch:
 
                 pla                     ; LSB
                 ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -4607,6 +4609,16 @@ w_r_fetch:
 z_r_fetch:      jmp (tmp1)
 
 
+rts_to_jmp:
+        ; given an rts address in YA, increment and store in tmp1
+        ; preparing for a later jmp (tmp1)
+                inc a
+                sta tmp1                ; LSB
+                bne +
+                iny
++
+                sty tmp1+1              ; MSB
+                rts
 
 
 ; ## R_FROM ( -- n )(R: n --) "Move top of Return Stack to TOS"
@@ -4625,12 +4637,7 @@ w_r_from:
 
                 pla                     ; LSB
                 ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -4991,7 +4998,7 @@ _refill_ok:
                 inx
 
                 ; For refill success, jump back up to the empty check, just in
-                ; case refill gave us an empty buffer (eg. empty/blank line of
+                ; case refill gave us an empty buffer (e.g. empty/blank line of
                 ; input)
                 bra _savechars_loop
 
@@ -5360,7 +5367,7 @@ _setsz:
                 jsr w_name_to_string    ; ( nt -- addr u )
 
                 lda #str_redefined      ; address of string "redefined"
-                jsr print_string_no_lf
+                jsr print_string_n
 
                 ; Now we print the offending word.
                 jsr w_type
@@ -6262,12 +6269,7 @@ w_to_r:
 
                 pla                     ; LSB
                 ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -6447,33 +6449,35 @@ w_two_r_fetch:
 
                 pla                     ; LSB
                 ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
                 ; copy four bytes from return stack to the data stack
 
-                txa             ; arrange for Y = SP; X -= 4
-                tsx
-                phx             ; 65c02 has no TXY, so do it the hard way
-                ply
-                sec
-                sbc #4
-                tax
+                dex             ; make space on the data stack
+                dex
+                dex
+                dex
 
-                lda $101,y
-                sta 0,x
-                lda $102,y
-                sta 1,x
-                lda $103,y
-                sta 2,x
-                lda $104,y
-                sta 3,x
+                ; rather than actually copying from the CPU stack it's quicker
+                ; to pull the values we want, and then restore the SP to unpull them
+                phx             ; put DSP on the stack
+                tsx
+                txa             ; save SP -> X -> A
+                plx             ; restore DSP
+
+                ply             ; copy four elements
+                sty 0,x
+                ply
+                sty 1,x
+                ply
+                sty 2,x
+                ply
+                sty 3,x
+                tax
+                txs             ; restore SP
+                plx             ; pull original DSP again
 
                 ; --- CUT FOR NATIVE COMPILE ---
 
@@ -6498,12 +6502,7 @@ w_two_r_from:
 
                 pla
                 ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -6657,12 +6656,7 @@ w_two_to_r:
 
                 pla                     ; LSB
                 ply                     ; MSB
-                inc a
-                sta tmp1                ; LSB
-                bne +
-                iny
-+
-                sty tmp1+1              ; MSB
+                jsr rts_to_jmp
 
                 ; --- START FOR NATIVE COMPILE (via ST flag) ---
 
@@ -6706,30 +6700,25 @@ w_type:
                 sta tmp1
                 lda 3,x
                 sta tmp1+1
-_loop:
-                ; done if length is zero
-                lda 0,x
-                ora 1,x
-                beq _done
 
-                ; Send the current character
-                lda (tmp1)
+                lda 0,x         ; partial page to do?
+                beq +
+_page:
+                ldy #0
+-
+                lda (tmp1),y
                 jsr emit_a      ; avoids stack foolery
-
-                ; Move the address along (in tmp1)
-                inc tmp1
-                bne +
-                inc tmp1+1
-+
-                ; Reduce the count (on the data stack)
-                lda 0,x
-                bne +
-                dec 1,x
-+
+                iny
                 dec 0,x
+                bne -
++
+                lda 1,x         ; See if we are done
+                beq _cleanup
+                dec 1,x         ; Not done - do another page
+                bra _page
 
-                bra _loop
-_done:
+_cleanup:
+                ; clean up the stack
                 inx
                 inx
                 inx
@@ -6744,15 +6733,14 @@ z_type:         rts
         ; """https://forth-standard.org/standard/core/Ud
         ;
         ; This is : U. 0 <# #S #> TYPE SPACE ; in Forth
-        ; We use the internal assembler function print_u followed
+        ; We use the internal assembler function print_tos followed
         ; by a single space
         ; """
 xt_u_dot:
                 jsr underflow_1
 w_u_dot:
-                jsr print_u
-                lda #AscSP
-                jsr emit_a
+                jsr print_tos
+                jsr w_space
 
 z_u_dot:        rts
 

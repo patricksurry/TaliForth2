@@ -48,7 +48,7 @@
 ;       NN - Never Native Compile (must always be called by JSR)
 ;       HC - Has CFA (words created by CREATE and DOES> only)
 ;
-;       The NN and AN flags are intrepreted together like this:
+;       The NN and AN flags are interpreted together like this:
 ;
 ;            NN  AN
 ;           +---+---+
@@ -176,7 +176,7 @@ prev_nt ::= _nt
 
 
 ; prev_nt tracks the previous header, and is reset after each wordlist
-prev_nt := 0
+prev_nt :?= 0
 
 
 ; FORTH-WORDLIST
@@ -497,7 +497,7 @@ nt_question:
 #nt_header dot, "."
 #nt_header type
 #nt_header emit, "emit", NN
-#nt_header execute
+#nt_header execute, "execute", NN
 #nt_header two, "2"
 #nt_header one, "1"
 #nt_header zero, "0"
