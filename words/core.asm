@@ -2915,7 +2915,7 @@ w_literal:
                 .word literal_runtime
 
                 ; ( n call-addr )
-                lda 3,x                         ; is it a byte value?
+                lda 3,x                                 ; is it a byte value?
                 bne +
 
                 jsr two_literal_runtime
@@ -2940,20 +2940,31 @@ _done:
                 rts
 
 _inline:
-                ; update the placeholders in the template we compiled
-                ; temporarily reduce cp by 256 to make reverse indexing easier
-                dec cp+1
-                ldy #256-9
-                ; update the template
-                lda 1,x                         ; MSB non-zero?
-                beq +
-                sta (cp),y                      ; ldy #<MSB>
+                ; The template we compiled looks like `[ldy #<MSB>] lda #<LSB> ...`
+                ; skipping the `ldy` if the MSB is zero.
+                ; But we still need to poke in the values for MSB (if non-zero) and LSB.
+                ; We'll temporarily rewind CP by a page (256 bytes)
+                ; so that we can poke into the template using Y indexing
+
+                ; Set up to poke at the MSB in the word template, which we'll skip
+                ; if we find the MSB is zero.
+
+                ; Sanity check that the two templates differ by exactly two bytes
+                .cerror template_push_word_tos_size != template_push_byte_tos_size + 2
+
+                ; The MSB is the second byte of the word template, i.e. at offset -size+1
+                ; which we'll index as (CP-256) + (256-size+1).
+                ldy #256-template_push_word_tos_size+1
+                dec cp+1                        ; rewind one page to CP-256
+
+                lda 1,x
+                beq +                           ; skip MSB if it's zero
+                sta (cp),y                      ; poke MSB into `ldy #<MSB>`
 +
-                iny
+                iny                             ; Either way, the LSB is two bytes further along
                 iny
                 lda 0,x
-                sta (cp),y                      ; lda #<LSB>
-
+                sta (cp),y                      ; poke LSB into `lda #<LSB>`
                 inc cp+1                        ; reset HERE
 
                 inx                             ; drop the literal
