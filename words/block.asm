@@ -17,15 +17,9 @@ w_blkbuffer:
                 ; Unlike some of the other user variables, we actually
                 ; want to push the address stored here, which will
                 ; point to somewhere outside of the user variables.
-                dex
-                dex
                 ; Put the address on the stack.
                 ldy #blkbuffer_offset
-                lda (up),y
-                sta 0,x
-                iny             ; Move along to the next byte
-                lda (up),y
-                sta 1,x
+                jsr push_upword_tos
 
 z_blkbuffer:    rts
 
@@ -95,11 +89,7 @@ _buffer_available:
 _done:
                 ; It's in the buffer. Return the buffer address.
                 ldy #blkbuffer_offset
-                lda (up),y
-                sta 0,x
-                iny
-                lda (up),y
-                sta 1,x
+                jsr replace_upword_tos
 
 z_block:        rts
 
@@ -218,12 +208,7 @@ xt_block_read:
 w_block_read:
                 ; Execute the BLOCK-READ-VECTOR
                 ldy #blockread_offset
-                lda (up),y
-                sta tmp1
-                iny
-                lda (up),y
-                sta tmp1+1
-
+                jsr fetch_upword_tmp1
                 jmp (tmp1)
 
 z_block_read:   ; No RTS needed
@@ -264,11 +249,7 @@ xt_block_write:
 w_block_write:
                 ; Execute the BLOCK-READ-VECTOR
                 ldy #blockwrite_offset
-                lda (up),y
-                sta tmp1
-                iny
-                lda (up),y
-                sta tmp1+1
+                jsr fetch_upword_tmp1
                 jmp (tmp1)
 
 z_block_write:  ; No RTS needed
@@ -334,11 +315,7 @@ _buffer_available:
 
                 ; Return the buffer address.
                 ldy #blkbuffer_offset
-                lda (up),y
-                sta 0,x
-                iny
-                lda (up),y
-                sta 1,x
+                jsr replace_upword_tos
 
 z_buffer:       rts
 
@@ -436,11 +413,9 @@ w_load:
                 jsr w_block
 
                 ; Put 1024 on the stack for the screen length.
-                dex
-                dex
-                lda #4
-                sta 1,x
-                stz 0,x
+                ldy #4
+                lda #0
+                jsr push_ya_tos
 
                 ; Jump to a special evluate target. This bypasses the underflow
                 ; check and skips the zeroing of BLK.
@@ -461,14 +436,8 @@ w_load:
                 beq _done
 
                 ; The block needs to be read back into the buffer.
-                dex
-                dex
                 ldy #blk_offset
-                lda (up),y
-                sta 0,x
-                iny
-                lda (up),y
-                sta 1,x
+                jsr push_upword_tos
                 jsr w_block
 
                 ; Drop the buffer address.
@@ -587,12 +556,9 @@ _next_screen:
 +
                 ; Put the current screen on the stack to prepare for
                 ; the next loop.
-                dex
-                dex
                 lda tmp1
-                sta 0,x
-                lda tmp1+1
-                sta 1,x
+                ldy tmp1+1
+                jsr push_ya_tos
                 bra _thru_loop
 _done:
 z_thru:         rts

@@ -216,20 +216,13 @@ dovar:
         ; """
                 ; Pull the return address off the machine's stack, adding
                 ; one because of the way the 65c02 handles subroutines
-                ply             ; LSB
-                pla             ; MSB
-                iny
-                bne +
+                pla             ; LSB
+                ply             ; MSB
                 ina
-+
-                dex
-                dex
+                bne push_ya_tos
+                iny
+                bra push_ya_tos
 
-                sta 1,x
-                tya
-                sta 0,x
-
-                rts
 
 ; =====================================================================
 ; LOW LEVEL HELPER FUNCTIONS
@@ -239,8 +232,10 @@ dovar:
 ; This routine is also used as a template by the assembler "push-a" word
 ; It's also used as a template by w_literal to push Y/A TOS
 ; where we'll change stz 1,x to sty 1,x if MSB is non-zero
+xt_base:
+w_base:
 template_push_byte_tos:
-                lda #$ff
+                lda #<base
 push_a_tos:  ; ( -- A )
                 dex
                 dex
@@ -248,32 +243,52 @@ push_a_tos:  ; ( -- A )
                 stz 1,x
 z_push_a_tos:
 template_push_byte_tos_size = * - template_push_byte_tos
+z_base:
                 rts
 
+
+xt_useraddr:
+w_useraddr:
 template_push_word_tos:
-                ldy #$ff
-                lda #$ff
-push_ay_tos:  ; ( -- YA )
+                ldy #>up
+                lda #<up
+push_ya_tos:  ; ( -- YA )
                 dex
                 dex
                 sta 0,x
                 sty 1,x
 template_push_word_tos_size = * - template_push_word_tos
+z_useraddr:
+                rts
+
+push_upword_tos:
+                dex
+                dex
+replace_upword_tos:
+                lda (up),y
+                sta 0,x
+                iny
+                lda (up),y
+                sta 1,x
+                rts
+
+fetch_upword_tmp1:
+                lda (up),y
+                sta tmp1
+                iny
+                lda (up),y
+                sta tmp1+1
                 rts
 
 push_upvar_tos:
         ; """Write addr of user page variable with offset A to TOS"""
-                dex
-                dex
                 clc
                 adc up
-                sta 0,x
-                lda up+1
-                bcc +
+                ldy up+1
+                bcc push_ya_tos
                 ina
 +
-                sta 1,x
-                rts
+                bra push_ya_tos
 
 byte_to_ascii:
         ; """Convert byte in A to two ASCII hex digits and EMIT them"""

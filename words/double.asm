@@ -224,12 +224,9 @@ w_m_star_slash:
                 ; SWAP R@ UM* ROT R> UM* ROT 0 D+ R@ UM/MOD ROT ROT R> UM/MOD
                 ; but we have |n2| and |n1| on the data stack
                 jsr w_swap
-                dex
-                dex
-                lda 6,x                 ; pick |n1|
-                sta 0,x
-                lda 7,x
-                sta 1,x
+                lda 4,x                 ; pick |n1|
+                ldy 5,x
+                jsr push_ya_tos
 
                 jsr w_um_star           ; ( |n2| |n1| |dhi| d|dlo*n1| ) uses tmp1-3
                 jsr w_two_swap          ; ( |n2| d|dhlo*n1| |n1| |dhi| )
@@ -239,12 +236,10 @@ w_m_star_slash:
                 jsr w_zero
                 jsr w_d_plus            ; ( |n2| t|uvw| )
 
-                dex                     ; pick |n2| from under the triple result
-                dex
-                lda 8,x
-                sta 0,x
-                lda 9,x
-                sta 1,x                 ; ( |n2| |uvw| |n2| )
+                ; pick |n2| from under the triple result
+                lda 6,x
+                ldy 7,x
+                jsr push_ya_tos         ; ( |n2| |uvw| |n2| )
 
                 ; do the triple division in two double steps (uses tmpdsp)
                 jsr w_um_slash_mod      ; ( |n2| |w| r qhi )
@@ -389,15 +384,10 @@ two_literal_runtime:
 xt_two_variable:
 w_two_variable:
                 ; We just let CREATE and ALLOT do the heavy lifting
-                dex
-                dex
-                lda #4                  ; ( 4 )
-                sta 0,x
-                stz 1,x
-
+                lda #4
                 sta tmpdsp              ; tell create our PFA size is 4
+                jsr push_a_tos          ; ( 4 )
                 jsr create_dovar
-
                 jsr w_allot             ; allocate the data area
 
 z_two_variable:

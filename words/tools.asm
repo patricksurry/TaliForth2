@@ -286,12 +286,9 @@ _show_header:
 
                 ; Show flag values from the status byte along with
                 ; any calculated (synthetic) flag values
-                lda (2,x)               ; grab status flags @ NT
-                dex                     ; make some space
-                dex                     ; ( nt xt flags )
-                sta 0,x                 ; stash status flag byte
-                stz 1,x                 ; placeholder for synthetic flags
+                lda (2,x)               ; grab physical status flags @ NT
                 pha                     ; save a copy of flags for later
+                jsr push_ya_tos         ; ( nt xt flags ) leaving MSB of flags for synthetic flags
 
                                         ; ( nt xt flags )
                 ; collect synthetic flags in reverse order for template
@@ -459,11 +456,7 @@ _have_wordlist:
                 clc
                 adc #wordlists_offset
                 tay
-                lda (up),y              ; Save the DP for this wordlist
-                sta 0,x                 ; on the stack. ( nt )
-                iny
-                lda (up),y
-                sta 1,x
+                jsr replace_upword_tos  ; Save the DP for this wordlist ( nt )
 
 _loop:
                 jsr w_dup              ; ( nt nt )

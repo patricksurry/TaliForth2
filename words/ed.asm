@@ -123,13 +123,9 @@ ed_input_loop:
 
                 ; We were given an empty line. Advance one line, print it, and
                 ; make it the new current line
-                dex
-                dex                     ; ( addr-t u-t ? )
-
                 lda ed_cur
-                sta 0,x
-                lda ed_cur+1
-                sta 1,x                 ; ( addr-t u-t u )
+                ldy ed_cur+1
+                jsr push_ya_tos         ; ( addr-t u-t u )
 
                 ; This counts as having a parameter
                 lda #%10000000
@@ -251,20 +247,13 @@ _command_mode:
                 ; more than just a dot here. We now need to see if the next
                 ; character is a comma or a command character. To do this, we
                 ; need to modify the stack to ( addr-t u-t para1 0 addr u )
-                dex
-                dex
-                dex
-                dex
-
                 lda cib
-                sta 2,x
-                lda cib+1
-                sta 3,x
+                ldy cib+1
+                jsr push_ya_tos
 
                 lda ciblen
-                sta 0,x
-                lda ciblen+1
-                sta 1,x
+                ldy ciblen+1
+                jsr push_ya_tos
 
                 jsr w_one_minus        ; ( addr-t u-t para1 0 addr u-1 )
                 jsr w_swap             ; ( addr-t u-t para1 0 u-1 addr )
@@ -284,8 +273,8 @@ _prefix_dollar:
                 inx
                 inx                     ; ( addr-t u-t 0 )
 
-                jsr ed_last_line          ; ( addr-t u-t 0 para1 )
-                jsr w_swap             ; SWAP ( addr-t u-t para1 0 )
+                jsr ed_last_line        ; ( addr-t u-t 0 para1 )
+                jsr w_swap              ; SWAP ( addr-t u-t para1 0 )
 
                 ; We have a parameter
                 lda #%10000000
@@ -333,7 +322,7 @@ _semicolon_entry:
                 ; store it as the second parameter
                 inx
                 inx                     ; DROP ( addr-t u-t para1 )
-                jsr ed_last_line          ; ( addr-t u-t para1 para2 )
+                jsr ed_last_line        ; ( addr-t u-t para1 para2 )
 
                 ; We have a parameter
                 lda #%10000000
@@ -376,24 +365,17 @@ _prefix_number:
                 ; string to check. First, though, add the "accumulator" of
                 ; >NUMBER as a double number, that is, to single-cell numbers
                 jsr w_zero
-                jsr w_zero             ; ( addr-t u-t 0 0 0 0 )
-
-                dex
-                dex
-                dex
-                dex                     ; ( addr-t u-t 0 0 0 0 ? ? )
+                jsr w_zero              ; ( addr-t u-t 0 0 0 0 )
 
                 lda cib
-                sta 2,x
-                lda cib+1
-                sta 3,x                 ; ( addr-t u-t 0 0 0 0 cib ? )
+                ldy cib+1
+                jsr push_ya_tos         ; ( addr-t u-t 0 0 0 0 cib )
 
                 lda ciblen
-                sta 0,x
-                lda ciblen+1
-                sta 1,x                 ; ( addr-t u-t 0 0 0 0 cib ciblen )
+                ldy ciblen+1
+                jsr push_ya_tos         ; ( addr-t u-t 0 0 0 0 cib ciblen )
 
-                jsr w_to_number        ; ( addr-t u-t 0 0 ud addr2 u2 )
+                jsr w_to_number         ; ( addr-t u-t 0 0 ud addr2 u2 )
 
                 ; If we converted all the characters in the string (u2 is
                 ; zero), then the user just gave us a line number to
@@ -443,13 +425,9 @@ _have_unconverted_chars:
                 ; characters is equal to the length of the string.
                 jsr w_dup              ; ( addr-t u-t 0 0 ud addr2 u2 u2 )
 
-                dex
-                dex                     ; ( addr-t u-t 0 0 ud addr2 u2 u2 ? )
-
                 lda ciblen
-                sta 0,x
-                lda ciblen+1
-                sta 1,x                 ; ( addr-t u-t 0 0 ud addr2 u2 u2 ciblen )
+                ldy ciblen+1
+                jsr push_ya_tos        ; ( addr-t u-t 0 0 ud addr2 u2 u2 ciblen )
 
                 jsr w_equal            ; ( addr-t u-t 0 0 ud addr2 u2 f )
 
@@ -574,7 +552,7 @@ _got_comma:
                 adc #06
                 tax                     ; ( addr-t u-t para1 )
 
-                jsr ed_last_line          ; ( addr-t u-t para1 para2 )
+                jsr ed_last_line        ; ( addr-t u-t para1 para2 )
 
                 ply
                 jmp _check_command
@@ -867,26 +845,20 @@ _add_line:
                 ; is where the new string needs to be. The MOVE command we're
                 ; going to use has the format ( addr1 addr2 u )
 
-                jsr w_here     ; HERE ( addr-t u-t here here2 here3 )
-                jsr w_dup      ; DUP ( addr-t u-t here here2 here3 here3 )
+                jsr w_here      ; HERE ( addr-t u-t here here2 here3 )
+                jsr w_dup       ; DUP ( addr-t u-t here here2 here3 here3 )
 
-                dex
-                dex             ; ( addr-t u-t here here2 here3 here3 ? )
                 lda cib
-                sta 0,x
-                lda cib+1
-                sta 1,x         ; ( addr-t u-t here here2 here3 here3 cib )
+                ldy cib+1
+                jsr push_ya_tos ; ( addr-t u-t here here2 here3 here3 cib )
 
-                jsr w_swap     ; SWAP ( addr-t u-t here here2 here3 cib here3 )
+                jsr w_swap      ; SWAP ( addr-t u-t here here2 here3 cib here3 )
 
-                dex
-                dex             ; ( addr-t u-t here here2 here3 cib here3 ? )
                 lda ciblen
-                sta 0,x
                 lda ciblen+1
-                sta 1,x         ; ( addr-t u-t here here2 here3 cib here3 ciblen )
+                jsr push_ya_tos ; ( addr-t u-t here here2 here3 cib here3 ciblen )
 
-                jsr w_move     ; ( addr-t u-t here here2 here3 )
+                jsr w_move      ; ( addr-t u-t here here2 here3 )
 
                 ; We need to adjust CP be the length of the string
                 clc
@@ -1051,14 +1023,11 @@ _cmd_equ_have_text:
                 bit ed_flags
                 bmi _cmd_equ_have_para
 
-                dex
-                dex                     ; ( addr-t u-t para1 para2 ? )
                 lda ed_cur
-                sta 0,x
-                lda ed_cur+1
-                sta 1,x
+                ldy ed_cur+1
+                jsr push_ya_tos         ; ( addr-t u-t para1 para2 cur )
 
-                bra _cmd_equ_done       ; ( addr-t u-t para1 para2 cur )
+                bra _cmd_equ_done
 
 _cmd_equ_have_para:
                 ; We have at least one parameter, and we know it is not zero.
@@ -1423,11 +1392,8 @@ _cmd_w_loop:
                 ; memory, so we need to add one
                 jsr w_dup              ; DUP ( addr-h addr-t1 addr-t1 ) ( R: addr-t )
 
-                dex
-                dex                     ; ( addr-h addr-t1 addr-t1 ? ) ( R: addr-t )
                 lda #AscLF              ; ASCII for LF
-                sta 0,x
-                stz 1,x                 ; ( addr-h addr-t1 addr-t1 c ) ( R: addr-t )
+                jsr push_a_tos         ; ( addr-h addr-t1 addr-t1 c ) ( R: addr-t )
 
                 jsr w_swap             ; SWAP ( addr-h addr-t1 c addr-t1 ) ( R: addr-t )
                 jsr w_store            ; ! ( addr-h addr-t1 ) ( R: addr-t )
@@ -1551,10 +1517,10 @@ ed_is_valid_line:
                 beq _is_valid_line_nope_zero    ; ( n )
 
                 ; Not a zero. Now see if we're beyond the last line
-                jsr w_dup                      ; DUP ( n n )
-                jsr ed_last_line                  ; ( n n last )
-                jsr w_swap                     ; SWAP ( n last n )
-                jsr w_less_than                ; < ( n f )
+                jsr w_dup                       ; DUP ( n n )
+                jsr ed_last_line                ; ( n n last )
+                jsr w_swap                      ; SWAP ( n last n )
+                jsr w_less_than                 ; < ( n f )
 
                 lda 0,x                         ; 0 flag is good
                 ora 1,x
@@ -1585,14 +1551,12 @@ ed_last_line:
         ; has made sure there are any lines at all
 
                 ; Set counter to zero
-                stz tmp1
-                stz tmp1+1
-
-                jsr literal_runtime     ; ( addr )
+                jsr w_zero
+                jsr literal_runtime     ; ( 0 addr )
                 .word ed_head
 
 _last_line_loop:
-                jsr w_fetch             ; ( addr | 0 )
+                jsr w_fetch             ; ( u addr|0 )
 
                 ; If that's over, we're at the end of the list and we're done
                 lda 0,x
@@ -1600,19 +1564,13 @@ _last_line_loop:
                 beq _last_line_done
 
                 ; Not done. Increase counter and continue
-                inc tmp1
-                bne +
-                inc tmp1+1
-+
+                inc 2,x
+                bne _last_line_loop
+                inc 3,x
                 bra _last_line_loop
 
 _last_line_done:
-                lda tmp1
-                sta 0,x
-                lda tmp1+1
-                sta 1,x                 ; ( u )
-
-                rts
+                jmp w_drop          ; ( u )
 
 
 ; -----------------------------

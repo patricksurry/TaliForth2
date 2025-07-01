@@ -214,11 +214,8 @@ w_find_name:
                 beq _fail_done
 
                 ; Truncate names longer than the max allowed (31).
-                dex
-                dex
                 lda #31
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 jsr w_min
 
                 ; Set up for traversing the wordlist search order.
@@ -246,12 +243,7 @@ _wordlist_loop:
                 clc
                 adc #wordlists_offset
                 tay
-                lda (up),y
-                sta tmp1
-                iny
-                lda (up),y
-                sta tmp1+1
-
+                jsr fetch_upword_tmp1
                 jsr find_nt_by_name
                 bne _success
 
@@ -282,15 +274,10 @@ z_find_name:    rts
 ; ## HAVEKEY ( -- addr ) "Return address of key? vector"
 ; ## "havekey" tested Tali Forth
 
-xt_havekey:             ; TODO  push_word_tos ??
+xt_havekey:
 w_havekey:
-                dex
-                dex
-                lda #<havekey
-                sta 0,x
-                lda #>havekey
-                sta 1,x
-
+                jsr literal_runtime
+                .word havekey
 z_havekey:      rts
 
 
@@ -371,15 +358,10 @@ z_hexstore:     rts
 ; ## INPUT ( -- addr ) "Return address of input vector"
 ; ## "input" tested Tali Forth
 
-xt_input:               ; TODO push_word_tos
+xt_input:
 w_input:
-                dex
-                dex
-                lda #<input
-                sta 0,x
-                lda #>input
-                sta 1,x
-
+                jsr literal_runtime
+                .word input
 z_input:        rts
 
 
@@ -462,12 +444,7 @@ _wordlist_loop:
                 clc
                 adc #wordlists_offset
                 tay
-                lda (up),y              ; Save the DP (first nt) for this wordlist
-                sta tmp1
-                iny
-                lda (up),y
-                sta tmp1+1
-
+                jsr fetch_upword_tmp1   ; Save the DP (first nt) for this wordlist
                 jsr find_nt_by_xt
                 beq _wordlist_loop      ; found?
 
@@ -489,15 +466,10 @@ z_int_to_name:  rts
         ; """
 xt_latestnt:
 w_latestnt:
-                dex
-                dex
-
                 jsr current_to_dp
-
                 lda dp
-                sta 0,x
-                lda dp+1
-                sta 1,x
+                ldy dp+1
+                jsr push_ya_tos
 
 z_latestnt:     rts
 
@@ -905,13 +877,8 @@ w_output:
         ; kernel_putc routine, but this can be changed by the user, hence this
         ; routine.
         ; """
-                dex             ; TODO push_word_tos
-                dex
-                lda #<output
-                sta 0,x
-                lda #>output
-                sta 1,x
-
+                jsr literal_runtime
+                .word output
 z_output:       rts
 
 
@@ -990,16 +957,8 @@ z_two:          rts
 
 ; ## USERADDR ( -- addr ) "Push address of base address of user variables"
 ; ## "useraddr"  tested  Tali Forth
-xt_useraddr:
-w_useraddr:                     ; TODO push_word_tos
-                dex
-                dex
-                lda #<up
-                sta 0,x
-                lda #>up
-                sta 1,x
-
-z_useraddr:     rts
+        ;
+        ; This is a dummy header, the implementation is shared with template_push_word_tos
 
 
 

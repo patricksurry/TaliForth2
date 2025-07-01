@@ -81,12 +81,9 @@ w_get_current:
                 ; This is a little different than some of the variables
                 ; in the user area as we want the value rather than
                 ; the address.
-                dex
-                dex
                 ldy #current_offset
                 lda (up),y
-                sta 0,x         ; CURRENT is a byte variable
-                stz 1,x         ; so the MSB is zero.
+                jsr push_a_tos  ; CURRENT is a byte variable
 
 z_get_current:  rts
 
@@ -116,11 +113,8 @@ _loop:
                 tay
 
                 ; Put that wordlist id on the stack.
-                dex
-                dex
                 lda (up),y
-                sta 0,x         ; Search order array is bytes, so
-                stz 1,x         ; put a zero in the high byte.
+                jsr push_a_tos  ; Search order array has single byte values
 
                 ; See if that was the last one to process (first in the list).
                 lda #0
@@ -129,12 +123,9 @@ _loop:
 
 _done:
                 ; Put the number of items on the stack.
-                dex
-                dex
                 ldy #num_order_offset
                 lda (up),y
-                sta 0,x
-                stz 1,x         ; We only support 8 wordlists.
+                jsr push_a_tos  ; We only support 8 wordlists (byte value)
 
 z_get_order:    rts
 
@@ -278,11 +269,8 @@ z_previous:     rts
 ; ## "root-wordlist"  tested  Tali Editor
 xt_root_wordlist:
 w_root_wordlist:
-                dex             ; The WID for the Root wordlist is 3.
-                dex
-                lda #3
-                sta 0,x
-                stz 1,x
+                lda #3          ; The WID for the Root wordlist is 3.
+                jsr push_a_tos
 
 z_root_wordlist:
                 rts
@@ -415,14 +403,10 @@ w_set_order:
 
                 ; There is a -1 TOS.  Replace it with the default
                 ; search order, which is just the FORTH-WORDLIST.
-                dex             ; Make room for the count.
-                dex
-                stz 3,x         ; ROOT-WORDLIST is 3
-                lda #3
-                sta 2,x
-                stz 1,x         ; Count is 1.
-                lda #1
+                lda #3          ; ROOT-WORDLIST is 3
                 sta 0,x
+                stz 1,x
+                jsr w_one       ; Count is 1.
 
                 ; Continue processing with ( forth-wordlist 1 -- )
 _start:
@@ -510,9 +494,6 @@ w_wordlist:
 _ok:
                 ina             ; Increment the wordlist#
                 sta (up),y      ; Save it into byte variable #wordlists
-                dex             ; and put it on the stack.
-                dex
-                sta 0,x
-                stz 1,x         ; 12 is the max, so upper byte is always zero.
+                jsr push_a_tos  ; and put it on the stack (max is 12 so byte is enough)
 
 z_wordlist:     rts

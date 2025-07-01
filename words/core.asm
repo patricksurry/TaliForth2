@@ -509,25 +509,17 @@ _release:
 
                 ; We arrive here with ( n ) which is negative. First step,
                 ; subtract the number TOS from the CP for a new CP
-                dex
-                dex
                 lda cp
-                sta 0,x
-                lda cp+1
-                sta 1,x
+                ldy cp+1
+                jsr push_ya_tos
 
                 jsr w_plus                     ; new CP is now TOS
 
                 ; Second step, see if we've gone too far. We compare the new
                 ; CP on TOS (which, if we've really screwed up, might be
                 ; negative) with CP0. This is a signed comparison
-                dex
-                dex                             ; new CP now NOS
-                lda #<cp0
-                sta 0,x
-                lda #>cp0
-                sta 1,x                         ; CP0 is TOS
-
+                jsr literal_runtime             ; ( CP CP0 )
+                .word cp0
                 jsr compare_16bit               ; still ( CP CP0 )
 
                 ; If CP (NOS) is smaller than CP0 (TOS), we're in trouble.
@@ -682,15 +674,8 @@ z_backslash:    rts
         ; The ANS Forth standard sees the base up to 36, so we can cheat and
         ; ingore the MSB
         ; """
-xt_base:
-w_base:
-                dex
-                dex
-                lda #<base
-                sta 0,x         ; LSB
-                stz 1,x         ; MSB is always 0
-
-z_base:         rts
+        ;
+        ; This is a dummy header.  The actual implementation is shared with template_push_byte_tos
 
 
 
@@ -1072,10 +1057,9 @@ w_count:
                 inc 1,x         ; MSB
 
                 ; save number of characters to stack
-+               tya
++               dex
                 dex
-                dex
-                sta 0,x         ; LSB
+                sty 0,x         ; LSB
                 stz 1,x         ; MSB, always zero
 
 z_count:        rts
@@ -1119,10 +1103,7 @@ create_dovar:
                 lda #<dovar
 create_common:
                 ; save the CFA
-                dex
-                dex
-                sta 0,x
-                sty 1,x                 ; ( cfa )
+                jsr push_ya_tos         ; ( cfa )
 
                 ; get string
                 jsr w_parse_name        ; ( cfa addr u )
@@ -1424,10 +1405,11 @@ z_defer_store:  rts
         ; """https://forth-standard.org/standard/core/DEPTH"""
 xt_depth:
 w_depth:
-                lda #dsp0
-                stx tmpdsp
+                ; We want #dsp0 - X but make use of ~A + A = -1 (mod 256) i.e. -A = ~A + 1
+                txa
+                eor #$ff
                 sec
-                sbc tmpdsp
+                adc #dsp0       ; ~X + 1 + #dsp0 == #dsp0 - X
 
                 ; divide by two because each cell is two bytes
                 lsr
@@ -1497,12 +1479,9 @@ do_common:
                 ; after we write any chained jumps for the current loop
 
                 ; save current loopleave in case we're nested
-                dex
-                dex
                 lda loopleave
-                sta 0,x
-                lda loopleave+1
-                sta 1,x
+                ldy loopleave+1
+                jsr push_ya_tos
 
                 ; For now there is no LEAVE addr to patch, which we
                 ; flag with MSB=0 (zero page) which is never a compilation target
@@ -1713,12 +1692,8 @@ z_dot:          rts
 xt_dot_paren:
 w_dot_paren:
                 ; Put a right paren on the stack.
-                dex
-                dex
                 lda #41     ; Right parenthesis
-                sta 0,x
-                stz 1,x
-
+                jsr push_a_tos
                 jsr w_parse
                 jsr w_type
 
@@ -2149,11 +2124,8 @@ z_equal:        rts
 xt_blank:
                 jsr underflow_2
 w_blank:
-                dex
-                dex
                 lda #AscSP
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 bra w_fill     ; skip over code for ERASE
 
 
@@ -2167,11 +2139,7 @@ w_blank:
 xt_erase:
                 jsr underflow_2
 w_erase:
-                dex
-                dex
-                stz 0,x
-                stz 1,x
-
+                jsr w_zero
                 ; fall through to FILL
                 bra w_fill
 
@@ -2779,12 +2747,7 @@ w_key:
         ; input without echoing.
         ; """
                 jsr key_a               ; returns char in A
-
-                dex
-                dex
-                sta 0,x
-                stz 1,x
-
+                jsr push_a_tos
 z_key:          rts
 
 key_a:
@@ -4001,11 +3964,8 @@ z_page:         rts
 xt_paren:
 w_paren:
                 ; Put a right paren on the stack.
-                dex
-                dex
                 lda #41     ; Right parenthesis
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
 
                 ; Call parse.
                 jsr w_parse
@@ -4121,12 +4081,8 @@ _char_found:
 
                 ; prepare Data Stack for PARSE by adding space
                 ; as the delimiter
-                dex
-                dex
-
                 lda #AscSP
-                sta 0,x
-                stz 1,x                 ; paranoid, now ( "name" c )
+                jsr push_ya_tos         ; paranoid, now ( "name" c )
 
                 bra w_parse             ; fall through to parse, skipping underflow
 
@@ -5158,12 +5114,9 @@ z_s_to_d:       rts
 
 xt_semicolon:
 w_semicolon:
-                dex
-                dex
                 lda workword
-                sta 0,x
-                lda workword+1
-                sta 1,x                 ; ( xt|nt )
+                ldy workword+1
+                jsr push_ya_tos         ; ( xt|nt )
 
                 ; Check if this is a : word or a :NONAME word.
                 bit status              ; check bit 6 (overflow flag)
@@ -5189,12 +5142,9 @@ _colonword:
                 sta (workword)
 +
                 ; Calculate code size by subtracting xt from CP.
-                dex
-                dex
                 lda cp
-                sta 0,x
-                lda cp+1
-                sta 1,x                 ; ( nt cp )
+                ldy cp+1
+                jsr push_ya_tos         ; ( nt cp )
 
                 jsr w_swap              ; ( cp nt )
                 jsr w_name_to_int       ; ( cp xt )
@@ -5260,12 +5210,9 @@ _setsz:
                 ; Start by putting nt on the stack, using WORKWORD.
                 ; Note LATESTNT won't work since we haven't added the
                 ; new word to the Dictionary yet
-                dex
-                dex
                 lda workword
-                sta 0,x
-                lda workword+1
-                sta 1,x
+                ldy workword+1
+                jsr push_ya_tos
 
                 jsr w_name_to_string    ; ( nt -- addr u )
 
@@ -5321,12 +5268,9 @@ fixup_long_word:
                 jsr cmpl_a
 
                 ; Either way we'll need the word's name (pointer and lengt)
-                dex
-                dex
                 lda workword
-                sta 0,x
-                lda workword+1
-                sta 1,x
+                ldy workword+1
+                jsr push_ya_tos
                 jsr w_name_to_string
 
                 ; ( codesize nameptr namelen )
@@ -5591,20 +5535,14 @@ z_sm_slash_rem: rts
 xt_source:
 w_source:
                 ; add address
-                dex
-                dex
                 lda cib
-                sta 0,x
-                lda cib+1
-                sta 1,x
+                ldy cib+1
+                jsr push_ya_tos
 
                 ; add size
-                dex
-                dex
                 lda ciblen
-                sta 0,x
-                lda ciblen+1
-                sta 1,x
+                ldy ciblen+1
+                jsr push_ya_tos
 
 z_source:       rts
 
@@ -5619,13 +5557,9 @@ z_source:       rts
         ; """
 xt_source_id:
 w_source_id:
-                dex
-                dex
-
                 lda insrc
-                sta 0,x
-                lda insrc+1
-                sta 1,x
+                ldy insrc+1
+                jsr push_ya_tos
 
 z_source_id:    rts
 
@@ -5744,12 +5678,8 @@ z_star_slash_mod:
         ; """
 xt_state:
 w_state:
-                dex
-                dex
-                lda #<state
-                sta 0,x
-                lda #>state
-                sta 1,x
+                jsr literal_runtime
+                .word state
 
 z_state:        rts
 
@@ -5974,13 +5904,8 @@ z_to_body:      rts
 ; ## ">in"  auto  ANS core
 xt_to_in:
 w_to_in:
-                dex
-                dex
-
-                lda #<toin
-                sta 0,x
-                lda #>toin      ; paranoid, should be zero
-                sta 1,x
+                jsr literal_runtime
+                .word toin              ;TODO paranoid, should be zero
 
 z_to_in:        rts
 
@@ -7103,12 +7028,9 @@ w_within:
                 inx                     ; pretend to push n3-n2 to return stack
                 inx
                 jsr w_minus             ; ( n1-n2 ) with ( n2 n3-n2 ) past end of stack
-                dex                     ; nip the overhang leaving ( n1-n2 n3-n2 )
-                dex
-                lda $fe,x
-                sta 0,x
-                lda $ff,x
-                sta 1,x
+                lda $fc,x               ; nip the overhang leaving ( n1-n2 n3-n2 )
+                ldy $fd,x
+                jsr push_ya_tos
                 jsr w_u_less_than       ; ( f )
 
 z_within:       rts
@@ -7171,12 +7093,9 @@ _found_char:
                 jsr w_move
 
                 ; Return caddr
-                dex
-                dex
                 lda cp
-                sta 0,x
-                lda cp+1
-                sta 1,x
+                ldy cp+1
+                jsr push_ya_tos
 
                 ; Adjust CP
                 pla                     ; length of string
