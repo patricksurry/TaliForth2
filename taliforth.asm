@@ -259,6 +259,10 @@ push_upvar_tos:
                 sta 1,x
                 rts
 
+word_to_ascii:
+        ; """Print the word with LSB=Y, MSB=A in big-endian order as <A Y>
+                jsr byte_to_ascii              ; print MSB and fall through
+                tya
 byte_to_ascii:
         ; """Convert byte in A to two ASCII hex digits and EMIT them"""
                 pha
@@ -266,13 +270,13 @@ byte_to_ascii:
                 lsr
                 lsr
                 lsr
-                jsr _nibble_to_ascii
+                jsr nibble_to_ascii
                 pla
 
-                ; fall through to _nibble_to_ascii
+                ; fall through to nibble_to_ascii
 
-_nibble_to_ascii:
-        ; """Private helper function for byte_to_ascii: Print lower nibble
+nibble_to_ascii:
+        ; """Helper function for byte_to_ascii: Print lower nibble
         ; of A and and EMIT it. This does the actual work.
         ; """
                 and #$F
@@ -280,10 +284,8 @@ _nibble_to_ascii:
                 cmp #'9'+1
                 bcc +
                 adc #6
-
-+               jmp emit_a
-
-                rts
++
+                jmp emit_a
 
 
 ascii_to_byte:
