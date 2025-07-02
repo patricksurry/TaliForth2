@@ -170,7 +170,6 @@ es_usersigint:  .shift "EINTR"
 .endif
 
 
-
 .if "environment?" in TALI_OPTIONAL_WORDS
 ; ## ENVIRONMENT STRINGS
 
@@ -197,6 +196,5 @@ envs_max_d:     .text "MAX-D"
 envs_max_ud:    .text "MAX-UD"
 envs_eot:
 .endif
-
 
 ; END

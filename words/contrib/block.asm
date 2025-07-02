@@ -124,7 +124,7 @@ sd_enocard:
 +
         sta tmp3
         sty tmp3+1
-        jsr print_common
+        jsr print_shift_string
         jmp w_cr
 
 es_blkini:

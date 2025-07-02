@@ -53,7 +53,7 @@ w_cold:
                 sta tmp3
                 lda #>s_kernel_id
                 sta tmp3+1
-                jsr print_common
+                jsr print_shift_string
 
                 ; Load all of the important zero page variables from ROM
                 ldy #cold_zp_table_end-cold_zp_table-1

@@ -201,10 +201,10 @@ cmpl_as_call:
                 bne +
                 jsr w_drop              ; no stack juggling, use middle (xt or xt')
                 jsr w_nip
-                bra cmpl_call_tos
+                bra _cmpl
 +
                 jsr w_two_drop          ; stack juggling, must use first (xt)
-cmpl_call_tos:
+_cmpl:
                 ; ( jsr_address -- )
                 lda #OpJSR
                 jsr cmpl_a

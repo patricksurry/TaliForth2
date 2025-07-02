@@ -846,6 +846,9 @@ _loop:
                 and #$7f                        ; ensure high bit is clear
                 jsr emit_a                      ; allows vectoring via output
                 iny
+                bne +
+                inc tmp3+1
++
                 plp                             ; was this the last character?
                 bpl _loop
 
