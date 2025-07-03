@@ -1,25 +1,33 @@
 \ platform_forth.fs
 
-\ Put any forth you would like Tali to run at startup in this file.
-\ All comments will be removed and all whitespace reduced to a single space
-\ between words before it's imported (as a single string) into the binary.
-\ Tali evaluates this string as part of a COLD startup.  If there is an error
-\ then Tali will abort evaluating this code.
+\ Put any Forth code that Tali should execute at startup in this file.
+\ If this file isn't provided TaliForth will insert some Forth code to
+\ display some splash strings as a basic sanity check on the boot process.
 
+\ If you add a `platform_forth.fs` or other `.fs` file,
+\ make sure you include it in your `platform.asm` file using code like this:
+\
+\       user_words_start:
+\       .binary "platform_forth.asc"
+\       user_words_end:
+\
+\ The `Makefile` automatically converts to `.asc` using `tools/forth_pack.py`.
+\ This removes all comments and reduces whitespace between words to a single space
+\ so it takes minimal space when imported as a single string into the binary.
 
+\ We'll define a new word and then show an alternative message:
 
+        : ultimate 42 ;
+        cr
+        .( I've studied species Turian, Asari, and Batarian. )
+        cr
 
+\ Tali will evaluate this string as part of a COLD startup.
+\ If there's an error then Tali will abort evaluating this code.
 
-
-
-
-
-\ Splash strings. We leave these as high-level words because they are
-\ generated at the end of the boot process and signal that the other
-\ high-level definitions worked (or at least didn't crash)
-
-        cr .( Tali Forth 2 for the 65c02)
-        cr .( Version 1.1  27. Jun 2025 )
-        cr .( Copyright 2014-2025 Scot W. Stevenson, Sam Colwell, Patrick Surry)
-        cr .( Tali Forth 2 comes with absolutely NO WARRANTY)
-        cr .( Type 'bye' to exit) cr
+\ Although system words are normally "assemblerized" in Tali Forth for speed,
+\ `platform_forth.fs` can be useful for adding a few custom words.
+\ You can find some example words in `examples/forth`.
+\ Tali Forth reserves about 2 KB of ROM space for platform words.
+\ If you want to import lots of forth code you should probably
+\ read from some sort of block device.

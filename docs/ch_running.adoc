@@ -40,9 +40,9 @@ Type 'bye' to exit
 
 Because these are the last high-level commands Tali Forth executes, this
 functions as a primitive self-test. If you have modified the high level Forth
-words in either `forth_words.fs` or `user_words.fs`, the boot process might
+words in your platform's `platform_forth.fs` the boot process might
 fail with a variant of the error message "unknown word". The built-in, native
-words should always work. For this `dump` (((dump))) is a built-in word -- it is very
+words should always work. The `dump` (((dump))) built-in word is very
 useful for testing.
 
 === Command-Line History

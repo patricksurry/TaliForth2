@@ -36,7 +36,7 @@ TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "a
 ;     by also removing "editor" and "assembler"), and all new words will
 ;     be compiled into the FORTH wordlist. (~0.9K)
 
-    
+
 ; TALI_OPTION_CR_EOL sets the character(s) that are printed by the word
 ; CR in order to move the cursor to the next line.  The default is "lf"
 ; for a line feed character (#10).  "cr" will use a carriage return (#13).
@@ -159,10 +159,8 @@ s_kernel_id:
 ; It's this reduced-size version of the code that we bring in here.
 ; Note that Make normally deletes this .asc file after the build
 ; process completes.
-forth_words_start:
 user_words_start:
 .binary "platform_forth.asc"
-forth_words_end:
 user_words_end:
 
 
