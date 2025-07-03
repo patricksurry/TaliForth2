@@ -4,7 +4,7 @@ Tali Forth 2 default kernel for c65 (01. Jun 2024)
 
 
 Tali Forth 2 for the 65c02
-Version 1.1  06. Apr 2024 
+Version 1.1 06. Apr 2024 
 Copyright 2014-2024 Scot W. Stevenson, Sam Colwell, Patrick Surry
 Tali Forth 2 comes with absolutely NO WARRANTY
 Type 'bye' to exit
@@ -3563,12 +3563,12 @@ here 5       ' blank         cycle_test            CYCLES:    327 ok
 5            ' chars         cycle_test drop       CYCLES:     28 ok
 pad here 5   ' cmove         cycle_test            CYCLES:    188 ok
 pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
-             ' :             cycle_test wrd ;      CYCLES:  20551 ok
+             ' :             cycle_test wrd ;      CYCLES:  20552 ok
              ' :noname       cycle_test ; drop     CYCLES:     50 ok
 5            ' ,             cycle_test            CYCLES:    101 ok
 ' aword      ' compile,      cycle_test            CYCLES:    947 ok
 : bword ;    ' compile-only  cycle_test            CYCLES:     69 ok
-5            ' constant      cycle_test mycnst     CYCLES:  21309 ok
+5            ' constant      cycle_test mycnst     CYCLES:  21310 ok
 here         ' count         cycle_test 2drop      CYCLES:     59 ok
 \ skipping     cr  ok
 \ skipping     create  ok
@@ -3617,7 +3617,7 @@ nc-limit !  ok
 5 5          ' =             cycle_test drop       CYCLES:     64 ok
 here 5       ' erase         cycle_test            CYCLES:    325 ok
 here 5 5     ' fill          cycle_test            CYCLES:    309 ok
-s" 5"        ' evaluate      cycle_test drop       CYCLES:  21672 ok
+s" 5"        ' evaluate      cycle_test drop       CYCLES:  21673 ok
 5 ' drop     ' execute       cycle_test            CYCLES:     72 ok
 \ skipping     exit  ok
              ' false         cycle_test drop       CYCLES:     24 ok
@@ -3652,7 +3652,7 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:   1325 ok
 \ skipping     +loop  ok
 5 5          ' lshift        cycle_test drop       CYCLES:    126 ok
 5 5          ' m*            cycle_test 2drop      CYCLES:    407 ok
-             ' marker        cycle_test marka      CYCLES:  23786 ok
+             ' marker        cycle_test marka      CYCLES:  23787 ok
              ' marka         cycle_test            CYCLES:    781 ok
 5 5          ' max           cycle_test drop       CYCLES:     69 ok
 5 5          ' min           cycle_test drop       CYCLES:     54 ok
@@ -3736,7 +3736,7 @@ here         ' 2@            cycle_test 2drop      CYCLES:     88 ok
 5. here      ' 2!            cycle_test            CYCLES:     99 ok
 5 5 5 5      ' 2swap         cycle_test 4drop      CYCLES:     92 ok
 \ skipping     2>r  ok
-             ' 2variable     cycle_test eword      CYCLES:  22593 ok
+             ' 2variable     cycle_test eword      CYCLES:  22594 ok
              ' eword         cycle_test drop       CYCLES:     45 ok
 s" *"        ' type          cycle_test           *CYCLES:    102 ok
 5            ' u.            cycle_test          5 CYCLES:   1159 ok
@@ -3747,10 +3747,10 @@ s" *"        ' type          cycle_test           *CYCLES:    102 ok
 5 5          ' um*           cycle_test 2drop      CYCLES:    331 ok
 \ skipping     unloop  ok
              ' unused        cycle_test drop       CYCLES:     36 ok
-5            ' value         cycle_test fword      CYCLES:  22714 ok
+5            ' value         cycle_test fword      CYCLES:  22715 ok
              ' fword         cycle_test drop       CYCLES:     58 ok
 5            ' to            cycle_test fword      CYCLES:   1223 ok
-             ' variable      cycle_test gword      CYCLES:  22581 ok
+             ' variable      cycle_test gword      CYCLES:  22582 ok
              ' gword         cycle_test drop       CYCLES:     45 ok
 char "       ' word          cycle_test "txt" drop CYCLES:    620 ok
 \ skipping     words  ok
@@ -3763,4 +3763,4 @@ char "       ' word          cycle_test "txt" drop CYCLES:    620 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     48 ok
   ok
-bye c65: PC=f016 A=98 X=78 Y=98 S=f8 FLAGS=<N0 V0 B1 D0 I1 Z0 C1> ticks=178653572
+bye c65: PC=f016 A=98 X=78 Y=98 S=f8 FLAGS=<N0 V0 B1 D0 I1 Z0 C1> ticks=178662048
