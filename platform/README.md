@@ -11,8 +11,8 @@ IO with the c65 emulator is `c65/platform.asm`.   These both assume a memory lay
 with at least 32Kb of ROM.  The `minimal/platform.asm` configuration strips out
 a number of optional features to run in 12-16Kb of ROM.
 
-Other configurations are included to make life easier for individual developers
-and as examples for people who want to port Tali to their own hardware.
+Other configurations are included to make life easier for individual developers,
+along with `skeleton/platform.asm` as a template for people who want to port Tali to their own hardware.
 Those not mentioned above may not be up to date with the latest changes: *caveat emptor*.
 
 A configuration file is simply a [64tass](https://tass64.sourceforge.net/)

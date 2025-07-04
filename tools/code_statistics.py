@@ -10,7 +10,7 @@ is crude one-shot program and is not maintained.
 import operator
 from glob import glob
 
-# Sources are Ophis assembler files with lots of code, but not things that
+# Sources are 64tass assembler files with lots of code, but not things that
 # definitions.asm with more data
 SOURCES = set(glob('../words/*.asm')) - {'../words/headers.asm'}
 
