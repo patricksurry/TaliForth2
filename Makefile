@@ -69,6 +69,7 @@ taliforth-%.bin: platform/%/platform.asm platform/%/platform_words.asm platform/
 	--labels=docs/$*-labelmap.txt \
 	--output $@ \
 	$<
+	python3 tools/sort_vice_labels.py docs/$*-labelmap.txt
 
 taliforth-%.prg: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --cbm-prg \
@@ -76,6 +77,7 @@ taliforth-%.prg: platform/%/platform.asm platform/%/platform_words.asm platform/
 	--labels=docs/$*-labelmap.txt \
 	--output $@ \
 	$<
+	python3 tools/sort_vice_labels.py docs/$*-labelmap.txt
 
 # Convert the high-level Forth words to ASCII files that Ophis can include
 # This will only process the file if it exists.
