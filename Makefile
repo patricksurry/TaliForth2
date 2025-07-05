@@ -55,12 +55,11 @@ TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests
 TEST_SOURCES=tests/talitest.py $(TEST_SUITE)
 
 C65=c65/c65
-C65_SOURCES=c65/*.c c65/*.h
 
 all: taliforth-py65mon.bin docs/WORDLIST.md
 clean:
 	$(RM) *.bin *.prg
-	make -C c65 clean
+	git submodule deinit c65
 
 taliforth-%.bin: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --nostart \
@@ -105,7 +104,14 @@ docs/WORDLIST.md: tools/generate_wordlist.py taliforth-py65mon.bin
 # Some convenience targets to make running the tests and simulation easier.
 
 # Build the c65 simulator
-$(C65): $(C65_SOURCES)
+# After a normal git clone, c65 is still an empty folder
+# so update the module if version.h is missing
+c65/version.h:
+	git submodule init
+	git submodule update c65
+
+# Rebuild the simulator if version.h gets bumped
+$(C65): c65/version.h
 	make -C c65
 
 # Convenience target for regular tests.
