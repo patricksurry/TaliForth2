@@ -13,7 +13,7 @@ from glob import glob
 
 
 SOURCES = 'words/*.asm'
-LABELS = 'docs/py65mon-labelmap.txt'
+LABELS = 'platform/py65mon/py65mon-labelmap.txt'
 MARKER = '; ## '
 
 labels = {}

@@ -77,7 +77,7 @@ taliforth-%.prg: platform/%/platform.asm platform/%/platform_words.asm platform/
 	--labels=platform/$*/$*-labelmap.txt \
 	--output $@ \
 	$<
-	python3 tools/sort_vice_labels.py docs/$*-labelmap.txt
+	python3 tools/sort_vice_labels.py platform/$*/$*-labelmap.txt
 
 # Compact the Forth word definitons for inclusion in the binary.
 # This will only process the file if it exists.

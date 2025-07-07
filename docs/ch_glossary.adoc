@@ -748,7 +748,7 @@ https://forth-standard.org/standard/block/LIST
 https://forth-standard.org/standard/core/LITERAL
 Compile-only word to store TOS so that it is pushed on stack
 during runtime. This is a immediate, compile-only word. At runtime,
-it works by calling literal_runtime by compling JSR LITERAL_RT.
+it works by calling literal_runtime or compiling an inline equivalent.
 
 `load`:: _ANS block_ ( scr# -- ) "Load the Forth code in a screen/block"
 https://forth-standard.org/standard/block/LOAD
