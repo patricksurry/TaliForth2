@@ -69,7 +69,7 @@ taliforth-%.bin: platform/%/platform.asm platform/%/platform_words.asm platform/
 	--labels=platform/$*/$*-labelmap.txt \
 	--output $@ \
 	$<
-	python3 tools/sort_vice_labels.py docs/$*-labelmap.txt
+	python3 tools/sort_vice_labels.py platform/$*/$*-labelmap.txt
 
 taliforth-%.prg: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --cbm-prg \
