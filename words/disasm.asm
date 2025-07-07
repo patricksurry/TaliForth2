@@ -97,12 +97,9 @@ _copy_operand:
                 bne _copy_operand
 
                 ; ( addr+n u-n )
-                dex
-                dex
                 lda scratch+1       ; add operand to stack
-                sta 0,x
-                lda scratch+2
-                sta 1,x
+                ldy scratch+2
+                jsr push_ya_tos
                 ; ( addr+n u-n operand )
 
                 sec                 ; flag operand
@@ -128,12 +125,9 @@ _print_operand:
                 jsr w_u_dot_r       ; right-justify the operand
 _print_mnemonic:
                 ; ( addr+n u-n )
-                dex
-                dex
                 pla                 ; put NT on stack
-                sta 0,x
-                pla
-                sta 1,x
+                ply
+                jsr push_ya_tos
 
                 ; ( addr+n u-n nt )
                 jsr w_space
@@ -229,12 +223,9 @@ disasm_jsr:
                 ; the JSR target address, and we want to leave it like that so moving on to the next byte
                 ; works properly.
                 ; Put the target address on the stack and see if it's an XT.
-                dex
-                dex
                 lda scratch+1
-                sta 0,x
-                lda scratch+2
-                sta 1,x
+                ldy scratch+2
+                jsr push_ya_tos
                 ; ( xt )
                 jsr w_int_to_name
                 ; int>name returns zero if we just don't know.
@@ -424,6 +415,8 @@ _sliteral_handler:
         .byte str_disasm_do, 0
     .word question_do_runtime
         .byte str_disasm_do, 1 + ('?'-32)*4
+    .word of_runtime
+        .byte str_disasm_of, 1
 _end_handlers:
 
 

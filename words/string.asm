@@ -535,11 +535,11 @@ w_sliteral:
 
                 ldy #>sliteral_runtime
                 lda #<sliteral_runtime
-                jsr cmpl_subroutine     ; jsr sliteral_runtime
+                jsr cmpl_call_ya     ; jsr sliteral_runtime
 
                 lda 0,x
                 ldy 1,x
-                jsr cmpl_word           ; .word u
+                jsr cmpl_word_ya        ; .word u
 
                 jsr w_here
                 jsr w_swap

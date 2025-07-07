@@ -28,11 +28,8 @@ w_editor_enter_screen:
                 stz ed_head
 _prompt_loop:
                 ; Put the current line number on the stack.
-                dex
-                dex
                 lda ed_head
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
 
                 ; Use the O word to prompt for overwrite.
                 jsr w_editor_o
@@ -84,11 +81,8 @@ w_editor_el:
                 jsr w_editor_line
 
                 ; Put 64 (# of chars/line) on the stack.
-                dex
-                dex
                 lda #64
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
 
                 ; Fill with spaces.
                 jsr w_blank
@@ -107,14 +101,8 @@ z_editor_el:    rts
 xt_editor_l:
 w_editor_l:
                 ; Load the current screen
-                dex             ; Put SCR on the stack.
-                dex
                 ldy #scr_offset
-                lda (up),y
-                sta 0,x
-                iny
-                lda (up),y
-                sta 1,x
+                jsr push_upword_tos ; Put SCR on the stack.
                 jsr w_block    ; Get the current screen.
 
                 jsr w_cr
@@ -134,11 +122,8 @@ _after_screen_msg:
                 ; Put the screen number and printed size for u.r on the stack.
                 jsr w_scr
                 jsr w_fetch
-                dex
-                dex
                 lda #4          ; four spaces
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 jsr w_u_dot_r
 
                 ; The address of the buffer is currently on the stack.
@@ -150,26 +135,16 @@ _line_loop:
                 jsr w_cr
 
                 ; Print the line number (2-space fixed width)
-                dex
-                dex
-                dex
-                dex
-                stz 3,x
                 lda tmp3
-                sta 2,x
-                stz 1,x
-                lda #2
-                sta 0,x
+                jsr push_a_tos
+                jsr w_two
                 jsr w_u_dot_r
                 jsr w_space
 
                 ; Print one line using the address on the stack.
                 jsr w_dup
-                dex
-                dex
                 lda #64
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 jsr w_type
 
                 ; Add 64 to the address on the stack to move to the next line.
@@ -240,11 +215,8 @@ w_editor_o:
                 ; Accept new input (directly into the buffer)
                 jsr w_editor_line
                 jsr w_dup      ; Save a copy of the line address for later.
-                dex
-                dex
                 lda #64         ; chars/line
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 jsr w_accept
 
                 ; Fill the rest with spaces.
@@ -252,11 +224,8 @@ w_editor_o:
                 jsr w_dup
                 jsr w_not_rot  ; -rot
                 jsr w_plus
-                dex
-                dex
                 lda #64         ; chars/line
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 jsr w_rot
                 jsr w_minus
                 jsr w_blank

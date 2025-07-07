@@ -21,7 +21,7 @@ w_abort_quote:
                 ; compile run-time part
                 ldy #>abort_quote_runtime
                 lda #<abort_quote_runtime
-                jsr cmpl_subroutine     ; may not be JMP as JSR/RTS
+                jsr cmpl_call_ya     ; may not be JMP as JSR/RTS
 
 z_abort_quote:  rts
 
@@ -405,7 +405,7 @@ w_action_of:
                 ; Postpone DEFER@ by compiling a JSR to it.
                 ldy #>w_defer_fetch
                 lda #<w_defer_fetch
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
                 bra _done
 
 _interpreting:
@@ -419,14 +419,8 @@ z_action_of:           rts
 ; ## AGAIN ( addr -- ) "Code backwards branch to address left by BEGIN"
 ; ## "again"  tested  ANS core ext
         ; """https://forth-standard.org/standard/core/AGAIN"""
-xt_again:
-                jsr underflow_1
-w_again:
-                ; Compile a JMP back to TOS address.
-                jsr cmpl_jump_tos
-
-z_again:        rts
-
+        ;
+        ; This is a dummy header, the actual implementation is in cmpl_jump_tos
 
 
 ; ## ALIGN ( -- ) "Make sure CP is aligned on word size"
@@ -515,25 +509,17 @@ _release:
 
                 ; We arrive here with ( n ) which is negative. First step,
                 ; subtract the number TOS from the CP for a new CP
-                dex
-                dex
                 lda cp
-                sta 0,x
-                lda cp+1
-                sta 1,x
+                ldy cp+1
+                jsr push_ya_tos
 
                 jsr w_plus                     ; new CP is now TOS
 
                 ; Second step, see if we've gone too far. We compare the new
                 ; CP on TOS (which, if we've really screwed up, might be
                 ; negative) with CP0. This is a signed comparison
-                dex
-                dex                             ; new CP now NOS
-                lda #<cp0
-                sta 0,x
-                lda #>cp0
-                sta 1,x                         ; CP0 is TOS
-
+                jsr literal_runtime             ; ( CP CP0 )
+                .word cp0
                 jsr compare_16bit               ; still ( CP CP0 )
 
                 ; If CP (NOS) is smaller than CP0 (TOS), we're in trouble.
@@ -688,15 +674,8 @@ z_backslash:    rts
         ; The ANS Forth standard sees the base up to 36, so we can cheat and
         ; ingore the MSB
         ; """
-xt_base:
-w_base:
-                dex
-                dex
-                lda #<base
-                sta 0,x         ; LSB
-                stz 1,x         ; MSB is always 0
-
-z_base:         rts
+        ;
+        ; This is a dummy header.  The actual implementation is shared with template_push_byte_tos
 
 
 
@@ -1078,10 +1057,9 @@ w_count:
                 inc 1,x         ; MSB
 
                 ; save number of characters to stack
-+               tya
++               dex
                 dex
-                dex
-                sta 0,x         ; LSB
+                sty 0,x         ; LSB
                 stz 1,x         ; MSB, always zero
 
 z_count:        rts
@@ -1125,10 +1103,7 @@ create_dovar:
                 lda #<dovar
 create_common:
                 ; save the CFA
-                dex
-                dex
-                sta 0,x
-                sty 1,x                 ; ( cfa )
+                jsr push_ya_tos         ; ( cfa )
 
                 ; get string
                 jsr w_parse_name        ; ( cfa addr u )
@@ -1346,15 +1321,10 @@ _end:
 
                 ldy 1,x                 ; check MSB
                 beq +
-
-                lda 0,x
-                jsr cmpl_subroutine     ; Add the CFA jsr to Y/A
+                jmp cmpl_call_tos       ; Add the CFA jsr
 +
-                ; And we're done. Drop CFA
-                inx
-                inx
-
-z_create:       rts
+                jmp w_drop              ; Just drop the zero
+z_create:
 
 
 
@@ -1393,7 +1363,7 @@ w_defer:
                 ; "Defer not defined"
                 lda #<defer_error
                 ldy #>defer_error
-                jsr cmpl_word
+                jsr cmpl_word_ya
 
 z_defer:        rts
 
@@ -1435,10 +1405,11 @@ z_defer_store:  rts
         ; """https://forth-standard.org/standard/core/DEPTH"""
 xt_depth:
 w_depth:
-                lda #dsp0
-                stx tmpdsp
+                ; We want #dsp0 - X but make use of ~A + A = -1 (mod 256) i.e. -A = ~A + 1
+                txa
+                eor #$ff
                 sec
-                sbc tmpdsp
+                adc #dsp0       ; ~X + 1 + #dsp0 == #dsp0 - X
 
                 ; divide by two because each cell is two bytes
                 lsr
@@ -1459,18 +1430,9 @@ xt_question_do:
 w_question_do:
                 ; ?DO shares most of its code with DO.
                 ; But first compile its runtime.
-                dex
-                dex
-                lda #<question_do_runtime
-                sta 0,x
-                lda #>question_do_runtime
-                sta 1,x
-                jsr w_dup              ; xt and xt' are the same
-                dex
-                dex
-                lda #question_do_runtime_size
-                sta 0,x
-                stz 1,x
+                jsr two_literal_runtime
+                .word question_do_runtime_size          ; TOS with NUXI order
+                .word question_do_runtime               ; NOS
                 jsr cmpl_by_limit
                 bcc _native
 
@@ -1517,12 +1479,9 @@ do_common:
                 ; after we write any chained jumps for the current loop
 
                 ; save current loopleave in case we're nested
-                dex
-                dex
                 lda loopleave
-                sta 0,x
-                lda loopleave+1
-                sta 1,x
+                ldy loopleave+1
+                jsr push_ya_tos
 
                 ; For now there is no LEAVE addr to patch, which we
                 ; flag with MSB=0 (zero page) which is never a compilation target
@@ -1532,7 +1491,7 @@ do_common:
                 ; do this as a subroutine since it only happens once and is a big chunk of code
                 ldy #>do_runtime
                 lda #<do_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; Now we're ready for the loop body.  We also push HERE
                 ; to the Data Stack so LOOP/+LOOP knows where to repeat back
@@ -1646,14 +1605,14 @@ w_does:
                 ; compile a subroutine jump to runtime of DOES>
                 ldy #>does_runtime
                 lda #<does_runtime
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 ; compile a subroutine jump to DODOES. In traditional
                 ; terms, this is the Code Field Area (CFA) of the new
                 ; word
                 ldy #>dodoes
                 lda #<dodoes
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
 z_does:         rts
 
@@ -1733,12 +1692,8 @@ z_dot:          rts
 xt_dot_paren:
 w_dot_paren:
                 ; Put a right paren on the stack.
-                dex
-                dex
                 lda #41     ; Right parenthesis
-                sta 0,x
-                stz 1,x
-
+                jsr push_a_tos
                 jsr w_parse
                 jsr w_type
 
@@ -1765,7 +1720,7 @@ w_dot_quote:
                 ; We then let TYPE do the actual printing
                 ldy #>w_type
                 lda #<w_type
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
 z_dot_quote:    rts
 
@@ -1912,14 +1867,13 @@ z_emit:         ; never reached
 xt_endcase:
                 jsr underflow_1
 w_endcase:
-                ; Postpone DROP to remove the item
-                ; being checked.
-                ldy #>w_drop
-                lda #<w_drop
-                jsr cmpl_subroutine
+                jsr two_literal_runtime
+                .word z_drop - w_drop           ; TOS with NUXI order
+                .word w_drop                    ; NOS
+                jsr cmpl_by_limit               ; rather than compile_nt_comma to always skip UF test
 
                 ; There are a number of address (of branches that need their
-                ; jump addressed filled in with the address of right here).
+                ; jump addresses filled in with the address of right here).
                 ; Keep calling THEN to deal with them until we reach the
                 ; 0 that CASE put on the stack at the beginning.
 _endcase_loop:
@@ -2170,11 +2124,8 @@ z_equal:        rts
 xt_blank:
                 jsr underflow_2
 w_blank:
-                dex
-                dex
                 lda #AscSP
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
                 bra w_fill     ; skip over code for ERASE
 
 
@@ -2188,11 +2139,7 @@ w_blank:
 xt_erase:
                 jsr underflow_2
 w_erase:
-                dex
-                dex
-                stz 0,x
-                stz 1,x
-
+                jsr w_zero
                 ; fall through to FILL
                 bra w_fill
 
@@ -2688,12 +2635,8 @@ z_i:            rts
 ; ## IF (C: -- orig) (flag -- ) "Conditional flow control"
 ; ## "if"  auto  ANS core
         ; """http://forth-standard.org/standard/core/IF"""
-
-xt_if:
-w_if:
-                jsr cmpl_0branch_later
-z_if:           rts
-
+        ;
+        ; This is a dummy entry, the actual code is cmpl_0branch_later
 
 
 ; ## IMMEDIATE ( -- ) "Mark most recent word as IMMEDIATE"
@@ -2752,7 +2695,7 @@ w_is:
                 ; Postpone DEFER! by compiling a JSR to it.
                 ldy #>w_defer_store
                 lda #<w_defer_store
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 bra _done
 
@@ -2804,12 +2747,7 @@ w_key:
         ; input without echoing.
         ; """
                 jsr key_a               ; returns char in A
-
-                dex
-                dex
-                sta 0,x
-                stz 1,x
-
+                jsr push_a_tos
 z_key:          rts
 
 key_a:
@@ -2868,7 +2806,7 @@ w_leave:
 
                 lda loopleave
                 ldy loopleave+1
-                jsr cmpl_jump   ; emit the JMP chaining prior leave address
+                jsr cmpl_jump_ya        ; emit the JMP chaining prior leave address
 
                 ; set head of the list to point to our placeholder
                 sec
@@ -2966,68 +2904,75 @@ z_less_than:    rts
         ; """https://forth-standard.org/standard/core/LITERAL
         ; Compile-only word to store TOS so that it is pushed on stack
         ; during runtime. This is a immediate, compile-only word. At runtime,
-        ; it works by calling literal_runtime by compling JSR LITERAL_RT.
+        ; it works by calling literal_runtime or compiling an inline equivalent.
         ;
         ; Note the cmpl_ routines use TMPTOS
         ; """
 xt_literal:
                 jsr underflow_1
 w_literal:
-                lda #template_push_tos_size
-                jsr check_nc_limit
-                bcc _inline
+                jsr literal_runtime
+                .word literal_runtime
 
-                ldy #>literal_runtime
-                lda #<literal_runtime
-                jsr cmpl_subroutine
+                ; ( n call-addr )
+                lda 3,x                                 ; is it a byte value?
+                bne +
 
-                ; Compile the value that is to be pushed on the Stack during
-                ; runtime
+                jsr two_literal_runtime
+                .word template_push_byte_tos_size       ; TOS
+                .word template_push_byte_tos            ; NOS, if we're inlining
+                bra _cmpl
++
+                jsr two_literal_runtime
+                .word template_push_word_tos_size       ; TOS
+                .word template_push_word_tos            ; NOS, if we're inlining
+_cmpl:
+                ; ( n call-addr inline-addr inline-sz )
+
+                jsr cmpl_by_limit2
+                ; ( n )
+                bcc _inline                     ; C=0 if inlined
+
+                ; Compile the value to be pushed to data stack at runtime
                 jsr w_comma
-                bra z_literal
+_done:
+                sec                             ; tell w_two_literal we didn't inline
+                rts
 
 _inline:
-                ; we'll need the MSB (if non-zero) and LSB to fill in the template
-                ; which we set up on the stack in reverse order
-                ; first we need the STZ/STY opcode for the end of the template
-                ldy #$94        ; STY opcode
-                lda 1,x         ; MSB
-                bne +
-                ldy #$74        ; STZ opcode
-+               phy
+                ; The template we compiled looks like `[ldy #<MSB>] lda #<LSB> ...`
+                ; skipping the `ldy` if the MSB is zero.
+                ; But we still need to poke in the values for MSB (if non-zero) and LSB.
+                ; We'll temporarily rewind CP by a page (256 bytes)
+                ; so that we can poke into the template using Y indexing
 
-                lda 0,x         ; LSB
-                pha
+                ; Set up to poke at the MSB in the word template, which we'll skip
+                ; if we find the MSB is zero.
 
-                ; if MSB is non-zero, stack it, otherwise skip first two bytes of template
-                ldy #2
-                lda 1,x         ; MSB
-                beq _copy
-                ldy #0
-                pha
+                ; Sanity check that the two templates differ by exactly two bytes
+                .cerror template_push_word_tos_size != template_push_byte_tos_size + 2
 
-_copy:          lda template_push_tos,y
-                cmp #$ff        ; is it a placeholder?
-                bne +
-                pla
-+               jsr cmpl_a
+                ; The MSB is the second byte of the word template, i.e. at offset -size+1
+                ; which we'll index as (CP-256) + (256-size+1).
+                ldy #256-template_push_word_tos_size+1
+                dec cp+1                        ; rewind one page to CP-256
+
+                lda 1,x
+                beq +                           ; skip MSB if it's zero
+                sta (cp),y                      ; poke MSB into `ldy #<MSB>`
++
+                iny                             ; Either way, the LSB is two bytes further along
                 iny
-                cpy #template_push_tos_size
-                bne _copy
+                lda 0,x
+                sta (cp),y                      ; poke LSB into `lda #<LSB>`
+                inc cp+1                        ; reset HERE
 
-                inx             ; drop the literal
+                inx                             ; drop the literal
                 inx
+                clc                             ; tell w_two_literal we inlined
 
 z_literal:      rts
 
-template_push_tos:
-                ldy #$ff        ; we'll omit this if MSB is zero
-                lda #$ff
-                dex
-                dex
-                sta 0,x
-                .byte $ff, 1    ; this will become either sty 1,x or stz 1,x
-template_push_tos_size = * - template_push_tos
 
 
 literal_runtime:
@@ -3080,17 +3025,9 @@ literal_runtime:
 xt_loop:
 w_loop:
                 ; Compile LOOP-specific runtime
-                dex
-                dex
-                dex
-                dex
-                lda #<loop_runtime
-                sta 2,x
-                lda #>loop_runtime
-                sta 3,x
-                lda #loop_runtime_size
-                sta 0,x
-                stz 1,x
+                jsr two_literal_runtime
+                .word loop_runtime_size         ; TOS
+                .word loop_runtime              ; NOS
 
                 ; Now compile the runtime shared with +LOOP
                 bra loop_common
@@ -3113,24 +3050,13 @@ w_loop:
 xt_plus_loop:
 w_plus_loop:
                 ; Compile +LOOP-specific runtime
-                dex
-                dex
-                dex
-                dex
-                lda #<plus_loop_runtime
-                sta 2,x
-                lda #>plus_loop_runtime
-                sta 3,x
-                lda #plus_loop_runtime_size
-                sta 0,x
-                stz 1,x
-
+                jsr two_literal_runtime
+                .word plus_loop_runtime_size    ; TOS
+                .word plus_loop_runtime         ; NOS
                 ; fall through to shared runtime
 
 loop_common:
-                jsr w_over
-                jsr w_swap             ; xt and xt' are the same
-                ; ( xt xt u )
+                ; ( xt u )
                 jsr cmpl_by_limit
 
                 ; The address we need to loop back to is TOS
@@ -3146,7 +3072,6 @@ _native:
                 ; if native, write the JMP repeat-addr after either loop runtime
                 jsr cmpl_jump_tos
 +
-
                 ; any LEAVE words want to jmp to the unloop we'll write here
                 ; so follow the linked list and update them
                 lda loopleave+1         ; MSB=0 means we're done
@@ -3178,13 +3103,11 @@ _noleave:
                 lda 1,x
                 sta loopleave+1
 
-                ; reuse TOS
-
                 ; Clean up the loop params by appending unloop
-                lda #<nt_unloop
-                sta 0,x
-                lda #>nt_unloop
-                sta 1,x
+                inx
+                inx
+                jsr literal_runtime
+                .word nt_unloop
                 jsr compile_nt_comma    ; use the faster entry with the NT
 
                 ; Finally we're left with qdo-skip which either
@@ -3404,12 +3327,12 @@ w_marker:
                 ; Add original CP
                 ply                     ; MSB
                 pla                     ; LSB
-                jsr cmpl_word
+                jsr cmpl_word_ya
 
                 ; Add original DP
                 ply                     ; MSB
                 pla                     ; LSB
-                jsr cmpl_word
+                jsr cmpl_word_ya
 
                 ; Add the user variables for the wordlists and search order.
                 ; We're compiling them in byte order.
@@ -3876,30 +3799,42 @@ z_number_sign_s:
 ; ## OF (C: -- of-sys) (x1 x2 -- |x1) "Conditional flow control"
 ; ## "of"  auto  ANS core ext
         ; """http://forth-standard.org/standard/core/OF"""
+        ;
+        ; This can be implemented as OVER = IF DROP but
+        ; we can do faster and smaller with assembly
 
 xt_of:
 w_of:
-                ; Check if value is equal to this case.
-                ; Postpone over (e.g. compile a jsr to it)
-                ldy #>w_over
-                lda #<w_over
-                jsr cmpl_subroutine
+                jsr two_literal_runtime
+                ; TODO strictly speaking we include the appended branch size
+                .word of_runtime_size           ; TOS with NUXI order
+                .word of_runtime                ; NOS
+                jsr cmpl_by_limit               ; leaves C=1 if inline for cmpl_zbranch_common
+                stz tmpdsp                      ; branch target is unknown
+                jmp cmpl_zbranch_common         ; inline or call the branch code
+z_of:
 
-                ; Postpone = (EQUAL), that is, compile a jsr to it
-                ldy #>w_equal
-                lda #<w_equal
-                jsr cmpl_subroutine
+of_runtime:
+                ; ( x x -- ) if equal or ( x y -- x ) if not equal with A=true/false
+                ldy #0                  ; default not-equal (false)
 
-                jsr w_if
+                lda 0,x                 ; LSB
+                cmp 2,x
+                bne _neq
 
-                ; If it's true, consume the original value.
-                ; Postpone DROP (e.g. compile a jsr to it)
-                ldy #>w_drop
-                lda #<w_drop
-                jsr cmpl_subroutine
+                lda 1,x                 ; MSB
+                cmp 3,x
+                bne _neq
 
-z_of:           rts
-
+                dey                     ; equal, flag as true
+                inx                     ; and drop an extra value
+                inx
+_neq:
+                inx                     ; always drop at least one value
+                inx
+                tya                     ; comparison status
+of_runtime_size = * - of_runtime
+                jmp zbranch_runtime
 
 
 ; ## ONE_MINUS ( u -- u-1 ) "Decrease TOS by one"
@@ -4040,11 +3975,8 @@ z_page:         rts
 xt_paren:
 w_paren:
                 ; Put a right paren on the stack.
-                dex
-                dex
                 lda #41     ; Right parenthesis
-                sta 0,x
-                stz 1,x
+                jsr push_a_tos
 
                 ; Call parse.
                 jsr w_parse
@@ -4160,12 +4092,8 @@ _char_found:
 
                 ; prepare Data Stack for PARSE by adding space
                 ; as the delimiter
-                dex
-                dex
-
                 lda #AscSP
-                sta 0,x
-                stz 1,x                 ; paranoid, now ( "name" c )
+                jsr push_ya_tos         ; paranoid, now ( "name" c )
 
                 bra w_parse             ; fall through to parse, skipping underflow
 
@@ -4480,7 +4408,7 @@ _not_immediate:
                 ; Last, compile COMPILE,
                 ldy #>compile_nt_comma
                 lda #<compile_nt_comma
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 _done:
 z_postpone:     rts
 
@@ -4611,6 +4539,9 @@ w_recurse:
                 ; the nt (if : started the word) or the xt (if :NONNAME
                 ; started the word). Status bit 6 tells us which.
 
+                lda #OpJSR      ; compile a JSR instruction
+                jsr cmpl_a
+
                 lda workword
                 ldy workword+1
 
@@ -4623,7 +4554,7 @@ w_recurse:
                 jsr nt_to_xt                    ; nt in tmp1 to y/a
 
 _got_xt:
-                jsr cmpl_subroutine             ; JSR <Y/A>
+                jsr cmpl_word_ya                ; add the subroutine target
 
 z_recurse:      rts
 
@@ -5194,12 +5125,9 @@ z_s_to_d:       rts
 
 xt_semicolon:
 w_semicolon:
-                dex
-                dex
                 lda workword
-                sta 0,x
-                lda workword+1
-                sta 1,x                 ; ( xt|nt )
+                ldy workword+1
+                jsr push_ya_tos         ; ( xt|nt )
 
                 ; Check if this is a : word or a :NONAME word.
                 bit status              ; check bit 6 (overflow flag)
@@ -5225,12 +5153,9 @@ _colonword:
                 sta (workword)
 +
                 ; Calculate code size by subtracting xt from CP.
-                dex
-                dex
                 lda cp
-                sta 0,x
-                lda cp+1
-                sta 1,x                 ; ( nt cp )
+                ldy cp+1
+                jsr push_ya_tos         ; ( nt cp )
 
                 jsr w_swap              ; ( cp nt )
                 jsr w_name_to_int       ; ( cp xt )
@@ -5296,12 +5221,9 @@ _setsz:
                 ; Start by putting nt on the stack, using WORKWORD.
                 ; Note LATESTNT won't work since we haven't added the
                 ; new word to the Dictionary yet
-                dex
-                dex
                 lda workword
-                sta 0,x
-                lda workword+1
-                sta 1,x
+                ldy workword+1
+                jsr push_ya_tos
 
                 jsr w_name_to_string    ; ( nt -- addr u )
 
@@ -5357,12 +5279,9 @@ fixup_long_word:
                 jsr cmpl_a
 
                 ; Either way we'll need the word's name (pointer and lengt)
-                dex
-                dex
                 lda workword
-                sta 0,x
-                lda workword+1
-                sta 1,x
+                ldy workword+1
+                jsr push_ya_tos
                 jsr w_name_to_string
 
                 ; ( codesize nameptr namelen )
@@ -5627,20 +5546,14 @@ z_sm_slash_rem: rts
 xt_source:
 w_source:
                 ; add address
-                dex
-                dex
                 lda cib
-                sta 0,x
-                lda cib+1
-                sta 1,x
+                ldy cib+1
+                jsr push_ya_tos
 
                 ; add size
-                dex
-                dex
                 lda ciblen
-                sta 0,x
-                lda ciblen+1
-                sta 1,x
+                ldy ciblen+1
+                jsr push_ya_tos
 
 z_source:       rts
 
@@ -5655,13 +5568,9 @@ z_source:       rts
         ; """
 xt_source_id:
 w_source_id:
-                dex
-                dex
-
                 lda insrc
-                sta 0,x
-                lda insrc+1
-                sta 1,x
+                ldy insrc+1
+                jsr push_ya_tos
 
 z_source_id:    rts
 
@@ -5780,12 +5689,8 @@ z_star_slash_mod:
         ; """
 xt_state:
 w_state:
-                dex
-                dex
-                lda #<state
-                sta 0,x
-                lda #>state
-                sta 1,x
+                jsr literal_runtime
+                .word state
 
 z_state:        rts
 
@@ -5933,7 +5838,7 @@ w_to:
 
                 ldy #>w_store      ; write the runtime for !
                 lda #<w_store
-                jsr cmpl_subroutine
+                jsr cmpl_call_ya
 
                 bra _done
 
@@ -6010,13 +5915,8 @@ z_to_body:      rts
 ; ## ">in"  auto  ANS core
 xt_to_in:
 w_to_in:
-                dex
-                dex
-
-                lda #<toin
-                sta 0,x
-                lda #>toin      ; paranoid, should be zero
-                sta 1,x
+                jsr literal_runtime
+                .word toin              ;TODO paranoid, should be zero
 
 z_to_in:        rts
 
@@ -6376,11 +6276,7 @@ z_two_over:     rts
         ; """https://forth-standard.org/standard/core/TwoRFetch
         ;
         ; This is R> R> 2DUP >R >R SWAP but we can do it a lot faster in
-        ; assembler. We use trickery to access the elements on the Return
-        ; Stack instead of pulling the return address first and storing
-        ; it somewhere else like for 2R> and 2>R. In this version, we leave
-        ; it as Never Native; at some point, we should compare versions to
-        ; see if an Always Native version would be better
+        ; assembler.
         ; """
 xt_two_r_fetch:
 w_two_r_fetch:
@@ -7052,13 +6948,10 @@ z_unloop:       rts
 ; ## UNTIL (C: dest -- ) ( -- ) "Loop flow control"
 ; ## "until"  auto  ANS core
         ; """http://forth-standard.org/standard/core/UNTIL"""
-xt_until:
-                jsr underflow_1
-w_until:
-                ; The address to loop back to is on the stack.
-                jsr cmpl_0branch_tos
+        ;
+        ; This is a dummy header for the WORDLIST. The actual code is
+        ; implemented in cmpl_0_branch_tos
 
-z_until:        rts
 
 
 ; ## UNUSED ( -- u ) "Return size of space available to Dictionary"
@@ -7146,12 +7039,9 @@ w_within:
                 inx                     ; pretend to push n3-n2 to return stack
                 inx
                 jsr w_minus             ; ( n1-n2 ) with ( n2 n3-n2 ) past end of stack
-                dex                     ; nip the overhang leaving ( n1-n2 n3-n2 )
-                dex
-                lda $fe,x
-                sta 0,x
-                lda $ff,x
-                sta 1,x
+                lda $fc,x               ; nip the overhang leaving ( n1-n2 n3-n2 )
+                ldy $fd,x
+                jsr push_ya_tos
                 jsr w_u_less_than       ; ( f )
 
 z_within:       rts
@@ -7214,12 +7104,9 @@ _found_char:
                 jsr w_move
 
                 ; Return caddr
-                dex
-                dex
                 lda cp
-                sta 0,x
-                lda cp+1
-                sta 1,x
+                ldy cp+1
+                jsr push_ya_tos
 
                 ; Adjust CP
                 pla                     ; length of string
