@@ -38,33 +38,27 @@ forth:
 .include "definitions.asm"      ; Top-level definitions, memory map
                                 ; included here to put relocatable tables after native words
 
+; If the user didn't define user_words_start add some default splash strings
+; as a basic validation of the boot process
 
-; Bring in the words written in forth (as a string that gets run at startup).
-; The user can override these using their platform file.
 .weak
-
-; High-level Forth words, see forth_code/README.md
-forth_words_start:
-
-; Don't include these files if the user has made a forth_words_start label in their
-; platform file.
-.if forth_words_start == *
-
-.if ! TALI_OPTION_TERSE         ; omit startup strings if terse
-.binary "forth_words.asc"
-.endif
-forth_words_end:
-
-; User-defined Forth words, see forth_code/README.md
 user_words_start:
-.binary "user_words.asc"
-user_words_end:
-
-; End of .if forth_words_start == *
-.endif
-
 .endweak
 
+.if user_words_start = *
+.if ! TALI_OPTION_TERSE         ; omit startup strings if terse
+        ; Splash strings. We leave these as high-level forth words because they are
+        ; shown at the end of the boot process and signal that the other
+        ; high-level definitions worked (or at least didn't crash)
+
+        .text "cr .( Tali Forth 2 for the 65c02) "
+        .text "cr .( Version 1.1  06. Apr 2024 ) "
+        .text "cr .( Copyright 2014-2024 Scot W. Stevenson, Sam Colwell, Patrick Surry) "
+        .text "cr .( Tali Forth 2 comes with absolutely NO WARRANTY) "
+        .text "cr .( Type 'bye' to exit) cr "
+.endif
+user_words_end:
+.endif
 
 .include "words/headers.asm"          ; Headers of native words
 .include "stringtable.asm"          ; Strings, including error messages
@@ -259,6 +253,10 @@ push_upvar_tos:
                 sta 1,x
                 rts
 
+word_to_ascii:
+        ; """Print the word with LSB=Y, MSB=A in big-endian order as <A Y>
+                jsr byte_to_ascii              ; print MSB and fall through
+                tya
 byte_to_ascii:
         ; """Convert byte in A to two ASCII hex digits and EMIT them"""
                 pha
@@ -266,13 +264,13 @@ byte_to_ascii:
                 lsr
                 lsr
                 lsr
-                jsr _nibble_to_ascii
+                jsr nibble_to_ascii
                 pla
 
-                ; fall through to _nibble_to_ascii
+                ; fall through to nibble_to_ascii
 
-_nibble_to_ascii:
-        ; """Private helper function for byte_to_ascii: Print lower nibble
+nibble_to_ascii:
+        ; """Helper function for byte_to_ascii: Print lower nibble
         ; of A and and EMIT it. This does the actual work.
         ; """
                 and #$F
@@ -280,10 +278,8 @@ _nibble_to_ascii:
                 cmp #'9'+1
                 bcc +
                 adc #6
-
-+               jmp emit_a
-
-                rts
++
+                jmp emit_a
 
 
 ascii_to_byte:

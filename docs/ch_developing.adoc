@@ -80,7 +80,7 @@ During development, Tali Forth tends to follow a sequence of steps for new words
   a Tali Forth version.
 
 * Write the word in Forth in the interpreter. After it has been tested
-  interactively, add a high-level version to the file `forth_code/forth_words.fs`.
+  interactively, add a high-level version to your 'platform_forth.fs` file.
 
 * Add automatic tests for the new word to the test suite. Ideally, there will
   be test code included in the ANS Forth specification. If not, document what

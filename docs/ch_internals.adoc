@@ -249,10 +249,10 @@ to find that word.
 ==== Structure of the Header List
 
 Tali Forth distinguishes between three different word sources: The **native
-words** that are hard-coded in the `words/*.asm` files, the **Forth words**
-from `forth_words.asm` which are defined as high-level words and then generated
-at run-time when Tali Forth starts up, and **user words** in the file
-`user_words.asm`.
+words** that are hard-coded in the `words/*.asm` files,
+any **native words** specific to the platform in `platform/xxx/platform_words.asm`,
+and any **Forth words** defined for the platform in `platform/xxx/platform_forth.fs`,
+which are compiled from source at run-time when Tali Forth starts up.
 
 Tali has an unusually high number of native words in an attempt to make the
 Forth as fast as possible on the 65c02 and compensate for the disadvantages of
@@ -343,10 +343,9 @@ The word `evaluate`is used to execute commands that are in a string. A simple ex
 s" 1 2 + ." evaluate
 ----
 
-Tali Forth uses `evaluate` to load high-level Forth words from the file
-`forth_words.fs` and, if present, any extra, user-defined words from
-`user_words.fs`.  The code in these files has all comments removed and all
-whitespace replaced with a single space between words.  This minimized version
+Tali Forth uses `evaluate` to load high-level Forth words from the platform's
+`platform_forth.fs`, if present.  Forth code in these files has all comments removed and all
+whitespace replaced with a single space between words.  This compact version
 is assembled directly into the ROM image as a string that will be evaluated at
 startup.
 

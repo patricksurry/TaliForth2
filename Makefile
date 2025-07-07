@@ -48,7 +48,7 @@ else
 	PYTHON = python3
 endif
 
-COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) stringtable.asm forth_words.asc user_words.asc
+COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) stringtable.asm
 TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
     tests/facility.fs tests/ed.fs tests/asm.fs tests/tali.fs \
     tests/tools.fs tests/block.fs tests/search.fs tests/user.fs tests/cycles.fs
@@ -64,31 +64,26 @@ clean:
 
 taliforth-%.bin: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --nostart \
-	--list=docs/$*-listing.txt \
+	--list=platform/$*/$*-listing.txt \
 	--vice-labels \
-	--labels=docs/$*-labelmap.txt \
+	--labels=platform/$*/$*-labelmap.txt \
 	--output $@ \
 	$<
 	python3 tools/sort_vice_labels.py docs/$*-labelmap.txt
 
 taliforth-%.prg: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --cbm-prg \
-	--list=docs/$*-listing.txt \
-	--labels=docs/$*-labelmap.txt \
+	--list=platform/$*/$*-listing.txt \
+	--labels=platform/$*/$*-labelmap.txt \
 	--output $@ \
 	$<
 	python3 tools/sort_vice_labels.py docs/$*-labelmap.txt
 
-# Convert the high-level Forth words to ASCII files that Ophis can include
-# This will only process the file if it exists.
-# The || true on the end causes make to always think this command succeeds.
-%.asc: forth_code/%.fs
-	test -f $< && $(PYTHON) forth_code/forth_to_ophisbin.py -i $< > $@ || true
-
+# Compact the Forth word definitons for inclusion in the binary.
 # This will only process the file if it exists.
 # The || true on the end causes make to always think this command succeeds.
 platform/%/platform_forth.asc: platform/%/platform_forth.fs
-	test -f $< && $(PYTHON) forth_code/forth_to_ophisbin.py -i $< > $@ || true
+	test -f $< && $(PYTHON) tools/forth_pack.py -i $< > $@ || true
 
 # Allow platform_forth.fs and platform_words.asm to be missing.
 platform/%/platform_forth.fs:
