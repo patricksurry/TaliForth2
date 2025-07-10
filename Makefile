@@ -32,7 +32,8 @@
 # The cxxx targets use the C-based c65 simulator rather than the default
 # py65mon python simulator.  This runs 10-100x faster but
 # lacks py65mon's monitor facilities for debugging.
-# c65 should build automatically from the sources in `c65/`.
+# See https://github.com/patricksurry/c65
+# c65 should build automatically as a submodule in `tools/c65/`.
 # It's been tested on posix-based systems like OS X and Windows WSL
 # (see https://learn.microsoft.com/en-us/windows/wsl/install).
 # A native Windows port for mingw is still TODO
@@ -108,7 +109,9 @@ $(C65_DIR)/version.h:
 	git submodule init
 	git submodule update $(C65_DIR)
 
-# Rebuild the simulator if version.h gets bumped
+# Rebuild the simulator if sources change
+# version.h is listed explicitly to trigger the rule above
+# if we haven't pulled down the source code yet
 $(C65): $(C65_DIR)/*.c $(C65_DIR)/*.h $(C65_DIR)/version.h
 	make -C $(C65_DIR)
 
