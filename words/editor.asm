@@ -111,7 +111,7 @@ w_editor_l:
                 ; We're using sliteral, so we need to set up the
                 ; appropriate data structure (see sliteral)
 
-                jsr sliteral_runtime
+                jsr push_inline_sliteral
                 .word _after_screen_msg-_screen_msg
 _screen_msg:
                 .text "Screen #"

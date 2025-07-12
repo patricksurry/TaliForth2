@@ -72,8 +72,8 @@ _load_user_vars_loop:
                 ; followed by any user-defined words from user_words.asc.
                 ; These are stored sequentially in ROM so we can evaluate them together.
                 ; If you have neither, this section can be commented out.
-                jsr two_literal_runtime
-                .word user_words_end-user_words_start  ; length goes TOS
+                jsr push_inline_addru_literal
+                .byte user_words_end-user_words_start  ; length goes TOS
                 .word user_words_start                 ; start address goes NOS
                 jsr w_evaluate
 
@@ -270,6 +270,7 @@ underflow_4:
 
 
 .include "core.asm"
+.include "literals.asm"
 .include "compile.asm"
 .include "tools.asm"
 .include "tali.asm"

@@ -19,9 +19,8 @@ w_abort_quote:
                 jsr w_s_quote          ; S"
 
                 ; compile run-time part
-                ldy #>abort_quote_runtime
-                lda #<abort_quote_runtime
-                jsr cmpl_call_ya     ; may not be JMP as JSR/RTS
+                jsr cmpl_call_inline_literal
+                .word abort_quote_runtime
 
 z_abort_quote:  rts
 
@@ -403,9 +402,9 @@ w_action_of:
                 jsr w_bracket_tick
 
                 ; Postpone DEFER@ by compiling a JSR to it.
-                ldy #>w_defer_fetch
-                lda #<w_defer_fetch
-                jsr cmpl_call_ya
+                jsr cmpl_call_inline_literal
+                .word w_defer_fetch
+
                 bra _done
 
 _interpreting:
@@ -518,7 +517,7 @@ _release:
                 ; Second step, see if we've gone too far. We compare the new
                 ; CP on TOS (which, if we've really screwed up, might be
                 ; negative) with CP0. This is a signed comparison
-                jsr literal_runtime             ; ( CP CP0 )
+                jsr push_inline_literal         ; ( CP CP0 )
                 .word cp0
                 jsr compare_16bit               ; still ( CP CP0 )
 
@@ -1430,9 +1429,10 @@ xt_question_do:
 w_question_do:
                 ; ?DO shares most of its code with DO.
                 ; But first compile its runtime.
-                jsr two_literal_runtime
-                .word question_do_runtime_size          ; TOS with NUXI order
+                jsr push_inline_addru_literal
+                .byte question_do_runtime_size          ; TOS with NUXI order
                 .word question_do_runtime               ; NOS
+
                 jsr cmpl_by_limit
                 bcc _native
 
@@ -1489,9 +1489,8 @@ do_common:
 
                 ; compile runtime part of DO.
                 ; do this as a subroutine since it only happens once and is a big chunk of code
-                ldy #>do_runtime
-                lda #<do_runtime
-                jsr cmpl_call_ya
+                jsr cmpl_call_inline_literal
+                .word do_runtime
 
                 ; Now we're ready for the loop body.  We also push HERE
                 ; to the Data Stack so LOOP/+LOOP knows where to repeat back
@@ -1603,16 +1602,13 @@ do_runtime:
 xt_does:
 w_does:
                 ; compile a subroutine jump to runtime of DOES>
-                ldy #>does_runtime
-                lda #<does_runtime
-                jsr cmpl_call_ya
+                jsr cmpl_call_inline_literal
+                .word does_runtime
 
                 ; compile a subroutine jump to DODOES. In traditional
-                ; terms, this is the Code Field Area (CFA) of the new
-                ; word
-                ldy #>dodoes
-                lda #<dodoes
-                jsr cmpl_call_ya
+                ; terms, this is the Code Field Area (CFA) of the new word
+                jsr cmpl_call_inline_literal
+                .word dodoes
 
 z_does:         rts
 
@@ -1718,9 +1714,8 @@ w_dot_quote:
                 jsr w_s_quote
 
                 ; We then let TYPE do the actual printing
-                ldy #>w_type
-                lda #<w_type
-                jsr cmpl_call_ya
+                jsr cmpl_call_inline_literal
+                .word w_type
 
 z_dot_quote:    rts
 
@@ -1867,8 +1862,9 @@ z_emit:         ; never reached
 xt_endcase:
                 jsr underflow_1
 w_endcase:
-                jsr two_literal_runtime
-                .word z_drop - w_drop           ; TOS with NUXI order
+                ; Postpone DROP to remove the item being checked.
+                jsr push_inline_addru_literal
+                .byte z_drop - w_drop           ; TOS with NUXI order
                 .word w_drop                    ; NOS
                 jsr cmpl_by_limit               ; rather than compile_nt_comma to always skip UF test
 
@@ -2693,9 +2689,8 @@ w_is:
                 jsr w_bracket_tick
 
                 ; Postpone DEFER! by compiling a JSR to it.
-                ldy #>w_defer_store
-                lda #<w_defer_store
-                jsr cmpl_call_ya
+                jsr cmpl_call_inline_literal
+                .word w_defer_store
 
                 bra _done
 
@@ -2806,7 +2801,7 @@ w_leave:
 
                 lda loopleave
                 ldy loopleave+1
-                jsr cmpl_jump_ya        ; emit the JMP chaining prior leave address
+                jsr cmpl_jump_ya   ; emit the JMP chaining prior leave address
 
                 ; set head of the list to point to our placeholder
                 sec
@@ -2904,27 +2899,27 @@ z_less_than:    rts
         ; """https://forth-standard.org/standard/core/LITERAL
         ; Compile-only word to store TOS so that it is pushed on stack
         ; during runtime. This is a immediate, compile-only word. At runtime,
-        ; it works by calling literal_runtime or compiling an inline equivalent.
+        ; it works by calling JSR push_inline_literal, or using an inline equivalent.
         ;
         ; Note the cmpl_ routines use TMPTOS
         ; """
 xt_literal:
                 jsr underflow_1
 w_literal:
-                jsr literal_runtime
-                .word literal_runtime
-
-                ; ( n call-addr )
-                lda 3,x                                 ; is it a byte value?
+                lda 1,x                         ; is it a byte value?
                 bne +
 
-                jsr two_literal_runtime
-                .word template_push_byte_tos_size       ; TOS
+                jsr push_inline_literal
+                .word push_inline_bliteral
+                jsr push_inline_addru_literal
+                .byte template_push_byte_tos_size       ; TOS
                 .word template_push_byte_tos            ; NOS, if we're inlining
                 bra _cmpl
 +
-                jsr two_literal_runtime
-                .word template_push_word_tos_size       ; TOS
+                jsr push_inline_literal
+                .word push_inline_literal
+                jsr push_inline_addru_literal
+                .byte template_push_word_tos_size       ; TOS
                 .word template_push_word_tos            ; NOS, if we're inlining
 _cmpl:
                 ; ( n call-addr inline-addr inline-sz )
@@ -2933,7 +2928,12 @@ _cmpl:
                 ; ( n )
                 bcc _inline                     ; C=0 if inlined
 
-                ; Compile the value to be pushed to data stack at runtime
+                ; Compile the byte or word to be pushed to data stack at runtime
+                lda 1,x
+                bne +
+                jsr w_c_comma
+                bra _done
++
                 jsr w_comma
 _done:
                 sec                             ; tell w_two_literal we didn't inline
@@ -2975,43 +2975,6 @@ z_literal:      rts
 
 
 
-literal_runtime:
-                ; During runtime, we push the value following this word back
-                ; on the Data Stack. The subroutine jump that brought us
-                ; here put the address to return to on the Return Stack -
-                ; this points to the data we need to get. This routine is
-                ; also called (LITERAL) in some Forths
-                dex
-                dex
-
-            	; The 65c02 stores <RETURN-ADDRESS>-1 on the Return Stack,
-                ; so we are actually popping the address-1 of the literal
-                pla             ; LSB
-                sta tmp1
-                pla             ; MSB
-                sta tmp1+1
-
-                ; Fetch the actual literal value and push it on Data stack
-                ldy #1
-                lda (tmp1),y    ; LSB
-                sta 0,x
-                iny
-                lda (tmp1),y    ; MSB
-                sta 1,x
-
-                ; Adjust return address and push back on the Return Stack
-                tya
-                clc
-                adc tmp1
-                tay
-                lda tmp1+1
-                adc #0
-                pha
-                phy
-
-                rts
-
-
 ; ## LOOP ( -- ) "Finish loop construct"
 ; ## "loop"  auto  ANS core
         ; """https://forth-standard.org/standard/core/LOOP
@@ -3025,8 +2988,8 @@ literal_runtime:
 xt_loop:
 w_loop:
                 ; Compile LOOP-specific runtime
-                jsr two_literal_runtime
-                .word loop_runtime_size         ; TOS
+                jsr push_inline_addru_literal
+                .byte loop_runtime_size         ; TOS
                 .word loop_runtime              ; NOS
 
                 ; Now compile the runtime shared with +LOOP
@@ -3050,9 +3013,10 @@ w_loop:
 xt_plus_loop:
 w_plus_loop:
                 ; Compile +LOOP-specific runtime
-                jsr two_literal_runtime
-                .word plus_loop_runtime_size    ; TOS
+                jsr push_inline_addru_literal
+                .byte plus_loop_runtime_size    ; TOS
                 .word plus_loop_runtime         ; NOS
+
                 ; fall through to shared runtime
 
 loop_common:
@@ -3106,7 +3070,7 @@ _noleave:
                 ; Clean up the loop params by appending unloop
                 inx
                 inx
-                jsr literal_runtime
+                jsr push_inline_literal
                 .word nt_unloop
                 jsr compile_nt_comma    ; use the faster entry with the NT
 
@@ -3805,9 +3769,9 @@ z_number_sign_s:
 
 xt_of:
 w_of:
-                jsr two_literal_runtime
-                ; TODO strictly speaking we include the appended branch size
-                .word of_runtime_size           ; TOS with NUXI order
+                jsr push_inline_addru_literal
+                ; TODO strictly speaking we should also include the appended branch size
+                .byte of_runtime_size           ; TOS with NUXI order
                 .word of_runtime                ; NOS
                 jsr cmpl_by_limit               ; leaves C=1 if inline for cmpl_zbranch_common
                 stz tmpdsp                      ; branch target is unknown
@@ -4406,9 +4370,8 @@ _not_immediate:
                 jsr w_literal                   ; ( nt -- )
 
                 ; Last, compile COMPILE,
-                ldy #>compile_nt_comma
-                lda #<compile_nt_comma
-                jsr cmpl_call_ya
+                jsr cmpl_call_inline_literal
+                .word compile_nt_comma
 _done:
 z_postpone:     rts
 
@@ -4798,7 +4761,7 @@ s_quote_start:
 
                 ; We will save a bit of space when interpeting by writing the string
                 ; literal directly HERE.  When we're compiling we'll use SLITERAL
-                ; which needs a five byte prologue (jsr sliteral_runtime / .word length)
+                ; which needs a five byte prologue (jsr push_inline_sliteral / .word length)
                 ; so we'll leave space for that.
 
                 lda state               ; check whether we're interpeting (0) or compiling (-1)
@@ -4807,16 +4770,16 @@ s_quote_start:
                 pha                     ; save zero / nonzero for post-processing
                 beq _interpeting        ; just write string directly
 
-                ; we're compiling, so reserve just enough space for SLITERAL to later
-                ; add the prologue before the string data
+                ; we're compiling, so write a prologue for SLITERAL
+                ;
+                ;       JSR push_inline_sliteral
+                ;       .word <length>
 
-                clc
-                lda cp
-                adc #5                  ; reserve five bytes for the prologue (see below)
-                sta cp
-                bcc +
-                inc cp+1
-+
+                jsr cmpl_call_inline_literal
+                .word push_inline_sliteral
+                jsr w_here              ; remember where to update length
+                jsr cmpl_word_ya        ; add length placeholder
+
 _interpeting:
                 ; Now we'll compile the string bytes into the dictionary
                 ; But first remember the address where we started
@@ -5014,42 +4977,28 @@ _found_string_end:
                 inc toin+1
 +
                 ; Finally we've compiled all the string data into the dictionary
-                ; We still have the start address and need the string length
-
-                ; ( addr )
+                ; We still have the start address so get end to calculate  string length
                 jsr w_here
-                jsr w_over
-                jsr w_minus    ; HERE - addr gives string length
-                ; ( addr u )
 
                 ; What happens next depends on the state (which is bad, but
-                ; that's the way it works at the moment). If we are
-                ; interpreting (state=0), we're done because we've saved the string
-                ; to a buffer.  (In fact we've over-delivered by compiling the string
-                ; to permanent storage in the dictionary!)
-
-                ; If we're compiling, we need to turn the string into an SLITERAL.
-                ; We'll just rewind the CP to where it was when we started -
-                ; five bytes before the string we've written - and let sliteral
-                ; work its magic.  It'll write the five byte prologue and copy
-                ; the string data onto itself (a no-op) while re-allocating the space.
+                ; that's the way it works at the moment).
 
                 pla                     ; fetch the state flag (0 = interpret)
-                beq _done
+                bne +
 
-                sec                     ; rewind the CP to addr-5
-                lda 2,x
-                sbc #5
-                sta cp
-                lda 3,x
-                sbc #0
-                sta cp+1
+                ; we're interpreting and just need to return ( addr u )
+                ; ( addr end )
+                jsr w_over
+                jmp w_minus             ; u = end - addr, leaving ( addr u )
++
+                ; we're compiling and just need to update the length
+                ; ( 'length addr end )
+                jsr w_swap
+                jsr w_minus             ; u = end - addr
+                jsr w_swap
+                jmp w_store             ; update length, leaving ( )
 
-                ; write the prologue, "copy" the string and reallocate the space
-                jsr w_sliteral         ; ( addr u -- )
-
-_done:
-z_s_quote:      rts
+z_s_quote:
 
 
 
@@ -5689,7 +5638,7 @@ z_star_slash_mod:
         ; """
 xt_state:
 w_state:
-                jsr literal_runtime
+                jsr push_inline_literal
                 .word state
 
 z_state:        rts
@@ -5836,9 +5785,8 @@ w_to:
 
                 jsr w_literal      ; generate the runtime for LITERAL tmp1
 
-                ldy #>w_store      ; write the runtime for !
-                lda #<w_store
-                jsr cmpl_call_ya
+                jsr cmpl_call_inline_literal   ; write the runtime for !
+                .word w_store
 
                 bra _done
 
@@ -5915,7 +5863,7 @@ z_to_body:      rts
 ; ## ">in"  auto  ANS core
 xt_to_in:
 w_to_in:
-                jsr literal_runtime
+                jsr push_inline_literal
                 .word toin              ;TODO paranoid, should be zero
 
 z_to_in:        rts
@@ -6951,7 +6899,6 @@ z_unloop:       rts
         ;
         ; This is a dummy header for the WORDLIST. The actual code is
         ; implemented in cmpl_0_branch_tos
-
 
 
 ; ## UNUSED ( -- u ) "Return size of space available to Dictionary"

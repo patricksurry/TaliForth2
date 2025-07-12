@@ -200,8 +200,8 @@ xt_asm_push_a:
         ; data stack as the TOS. This is a convenience routine that
         ; just copies the code for push_a_tos from disasm.asm
         ; """
-                jsr two_literal_runtime
-                .word z_push_a_tos - push_a_tos ; TOS with NUXI order
+                jsr push_inline_addru_literal
+                .byte z_push_a_tos - push_a_tos ; TOS with NUXI order
                 .word push_a_tos                ; NOS
                 jmp cmpl_inline
 z_asm_push_a:
@@ -211,8 +211,8 @@ xt_asm_push_ya:
         ; with Y as the MSB and A as the LSB.  This
         ; just copies the code for push_ya_tos from disasm.asm
         ; """
-                jsr two_literal_runtime
-                .word z_push_ya_tos - push_ya_tos ; TOS with NUXI order
+                jsr push_inline_addru_literal
+                .byte z_push_ya_tos - push_ya_tos ; TOS with NUXI order
                 .word push_ya_tos                ; NOS
                 jmp cmpl_inline
 z_asm_push_ya:

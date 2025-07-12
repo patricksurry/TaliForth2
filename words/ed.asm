@@ -1552,7 +1552,7 @@ ed_last_line:
 
                 ; Set counter to zero
                 jsr w_zero
-                jsr literal_runtime     ; ( 0 addr )
+                jsr push_inline_literal ; ( 0 addr )
                 .word ed_head
 
 _last_line_loop:
@@ -1607,7 +1607,7 @@ ed_num_to_addr:
 
                 ; One way or another we're going to start with the
                 ; address of the pointer to the head of the list
-                jsr literal_runtime     ; ( u addr-h )
+                jsr push_inline_literal ; ( u addr-h )
                 .word ed_head
 
                 ; Handle the case where the line number is zero
@@ -1616,32 +1616,32 @@ ed_num_to_addr:
                 bne _num_to_addr_loop
 
                 ; It's zero, so we're already done
-                jsr w_nip              ; ( addr-h )
+                jsr w_nip               ; ( addr-h )
                 bra _num_to_addr_done
 
 _num_to_addr_loop:
                 ; Get the first line
-                jsr w_fetch            ; @ ( u addr1 )
+                jsr w_fetch             ; @ ( u addr1 )
 
                 ; If that's zero, we're at the end of the list and it's over
                 lda 0,x
                 ora 1,x
                 bne +
 
-                jsr w_nip              ; NIP ( addr1 )
+                jsr w_nip               ; NIP ( addr1 )
                 bra _num_to_addr_done
 +
                 ; It's not zero. See if this is the nth element we're looking
                 ; for
-                jsr w_swap             ; SWAP ( addr1 u )
-                jsr w_one_minus        ; 1- ( addr1 u-1 )
+                jsr w_swap              ; SWAP ( addr1 u )
+                jsr w_one_minus         ; 1- ( addr1 u-1 )
 
                 lda 0,x
                 ora 1,x
                 beq _num_to_addr_finished
 
                 ; Not zero yet, try again
-                jsr w_swap             ; SWAP ( u-1 addr1 )
+                jsr w_swap              ; SWAP ( u-1 addr1 )
 
                 bra _num_to_addr_loop
 

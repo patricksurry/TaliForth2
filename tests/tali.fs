@@ -165,7 +165,7 @@ T{ latestxt int>name wordsize ->  3 }T
 
 \ Test inline vs jsr+payload literals
 : five 6 [ 0 nc-limit ! ] 7 * ; 16 nc-limit !
-T{ ' five int>name wordsize -> 16 }t
+T{ ' five int>name wordsize -> 15 }t
 T{ five -> 42 }T
 
 \ Test inlined zero_branch call (issue #158)

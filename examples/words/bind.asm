@@ -141,7 +141,7 @@ _map_next:
         ; emit STX tmpdsp
         lda #$86
         ldy #tmpdsp
-        jsr cmpl_word
+        jsr cmpl_word_ya
 
         ; generate register pull, native call, register push
         ldy #0

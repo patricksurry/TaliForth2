@@ -254,7 +254,7 @@ w_m_star_slash:
                 sta 7,x
 
                 jsr w_um_slash_mod      ; ( qhi r' qlo )
-+
+
                 ; finally we want
                 ; SWAP DROP SWAP ROT 0< if dnegate then ;
                 ; which just ditches the last remainder and gets
@@ -326,51 +326,13 @@ _no_inline:
                 dec cp+1
 +
                 sta cp
-                ldy #>two_literal_runtime
-                lda #<two_literal_runtime
-                jsr cmpl_call_ya
+                jsr cmpl_call_inline_literal
+                .word push_inline_2literal
 
                 jsr w_comma             ; add the two payload words
                 jmp w_comma
+
 z_two_literal:
-
-
-two_literal_runtime:
-        ; """Run time behavior of 2LITERAL, which stacks two words
-        ; following the jsr to the stack in the same memory order.
-        ; For example if we have
-        ;
-        ;       jsr two_literal_runtime
-        ;       .byte N, U, X, I
-        ;
-        ; Then on return the stack will contain the word N,U TOS
-        ; and the word X, I NOS.  This matches the order expected
-        ; for double words and as specified for 2@, 2!
-        ; see https://forth-standard.org/standard/core/TwoFetch
-        ; """
-
-                pla             ; LSB of address
-                sta tmp1
-                ply             ; MSB of address
-                sty tmp1+1
-
-                clc             ; add four to the return address
-                adc #4
-                bcc +
-                iny
-+
-                phy             ; and re-stack
-                pha
-
-                ldy #4
--
-                lda (tmp1),y    ; copy trailing four bytes to the stack
-                dex
-                sta 0,x
-                dey
-                bne -
-
-                rts
 
 
 ; ## TWO_VARIABLE ( "name" -- ) "Create a variable for a double word"
