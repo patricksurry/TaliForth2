@@ -2227,17 +2227,12 @@ z_fill:         rts
 xt_execute:
                 jsr underflow_1
 w_execute:
-                lda 0,x
-                sta ip
-                lda 1,x
-                sta ip+1
-
-                inx
+                inx             ; pre-drop the target address
                 inx
 
-                ; we don't need a RTS here because we highjack the RTS of
-                ; the word we're calling to get back to xt_execute
-                jmp (ip)
+                ; we don't need RTS here because the RTS of
+                ; the word we're calling will return to our caller
+                jmp ($fffe,x)   ; jump to the dropped address at x-2
 
 z_execute:      ; never reached
 

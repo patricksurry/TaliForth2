@@ -15,8 +15,8 @@
 ; The top half of zero page is free for kernel/external use (zpage_end+1 to $FF).
 
 ; The default TaliForth zero page usage is as follows:
-;   zero page variables: 28 words = 56 bytes ($0000-$0037) - see cold_zp_table
-;   Forth Data Stack: 128 - 56 - 8 = 64 bytes or 32 words ($0038-$0077)
+;   zero page variables: 27 words = 54 bytes ($0000-$0035) - see cold_zp_table
+;   Forth Data Stack: 128 - 54 - 8 = 66 bytes or 33 words ($0036-$0077)
 ;   Data Stack floodplain: 8 bytes after stack to protect against underflow ($0078-$007F)
 
 ; The maximum size of Tali's data stack is 128 bytes (64 words), after which wraparound
@@ -97,7 +97,6 @@ cold_zp_table:
 cp:         .word cp0+256+1024      ; Compiler Pointer
                                     ; moved to make room for user vars and block buffer
 dp:         .word dictionary_start  ; Dictionary Pointer
-ip:         .word 0                 ; Instruction Pointer (current xt)
 workword:   .word 0                 ; nt (not xt!) of word being compiled, except in
                                     ; a :NONAME declared word (see status)
 up:         .word cp0               ; Forth user vars at start of available RAM
@@ -149,7 +148,7 @@ tmpdsp:     .byte ?         ; temporary DSP (X) storage (single byte)
 ; Loop control data
 
 loopctrl:   .byte ?         ; Offset from lcbstack0 to current loop control block for DO/LOOP/+LOOP
-loopidx0    .byte ?         ; cached LSB of current loop index for LOOP (not +LOOP)
+loopidx0:   .byte ?         ; cached LSB of current loop index for LOOP (not +LOOP)
 
 lcbstack0 = stack0
 loopindex = lcbstack0+0     ; loop control block index for adjusted loopindex

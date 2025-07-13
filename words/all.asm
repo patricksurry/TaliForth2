@@ -123,10 +123,6 @@ w_quit:
                 txs
                 tax             ; Restore the DSP. Dude, seriously.
 
-                ; make sure instruction pointer is empty
-                stz ip
-                stz ip+1
-
                 ; SOURCE-ID is zero (keyboard input)
                 stz insrc
                 stz insrc+1
