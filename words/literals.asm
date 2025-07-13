@@ -132,19 +132,9 @@ _done:
                 ; after the loop tmp1 points to the last parameter byte
                 plx             ; reset stack pointer
 
-                bit tmptos+1    ; check flag bits
+                bit tmptos+1    ; check N+V flag bits
+                bpl _return     ; is it a string?
 
-                bmi _string
-                bvs _indirect
-_return:
-                lda tmp1+1
-                pha
-                lda tmp1
-                pha
-_indirect:
-                rts             ; continue execution past the payload
-
-_string:
                 ; put the string address, tmp1+1, into NOS
                 ldy tmp1+1
                 lda tmp1
@@ -155,8 +145,6 @@ _string:
                 sta 2,x
                 sty 3,x
 
-                bvs _indirect
-
                 ; add TOS to return past payload
                 clc
                 lda tmp1
@@ -165,7 +153,17 @@ _string:
                 lda tmp1+1
                 adc 1,x
                 sta tmp1+1
-                bra _return
+
+                bit tmptos+1    ; restore V status
+_return:
+                bvs _indirect
+                lda tmp1+1
+                pha
+                lda tmp1
+                pha
+_indirect:
+                rts             ; continue execution past the payload
+
 
 
 cmpl_call_inline_literal:

@@ -291,130 +291,136 @@ _next:          dey
                 rts
 
 _found_handler:
-                sty scratch+5               ; store the offset for later
                 lda _special_handlers+3,y   ; payload + prefix
-                pha
-                cmp #4
+                cpy #_payload_handlers-_special_handlers
+                bcc +                       ; does this handler have a payload?
+                pha                         ; yes, save a copy of the payload index
++
+                php                         ; save C status (1 indicates payload)
+                cmp #4                      ; prefix is in the top six bits
                 bcc _no_prefix
 
                 lsr                         ; extract the prefix char stored as (ch - 32) << 2
                 lsr
                 clc
                 adc #32
-                jsr emit_a
+                jsr emit_a                  ; show the prefix
 
 _no_prefix:
-                lda _special_handlers+2,y   ; display the handler's label
-                jsr print_string_n
+                lda _special_handlers+2,y   ; get the handler's label index
+                jsr print_string_n          ; show the label
 
-                pla
-                and #3                      ; extract payload 0-3
-                beq _done
+                plp                         ; is there a payload to deal with?
+                bcc _done
 
-                ; we have a payload of 1, 2 or 4 bytes, coded as Y=1,2,3
-                ;TODO for string we're currently only fetching the length
-                tay                         ; Y is 1,2 or 3
+                pla                         ; yes, fetch it and
+                and #3                      ; extract payload index 0-3
+                tay                         ; save in Y
+                phy                         ; and keep a copy
 
                 ; ( addr u )
-                lda 2,x                     ; save payload addr for pictured literal
-                sta tmp1
-                lda 3,x
+                lda 2,x                     ; set payload addr for pictured literal
+                sta tmp1                    ; just like a return address it points one
+                lda 3,x                     ; byte before the actual payload
                 sta tmp1+1
 
-                tya
-                cmp #3
-                php                         ; save "is it a double?" status
-                bne +
-                ina
-+
-                jsr push_a_tos              ; and advance ( addr u ) past payload
-                jsr w_slash_string
-
-                lda _pictured_literals-1,y
+                lda _pictured_literals,y
                 jsr push_pictured_common    ; fetch the payload to TOS, indexed by Y-1
-                ; leaving ( addr u n ),  ( addr u nd ) - note for string we only have length
 
-                plp                         ; is it a double?
+                ; depending on the payload we'll now have:
+                ; ( addr u n ) for a byte or word literal
+                ; ( addr u nd ) for a double literal
+                ; ( addr u saddr n ) for a string literal
+
+                ply                         ; recover the payload type
+                lda tmp1+1                  ; save updated addr' with >R so we can
+                pha                         ; deal with it after we've displayed the payload
+                lda tmp1
+                pha
+
+                cpy #0                      ; is it a double?
                 bne +
                 jsr w_d_dot
-                bra _done
+                bra _skip_payload
 +
-                lda scratch+5               ; check if it was string handler
-                cmp #_sliteral_handler_offset
-                beq _print_string
+                cpy #3                      ; is it a string?
+                php
+                bne +
+                jsr w_dup                   ; for string show both the length and then a snippet
++
+                jsr w_dot                   ; print TOS which is a word payload or string length
+                plp                         ; was it a string?
+                bne _skip_payload
 
-                jsr w_dot                   ; print TOS
-_done:
-                ; ( addr u )
-                sec
-                rts
-
-_pictured_literals:
-    ; templates for push_pictured_common, mirroring push_inline_[bliteral, literal, 2literal]
-        .byte %01001010, %01001110, %01111111
-
-
-_print_string:
-                ; for sliteral we want to show and skip past the string data
-                ; we have ( addr n u ) on the stack where addr points
-                ; to the last byte of the string length u.  addr is also in tmp1
-                ; we want to finish with ( addr+u n-u )
-
-                jsr w_slash_string
-                dex
-                dex                 ; ( addr+u n-u u )
-                lda tmp1
-                ldy tmp1+1
-                jsr push_ya_tos
-                jsr w_one_plus
-                jsr w_swap          ; ( addr+u n-u addr+1 u )
-                jsr w_dup           ; print string length
-                jsr w_dot
+                ; for a string we'll show up to 15 characters
+                ; with ... if it's too long
+                ; ( addr u saddr n )
 
                 ; print up to 15 chars of the string
                 jsr push_inline_bliteral
                 .byte 15
-                jsr compare_16bit   ; C=0 if string length > 15
+                jsr compare_16bit   ; check if string length > 15 (sets C=0)
                 php
                 jsr w_min
-                jsr w_type          ; print up to first 15 chars
+                jsr w_type          ; print up to 15 characters
                 plp
-                bcs _done
+                bcs _skip_payload   ; did we truncate?
                 ldy #3
 -
-                lda #'.'
+                lda #'.'            ; show ...
                 jsr emit_a
                 dey
                 bne -
-                bra _done
+
+_skip_payload:
+                ; finally update ( addr u ) to skip past the payload
+                ; we saved the new addr' from tmp1 on the RS
+                ; but updating u is a bit fiddly
+                ; we want u' = u - (addr' - addr) = u + addr - addr'
+                jsr w_plus                  ; ( addr+u )
+                jsr w_r_from                ; ( addr+u addr' )
+                jsr w_tuck                  ; ( addr' addr+u addr')
+                jsr w_minus                 ; ( addr' u' )
+
+_done:
+                ; ( addr' u' )
+                sec
+                rts
+
 
 
 ; Table of special handlers with symbol address, label index (with optional prefix character), and payload size
 ; The payload is the number of inlined bytes following the jsr; 0, 1, 2 or 4.  Note 4 is actually stored as 3
 disasm_handler .macro sym, label, payload, prefix=32
     .word \sym
-    .byte \label, ((\prefix-32)<<2) | ((\payload <? 3) & 3)
+    .byte \label, ((\prefix-32)<<2) | (\payload & 3)
 .endmacro
-
 
 _special_handlers:
     #disasm_handler underflow_1, str_disasm_sdc, 0, '1'
     #disasm_handler underflow_2, str_disasm_sdc, 0, '2'
     #disasm_handler underflow_3, str_disasm_sdc, 0, '3'
     #disasm_handler underflow_4, str_disasm_sdc, 0, '4'
-    #disasm_handler push_inline_literal, str_disasm_lit, 2
-    #disasm_handler push_inline_bliteral, str_disasm_lit, 1, 'B'
-_sliteral_handler_offset = * - _special_handlers        ; special case to show string data
-    #disasm_handler push_inline_sliteral, str_disasm_lit, 2, 'S'
-    #disasm_handler push_inline_2literal, str_disasm_lit, 4, '2'
+    #disasm_handler do_runtime, str_disasm_do, 0
+_payload_handlers:
+    ; handlers beyond this point have a payload indexed in _pictured_literals below
+    #disasm_handler question_do_runtime, str_disasm_do, 2, '?'
     #disasm_handler zero_branch_runtime, str_disasm_0bra, 2
     #disasm_handler loop_runtime, str_disasm_loop, 2
     #disasm_handler plus_loop_runtime, str_disasm_loop, 2, '+'
-    #disasm_handler do_runtime, str_disasm_do, 0
-    #disasm_handler question_do_runtime, str_disasm_do, 2, '?'
     #disasm_handler of_runtime, str_disasm_of, 2
+    #disasm_handler push_inline_bliteral, str_disasm_lit, 1, 'B'
+    #disasm_handler push_inline_literal, str_disasm_lit, 2
+    #disasm_handler push_inline_sliteral, str_disasm_lit, 3, 'S'
+    #disasm_handler push_inline_2literal, str_disasm_lit, 4, '2'    ; payload 4 wraps to index zero
 _end_handlers:
 
+_pictured_literals:
+    ; templates for push_pictured_common, mirroring push_inline_[2literal, bliteral, literal, sliteral]
+        .byte %01111111     ; 0: 2literal
+        .byte %01001010     ; 1: bliteral
+        .byte %01001110     ; 2: literal
+        .byte %11001111     ; 3: sliteral
 
 ; used to calculate size of assembled disassembler code
 disassembler_end:
