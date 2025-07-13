@@ -312,6 +312,7 @@ _no_prefix:
                 beq _done
 
                 ; we have a payload of 1, 2 or 4 bytes, coded as Y=1,2,3
+                ;TODO for string we're currently only fetching the length
                 tay                         ; Y is 1,2 or 3
 
                 ; ( addr u )
@@ -324,13 +325,14 @@ _no_prefix:
                 cmp #3
                 php                         ; save "is it a double?" status
                 bne +
-                inc a
+                ina
 +
                 jsr push_a_tos              ; and advance ( addr u ) past payload
                 jsr w_slash_string
 
                 lda _pictured_literals-1,y
                 jsr push_pictured_common    ; fetch the payload to TOS, indexed by Y-1
+                ; leaving ( addr u n ),  ( addr u nd ) - note for string we only have length
 
                 plp                         ; is it a double?
                 bne +
@@ -339,15 +341,11 @@ _no_prefix:
 +
                 lda scratch+5               ; check if it was string handler
                 cmp #_sliteral_handler_offset
-                php                         ; save "is it a string?" status
-                bne +
-                jsr w_dup                   ; keep a copy of the string length ( addr u len )
-+
+                beq _print_string
+
                 jsr w_dot                   ; print TOS
-                plp
-                bne _done
-                jsr _print_string           ; uses tmp1/tmpdsp
 _done:
+                ; ( addr u )
                 sec
                 rts
 
@@ -357,43 +355,38 @@ _pictured_literals:
 
 
 _print_string:
-                ; for sliteral we want to skip past the string data
+                ; for sliteral we want to show and skip past the string data
                 ; we have ( addr n u ) on the stack where addr points
-                ; to the last byte of the string length u.
+                ; to the last byte of the string length u.  addr is also in tmp1
                 ; we want to finish with ( addr+u n-u )
-                ; and print at least a snippet of the string
-                ; which is at addr+1
 
-                ; detour to show snippet of string up to 16 chr
-                lda 1,x
-                bne _truncate
-                lda 0,x
-                cmp #16
-                bcc +               ; length < 16?
-_truncate:
-                lda #18             ; extra chars for ellipses
-+
-                sta tmpdsp
+                jsr w_slash_string
+                dex
+                dex                 ; ( addr+u n-u u )
+                lda tmp1
+                ldy tmp1+1
+                jsr push_ya_tos
+                jsr w_one_plus
+                jsr w_swap          ; ( addr+u n-u addr+1 u )
+                jsr w_dup           ; print string length
+                jsr w_dot
 
-                lda 4,x             ; tmp1 points 1 before string
-                sta tmp1
-                lda 5,x
-                sta tmp1+1
-
-                ldy #1
-_snippet:
-                lda (tmp1),y
-                cpy #16
-                bcc +
+                ; print up to 15 chars of the string
+                jsr push_inline_bliteral
+                .byte 15
+                jsr compare_16bit   ; C=0 if string length > 15
+                php
+                jsr w_min
+                jsr w_type          ; print up to first 15 chars
+                plp
+                bcs _done
+                ldy #3
+-
                 lda #'.'
-+
                 jsr emit_a
-                iny
-                dec tmpdsp
-                bne _snippet
-
-                ; ( addr n u -- addr+u n-u )
-                jmp w_slash_string
+                dey
+                bne -
+                bra _done
 
 
 ; Table of special handlers with symbol address, label index (with optional prefix character), and payload size

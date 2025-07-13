@@ -115,44 +115,49 @@ push_pictured_common:
 _loop:
                 inx             ; next data stack byte to fill
                 lsr tmptos      ; fetch next picture bit to carry
-                bcc _zero       ; zero bit means zero fill
-
-                bne +           ; if picture not-empty, copy a value
-                clc             ; else flag terminator but still increment pointer
-+
+                beq _done       ; if picture is now empty, we found the terminator
+                bcs _copy       ; a one bit means copy a value
+                stz 0,x         ; otherwise add a zero byte
+                bra _loop
+_copy:
                 inc tmp1        ; inc data pointer to next param byte
-                bne +           ; (or to following instruction on the terminator)
+                bne +
                 inc tmp1+1
 +
-                bcc _done       ; if bit was picture terminator we're done
-
                 lda (tmp1)      ; copy a payload byte to the stack
                 sta 0,x
                 bra _loop
 
-_zero:
-                stz 0,x         ; fill with zero
-                bra _loop
-
 _done:
+                ; after the loop tmp1 points to the last parameter byte
                 plx             ; reset stack pointer
 
                 bit tmptos+1    ; check flag bits
 
                 bmi _string
                 bvs _indirect
-                jmp (tmp1)      ; continue execution past the payload
+_return:
+                lda tmp1+1
+                pha
+                lda tmp1
+                pha
+_indirect:
+                rts             ; continue execution past the payload
 
 _string:
-                ; put the string address, (tmp1), into NOS
+                ; put the string address, tmp1+1, into NOS
+                ldy tmp1+1
                 lda tmp1
+                inc a
+                bne +
+                iny
++
                 sta 2,x
-                lda tmp1+1
-                sta 3,x
+                sty 3,x
 
                 bvs _indirect
 
-                ; add TOS to point at instruction after the string
+                ; add TOS to return past payload
                 clc
                 lda tmp1
                 adc 0,x
@@ -160,10 +165,7 @@ _string:
                 lda tmp1+1
                 adc 1,x
                 sta tmp1+1
-                jmp (tmp1)      ; continue execution past the payload
-
-_indirect:
-                rts             ; return to caller's caller
+                bra _return
 
 
 cmpl_call_inline_literal:
@@ -182,6 +184,18 @@ cmpl_call_inline_literal:
                 lda #%01001110
                 jsr push_pictured_common
                 jsr cmpl_call_tos
-                jmp (tmp1)
+                ldy tmp1+1
+                phy
+                ldy tmp1
+                phy
+                rts
 
 
+
+; TODO post-processing:
+
+; just jmp(tmp1)
+; cmpl_call_tos / jmp(tmp1)
+; string / jmp(tmp1)
+; create / jmp(tmp1) - tho it's used so put back to stack?
+; indirect / don't put back
