@@ -413,9 +413,8 @@ w_load:
                 jsr w_block
 
                 ; Put 1024 on the stack for the screen length.
-                ldy #4
-                lda #0
-                jsr push_ya_tos
+                jsr push_inline_literal
+                .word 1024
 
                 ; Jump to a special evaluate target. This bypasses the underflow
                 ; check and skips the zeroing of BLK.

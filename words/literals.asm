@@ -13,6 +13,16 @@
 ;
 ; All of the entrypoints share the flexible push_inline_pictured routine
 
+cmpl_call_inline_literal:
+        ; Generate code that calls the literal
+        ;
+        ;       jsr cmpl_call_inline_literal    ; compile "JSR target"
+        ;       .word target
+
+                lda #%00000111
+                ldy #2
+                bra push_inline_pictured_pp
+
 push_inline_sliteral:
         ; Put a string literal on the stack.  Supported by DISASM
         ; Note the length and actual text follow the JSR.
@@ -23,8 +33,9 @@ push_inline_sliteral:
         ;       .word <length>
         ;       .text "<text>"
 
-                lda #%10001111
-                bra push_inline_pictured
+                lda #%00010011
+                ldy #1
+                bra push_inline_pictured_pp
 
 push_inline_2literal:
         ; Put a double-word literal on the stack.  Supported by DISASM
@@ -36,7 +47,18 @@ push_inline_2literal:
         ;       .word TOS
         ;       .word NOS
 
-                lda #%00111111
+                lda #%00011111
+                bra push_inline_pictured
+
+push_inline_3literal:
+        ; Only used internally, add three words to the stack
+        ;
+        ;       jsr push_inline_2literal
+        ;       .word TOS
+        ;       .word NOS
+        ;       .word 3OS
+
+                lda #%01111111
                 bra push_inline_pictured
 
 push_inline_addru_literal:
@@ -48,7 +70,7 @@ push_inline_addru_literal:
         ;       .byte u         ; TOS
         ;       .word addr      ; NOS
 
-                lda #%00111011
+                lda #%00011101
                 bra push_inline_pictured
 
 push_inline_literal:
@@ -57,7 +79,7 @@ push_inline_literal:
         ;       jsr push_inline_literal
         ;       .word TOS
 
-                lda #%00001110
+                lda #%00000111
                 bra push_inline_pictured
 
 push_inline_bliteral:
@@ -65,47 +87,58 @@ push_inline_bliteral:
         ;       jsr push_inline_bliteral
         ;       .byte TOS
 
-                lda #%00001010
+                lda #%00000101
 
 push_inline_pictured:
         ; Copies 1-4 bytes following the calling JSR to the data stack.
         ; The accumulator contains flags defining the mapping from bytes to stack values.
         ;
         ;       msb                  lsb
-        ;        N  V  p  p  p  p  p  n
+        ;        0  p  p  p  p  p  p  p
         ;
-        ; The lsb (bit 0) creates either one (0) or two (1) new stack entries.
-        ; Bits 1-5 are a one-terminated stack picture mapping payload bytes to stack bytes.
-        ; For one stack entry the picture is 00/xx where / is the 1 terminator
+        ; Bits 0-6 contain a one-terminated stack picture (reading lsb to msb)
+        ; which maps payload bytes to stack bytes.  Bit 7 must be 0 (unused).
+        ; For one stack entry the picture is 00000/xx where / shows the 1 terminator
         ; and the two xx bits map the payload byte(s) to the data stack.
         ; A one bit copies a payload byte, a zero bit writes a zero.
-        ; For two stack entries the picture is /xxxx where / is the 1 terminator.
+        ; For two stack entries the picture is 000/xxxx where / is the 1 terminator.
         ; Parameter bytes are copied to the data stack in memory order, i.e. the
         ; first byte after the JSR will be nearest TOS (lowest in data stack memory).
+        ;
+        ; The alternate push_inline_pictured_pp entry point supports
+        ; various payload post-processing actions as well as indirect payloads.
+        ; This is controlled by the Y register.  Setting the sign bit of Y (bit 7)
+        ; means the caller is responsible for pointing tmp1 to one byte before the payload,
+        ; and that the routine will just return to caller not following the payload.
+        ; The lower seven bits of Y select a 1-indexed post-processing routine
+        ; from the literal_postprocessors table.
+        ;
         ; Examples:
-        ;       NV00/110 consumes two parameter bytes as the LSB/MSB of one stack word
-        ;       NV00/010 consumes one parameter byte as the LSB of TOS, with MSB=0
-        ;       NV/01011 consumes two single bytes as the LSB of two words on the data stack
-        ;       NV/00111 creates an empty NOS and consumes two parameter bytes as LSB/MSB of TOS
-        ;       NV00/111 creates undef NOS and consumes two parameter bytes as LSB/MSB of TOS
-        ; The two high bits (N and V) control post-processing:
-        ;       N = 1 indicates a string payload, which writes addr to NOS and returns to addr+TOS
-        ;       V = 1 means return to caller's caller rather than continuing past payload
-        ;             which is useful for DISASM or other post-processing like cmpl_call_inline_literal
+        ;       00000/11 consumes two parameter bytes as the LSB/MSB of one stack word
+        ;       00000/01 consumes one parameter byte as the LSB of TOS, with MSB=0
+        ;       000/0101 consumes two single bytes as the LSB of two words on the data stack
+        ;       000/0011 creates an empty NOS and consumes two parameter bytes as LSB/MSB of TOS
 
-                ply             ; LSB of address
+                ldy #0
+push_inline_pictured_pp:
+                sty tmptos+1    ; 1-indexed post-processing routine (0 for none), sign bit if indirect
+                sta tmptos      ; masked picture
+
+                bit tmptos+1
+                bmi +           ; if indirect, caller is responsible for setting tmp1/+1
+
+                ply             ; LSB of return address
                 sty tmp1
-                ply             ; MSB of address
+                ply             ; MSB
                 sty tmp1+1
-
-push_pictured_common:
-                sta tmptos+1    ; save for flag bits
-                and #%00111111
-                sta tmptos      ; save masked picture
-
++
                 dex             ; add one stack entry
                 dex
-                lsr tmptos      ; conditionally add a second?
+                cmp #%00010000  ; maybe add a second?
+                bcc +
+                dex
+                dex
+                cmp #%01000000  ; and even a third?
                 bcc +
                 dex
                 dex
@@ -130,18 +163,49 @@ _copy:
 
 _done:
                 ; after the loop tmp1 points to the last parameter byte
-                plx             ; reset stack pointer
 
-                bit tmptos+1    ; check N+V flag bits
-                bpl _return     ; is it a string?
+                lda tmptos+1    ; any post-processing to do?
+                asl
+                beq pp_done_plx
 
+                tax
+                jmp (literal_postprocessors-2,x)   ; 1-based indexing
+pp_done_plx:
+                plx             ; restore the stack pointer
+pp_done:
+                lda tmptos+1
+                bmi _indirect   ; indirect version returns to caller
+
+                lda tmp1+1      ; otherwise continue past the payload
+                pha
+                lda tmp1
+                pha
+_indirect:
+                rts
+
+
+
+literal_postprocessors:
+        ; post-processing handlers
+        ; if data stack access is needed, routine should PLX and jump to pp_done
+        ; otherwise return to pp_done_plx
+                .word pp_literal_string         ; index 1
+                .word pp_literal_cmpl_call      ; index 2
+
+pp_literal_cmpl_call:
+                plx
+                jsr cmpl_call_tos
+                bra pp_done
+
+pp_literal_string:
+                plx
                 ; put the string address, tmp1+1, into NOS
                 ldy tmp1+1
                 lda tmp1
                 inc a
                 bne +
                 iny
-+
+        +
                 sta 2,x
                 sty 3,x
 
@@ -153,47 +217,7 @@ _done:
                 lda tmp1+1
                 adc 1,x
                 sta tmp1+1
-
-                bit tmptos+1    ; restore V status
-_return:
-                bvs _indirect
-                lda tmp1+1
-                pha
-                lda tmp1
-                pha
-_indirect:
-                rts             ; continue execution past the payload
+                bra pp_done
 
 
-
-cmpl_call_inline_literal:
-        ; Generate code that calls the literal
-        ;
-        ;       jsr cmpl_call_inline_literal    ; compile "JSR target"
-        ;       .word target
-
-                ; set up the payload address
-                ply             ; <payload-1>
-                sty tmp1
-                ply             ; MSB of address
-                sty tmp1+1
-
-                ; like push_inline_literal, but returns to caller (us) instead of (tmp1)
-                lda #%01001110
-                jsr push_pictured_common
-                jsr cmpl_call_tos
-                ldy tmp1+1
-                phy
-                ldy tmp1
-                phy
-                rts
-
-
-
-; TODO post-processing:
-
-; just jmp(tmp1)
-; cmpl_call_tos / jmp(tmp1)
-; string / jmp(tmp1)
-; create / jmp(tmp1) - tho it's used so put back to stack?
-; indirect / don't put back
+; TODO rework CREATE + PFA

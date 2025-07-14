@@ -83,6 +83,7 @@ _found:
                 lda scratch         ; fetch the opcode
                 jsr op_length       ; get length Y = 1,2,3
                 dey
+                phy                 ; save length
                 beq _no_operand
 
                 ; copy Y=1 or 2 operand bytes to scratch+1/2
@@ -102,11 +103,7 @@ _copy_operand:
                 jsr push_ya_tos
                 ; ( addr+n u-n operand )
 
-                sec                 ; flag operand
-                .byte OpBITzp       ; mask the clc
 _no_operand:
-                clc                 ; flag no operand
-
                 ; We arrive here with either C=0 and no operand ( addr n )
                 ; or C=1 and ( addr+n u-n opr )
                 ; We want the output to be nicely formatted in columns.
@@ -114,9 +111,11 @@ _no_operand:
                 ; is five characters so we either use U.R to format it
                 ; or simply indent the mnemonic by five spaces.
 
-                lda #5
-                jsr push_a_tos      ; ( addr+n u-n [opr] 5 )
-                bcs _print_operand
+                jsr push_inline_bliteral      ; ( addr+n u-n [opr] 5 )
+                .byte 5
+
+                ply                 ; recall length
+                bne _print_operand
 
                 jsr w_spaces        ; no operand, just indent
                 bra _print_mnemonic
@@ -125,9 +124,7 @@ _print_operand:
                 jsr w_u_dot_r       ; right-justify the operand
 _print_mnemonic:
                 ; ( addr+n u-n )
-                pla                 ; put NT on stack
-                ply
-                jsr push_ya_tos
+                jsr w_r_from        ; put NT on stack
 
                 ; ( addr+n u-n nt )
                 jsr w_space
@@ -144,8 +141,8 @@ _print_mnemonic:
                 bne _not_jsr
 
                 ; It's a JSR.  Print 5 spaces as an offset.
-                lda #5
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .byte 5
                 jsr w_spaces
 
                 jsr disasm_special
@@ -186,9 +183,9 @@ _is_rel:
 
                 phy                 ; save the direction indicator
 
-                lda #9
-                jsr push_a_tos
-                jsr w_u_dot_r      ; print the destination with 5 leading spaces
+                jsr push_inline_bliteral
+                .byte 9
+                jsr w_u_dot_r       ; print the destination with 5 leading spaces
 
                 lda #AscSP          ; print space and branch direction indicator
                 jsr emit_a
@@ -292,12 +289,9 @@ _next:          dey
 
 _found_handler:
                 lda _special_handlers+3,y   ; payload + prefix
-                cpy #_payload_handlers-_special_handlers
-                bcc +                       ; does this handler have a payload?
-                pha                         ; yes, save a copy of the payload index
-+
-                php                         ; save C status (1 indicates payload)
-                cmp #4                      ; prefix is in the top six bits
+                phy
+                pha                         ; save a copy
+                cmp #4                      ; non-zero prefix in top six bits?
                 bcc _no_prefix
 
                 lsr                         ; extract the prefix char stored as (ch - 32) << 2
@@ -310,10 +304,11 @@ _no_prefix:
                 lda _special_handlers+2,y   ; get the handler's label index
                 jsr print_string_n          ; show the label
 
-                plp                         ; is there a payload to deal with?
-                bcc _done
+                pla
+                ply
+                cpy #_payload_handlers-_special_handlers
+                bcc _done                   ; is there a payload?
 
-                pla                         ; yes, fetch it and
                 and #3                      ; extract payload index 0-3
                 tay                         ; save in Y
                 phy                         ; and keep a copy
@@ -324,8 +319,13 @@ _no_prefix:
                 lda 3,x                     ; byte before the actual payload
                 sta tmp1+1
 
-                lda _pictured_literals,y
-                jsr push_pictured_common    ; fetch the payload to TOS, indexed by Y-1
+                lda _pictured_literals,y    ; fetch the literal picture
+                cpy #3                      ; set C=1 if it's a string
+                ldy #%1000_0000             ; indirect call
+                bcc +
+                iny                         ; string needs post-processing
++
+                jsr push_inline_pictured_pp ; fetch the payload to TOS based on A, Y
 
                 ; depending on the payload we'll now have:
                 ; ( addr u n ) for a byte or word literal
@@ -333,6 +333,7 @@ _no_prefix:
                 ; ( addr u saddr n ) for a string literal
 
                 ply                         ; recover the payload type
+
                 lda tmp1+1                  ; save updated addr' with >R so we can
                 pha                         ; deal with it after we've displayed the payload
                 lda tmp1
@@ -365,6 +366,7 @@ _no_prefix:
                 jsr w_type          ; print up to 15 characters
                 plp
                 bcs _skip_payload   ; did we truncate?
+
                 ldy #3
 -
                 lda #'.'            ; show ...
@@ -386,7 +388,6 @@ _done:
                 ; ( addr' u' )
                 sec
                 rts
-
 
 
 ; Table of special handlers with symbol address, label index (with optional prefix character), and payload size
@@ -417,10 +418,10 @@ _end_handlers:
 
 _pictured_literals:
     ; templates for push_pictured_common, mirroring push_inline_[2literal, bliteral, literal, sliteral]
-        .byte %01111111     ; 0: 2literal
-        .byte %01001010     ; 1: bliteral
-        .byte %01001110     ; 2: literal
-        .byte %11001111     ; 3: sliteral
+        .byte %00011111     ; 0: 2literal
+        .byte %00000101     ; 1: bliteral
+        .byte %00000111     ; 2: literal
+        .byte %00010011     ; 3: sliteral
 
 ; used to calculate size of assembled disassembler code
 disassembler_end:

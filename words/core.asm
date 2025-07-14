@@ -1688,8 +1688,8 @@ z_dot:          rts
 xt_dot_paren:
 w_dot_paren:
                 ; Put a right paren on the stack.
-                lda #41     ; Right parenthesis
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .text ")"
                 jsr w_parse
                 jsr w_type
 
@@ -2894,33 +2894,45 @@ z_less_than:    rts
 
 
 
-; ## LITERAL ( n -- ) "Store TOS to be push on stack during runtime"
+; ## LITERAL ( n -- ) "Arrange for TOS to be pushed on stack at runtime"
 ; ## "literal"  auto  ANS core
         ; """https://forth-standard.org/standard/core/LITERAL
         ; Compile-only word to store TOS so that it is pushed on stack
         ; during runtime. This is a immediate, compile-only word. At runtime,
         ; it works by calling JSR push_inline_literal, or using an inline equivalent.
         ;
-        ; Note the cmpl_ routines use TMPTOS
+        ; Note that it uses the carry flag as an internal exit status to indicate whether
+        ; we used native (0) or non-native (1) compilation.  This is used by w_two_literal.
+        ; Note also that the cmpl_ routines use TMPTOS
         ; """
 xt_literal:
                 jsr underflow_1
 w_literal:
                 lda 1,x                         ; is it a byte value?
-                bne +
+                bne _word
 
-                jsr push_inline_literal
-                .word push_inline_bliteral
-                jsr push_inline_addru_literal
-                .byte template_push_byte_tos_size       ; TOS
+                lda 0,x
+                bne _byte                       ; it it non-zero?
+
+                lda #<nt_zero                   ; compile the 0 word, replacing TOS
+                sta 0,x
+                lda #>nt_zero
+                sta 1,x
+                jmp compile_nt_comma            ; compile it, with same C=0/1 exit status
+
+_byte:
+                jsr push_inline_3literal
+                .word template_push_byte_tos_size       ; TOS
                 .word template_push_byte_tos            ; NOS, if we're inlining
+                .word push_inline_bliteral              ; 3OS
+
                 bra _cmpl
-+
-                jsr push_inline_literal
-                .word push_inline_literal
-                jsr push_inline_addru_literal
-                .byte template_push_word_tos_size       ; TOS
+_word:
+                jsr push_inline_3literal
+                .word template_push_word_tos_size       ; TOS
                 .word template_push_word_tos            ; NOS, if we're inlining
+                .word push_inline_literal               ; 30S
+
 _cmpl:
                 ; ( n call-addr inline-addr inline-sz )
 
@@ -3939,8 +3951,8 @@ z_page:         rts
 xt_paren:
 w_paren:
                 ; Put a right paren on the stack.
-                lda #41     ; Right parenthesis
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .text ")"
 
                 ; Call parse.
                 jsr w_parse
@@ -4056,8 +4068,8 @@ _char_found:
 
                 ; prepare Data Stack for PARSE by adding space
                 ; as the delimiter
-                lda #AscSP
-                jsr push_ya_tos         ; paranoid, now ( "name" c )
+                jsr push_inline_bliteral
+                .byte AscSP             ; paranoid, now ( "name" c )
 
                 bra w_parse             ; fall through to parse, skipping underflow
 

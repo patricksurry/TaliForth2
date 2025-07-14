@@ -269,8 +269,8 @@ z_previous:     rts
 ; ## "root-wordlist"  tested  Tali Editor
 xt_root_wordlist:
 w_root_wordlist:
-                lda #3          ; The WID for the Root wordlist is 3.
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .byte 3         ; The WID for the Root wordlist is 3.
 
 z_root_wordlist:
                 rts

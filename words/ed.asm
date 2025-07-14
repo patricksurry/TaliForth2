@@ -247,13 +247,7 @@ _command_mode:
                 ; more than just a dot here. We now need to see if the next
                 ; character is a comma or a command character. To do this, we
                 ; need to modify the stack to ( addr-t u-t para1 0 addr u )
-                lda cib
-                ldy cib+1
-                jsr push_ya_tos
-
-                lda ciblen
-                ldy ciblen+1
-                jsr push_ya_tos
+                jsr w_source            ; push cib, cliben
 
                 jsr w_one_minus        ; ( addr-t u-t para1 0 addr u-1 )
                 jsr w_swap             ; ( addr-t u-t para1 0 u-1 addr )
@@ -367,13 +361,7 @@ _prefix_number:
                 jsr w_zero
                 jsr w_zero              ; ( addr-t u-t 0 0 0 0 )
 
-                lda cib
-                ldy cib+1
-                jsr push_ya_tos         ; ( addr-t u-t 0 0 0 0 cib )
-
-                lda ciblen
-                ldy ciblen+1
-                jsr push_ya_tos         ; ( addr-t u-t 0 0 0 0 cib ciblen )
+                jsr w_source            ; ( addr-t u-t 0 0 0 0 cib ciblen )
 
                 jsr w_to_number         ; ( addr-t u-t 0 0 ud addr2 u2 )
 
@@ -848,15 +836,9 @@ _add_line:
                 jsr w_here      ; HERE ( addr-t u-t here here2 here3 )
                 jsr w_dup       ; DUP ( addr-t u-t here here2 here3 here3 )
 
-                lda cib
-                ldy cib+1
-                jsr push_ya_tos ; ( addr-t u-t here here2 here3 here3 cib )
-
-                jsr w_swap      ; SWAP ( addr-t u-t here here2 here3 cib here3 )
-
-                lda ciblen
-                lda ciblen+1
-                jsr push_ya_tos ; ( addr-t u-t here here2 here3 cib here3 ciblen )
+                jsr w_source    ; SOURCE ( addr-t u-t here here2 here3 here3 cib ciblen )
+                jsr w_rot
+                jsr w_swap      ; SWAP ( addr-t u-t here here2 here3 cib here3 ciblen )
 
                 jsr w_move      ; ( addr-t u-t here here2 here3 )
 
@@ -1392,8 +1374,8 @@ _cmd_w_loop:
                 ; memory, so we need to add one
                 jsr w_dup              ; DUP ( addr-h addr-t1 addr-t1 ) ( R: addr-t )
 
-                lda #AscLF              ; ASCII for LF
-                jsr push_a_tos         ; ( addr-h addr-t1 addr-t1 c ) ( R: addr-t )
+                jsr push_inline_bliteral        ; ( addr-h addr-t1 addr-t1 c ) ( R: addr-t )
+                .byte AscLF             ; ASCII for LF
 
                 jsr w_swap             ; SWAP ( addr-h addr-t1 c addr-t1 ) ( R: addr-t )
                 jsr w_store            ; ! ( addr-h addr-t1 ) ( R: addr-t )

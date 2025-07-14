@@ -214,8 +214,8 @@ w_find_name:
                 beq _fail_done
 
                 ; Truncate names longer than the max allowed (31).
-                lda #31
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .byte 31
                 jsr w_min
 
                 ; Set up for traversing the wordlist search order.
