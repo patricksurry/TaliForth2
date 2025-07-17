@@ -320,11 +320,7 @@ _no_prefix:
                 sta tmp1+1
 
                 lda _pictured_literals,y    ; fetch the literal picture
-                cpy #3                      ; set C=1 if it's a string
                 ldy #%1000_0000             ; indirect call
-                bcc +
-                iny                         ; string needs post-processing
-+
                 jsr push_inline_pictured_pp ; fetch the payload to TOS based on A, Y
 
                 ; depending on the payload we'll now have:
@@ -418,10 +414,10 @@ _end_handlers:
 
 _pictured_literals:
     ; templates for push_pictured_common, mirroring push_inline_[2literal, bliteral, literal, sliteral]
-        .byte %00011111     ; 0: 2literal
-        .byte %00000101     ; 1: bliteral
-        .byte %00000111     ; 2: literal
-        .byte %00010011     ; 3: sliteral
+        .byte %1111_00_10     ; 0: 2literal
+        .byte %10_0000_01     ; 1: bliteral
+        .byte %11_0000_01     ; 2: literal
+        .byte %1100_11_10     ; 3: sliteral
 
 ; used to calculate size of assembled disassembler code
 disassembler_end:
