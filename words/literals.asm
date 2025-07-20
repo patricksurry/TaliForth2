@@ -7,8 +7,8 @@
 ;               .word 1234
 ;               jsr w_plus                      ; ... continues past the payload
 ;
-; These are used extensively in implementing forth words where we don't care
-; so much about speed (e.g. user interaction, compilation).
+; These are used extensively in implementing forth words when we care more about
+; saving space than saving time (e.g. user interaction, compilation).
 ; They're also used to compile Forth literals into compact non-native assembly.
 ;
 ; All of the entrypoints share the flexible push_inline_pictured routine.
@@ -20,17 +20,22 @@
 ; For example a pattern like 1011xx10 would add two stack entries, and
 ; read the four high bits, consuming three payload bytes.  The first byte becomes
 ; the LSB of TOS (with MSB 0), the next two bytes form NOS.
-; Normally the routine returns to the instruction following the payload bytes,
-; but can be called indirectly where the caller is responsible for providing the
-; payload address, and the routine then returns to the caller.
-; Postprocessing can also be performed after the stack entries are created.
+; Spare bits should be set to zero.
 ;
-;                        msb                  lsb
-;                    A =   p   p   p   p   p   p   n   n
+;                    (msb) 7   6   5   4   3   2   1   0 (lsb)
+;                    Acc:  p   p   p   p   p   p   n   n
 ;                        |  TOS  |  NOS  |  3OS  |  0-3  |
 ;                        | lo hi | lo hi | lo hi |
 ;               JSR pushp  .word [ .word [ .word ]]   ; call with inline parameters
 ;               LDA ...                               ; continues after parameters
+;
+; Normally the routine returns to the instruction following the payload bytes,
+; but can be called indirectly where the caller is responsible for providing the
+; payload address, and the routine then returns to the caller.
+; Postprocessing can also be performed after the stack entries are created.
+; These are controlled by the Y register.  Bit 7 indicates indirect return.
+; Bit 6 indicates post-processing is required with bits 1-4 given an
+; an even offset into the postprocessor table, with 0 meaning none.  Bit 5 should be 0.
 
 cmpl_call_inline_literal:
         ; Generate code that calls the literal
@@ -38,9 +43,9 @@ cmpl_call_inline_literal:
         ;       jsr cmpl_call_inline_literal    ; compile "JSR target"
         ;       .word target
 
-                ldy #1                          ; post-processing routine
                 lda #%11_0000_01
-                bra push_inline_pictured_pp
+                ldy #%0100_0000                          ; first post-processor
+                bra push_inline_pictured_y
 
 push_inline_literal:
         ; Put a word literal on the stack.  Supported by DISASM
@@ -61,7 +66,7 @@ push_inline_sliteral:
         ;       .word <length>
         ;       .text "<text>"
 
-                lda #%1100_11_10
+                lda #%1100_00_10
                 bra push_inline_pictured
 
 push_inline_2literal:
@@ -115,34 +120,33 @@ push_inline_pictured:
         ; and that we should just return to caller rather than following the payload.
         ; The lower seven bits of Y select a 1-indexed post-processing routine
         ; from the literal_postprocessors table.
-
                 ldy #0
-push_inline_pictured_pp:
-                sta tmptos      ; masked picture
-                and #3          ; count of new stack entries
-                asl             ; *2 to get length of picture bits
-                sta tmptos+1    ; temporarily write so we can add to DS
-                txa
-                sec
-                sbc tmptos+1    ; extend data stack by a byte for each picture bit
-                tax             ; update data stack pointer
-
-                tya             ; check sign bit of Y arg (1 means indirect)
+push_inline_pictured_y:
+                sta tmptos      ; save the masked picture
+                sty tmptos+1    ; save the indirect flag and postprocessing info
+                iny
                 bmi +           ; if indirect, caller already set up tmp1/+1
 
-                pla             ; LSB of return address
-                sta tmp1
-                pla             ; MSB
-                sta tmp1+1
+                ply             ; LSB of return address
+                sty tmp1
+                ply             ; MSB
+                sty tmp1+1
 +
-                lda tmptos+1    ; fetch the picture length
-                sty tmptos+1    ; overwrite with postprocessing info
-                tay
+                cmp #%1100_00_10 ; is it sliteral?
+                php             ; we'll care later
+                and #%11        ; mask length bits
+                asl             ; times two gives picture length
+                tay             ; save picture length in Y
+                sty $ff,x       ; save as temp to subtract from DS
+                txa
+                sec
+                sbc $ff,x       ; extend data stack by a byte for each picture bit
+                tax             ; update data stack pointer
 
-                phx             ; save stack pointer
-                dex
+                phx             ; save final stack pointer
+                dex             ; pre-decrement so we can pre-increment
 _loop:
-                dey
+                dey             ; Y counts picture bits
                 bmi _done
                 inx
 
@@ -161,14 +165,12 @@ _copy:
 
 _done:
                 ; after the loop tmp1 points to the last parameter byte
-                plx             ; restore the stack pointer
-
-                lda tmptos
-                cmp #%1110_0000
-                bne _postprocess
+                plx             ; restore final stack pointer
 
                 ; sliteral is special since NOS needs to point at string
                 ; and then we need to advance past the string itself
+                plp             ; check earlier string? result
+                bne _not_string
 
                 ; currently tmp1 points one byte before the string
                 ; so put tmp1+1 into NOS
@@ -190,41 +192,29 @@ _done:
                 adc 1,x
                 sta tmp1+1
 
-_postprocess:
-                lda tmptos+1    ; any post-processing to do?
-                bmi _indirect   ; indirect version returns to caller
+_not_string:
+                bit tmptos+1    ; N? means indirect, V? means postprocessing
+                bmi +           ; indirect version just returns to caller
 
                 ldy tmp1+1      ; normally we'll return past the payload
                 phy
                 ldy tmp1
                 phy
-_indirect:
-
-                asl             ; shift out indirect? flag while multiplying by 2
-                beq +           ; no post-processing
-
-                ; set up stack to RTS into post-processing routine
-                ; which will then return to caller or indirect as needd
++
+                bvc +           ; any post-processing?
+                lda tmptos+1
+                and #%0011_1110
                 tay
-                lda literal_postprocessors-1,y
+                lda _postprocessors+1,y
                 pha
-                lda literal_postprocessors-2,y
+                lda _postprocessors,y
                 pha
 +
                 rts
 
+_postprocessors:
+        .word cmpl_call_tos-1
 
-
-literal_postprocessors:
-        ; post-processing handlers
-        ; if data stack access is needed, routine should PLX and jump to pp_done
-        ; otherwise return to pp_done_plx
-                .word cmpl_call_tos-1      ; index 1
-
-
-
-; TODO rework CREATE + PFA
-; don't check for zero in literal (comment why not)
-
-; set C=1 for indirect (where to store?)
-; set Y=MSB for post-processing, with LSB in tmptos+1
+; TODO
+; - rework CREATE + PFA
+; - don't check for zero in literal (comment why not)
