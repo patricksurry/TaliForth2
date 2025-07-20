@@ -61,7 +61,7 @@ C65=$(C65_DIR)/c65
 all: taliforth-py65mon.bin docs/WORDLIST.md
 clean:
 	$(RM) *.bin *.prg
-	make -C tools/c65 clean
+	make -C $(C65_DIR) clean
 
 taliforth-%.bin: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --nostart \
@@ -104,15 +104,16 @@ docs/WORDLIST.md: tools/generate_wordlist.py taliforth-py65mon.bin
 
 # Build the c65 simulator
 # After a normal git clone of Taliforth, c65 is still an empty folder
-# so update the module if version.h is missing
-$(C65_DIR)/version.h:
+# so init and update the module if the Makefile is missing
+$(C65_DIR)/Makefile:
 	git submodule init
 	git submodule update $(C65_DIR)
 
-# Rebuild the simulator if sources change
-# version.h is listed explicitly to trigger the rule above
-# if we haven't pulled down the source code yet
-$(C65): $(C65_DIR)/*.c $(C65_DIR)/*.h $(C65_DIR)/version.h
+# Always check to see if c65 needs rebuilt
+# but also make sure we have sources checked out first
+.PHONY: c65check
+
+$(C65): $(C65_DIR)/Makefile c65check
 	make -C $(C65_DIR)
 
 # Convenience target for regular tests.
