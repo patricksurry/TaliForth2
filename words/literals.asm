@@ -34,7 +34,7 @@
 ; payload address, and the routine then returns to the caller.
 ; Postprocessing can also be performed after the stack entries are created.
 ; These are controlled by the Y register.  Bit 7 indicates indirect return.
-; Bit 6 indicates post-processing is required with bits 1-4 given an
+; Bit 6 indicates post-processing is required with bits 1-4 giving an
 ; an even offset into the postprocessor table, with 0 meaning none.  Bit 5 should be 0.
 
 cmpl_call_inline_literal:
@@ -44,7 +44,12 @@ cmpl_call_inline_literal:
         ;       .word target
 
                 lda #%11_0000_01
-                ldy #%0100_0000                          ; first post-processor
+                ldy #%0100_0000                 ; first post-processor, offset 0
+                bra push_inline_pictured_y
+
+create_inline:
+                lda #%1011_00_10
+                ldy #%0100_0010                 ; second post-processor entry, offset 2
                 bra push_inline_pictured_y
 
 push_inline_literal:
@@ -113,13 +118,9 @@ push_inline_bliteral:
                 lda #%10_0000_01
 
 push_inline_pictured:
-        ; Note The alternate push_inline_pictured_pp entry point supports
+        ; Note The alternate push_inline_pictured_y entry point supports
         ; various payload post-processing actions as well as indirect payloads.
-        ; This is controlled by the Y register.  Setting the sign bit of Y (bit 7)
-        ; means the caller is responsible for pointing tmp1 one byte before the payload,
-        ; and that we should just return to caller rather than following the payload.
-        ; The lower seven bits of Y select a 1-indexed post-processing routine
-        ; from the literal_postprocessors table.
+        ; This is controlled by the Y register as explained above.
                 ldy #0
 push_inline_pictured_y:
                 sta tmptos      ; save the masked picture
@@ -214,7 +215,4 @@ _not_string:
 
 _postprocessors:
         .word cmpl_call_tos-1
-
-; TODO
-; - rework CREATE + PFA
-; - don't check for zero in literal (comment why not)
+        .word create_common-1

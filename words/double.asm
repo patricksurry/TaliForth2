@@ -280,13 +280,14 @@ z_m_star_slash: rts
 xt_two_constant:
                 jsr underflow_2
 w_two_constant:
-                lda #4
-                sta tmpdsp              ; PFA size 4
-                jsr create_dovar
+                jsr create_inline
+                .byte 4 + 3             ; TOS; PFA size 4 + 3 for JSR
+                .word dovar
+
                 jsr w_comma
                 jsr w_comma
 
-                jsr does_runtime    ; does> turns into these two routines.
+                jsr does_runtime        ; does> turns into these two routines.
                 jsr dodoes
 
                 jsr w_two_fetch
@@ -346,11 +347,12 @@ z_two_literal:
 xt_two_variable:
 w_two_variable:
                 ; We just let CREATE and ALLOT do the heavy lifting
-                lda #4
-                sta tmpdsp              ; tell create our PFA size is 4
-                jsr push_a_tos          ; ( 4 )
-                jsr create_dovar
-                jsr w_allot             ; allocate the data area
+                jsr create_inline
+                .byte 4 + 3            ; TOS; PFA size 4 + 3 for JSR
+                .word dovar
+
+                jsr cmpl_word_ya
+                jsr cmpl_word_ya
 
 z_two_variable:
                 rts

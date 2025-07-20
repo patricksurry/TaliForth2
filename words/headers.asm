@@ -490,7 +490,6 @@ nt_question:
 #nt_header execute, "execute", NN
 #nt_header two, "2"
 #nt_header one, "1"
-nt_zero:
 #nt_header zero, "0"
 #nt_header plus_store, "+!"
 #nt_header c_store, "c!"

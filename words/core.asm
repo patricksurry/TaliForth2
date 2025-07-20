@@ -923,8 +923,9 @@ w_colon:
                 lda cp+1
                 sta workword+1
 
-                ldy #0                  ; Tell CREATE we want neither CFA nor dictionary update
-                jsr create_common
+                jsr create_inline
+                .byte 0                 ; TOS
+                .word 0                 ; Tell CREATE we want neither CFA nor dictionary update
 
 z_colon:        rts
 
@@ -976,12 +977,11 @@ z_colon_noname:        rts
 xt_comma:
                 jsr underflow_1
 w_comma:
-                ldy #2
-_twice:         lda 0,x
-                jsr cmpl_a
+                lda 0,x
+                ldy 1,x
                 inx
-                dey
-                bne _twice
+                inx
+                jsr cmpl_word_ya
 
 z_comma:        rts
 
@@ -1022,11 +1022,9 @@ w_value:
 w_constant:
 
             	; Use create but with DOCONST for constants.
-                lda #2
-                sta tmpdsp              ; 2 byte PFA
-                lda #<doconst           ; LSB of DOCONST
-                ldy #>doconst           ; MSB of DOCONST
-                jsr create_common
+                jsr create_inline
+                .byte 2+3               ; TOS; 2 byte PFA +3 for JSR
+                .word doconst           ; CFA
 
                 ; Now we save the constant number itself in the next cell
                 jsr w_comma
@@ -1089,23 +1087,25 @@ z_cr:           rts
         ; """
 xt_create:
 w_create:
-                ; Several routines build new words using create_common.
-                ; They'll pass the CFA in A/Y, with Y=0 indicating no CFA.
-                ; When Y is non-zero, tmpdsp should contain the planned
-                ; PFA size so we can adjust the word length for SEE.
+                ; Several routines build new words using create_inline
+                ; which routes onward to create_common.  The CFA word
+                ; is passed as the first parameter, with the PFA length (+3)
+                ; passed as the second parameter byte.  If no CFA,
+                ; pass 0 for both parameters.   We use the PFA size to
+                ; adjust the word length for SEE.  The +3 accounts for the initial JSR CFA.
                 ; Note that we're only responsible for allocating the header
                 ; space. The caller will allocate and populate the PFA itself.
-                lda #2                  ; default 2 byte PFA for variable
-                sta tmpdsp
-create_dovar:
-                ldy #>dovar
-                lda #<dovar
+
+                jsr create_inline
+                .byte 2 + 3             ; TOS; PFA is 2 bytes plus 3 for JSR
+                .word dovar
+                rts
+
 create_common:
-                ; save the CFA
-                jsr push_ya_tos         ; ( cfa )
+                ; ( cfa pfa )
 
                 ; get string
-                jsr w_parse_name        ; ( cfa addr u )
+                jsr w_parse_name        ; ( cfa pfa addr u )
 
                 ; We want a length between 1 and 31.  We could allow 1-32
                 ; and store length-1 but it doesn't seem worth the hassle.
@@ -1129,8 +1129,8 @@ _too_long:
                 stz 1,x
 +
                 ; Check to see if this name already exists.
-                jsr w_two_dup           ; ( cfa addr u addr u )
-                jsr w_find_name         ; ( cfa addr u flag ) (non-zero nt as flag)
+                jsr w_two_dup           ; ( cfa pfa addr u addr u )
+                jsr w_find_name         ; ( cfa pfa addr u flag ) (non-zero nt as flag)
 
                 inx                     ; pre-drop flag (nt) from find-name.
                 inx
@@ -1158,7 +1158,7 @@ _redefined_name:
                 lda #str_redefined
                 jsr print_string_n
 
-                jsr w_two_dup           ; ( cfa addr u addr u )
+                jsr w_two_dup           ; ( cfa pfa addr u addr u )
                 jsr w_type
                 jsr w_space
 
@@ -1169,7 +1169,7 @@ _new_name:
                 trb status
 
 _process_name:
-                ; ( cfa addr u )
+                ; ( cfa pfa addr u )
 
                 ; We need to decide on the flexible sizes in the header before
                 ; we know how much memory to allot.  We'll always generate adjoining
@@ -1227,9 +1227,9 @@ _process_name:
                 ; correctly with DOES> and CREATE. See the discussion at
                 ; http://forum.6502.org/viewtopic.php?f=9&t=5182 for details
 
-                ; ( cfa addr u )
+                ; ( cfa pfa addr u )
 
-                ldy 5,x                 ; check MSB of CFA
+                ldy 7,x                 ; check MSB of CFA
                 beq +                   ; 0 means no CFA, don't set HC
 
                 ora #HC                 ; otherwise set the HC bit
@@ -1257,7 +1257,7 @@ _process_name:
                 ; Interlude: Point start of dictionary (DP) at our new header (old CP)
                 ; and update the CURRENT wordlist with the new DP
                 ; unless it's a ":" word with no CFA which ";" will add to dictionary later
-                lda 5,x                 ; has cfa?
+                lda 7,x                 ; has cfa?
                 beq +
 
                 lda tmp1
@@ -1273,17 +1273,14 @@ _process_name:
                 ; If there's no CFA this is zero since we have no code yet,
                 ; otherwise it's three bytes for the subroutine call we'll compile below
                 ; along with the size of the parameter field area (PFA) from tmpdsp
-                lda 5,x                 ; has CFA?
+                lda 7,x                 ; has CFA?
                 beq +                   ; leave A=0
-
-                clc
-                lda #3                  ; otherwise 3 plus the size of the PFA area
-                adc tmpdsp              ; add PFA size, assume no carry
+                lda 4,x                 ; get the PFA size (LSB only, includes +3 for JSR)
 +
                 jsr cmpl_a
 
                 ; HEADER BYTE 4 or 5 onward: Name string
-                ; We have ( cfa addr u ) and will compile bytes
+                ; We have ( cfa pfa addr u ) and will compile bytes
                 ; by hand so we can translate to lowercase
 
                 ldy 0,x                 ; Y = name length
@@ -1311,7 +1308,9 @@ _name_loop:
                 bra _name_loop
 
 _end:
-                inx                     ; drop address leaving ( cfa )
+                inx                     ; drop address and pfa leaving ( cfa )
+                inx
+                inx
                 inx
 
                 ; After the name string comes the code field, starting at the
@@ -1351,12 +1350,9 @@ z_decimal:      rts
 xt_defer:
 w_defer:
                 ; we want CREATE but with DODEFER as the CFA
-                lda #2
-                sta tmpdsp      ; 2 byte PFA
-                lda #<dodefer   ; LSB
-                ldy #>dodefer   ; MSB
-                jsr create_common
-
+                jsr create_inline
+                .byte 2+3               ; TOS; 2 byte PFA +3 for JSR
+                .word dodefer
                 ; DODEFER executes the next address it finds after
                 ; its call. As default, we include the error
                 ; "Defer not defined"
@@ -2911,14 +2907,10 @@ w_literal:
                 lda 1,x                         ; is it a byte value?
                 bne _word
 
-                lda 0,x
-                bne _byte                       ; it it non-zero?
-
-                lda #<nt_zero                   ; compile the 0 word, replacing TOS
-                sta 0,x
-                lda #>nt_zero
-                sta 1,x
-                jmp compile_nt_comma            ; compile it, with same C=0/1 exit status
+                ; we could also check 0,x and compile w_zero to save another byte
+                ; but it doesn't seem worth it since a constant "0" will already
+                ; have been compiled as w_zero, leaving only calculated zeros,
+                ; or zero MSB of double words.
 
 _byte:
                 jsr push_inline_3literal
@@ -3291,12 +3283,9 @@ w_marker:
                 lda cp+1
                 pha
 
-                ; we want CREATE but with marker_runtime as the CFA
-                lda #4 + marker_end_offset - marker_start_offset
-                sta tmpdsp              ; PFA size in bytes
-                lda #<marker_runtime
-                ldy #>marker_runtime
-                jsr create_common
+                jsr create_inline
+                .byte 4 + marker_end_offset - marker_start_offset +3  ; TOS; PFA +3 for JSR
+                .word marker_runtime
 
                 ; Write the payload bytes
 

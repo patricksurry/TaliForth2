@@ -308,7 +308,9 @@ cmpl_op_ya:
                 pla             ; retrieve address LSB; fall thru to cmpl_word
                 ; fall through
 cmpl_word_ya:
+cmpl_op_y:
                 ; This is the entry point to compile a word in Y/A (little-endian)
+                ; or equivalent an opcode in A and operand in Y
                 jsr cmpl_a      ; compile LSB of address
                 tya             ; fall thru for MSB
 cmpl_a:
