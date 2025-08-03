@@ -302,8 +302,10 @@ prev_nt :?= 0
 #nt_header wordsize
 #nt_header words
 #nt_header marker, "marker", IM
+.if "facility" in TALI_OPTIONAL_WORDS
 #nt_header at_xy, "at-xy"
 #nt_header page
+.endif
 #nt_header cr
 #nt_header havekey
 #nt_header input

@@ -41,12 +41,16 @@
 # Determine which python launcher to use (python3 on Linux and OSX,
 # "py -3" on Windows) and other OS-specific commands (rm vs del).
 ifdef OS
-	RM = del
-	PYTHON = py -3
+	RM := del
+	PYTHON := py -3
+	TODAY := "\"$(shell date /t)\""
 else
-	RM = rm -f
-	PYTHON = python3
+	RM := rm -f
+	PYTHON := python3
+	TODAY := "\"$(shell date +%Y-%m-%d)\""
 endif
+
+GIT_IDENT := "\"$(shell git describe  --dirty --always --tags)\""
 
 COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) stringtable.asm
 TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
@@ -64,6 +68,8 @@ clean:
 
 taliforth-%.bin: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --nostart \
+	-D GIT_IDENT=${GIT_IDENT} \
+	-D TODAY=${TODAY} \
 	--list=platform/$*/$*-listing.txt \
 	--vice-labels \
 	--labels=platform/$*/$*-labelmap.txt \
@@ -73,6 +79,8 @@ taliforth-%.bin: platform/%/platform.asm platform/%/platform_words.asm platform/
 
 taliforth-%.prg: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --cbm-prg \
+	-D GIT_IDENT=${GIT_IDENT} \
+	-D TODAY=${TODAY} \
 	--list=platform/$*/$*-listing.txt \
 	--labels=platform/$*/$*-labelmap.txt \
 	--output $@ \

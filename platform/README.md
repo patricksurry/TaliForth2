@@ -148,6 +148,10 @@ The currently available groups are:
 - `editor` is a block editor. The EDITOR-WORDLIST will also be removed. (~0.25K)
 - `ramdrive` is for testing block words without a block device. (~0.3K)
 - `block` is the optional BLOCK words. (~1.4K)
+- `facility` is a partial implementation of the FACILITY word set for ANS-compatible terminals. 
+   It currently contains PAGE and AT-XY.  
+   If you're implementing for custom hardware you'll likely need to exclude this and
+   implement these words yourself.
 - `environment?` is the ENVIRONMENT? word.  While this is a core word
    for ANS-2012, it uses a lot of strings and therefore takes up a lot of memory. (~0.2K)
 - `assembler` is a 65c02 assembler.
@@ -169,6 +173,12 @@ on the input.
 TALI_OPTION_CR_EOL := [ "lf" ]
 ; TALI_OPTION_CR_EOL := [ "cr" ]
 ; TALI_OPTION_CR_EOL := [ "cr", "lf" ]
+```
+You can also tell Tali how wide your screen so that it can provide
+better multi-line output.  Currently this only affects the word DUMP,
+where an alternative implementation is used with less than 74 columns.
+```
+TALI_OPTION_MAX_COLS := 80
 ```
 By default Tali provides editable input history buffers via ctrl-n/ctrl-p.
 These can be disabled by setting `TALI_OPTION_HISTORY` to 0, saving about ~0.2K of Tali ROM and 1K RAM.

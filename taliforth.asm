@@ -14,10 +14,13 @@
 ; including this file.
 
 ; Assemble all words unless overridden in the platform file.
-TALI_OPTIONAL_WORDS :?= [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "wordlist" ]
+TALI_OPTIONAL_WORDS :?= [ "ed", "editor", "ramdrive", "block", "facility", "environment?", "assembler", "wordlist" ]
 
 ; Default line ending is line feed.
 TALI_OPTION_CR_EOL :?= [ "lf" ]
+
+; Hint for screen width.  Selects narrow implementation of DUMP when <74
+TALI_OPTION_MAX_COLS :?= 80
 
 ; Default to verbose strings
 TALI_OPTION_TERSE :?= 0

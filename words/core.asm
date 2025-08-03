@@ -580,6 +580,7 @@ z_and:          rts
 
 
 
+.if "facility" in TALI_OPTIONAL_WORDS
 ; ## AT_XY ( m n -- ) "Move cursor to position given"
 ; ## "at-xy"  auto  ANS facility
         ; """https://forth-standard.org/standard/facility/AT-XY
@@ -617,6 +618,7 @@ w_at_xy:
                 sta base
 
 z_at_xy:        rts
+.endif
 
 
 
@@ -3936,6 +3938,7 @@ z_pad:          rts
 
 
 
+.if "facility" in TALI_OPTIONAL_WORDS
 ; ## PAGE ( -- ) "Clear the screen"
 ; ## "page"  auto  ANS facility
         ; """https://forth-standard.org/standard/facility/PAGE
@@ -3960,6 +3963,7 @@ w_page:
                 jsr w_at_xy
 
 z_page:         rts
+.endif
 
 
 

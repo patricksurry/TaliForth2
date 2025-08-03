@@ -14,7 +14,7 @@ rand16      .word ?
 ; increment rand16 (avoiding zero!) or repeatedly call rng_798 while they're waiting.
 
 random_seed:
-        lda #42
+        ; call with a non-zero value in A
         sta rand16
         stz rand16+1
         rts
