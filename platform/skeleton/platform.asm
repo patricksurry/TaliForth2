@@ -132,10 +132,12 @@ kernel_kbhit:
 
 ; Leave the following string as the last entry in the kernel routine so it
 ; is easier to see where the kernel ends in hex dumps. This string is
-; displayed after a successful boot
+; displayed after a successful boot.  The Makefile defines two string symbols
+; called TODAY and GIT_IDENT which are useful for tracking when and what is
+; in your compiled binary.   Here we inject the build date into the kernel_id:
 
 s_kernel_id:
-        .text "Tali Forth 2 default kernel for skeleton platform (27. Jun 2025)", AscLF, 0
+        .text "Tali Forth 2 default kernel for skeleton platform ", TODAY, AscLF, 0
 
 
 ; =====================================================================
