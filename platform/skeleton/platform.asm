@@ -48,6 +48,12 @@ TALI_OPTION_CR_EOL := [ "lf" ]
 ;TALI_OPTION_CR_EOL := [ "cr" ]
 ;TALI_OPTION_CR_EOL := [ "cr", "lf" ]
 
+; TALI_OPTION_MAX_COLS tells Tali how many characters fit on your screen.
+; This is used to improve multi-line output like line wrapping in WORDS
+; and choosing between a narrow or wide implementation of DUMP.
+
+TALI_OPTION_MAX_COLS := 80
+
 ; TALI_OPTION_HISTORY enables editable input history buffers via ctrl-n/ctrl-p
 ; These buffers are disabled when set to 0 (saving about ~0.2K Tali ROM, 1K RAM)
 

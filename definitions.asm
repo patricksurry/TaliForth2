@@ -292,12 +292,8 @@ NN = 64                     ; Never Native Compile
 ST = AN+NN                  ; Stack juggling to be stripped for native compile
 HC = 128                    ; Word has Code Field Area (CFA)
 
-; Note if needed we could replace the expicit HC flag with a calculation,
+; Note if needed we could replace the explicit HC flag with a calculation,
 ; but the extra effort doesn't seem worth it unless we really need the bit
 ; see `has_cfa` in the closed PR https://github.com/SamCoVT/TaliForth2/pull/122/files
-
-; VARIOUS
-
-MAX_LINE_LENGTH  = 79      ; assumes 80 character lines
 
 ; END

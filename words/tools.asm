@@ -575,15 +575,14 @@ _loop:
                 pla
                 clc
                 adc 0,x
-                ina                     ; don't forget the space between words
-                cmp #MAX_LINE_LENGTH    ; usually 79
+                cmp #TALI_OPTION_MAX_COLS    ; typically 80
                 bcc +
 
                 jsr w_cr
 
-                lda 0,x                 ; After going to next line, start
-                ina                     ; with length of this word.
+                lda 0,x                 ; After newline, reset to length of this word.
 +
+                ina                     ; don't forget the space between words
                 pha
                 jsr w_type             ; ( nt )
 

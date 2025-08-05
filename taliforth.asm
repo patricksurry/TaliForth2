@@ -19,7 +19,7 @@ TALI_OPTIONAL_WORDS :?= [ "ed", "editor", "ramdrive", "block", "facility", "envi
 ; Default line ending is line feed.
 TALI_OPTION_CR_EOL :?= [ "lf" ]
 
-; Hint for screen width.  Selects narrow implementation of DUMP when <74
+; Hint for screen width, used for line wrap in WORDS and chooses narrow vs wide implementation of DUMP.
 TALI_OPTION_MAX_COLS :?= 80
 
 ; Default to verbose strings
