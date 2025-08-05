@@ -175,8 +175,8 @@ TALI_OPTION_CR_EOL := [ "lf" ]
 ; TALI_OPTION_CR_EOL := [ "cr", "lf" ]
 ```
 You can also tell Tali how wide your screen so that it can provide
-better multi-line output.  Currently this only affects the word DUMP,
-where an alternative implementation is used with less than 74 columns.
+better multi-line output.  Currently this controls line-wrapping in WORDS
+and switches to a narrow implementation of DUMP under 74 columns.
 ```
 TALI_OPTION_MAX_COLS := 80
 ```
