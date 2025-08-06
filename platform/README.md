@@ -11,11 +11,11 @@ IO with the c65 emulator is `c65/platform.asm`.   These both assume a memory lay
 with at least 32Kb of ROM.  The `minimal/platform.asm` configuration strips out
 a number of optional features to run in 12-16Kb of ROM.
 
-Other configurations are included to make life easier for individual developers,
+Other platforms are included to make life easier for individual developers,
 along with `skeleton/platform.asm` as a template for people who want to port Tali to their own hardware.
 Those not mentioned above may not be up to date with the latest changes: *caveat emptor*.
 
-A configuration file is simply a [64tass](https://tass64.sourceforge.net/)
+A platform file is simply a [64tass](https://tass64.sourceforge.net/)
 `.asm` file that customizes Tali's memory layout and feature set by
 overriding default parameters.  The configuration then includes the global
 `taliforth.asm` and finally defines the basic I/O routines that Tali uses
@@ -23,12 +23,21 @@ to get and put characters.  The configuration can optionally include platform-sp
 words written in either assembly or Forth.
 
 By default the top-level `make` will build `taliforth-py65mon.bin`.
-To build for a different platform simply specify the binary corresponding
-to the platform's folder name on the end. For example build a 16K image with:
+To build for a different platform simply specify the name of the platform
+folder.  For example build a 16K image with:
 
-    make taliforth-minimal.bin
+    make minimal
 
-This will use the platform.asm file from the minimal folder.
+This will use the configuration defined in `platforms/minimal/platform.asm`
+and produce a binary called `taliforth-minimal.bin` at the top level
+along with listing and label (symbol) files in the platform folder.
+
+If the platform supports multiple sub-configurations---for example
+a version that runs on the c65 simulator as opposed to physical 
+hardware---add a CONFIG value to the make command.  This will
+produce a binary called `taliforth-uc-c65.bin`.
+
+    make uc CONFIG=c65
 
 ## Creating or modifying a configuration
 
@@ -49,6 +58,9 @@ The configuration has these responsibilities:
    and `kernel_kbhit` (optional), along with the `s_kernel_id` string to show on startup.
 
 4. Define the 65c02 reset and interrupt vectors at $fffa-$ffff, if needed.
+
+5. (optional) If your platform is configurable, use conditional assembly
+   based on the `CONFIG` symbol, e.g. `.if CONFIG="c65" ... .endif`.
 
 ### Tali Forth 2 memory layout
 
