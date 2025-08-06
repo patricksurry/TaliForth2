@@ -32,12 +32,13 @@ This will use the configuration defined in `platforms/minimal/platform.asm`
 and produce a binary called `taliforth-minimal.bin` at the top level
 along with listing and label (symbol) files in the platform folder.
 
-If the platform supports multiple sub-configurations---for example
-a version that runs on the c65 simulator as opposed to physical 
-hardware---add a CONFIG value to the make command.  This will
-produce a binary called `taliforth-uc-c65.bin`.
+If the platform supports multiple variants---for example
+one version that runs on the c65 simulator and one for physical 
+hardware---specify the VARIANT name in the make command:  
 
-    make uc CONFIG=c65
+    make uc VARIANT=c65
+
+This will produce a binary called `taliforth-uc-c65.bin`.
 
 ## Creating or modifying a configuration
 
@@ -59,8 +60,8 @@ The configuration has these responsibilities:
 
 4. Define the 65c02 reset and interrupt vectors at $fffa-$ffff, if needed.
 
-5. (optional) If your platform is configurable, use conditional assembly
-   based on the `CONFIG` symbol, e.g. `.if CONFIG="c65" ... .endif`.
+5. (optional) If your platform supports multiple variants, use conditional assembly
+   based on the `VARIANT` symbol, e.g. `.if VARIANT="c65" ... .endif`.
 
 ### Tali Forth 2 memory layout
 

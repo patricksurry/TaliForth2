@@ -18,11 +18,11 @@
 #
 #   $ make steckschwein
 #
-# Build a specific configuration of a platform.  Here CONFIG
+# Build a specific variant of a platform.  Here VARIANT
 # is passed as an assembler symbol to drive conditional compilation
 # generating taliforth-uc-c65.bin
 #
-#	$ make uc CONFIG=c65
+#	$ make uc VARIANT=c65
 #
 # Show known platforms:
 #
@@ -62,8 +62,8 @@ endif
 # enumerate the known platforms
 PLATFORMS := $(patsubst platform/%/,%,$(dir $(wildcard platform/*/platform.asm)))
 
-# prepend hyphen to CONFIG if defined
-_CONFIG := $(if $(CONFIG),-${CONFIG},)
+# prepend hyphen to VARIANT if defined
+_VARIANT := $(if $(VARIANT),-${VARIANT},)
 
 COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) stringtable.asm
 TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
@@ -85,29 +85,29 @@ platforms:
 # create a phony target for each platform, so we can do make <platformname> `
 .PHONY: $(PLATFORMS)
 
-# for known platforms, the dummy target should build the configured binary
-# e.g. make sbc CONFIG=dbg should build taliforth-sbc-dbg.bin
-$(PLATFORMS): %: taliforth-%${_CONFIG}.bin
+# For known platforms, the dummy target should build the binary for the selected variant
+# e.g. make sbc VARIANT=dbg should build taliforth-sbc-dbg.bin
+$(PLATFORMS): %: taliforth-%${_VARIANT}.bin
 
 # add dependencies on .asm files within platform or platform/*/
-taliforth-%${_CONFIG}.bin: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
+taliforth-%${_VARIANT}.bin: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --nostart \
-	--list=platform/$*/$*${_CONFIG}-listing.txt \
+	--list=platform/$*/$*${_VARIANT}-listing.txt \
 	--vice-labels \
-	--labels=platform/$*/$*${_CONFIG}-labelmap.txt \
-	-D CONFIG:=\"${CONFIG}\" \
+	--labels=platform/$*/$*${_VARIANT}-labelmap.txt \
+	-D VARIANT:=\"${VARIANT}\" \
 	--output $@ \
 	$<
-	python3 tools/sort_vice_labels.py platform/$*/$*${_CONFIG}-labelmap.txt
+	python3 tools/sort_vice_labels.py platform/$*/$*${_VARIANT}-labelmap.txt
 
-taliforth-%${_CONFIG}.prg: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
+taliforth-%${_VARIANT}.prg: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --cbm-prg \
-	--list=platform/$*/$*${_CONFIG}-listing.txt \
-	--labels=platform/$*/$*${_CONFIG}-labelmap.txt \
-	-D CONFIG:=\"${CONFIG}\" \
+	--list=platform/$*/$*${_VARIANT}-listing.txt \
+	--labels=platform/$*/$*${_VARIANT}-labelmap.txt \
+	-D VARIANT:=\"${VARIANT}\" \
 	--output $@ \
 	$<
-	python3 tools/sort_vice_labels.py platform/$*/$*${_CONFIG}-labelmap.txt
+	python3 tools/sort_vice_labels.py platform/$*/$*${_VARIANT}-labelmap.txt
 
 # Compact the Forth word definitons for inclusion in the binary.
 # This will only process the file if it exists.
