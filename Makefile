@@ -32,7 +32,8 @@
 # The cxxx targets use the C-based c65 simulator rather than the default
 # py65mon python simulator.  This runs 10-100x faster but
 # lacks py65mon's monitor facilities for debugging.
-# c65 should build automatically from the sources in `c65/`.
+# See https://github.com/patricksurry/c65
+# c65 should build automatically as a submodule in `tools/c65/`.
 # It's been tested on posix-based systems like OS X and Windows WSL
 # (see https://learn.microsoft.com/en-us/windows/wsl/install).
 # A native Windows port for mingw is still TODO
@@ -58,13 +59,13 @@ TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests
     tests/tools.fs tests/block.fs tests/search.fs tests/user.fs tests/cycles.fs
 TEST_SOURCES=tests/talitest.py $(TEST_SUITE)
 
-C65=c65/c65
-C65_SOURCES=c65/*.c c65/*.h
+C65_DIR=tools/c65
+C65=$(C65_DIR)/c65
 
 all: taliforth-py65mon.bin docs/WORDLIST.md
 clean:
 	$(RM) *.bin *.prg
-	make -C c65 clean
+	make -C $(C65_DIR) clean
 
 taliforth-%.bin: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --nostart \
@@ -110,8 +111,18 @@ docs/WORDLIST.md: tools/generate_wordlist.py taliforth-py65mon.bin
 # Some convenience targets to make running the tests and simulation easier.
 
 # Build the c65 simulator
-$(C65): $(C65_SOURCES)
-	make -C c65
+# After a normal git clone of Taliforth, c65 is still an empty folder
+# so init and update the module if the Makefile is missing
+$(C65_DIR)/Makefile:
+	git submodule init
+	git submodule update $(C65_DIR)
+
+# Always check to see if c65 needs rebuilt
+# but also make sure we have sources checked out first
+.PHONY: c65check
+
+$(C65): $(C65_DIR)/Makefile c65check
+	make -C $(C65_DIR)
 
 # Convenience target for regular tests.
 tests:	tests/results.txt
@@ -134,7 +145,7 @@ sim: taliforth-py65mon.bin
 	py65mon -m 65c02 -r taliforth-py65mon.bin
 
 csim: $(C65) taliforth-c65.bin
-	$(C65) -r taliforth-c65.bin
+	$(C65) -qq -r taliforth-c65.bin
 
 # Some convenience targets for the documentation.
 docs/manual.html: docs/*.adoc

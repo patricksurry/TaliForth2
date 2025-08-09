@@ -396,7 +396,7 @@ _show_header:
                 ; any calculated (synthetic) flag values
                 lda (2,x)               ; grab physical status flags @ NT
                 pha                     ; save a copy of flags for later
-                jsr push_ya_tos         ; ( nt xt flags ) leaving MSB of flags for synthetic flags
+                jsr push_a_tos          ; ( nt xt flags ) leaving MSB of flags for synthetic flags
 
                                         ; ( nt xt flags )
                 ; collect synthetic flags in reverse order for template

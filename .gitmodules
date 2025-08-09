@@ -1,0 +1,3 @@
+[submodule "tools/c65"]
+	path = tools/c65
+	url = https://github.com/patricksurry/c65

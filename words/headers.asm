@@ -509,6 +509,7 @@ nt_question:
 #nt_header store, "!"
 #nt_header swap
 #nt_header dup
+nt_drop:
 #nt_header drop                 ; DROP is always the first native word in the Dictionary
 
 dictionary_start = prev_nt

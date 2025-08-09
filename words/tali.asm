@@ -214,8 +214,8 @@ w_find_name:
                 beq _fail_done
 
                 ; Truncate names longer than the max allowed (31).
-                lda #31
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .byte 31
                 jsr w_min
 
                 ; Set up for traversing the wordlist search order.
@@ -276,7 +276,7 @@ z_find_name:    rts
 
 xt_havekey:
 w_havekey:
-                jsr literal_runtime
+                jsr push_inline_literal
                 .word havekey
 z_havekey:      rts
 
@@ -360,7 +360,7 @@ z_hexstore:     rts
 
 xt_input:
 w_input:
-                jsr literal_runtime
+                jsr push_inline_literal
                 .word input
 z_input:        rts
 
@@ -877,7 +877,7 @@ w_output:
         ; kernel_putc routine, but this can be changed by the user, hence this
         ; routine.
         ; """
-                jsr literal_runtime
+                jsr push_inline_literal
                 .word output
 z_output:       rts
 

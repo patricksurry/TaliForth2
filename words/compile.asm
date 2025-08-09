@@ -116,8 +116,9 @@ _no_st:
                 ; ( xt xt u ) if ST else ( 0 xt u )
                 bcc _check_uf           ; no stack juggling to skip?
 
-                jsr literal_runtime
-                .word 5                 ; skip the standard 5 byte stack juggling byte header
+                ; skip the standard 5 byte stack juggling byte header
+                jsr push_inline_bliteral
+                .byte 5
                 jsr w_slash_string
 
                 ; ( xt|0 xt+sz u-sz )
@@ -141,8 +142,8 @@ _check_uf:
 
                 ; Ready to remove the 3 byte underflow check.
 
-                jsr literal_runtime
-                .word 3
+                jsr push_inline_bliteral
+                .byte 3
                 jsr w_slash_string
 
 _check_limit:
@@ -287,12 +288,6 @@ cmpl_jump_later:
                 inc 1,x
                 bra cmpl_jump_ya
 
-cmpl_call_ya:
-                ; This is the entry point to compile JSR <ADDR=Y/A>
-                pha             ; save LSB of address
-                lda #OpJSR      ; load opcode for JSR and fall through
-                bra cmpl_op_ya
-
 xt_again:
                 jsr underflow_1
 w_again:
@@ -313,7 +308,9 @@ cmpl_op_ya:
                 pla             ; retrieve address LSB; fall thru to cmpl_word
                 ; fall through
 cmpl_word_ya:
+cmpl_op_y:
                 ; This is the entry point to compile a word in Y/A (little-endian)
+                ; or equivalent an opcode in A and operand in Y
                 jsr cmpl_a      ; compile LSB of address
                 tya             ; fall thru for MSB
 cmpl_a:
@@ -352,9 +349,9 @@ cmpl_0branch_setup:
 
                 ; First decide whether to inline or call the runtime.
                 ; Both start with the zero test
-                jsr two_literal_runtime
-                ;TODO strictly speaking we should include the appended branch size
-                .word ztest_runtime_size        ; TOS with NUXI order
+                jsr push_inline_addru_literal
+                ;TODO strictly speaking we should also include the appended branch size
+                .byte ztest_runtime_size        ; TOS with NUXI order
                 .word zero_branch_runtime       ; NOS
                 jsr cmpl_by_limit               ; leaves C=1 if inline
 
@@ -375,8 +372,8 @@ cmpl_zbranch_common:                            ; entrypoint for w_of
                 jmp w_comma                     ; add the payload and return
 
 _inline:
-                ; we inlined the test, now compile the branch to test the zero flag
-                ; check if we can use a short relative branch or need a long jmp
+                ; we inlined the test, so compile the branch to test the zero flag
+                ; first check if we can use a short relative branch or need a long jmp
                 ; the short form 'beq target' will work if addr - (here + 2) fits in a signed byte
 
                 beq _long               ; always use long form for unknown dest
@@ -385,8 +382,8 @@ _inline:
                 jsr w_dup
                 jsr w_here
 
-                jsr literal_runtime
-                .word 2
+                jsr push_inline_bliteral
+                .byte 2
                 jsr w_plus
                 jsr w_minus
 

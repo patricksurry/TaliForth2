@@ -247,13 +247,7 @@ _command_mode:
                 ; more than just a dot here. We now need to see if the next
                 ; character is a comma or a command character. To do this, we
                 ; need to modify the stack to ( addr-t u-t para1 0 addr u )
-                lda cib
-                ldy cib+1
-                jsr push_ya_tos
-
-                lda ciblen
-                ldy ciblen+1
-                jsr push_ya_tos
+                jsr w_source            ; push cib, cliben
 
                 jsr w_one_minus        ; ( addr-t u-t para1 0 addr u-1 )
                 jsr w_swap             ; ( addr-t u-t para1 0 u-1 addr )
@@ -367,13 +361,7 @@ _prefix_number:
                 jsr w_zero
                 jsr w_zero              ; ( addr-t u-t 0 0 0 0 )
 
-                lda cib
-                ldy cib+1
-                jsr push_ya_tos         ; ( addr-t u-t 0 0 0 0 cib )
-
-                lda ciblen
-                ldy ciblen+1
-                jsr push_ya_tos         ; ( addr-t u-t 0 0 0 0 cib ciblen )
+                jsr w_source            ; ( addr-t u-t 0 0 0 0 cib ciblen )
 
                 jsr w_to_number         ; ( addr-t u-t 0 0 ud addr2 u2 )
 
@@ -848,15 +836,9 @@ _add_line:
                 jsr w_here      ; HERE ( addr-t u-t here here2 here3 )
                 jsr w_dup       ; DUP ( addr-t u-t here here2 here3 here3 )
 
-                lda cib
-                ldy cib+1
-                jsr push_ya_tos ; ( addr-t u-t here here2 here3 here3 cib )
-
-                jsr w_swap      ; SWAP ( addr-t u-t here here2 here3 cib here3 )
-
-                lda ciblen
-                lda ciblen+1
-                jsr push_ya_tos ; ( addr-t u-t here here2 here3 cib here3 ciblen )
+                jsr w_source    ; SOURCE ( addr-t u-t here here2 here3 here3 cib ciblen )
+                jsr w_rot
+                jsr w_swap      ; SWAP ( addr-t u-t here here2 here3 cib here3 ciblen )
 
                 jsr w_move      ; ( addr-t u-t here here2 here3 )
 
@@ -1392,8 +1374,8 @@ _cmd_w_loop:
                 ; memory, so we need to add one
                 jsr w_dup              ; DUP ( addr-h addr-t1 addr-t1 ) ( R: addr-t )
 
-                lda #AscLF              ; ASCII for LF
-                jsr push_a_tos         ; ( addr-h addr-t1 addr-t1 c ) ( R: addr-t )
+                jsr push_inline_bliteral        ; ( addr-h addr-t1 addr-t1 c ) ( R: addr-t )
+                .byte AscLF             ; ASCII for LF
 
                 jsr w_swap             ; SWAP ( addr-h addr-t1 c addr-t1 ) ( R: addr-t )
                 jsr w_store            ; ! ( addr-h addr-t1 ) ( R: addr-t )
@@ -1552,7 +1534,7 @@ ed_last_line:
 
                 ; Set counter to zero
                 jsr w_zero
-                jsr literal_runtime     ; ( 0 addr )
+                jsr push_inline_literal ; ( 0 addr )
                 .word ed_head
 
 _last_line_loop:
@@ -1607,7 +1589,7 @@ ed_num_to_addr:
 
                 ; One way or another we're going to start with the
                 ; address of the pointer to the head of the list
-                jsr literal_runtime     ; ( u addr-h )
+                jsr push_inline_literal ; ( u addr-h )
                 .word ed_head
 
                 ; Handle the case where the line number is zero
@@ -1616,32 +1598,32 @@ ed_num_to_addr:
                 bne _num_to_addr_loop
 
                 ; It's zero, so we're already done
-                jsr w_nip              ; ( addr-h )
+                jsr w_nip               ; ( addr-h )
                 bra _num_to_addr_done
 
 _num_to_addr_loop:
                 ; Get the first line
-                jsr w_fetch            ; @ ( u addr1 )
+                jsr w_fetch             ; @ ( u addr1 )
 
                 ; If that's zero, we're at the end of the list and it's over
                 lda 0,x
                 ora 1,x
                 bne +
 
-                jsr w_nip              ; NIP ( addr1 )
+                jsr w_nip               ; NIP ( addr1 )
                 bra _num_to_addr_done
 +
                 ; It's not zero. See if this is the nth element we're looking
                 ; for
-                jsr w_swap             ; SWAP ( addr1 u )
-                jsr w_one_minus        ; 1- ( addr1 u-1 )
+                jsr w_swap              ; SWAP ( addr1 u )
+                jsr w_one_minus         ; 1- ( addr1 u-1 )
 
                 lda 0,x
                 ora 1,x
                 beq _num_to_addr_finished
 
                 ; Not zero yet, try again
-                jsr w_swap             ; SWAP ( u-1 addr1 )
+                jsr w_swap              ; SWAP ( u-1 addr1 )
 
                 bra _num_to_addr_loop
 

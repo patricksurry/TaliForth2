@@ -81,8 +81,8 @@ w_editor_el:
                 jsr w_editor_line
 
                 ; Put 64 (# of chars/line) on the stack.
-                lda #64
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .byte 64
 
                 ; Fill with spaces.
                 jsr w_blank
@@ -111,7 +111,7 @@ w_editor_l:
                 ; We're using sliteral, so we need to set up the
                 ; appropriate data structure (see sliteral)
 
-                jsr sliteral_runtime
+                jsr push_inline_sliteral
                 .word _after_screen_msg-_screen_msg
 _screen_msg:
                 .text "Screen #"
@@ -122,8 +122,8 @@ _after_screen_msg:
                 ; Put the screen number and printed size for u.r on the stack.
                 jsr w_scr
                 jsr w_fetch
-                lda #4          ; four spaces
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .byte 4             ; four spaces
                 jsr w_u_dot_r
 
                 ; The address of the buffer is currently on the stack.
@@ -143,8 +143,8 @@ _line_loop:
 
                 ; Print one line using the address on the stack.
                 jsr w_dup
-                lda #64
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .byte 64
                 jsr w_type
 
                 ; Add 64 to the address on the stack to move to the next line.
@@ -214,18 +214,18 @@ w_editor_o:
 
                 ; Accept new input (directly into the buffer)
                 jsr w_editor_line
-                jsr w_dup      ; Save a copy of the line address for later.
-                lda #64         ; chars/line
-                jsr push_a_tos
+                jsr w_dup       ; Save a copy of the line address for later.
+                jsr push_inline_bliteral
+                .byte 64        ; chars/line
                 jsr w_accept
 
                 ; Fill the rest with spaces.
                 ; Stack is currently ( line_address numchars_from_accept )
                 jsr w_dup
-                jsr w_not_rot  ; -rot
+                jsr w_not_rot   ; -rot
                 jsr w_plus
-                lda #64         ; chars/line
-                jsr push_a_tos
+                jsr push_inline_bliteral
+                .byte 64        ; chars/line
                 jsr w_rot
                 jsr w_minus
                 jsr w_blank

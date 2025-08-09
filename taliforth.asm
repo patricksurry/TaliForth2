@@ -591,7 +591,7 @@ compare_16bit:
         ;       if TOS = NOS: Z=1 and N=0
         ;       if TOS > NOS: Z=0 and C=1
         ;       if TOS < NOS: Z=0 and C=0
-        ; Compared to the book routine, WORD1 (MINUED) is TOS
+        ; Compared to the book routine, WORD1 (MINUEND) is TOS
         ;                               WORD2 (SUBTRAHEND) is NOS
         ; """
                 ; Compare LSB first to set the carry flag
