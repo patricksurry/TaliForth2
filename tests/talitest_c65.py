@@ -22,7 +22,7 @@ import subprocess
 TESTER = 'tester.fs'
 RESULTS = 'results.txt'
 BLOCK_FILE = 'blocks.bin'
-C65_LOCATION = '../c65/c65'
+C65_LOCATION = '../tools/c65/c65'
 TALIFORTH_LOCATION = '../taliforth-c65.bin'
 TALI_ERRORS = ['Undefined word',
                'Stack underflow',

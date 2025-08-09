@@ -121,12 +121,12 @@ w_block_c65_init:
                 tya                     ; check zero status
                 beq z_block_c65_init    ; if failed, skip vector setup
 
-                jsr literal_runtime     ; set block read/write vectors
+                jsr push_inline_literal ; set block read/write vectors
                 .word c65_blk_read
                 jsr w_block_read_vector
                 jsr w_store
 
-                jsr literal_runtime
+                jsr push_inline_literal
                 .word c65_blk_write
                 jsr w_block_write_vector
                 jsr w_store
@@ -169,7 +169,7 @@ w_block_ramdrive_init:
                 ; See SLITERAL for the format information. This way, we
                 ; don't have the words defined below in the Dictionary until
                 ; we really use them.
-                jsr sliteral_runtime
+                jsr push_inline_sliteral
                 .word ramdrive_code_end-ramdrive_code
 ramdrive_code:
                 .text "base @ swap decimal"
@@ -413,9 +413,8 @@ w_load:
                 jsr w_block
 
                 ; Put 1024 on the stack for the screen length.
-                ldy #4
-                lda #0
-                jsr push_ya_tos
+                jsr push_inline_literal
+                .word 1024
 
                 ; Jump to a special evaluate target. This bypasses the underflow
                 ; check and skips the zeroing of BLK.
