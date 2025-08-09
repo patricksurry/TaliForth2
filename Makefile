@@ -51,7 +51,7 @@ else
 	TODAY := "\"$(shell date +%Y-%m-%d)\""
 endif
 
-GIT_IDENT := "\"$(shell git describe  --dirty --always --tags)\""
+GIT_IDENT := "\"$(shell git describe --dirty --always --tags 2>/dev/null || echo unknown)\""
 
 COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) stringtable.asm
 TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
@@ -114,8 +114,12 @@ docs/WORDLIST.md: tools/generate_wordlist.py taliforth-py65mon.bin
 # After a normal git clone of Taliforth, c65 is still an empty folder
 # so init and update the module if the Makefile is missing
 $(C65_DIR)/Makefile:
+ifeq (, $(shell git --version 2>/dev/null))
+	$(error 'git' not found, can't initialize c65 submodule)
+else
 	git submodule init
 	git submodule update $(C65_DIR)
+endif
 
 # Always check to see if c65 needs rebuilt
 # but also make sure we have sources checked out first
