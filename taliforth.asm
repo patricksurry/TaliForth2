@@ -14,7 +14,7 @@
 ; including this file.
 
 ; Assemble all words unless overridden in the platform file.
-TALI_OPTIONAL_WORDS :?= [ "ed", "editor", "ramdrive", "block", "facility", "environment?", "assembler", "wordlist" ]
+TALI_OPTIONAL_WORDS :?= [ "ed", "editor", "ramdrive", "block", "facility", "environment?", "assembler", "disassembler", "wordlist" ]
 
 ; Default line ending is line feed.
 TALI_OPTION_CR_EOL :?= [ "lf" ]

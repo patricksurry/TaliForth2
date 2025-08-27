@@ -26,7 +26,7 @@ ram_end = $8000-1
 
 
 ; OPTIONAL WORDSETS
-TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
+TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "facility", "environment?", "assembler", "disassembler", "wordlist" ]
 ; Neo6502 uses CR
 TALI_OPTION_CR_EOL := [ "cr" ]
 
