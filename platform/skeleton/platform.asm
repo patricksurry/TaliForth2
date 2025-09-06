@@ -14,7 +14,7 @@ ram_end = $7fff
 
 ; Explicitly list the optional features we want, or omit to get all features by default
 
-TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "facility", "environment?", "assembler", "disassembler", "wordlist" ]
+;TALI_OPTIONAL_WORDS := [ "ed", ... ]
 
 ; "ed" is a string editor. (~1.5K)
 ; "editor" is a block editor. (~0.25K)

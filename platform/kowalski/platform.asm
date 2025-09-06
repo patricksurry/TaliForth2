@@ -26,7 +26,7 @@ ram_end = $7fff
 ; assembled.  If TALI_OPTIONAL_WORDS is not defined in your platform file,
 ; you will get all of the words.
 
-TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "environment?", "assembler", "disassembler", "wordlist" ]
+;TALI_OPTIONAL_WORDS := [ "ed", ... ]
 
 ; "ed" is a string editor. (~1.5K)
 ; "editor" is a block editor. (~0.25K)
@@ -161,8 +161,8 @@ kernel_putc:
         ; It's a LF, so send a CR as well.
         lda #$0D
         sta $e001
-kernel_putc_done:   
-    
+kernel_putc_done:
+
         rts
 
 ; The kernel_bye routine will be called when the Forth word BYE is run.
@@ -171,7 +171,7 @@ kernel_putc_done:
 ; simulators and will end up restarting Tali on others.
 kernel_bye:
     brk
-    
+
 
 ; Leave the following string as the last entry in the kernel routine so it
 ; is easier to see where the kernel ends in hex dumps. This string is

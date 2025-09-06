@@ -25,8 +25,9 @@ ram_end = $8000-1
 ; I/O facilities are handled in these separate kernel files because of their
 
 
-; OPTIONAL WORDSETS
-TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "facility", "environment?", "assembler", "disassembler", "wordlist" ]
+; OPTIONAL WORDSETS - include all features by default
+;TALI_OPTIONAL_WORDS := [ "ed", ... ]
+
 ; Neo6502 uses CR
 TALI_OPTION_CR_EOL := [ "cr" ]
 

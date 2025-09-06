@@ -20,7 +20,7 @@ ram_end = $7fff
 
 ; Explicitly list the optional features we want, or omit to get all features by default
 
-TALI_OPTIONAL_WORDS := [ "ed", "editor", "ramdrive", "block", "facility", "environment?", "assembler", "disassembler", "wordlist" ]
+;TALI_OPTIONAL_WORDS := [ "ed", ... ]
 
 ; define what the CR word should emit to kernel_putc at the end of each line
 
