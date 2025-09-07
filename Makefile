@@ -1,5 +1,5 @@
 # Makefile for Tali Forth 2
-# This version: 14. Jan 2020
+# This version: 07. Sep 2025
 
 # Notes: The manual is not automatically updated because not everybody
 # can be expected to have the asciidoc toolchain and ditaa installed.
@@ -14,30 +14,19 @@
 #
 # Build Taliforth 2 for a different platform (steckschwein shown here).
 # There must be a matching platform file in the platform folder.
-# This will generate taliforth-steckschwein.bin
 #
-#   $ make steckschwein
-#
-# Build a specific variant of a platform.  Here VARIANT
-# is passed as an assembler symbol to drive conditional compilation
-# generating taliforth-uc-c65.bin
-#
-#	$ make uc VARIANT=c65
-#
-# Show known platforms:
-#
-#   $ make platforms
+#   $ make taliforth-steckschwein.bin
 #
 # Run tests
 #
 #   $ make tests
-# or
+# or (much faster, but needs gcc installed)
 #   $ make ctests
 #
 # Build and run Taliforth
 #
 #   $ make sim
-# or
+# or (much faster, but needs gcc installed)
 #   $ make csim
 #
 # The cxxx targets use the C-based c65 simulator rather than the default
@@ -71,6 +60,7 @@ PLATFORMS := $(patsubst platform/%/,%,$(dir $(wildcard platform/*/platform.asm))
 # prepend hyphen to VARIANT if defined
 _VARIANT := $(if $(VARIANT),-${VARIANT},)
 
+
 COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) stringtable.asm
 TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
     tests/facility.fs tests/ed.fs tests/asm.fs tests/tali.fs \
@@ -95,9 +85,11 @@ platforms:
 # e.g. make sbc VARIANT=dbg should build taliforth-sbc-dbg.bin
 $(PLATFORMS): %: taliforth-%${_VARIANT}.bin
 
-# add dependencies on .asm files within platform or platform/*/
+# Note, the _VARIANT variable may be empty if no variant defined.
 taliforth-%${_VARIANT}.bin: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --nostart \
+	-D GIT_IDENT=${GIT_IDENT} \
+	-D TODAY=${TODAY} \
 	--list=platform/$*/$*${_VARIANT}-listing.txt \
 	--vice-labels \
 	--labels=platform/$*/$*${_VARIANT}-labelmap.txt \
@@ -108,6 +100,8 @@ taliforth-%${_VARIANT}.bin: platform/%/*.asm platform/%/*/*.asm platform/%/platf
 
 taliforth-%${_VARIANT}.prg: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
 	64tass --cbm-prg \
+	-D GIT_IDENT=${GIT_IDENT} \
+	-D TODAY=${TODAY} \
 	--list=platform/$*/$*${_VARIANT}-listing.txt \
 	--labels=platform/$*/$*${_VARIANT}-labelmap.txt \
 	-D VARIANT:=\"${VARIANT}\" \
@@ -124,6 +118,14 @@ platform/%/platform_forth.asc: platform/%/platform_forth.fs
 # Allow platform_forth.fs and platform_words.asm to be missing.
 platform/%/platform_forth.fs:
 	@echo No platform_forth.fs for this platform.
+platform/%/platform_words.asm:
+	@echo No platform_words.asm for this platform.
+
+# Allow project subdirectories containing .asm files to be be missing.
+platform/%/*/*.asm:
+	@echo No platform subdirectories containing assembly for this platform.
+
+
 
 # Automatically update the wordlist which also gives us the status of the words
 # We need for the binary to be generated first or else we won't be able to find
