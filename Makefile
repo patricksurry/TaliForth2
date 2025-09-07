@@ -14,8 +14,19 @@
 #
 # Build Taliforth 2 for a different platform (steckschwein shown here).
 # There must be a matching platform file in the platform folder.
+# This will generate taliforth-steckschwein.bin
 #
-#   $ make taliforth-steckschwein.bin
+#   $ make steckschwein
+#
+# Build a specific variant of a platform.  Here VARIANT
+# is passed as an assembler symbol to drive conditional compilation
+# generating taliforth-uc-c65.bin
+#
+#	$ make uc VARIANT=c65
+#
+# Show known platforms:
+#
+#   $ make platforms
 #
 # Run tests
 #
@@ -51,7 +62,14 @@ else
 	TODAY := "\"$(shell date +%Y-%m-%d)\""
 endif
 
+# Identify git version (or set to "unknown")
 GIT_IDENT := "\"$(shell git describe --dirty --always --tags 2>/dev/null || echo unknown)\""
+
+# enumerate the known platforms
+PLATFORMS := $(patsubst platform/%/,%,$(dir $(wildcard platform/*/platform.asm)))
+
+# prepend hyphen to VARIANT if defined
+_VARIANT := $(if $(VARIANT),-${VARIANT},)
 
 COMMON_SOURCES=taliforth.asm definitions.asm $(wildcard words/*.asm) stringtable.asm
 TEST_SUITE=tests/core_a.fs tests/core_b.fs tests/core_c.fs tests/string.fs tests/double.fs \
@@ -67,26 +85,35 @@ clean:
 	$(RM) *.bin *.prg
 	make -C $(C65_DIR) clean
 
-taliforth-%.bin: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
-	64tass --nostart \
-	-D GIT_IDENT=${GIT_IDENT} \
-	-D TODAY=${TODAY} \
-	--list=platform/$*/$*-listing.txt \
-	--vice-labels \
-	--labels=platform/$*/$*-labelmap.txt \
-	--output $@ \
-	$<
-	python3 tools/sort_vice_labels.py platform/$*/$*-labelmap.txt
+platforms:
+	@echo Available platforms: $(PLATFORMS)
 
-taliforth-%.prg: platform/%/platform.asm platform/%/platform_words.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
-	64tass --cbm-prg \
-	-D GIT_IDENT=${GIT_IDENT} \
-	-D TODAY=${TODAY} \
-	--list=platform/$*/$*-listing.txt \
-	--labels=platform/$*/$*-labelmap.txt \
+# create a phony target for each platform, so we can do make <platformname> `
+.PHONY: $(PLATFORMS)
+
+# For known platforms, the dummy target should build the binary for the selected variant
+# e.g. make sbc VARIANT=dbg should build taliforth-sbc-dbg.bin
+$(PLATFORMS): %: taliforth-%${_VARIANT}.bin
+
+# add dependencies on .asm files within platform or platform/*/
+taliforth-%${_VARIANT}.bin: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
+	64tass --nostart \
+	--list=platform/$*/$*${_VARIANT}-listing.txt \
+	--vice-labels \
+	--labels=platform/$*/$*${_VARIANT}-labelmap.txt \
+	-D VARIANT:=\"${VARIANT}\" \
 	--output $@ \
 	$<
-	python3 tools/sort_vice_labels.py platform/$*/$*-labelmap.txt
+	python3 tools/sort_vice_labels.py platform/$*/$*${_VARIANT}-labelmap.txt
+
+taliforth-%${_VARIANT}.prg: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
+	64tass --cbm-prg \
+	--list=platform/$*/$*${_VARIANT}-listing.txt \
+	--labels=platform/$*/$*${_VARIANT}-labelmap.txt \
+	-D VARIANT:=\"${VARIANT}\" \
+	--output $@ \
+	$<
+	python3 tools/sort_vice_labels.py platform/$*/$*${_VARIANT}-labelmap.txt
 
 # Compact the Forth word definitons for inclusion in the binary.
 # This will only process the file if it exists.
@@ -97,9 +124,6 @@ platform/%/platform_forth.asc: platform/%/platform_forth.fs
 # Allow platform_forth.fs and platform_words.asm to be missing.
 platform/%/platform_forth.fs:
 	@echo No platform_forth.fs for this platform.
-platform/%/platform_words.asm:
-	@echo No platform_words.asm for this platform.
-
 
 # Automatically update the wordlist which also gives us the status of the words
 # We need for the binary to be generated first or else we won't be able to find
