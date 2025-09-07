@@ -149,10 +149,14 @@ s_kernel_id:
 ; =====================================================================
 ; Include any forth words written in assembly.  These will be added to
 ; the FORTH-WORDLIST.  This must be done BEFORE including taliforth.asm
-; below.
+; below.  Here we're including some words we've defined locally,
+; as well as some words from the example folder.
 .include "platform_words.asm"
+.include "../../examples/words/hash.asm"
 
-.include "../../taliforth.asm" ;
+; =====================================================================
+; Include Tali itself along with all its built-in words
+.include "../../taliforth.asm"
 
 ; Now we've got all of Tali's native code.  This requires about 24Kb
 ; with all options, or as little as 12Kb for a minimal build.
