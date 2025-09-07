@@ -744,11 +744,11 @@ http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx
 `list`:: _ANS block ext_ ( scr# -- ) "List the given screen"
 https://forth-standard.org/standard/block/LIST
 
-`literal`:: _ANS core_ ( n -- ) "Store TOS to be push on stack during runtime"
+`literal`:: _ANS core_ ( n -- ) "Arrange for TOS to be pushed on stack at runtime"
 https://forth-standard.org/standard/core/LITERAL
 Compile-only word to store TOS so that it is pushed on stack
 during runtime. This is a immediate, compile-only word. At runtime,
-it works by calling push_inline_literal or compiling an inline equivalent.
+it works by calling JSR push_inline_literal, or using an inline equivalent.
 
 `load`:: _ANS block_ ( scr# -- ) "Load the Forth code in a screen/block"
 https://forth-standard.org/standard/block/LOAD
