@@ -6,12 +6,25 @@ testing tools words: .s ? dump name>string see state words
 \ TYPE tests
 T{ s" five by five" 2dup capture-output type restore-output compare -> 0 }T
 
+T{
+  \ longer than 256 chars
+  s" Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+  2dup capture-output type restore-output compare -> 0
+}T
+
+T{
+  \ exactly 256 chars
+  s" Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in"
+  dup 256 <> -rot 2dup capture-output type restore-output compare or -> 0
+}T
+
 \ .S tests
 T{ capture-output .s restore-output s" <0> " compare -> 0 }T
 T{ 1 2 3 capture-output .s restore-output s" <3> 1 2 3 " compare -> 1 2 3 0 }T
 T{ hex $12345678. capture-output .s restore-output s" <2> 5678 1234 " compare decimal -> $12345678. 0 }T
 
 \ ? tests
+: clinging-to-life ;    \ ensure following variable has a near pointer
 variable life  42 life !
 T{ capture-output life ? restore-output s" 42 " compare -> 0 }T
 

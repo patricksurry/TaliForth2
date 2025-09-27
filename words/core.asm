@@ -3418,7 +3418,7 @@ z_max:          rts
 ; ## "min"  auto  ANS core
         ; """https://forth-standard.org/standard/core/MIN
         ; Adapted from Lance A. Leventhal "6502 Assembly Language
-        ; Subroutines." Negative Flag indicateds which number is larger. See
+        ; Subroutines." Negative Flag indicates which number is larger. See
         ; http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
         ; """
 
@@ -6484,21 +6484,24 @@ w_type:
                 lda 3,x
                 sta tmp1+1
 
-                lda 0,x         ; partial page to do?
-                beq +
-_page:
-                ldy #0
--
+                ldy #0          ; initialize offset
+
+                lda 0,x
+                beq _check      ; check empty string
+_loop:
                 lda (tmp1),y
                 jsr emit_a      ; avoids stack foolery
                 iny
-                dec 0,x
-                bne -
+                bne +
+                inc tmp1+1
 +
+                dec 0,x
+                bne _loop
+_check:
                 lda 1,x         ; See if we are done
                 beq _cleanup
                 dec 1,x         ; Not done - do another page
-                bra _page
+                bra _loop
 
 _cleanup:
                 ; clean up the stack
