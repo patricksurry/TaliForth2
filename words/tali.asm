@@ -86,6 +86,7 @@ w_cleave:
 
                 jsr w_two_dup
                 ; Make a copy and strip non-whitespace from the tail
+                ; which we'll keep on top of the stack, swapping at the end
 
                 stz 4,x                 ; length of head
                 stz 5,x
@@ -919,6 +920,63 @@ _loop:
                 pha
 
 z_r_to_input: 	rts
+
+
+
+; ## SPLIT ( addr u c -- addr2 u2 addr u1 ) "Split string at c"
+; ## "split"  auto  Gforth
+
+        ; """Implements Gforth $split https://gforth.org/manual/String-words.html
+        ; Splits input string at the first occurrence of character c,
+        ; returning the head addr u1 and the tail addr2 u2.
+        ; If character is found, u1+u2+1=u, otherwise an empty tail
+        ; is returned with u1=u, u2=0.
+        ;
+        ; Example:
+        ; s" banana" [char] a split -> "nana" "b"
+        ; s" banana" [char] z split -> "" "banana"
+        ;
+        ; Compare CLEAVE which splits (and trims) whitespace.
+        ; """
+xt_split:
+                jsr underflow_3
+w_split:
+                ldy 0,x                 ; save and drop character to match
+                sty tmpdsp
+                inx
+                inx
+                jsr w_two_dup
+                ; Make a copy and start looking for character
+                ; We'll work with head at the top of the stack
+                ; so we can use /string, swapping at the end
+
+                stz 4,x                 ; length of head
+                stz 5,x
+_loop:
+                lda 0,x                 ; empty tail?
+                ora 1,x
+                beq _done
+
+                lda (2,x)               ; get first character in tail
+                tay
+
+                ; either way, drop character from tail
+                jsr slash_string_1      ; ( addr+1 u-1 )
+
+                cpy tmpdsp
+                beq _done               ; found!
+
+                ; didn't match, so extend head
+                inc 4,x
+                bne +
+                inc 5,x
++
+                bra _loop
+_done:
+                ; ( addr u1 addr2 u2 )
+                jsr w_two_swap          ; flip to expected order
+
+z_split:       rts
 
 
 

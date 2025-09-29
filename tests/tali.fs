@@ -65,6 +65,11 @@ T{ : s1 s"  " ; -> }T  \ case 7: Single space as word is two empty words
 T{ s1 cleave  s" " compare  -rot  s" " compare -> 0 0 }T
 
 
+\ split
+T{ s" banana" $61 split s" b" compare -rot s" nana" compare -> 0 0 }T
+T{ s" banana" $62 split s" " compare -rot s" anana" compare -> 0 0 }T
+T{ s" banana" $7a split s" banana" compare -rot s" " compare -> 0 0 }T
+
 \ Hexstore: Normal cases
 
 create hs-test 5 allot
