@@ -809,26 +809,6 @@ _done:
                 rts
 
 
-is_whitespace:
-        ; """Given a character in A, check if it is a whitespace
-        ; character, that is, an ASCII value from 0 to 32 (where
-        ; 32 is SPACE). Returns the result in the Carry Flag:
-        ; 0 (clear) is no, it isn't whitespace, while 1 (set) means
-        ; that it is whitespace. See PARSE and PARSE-NAME for
-        ; a discussion of the uses. Does not change A or Y.
-                cmp #00         ; explicit comparison to leave Y untouched
-                bcc _done
-
-                cmp #AscSP+1
-                bcs _failed
-
-                sec
-                bra _done
-_failed:
-                clc
-_done:
-                rts
-
 
 ; =====================================================================
 ; PRINTING ROUTINES

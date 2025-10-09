@@ -96,8 +96,8 @@ _loop:
                 beq _done
 
                 lda (2,x)               ; get first character
-                jsr is_whitespace
-                bcs _done               ; stop on whitespace
+                cmp #AscSP+1            ; is_whitespace: ascii 0-32 => C=0
+                bcc _done               ; stop on whitespace
 
                 ; It's whitespace, move one down
                 jsr slash_string_1      ; ( addr+1 u-1 )
