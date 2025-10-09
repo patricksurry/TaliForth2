@@ -1026,6 +1026,7 @@ https://forth-standard.org/standard/core/SPACE
 `spaces`:: _ANS core_ ( u -- ) "Print a number of spaces"
 https://forth-standard.org/standard/core/SPACES
 
+`split`:: _Gforth_ ( addr u c -- addr2 u2 addr u1 ) "Split string at c"
 `state`:: _ANS core_ ( -- addr ) "Return the address of compilation state flag"
 https://forth-standard.org/standard/core/STATE
 STATE is true when in compilation state, false otherwise. Note

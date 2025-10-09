@@ -35,6 +35,7 @@ RTS instruction at the end of each word.
 | ONE | `1` | Tali Forth | 8 | **auto** |
 | OUTPUT | `output` | Tali Forth | 5 | tested |
 | R_TO_INPUT | `r>input` | Tali Forth | 23 | tested |
+| SPLIT | `split` | Gforth | 43 | **auto** |
 | STRIP_UNDERFLOW | `strip-underflow` | Tali Forth | 5 | tested |
 | TWO | `2` | Tali Forth | 8 | **auto** |
 | USERADDR | `useraddr` | Tali Forth | 10 | tested |
@@ -291,7 +292,7 @@ RTS instruction at the end of each word.
 | TO_ORDER | `>order` | Gforth search | 18 | **auto** |
 | WORDLIST | `wordlist` | ANS search | 19 | **auto** |
 
-Found **283** native words in `words/*.asm`.
-Of those, **245** were automatically tested and
+Found **284** native words in `words/*.asm`.
+Of those, **246** were automatically tested and
           **1** are not marked as tested at all.
 
