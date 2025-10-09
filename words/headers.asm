@@ -361,6 +361,7 @@ nt_unloop:
 #nt_header do, "do", CO+IM+NN
 #nt_header abort_quote, 'abort"', CO+IM+NN
 #nt_header abort
+#nt_header split
 #nt_header strip_underflow, "strip-underflow", NN
 #nt_header nc_limit, "nc-limit", NN
 #nt_header allow_native, "allow-native"
