@@ -793,7 +793,7 @@ http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 `min`:: _ANS core_ ( n n -- n ) "Keep smaller of two numbers"
 https://forth-standard.org/standard/core/MIN
 Adapted from Lance A. Leventhal "6502 Assembly Language
-Subroutines." Negative Flag indicateds which number is larger. See
+Subroutines." Negative Flag indicates which number is larger. See
 http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 
 `mod`:: _ANS core_ ( n1 n2 -- n ) "Divide NOS by TOS and return the remainder"
