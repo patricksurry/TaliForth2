@@ -356,7 +356,8 @@ z_hexstore:     rts
 
 
 ; ## INCLUDED ( addr u -- ) "EVALUATE for multi-line strings"
-; ## "included" tested ad hoc
+; ## "included" auto  ANS file
+        ; """https://forth-standard.org/standard/file/INCLUDED"""
 
 xt_included:
                 jsr underflow_2
