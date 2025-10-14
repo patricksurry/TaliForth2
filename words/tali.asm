@@ -355,6 +355,38 @@ _done:
 z_hexstore:     rts
 
 
+; ## INCLUDED ( addr u -- ) "EVALUATE for multi-line strings"
+; ## "included" tested ad hoc
+
+xt_included:
+                jsr underflow_2
+w_included:
+                bra _test
+_loop:
+                dex
+                dex
+        .if "lf" in TALI_OPTION_CR_EOL
+                lda #AscLF
+        .else
+                lda #AscCR
+        .endif
+                sta 0,x                 ; ( addr u c )
+                jsr w_split             ; ( tail head )
+                jsr w_two_swap
+                jsr w_two_to_r          ; ( head ) ( R: tail )
+                jsr w_evaluate          ; careful, it might modify stack
+                jsr w_two_r_from        ; ( ... tail )
+_test:
+                lda 0,x
+                ora 1,x
+                bne _loop               ; empty string?
+
+                inx
+                inx
+                inx
+                inx
+z_included:
+                rts
 
 ; ## INPUT ( -- addr ) "Return address of input vector"
 ; ## "input" tested Tali Forth
