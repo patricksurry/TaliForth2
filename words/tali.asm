@@ -355,13 +355,13 @@ _done:
 z_hexstore:     rts
 
 
-; ## INCLUDED ( addr u -- ) "EVALUATE for multi-line strings"
-; ## "included" auto  ANS file
+; ## EVALUATE* ( addr u -- ) "EVALUATE each line of a multi-line string"
+; ## "evaluate*" auto  ANS file
         ; """https://forth-standard.org/standard/file/INCLUDED"""
 
-xt_included:
+xt_evaluate_lines:
                 jsr underflow_2
-w_included:
+w_evaluate_lines:
                 bra _test
 _loop:
                 dex
@@ -382,11 +382,11 @@ _test:
                 ora 1,x
                 bne _loop               ; empty string?
 
+                inx                     ; drop it
                 inx
                 inx
                 inx
-                inx
-z_included:
+z_evaluate_lines:
                 rts
 
 ; ## INPUT ( -- addr ) "Return address of input vector"

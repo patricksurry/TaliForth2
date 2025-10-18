@@ -324,14 +324,14 @@ T{ char +  s" 0+" ' parse execute-parsing evaluate -> 0 }T
 T{ s" myvar" ' variable execute-parsing -> }T
 T{ 2 myvar !  myvar @  -> 2 }T
 
-\ Test nested INCLUDED with multi-line strings and backlash comments
+\ Test nested EVALUATE* with multi-line strings and backlash comments
 s\" 1 + \\ one \n 2 + \\ three" 2constant sp3
-s\" sp3 included \\ three\n sp3 included \\ six \n 1 +" 2constant sp7
+s\" sp3 evaluate* \\ three\n sp3 evaluate* \\ six \n 1 +" 2constant sp7
 
 T{ 0 sp3 evaluate -> 1 }T
-T{ 0 sp3 included -> 3 }T
+T{ 0 sp3 evaluate* -> 3 }T
 T{ 0 sp7 evaluate -> 3 }T
-T{ 0 sp7 included -> 7 }T
+T{ 0 sp7 evaluate* -> 7 }T
 
 old-limit nc-limit !
 

@@ -308,7 +308,7 @@ prev_nt :?= 0
 .endif
 #nt_header cr
 #nt_header havekey
-#nt_header included
+#nt_header evaluate_lines, "evaluate*"
 #nt_header input
 #nt_header output
 #nt_header sign
