@@ -6970,7 +6970,7 @@ w_while:
 z_while:        rts
 
 
-; ## WITHIN ( n1 n2 n3 -- ) "Test n1 within range [n2, n3) or outwith [n3, n2)"
+; ## WITHIN ( n1 n2 n3 -- f ) "Test n1 within range [n2, n3) or outwith [n3, n2)"
 ; ## "within"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/WITHIN
         ;
