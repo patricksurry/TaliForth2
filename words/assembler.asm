@@ -131,15 +131,16 @@ op_find_nt:
                 sta tmp1
                 lda #>nt_asm_end
                 sta tmp1+1
+                bra +                   ; skip first pointer update
 
 _loop:
+                jsr nt_to_nt            ; update tmp1 to previous NT in the list
++
                 jsr nt_to_xt            ; return XT in Y,A
                 cmp tmptos              ; check LSB of this word's XT
                 beq _found
 
-                jsr nt_to_nt            ; update tmp1 to previous NT in the list
-
-                lda tmp1
+                lda tmp1                ; have we checked the last candidate?
                 cmp #<nt_asm_begin
                 bne _loop
 

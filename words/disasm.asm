@@ -63,10 +63,12 @@ _byte_loop:
                 ; use nt_question which will show "?" as the name
                 ; and assume it has length 1
 
+                tay                 ; Y=0
                 lda #>nt_question
                 pha
                 lda #<nt_question
                 pha
+                phy                 ; flag length as 1
                 bra _no_operand
 
 _found:

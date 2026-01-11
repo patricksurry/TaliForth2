@@ -177,6 +177,9 @@ sim: taliforth-py65mon.bin
 csim: $(C65) taliforth-c65.bin
 	$(C65) -qq -r taliforth-c65.bin
 
+cdbg: $(C65) taliforth-c65.bin
+	$(C65) -r taliforth-c65.bin -l platform/c65/c65-labelmap.txt
+
 # Some convenience targets for the documentation.
 docs/manual.html: docs/*.adoc
 	cd docs && asciidoctor -a toc=left manual.adoc
