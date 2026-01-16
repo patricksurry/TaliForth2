@@ -1,15 +1,19 @@
-\ Emulate a 65c02 CPU in a 65c02 Forth
-\ Since our Forth is running in a 64K memory space we restrict the emulator
-\ memory to a smaller size by ignoring high address bits.    For example
-\ setting MBITS to 12 we get 2^12 = 4K bytes of actual emulator memory, with
-\ four ignored address bits.  So there are 16 ways to address each actual emulator
-\ byte.  In particular the reset vector at $fffe always maps to the last two
-\ bytes of emulator memory.
+\ 65c02 inception: emulate the 65c02 CPU with TaliForth running on a 65c02...
+\ This is illustrated by emulating TaliForth's own assembly code for UM*
+\ Tested via https://github.com/SingleStepTests/ProcessorTests/tree/main/wdc65c02
+
+\ Since TaliForth is running in a 64K memory space we restrict the emulator
+\ memory to a smaller memory size by ignoring high address bits.    For example
+\ setting MBITS to 12 gives 2^12 = 4K bytes of emulator memory, with
+\ four ignored address bits.  This means that there are 16 ways to address each
+\ emulator byte.  For testing we avoid tests that address the same emulated memory location
+\ via distinct 16 bit synonyms.  Also note that the reset vector at $fffe-f
+\ will always map to the last two bytes of emulator memory.
 
 12      constant MBITS      \ simulator memory is 1 << MBITS bytes, with upper address bits ignored
-$FFFE   constant RESET      \ always maps to the top two emulator bytes since high bits are ignored
+$FFFE   constant RESET      \ maps to the last two emulator bytes since high bits are ignored
 
-\ create an emulator address mask and reserve emulator memory
+\ create emulator address mask and reserve its memory
 1 MBITS lshift 1-       constant MMASK
 here MMASK 1+ allot     constant MBASE
 
