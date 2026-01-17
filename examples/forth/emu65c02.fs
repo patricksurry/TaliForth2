@@ -107,8 +107,8 @@ DEFER &T    ( adr -- adr' )
 : T     ( adr -- v )    &T C@ ;
 : >T    ( adr v -- )    SWAP &T C! ;
 
-: TM   ['] &M IS &T ;  \ target memory
-: TR   ['] &R IS &T ;  \ target register
+: TM    ( -- )          ['] &M IS &T ;  \ target memory
+: TR    ( -- )          ['] &R IS &T ;  \ target register
 
 : SEXT  ( rel -- v )    DUP ^7 BIT? $ff00 AND OR ;  \ sign extend an 8-bit value
 
