@@ -87,9 +87,9 @@ here 5 allot constant REGISTERS
 %01000000 dup   constant ^6 constant ^V	    \ Overflow
 %10000000 dup   constant ^7 constant ^N	    \ Negative
 
-%100000000  constant ^8
+$100            constant ^8                 \ check for 8 bit carry
 
-: BIT?  ( v mask -- f )  AND 0<> ;           \ test if bit number is set
+: BIT?  ( v mask -- f )  AND 0<> ;          \ test if bit number is set
 
 \ helpers to set or query flags
 
