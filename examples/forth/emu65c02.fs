@@ -1,13 +1,15 @@
 \ 65c02 inception: emulate the 65c02 CPU with TaliForth running on a 65c02...
 \ This is illustrated by emulating TaliForth's own assembly code for UM*
-\ Tested via https://github.com/SingleStepTests/ProcessorTests/tree/main/wdc65c02
+\ Also tested via https://github.com/SingleStepTests/ProcessorTests/tree/main/wdc65c02
+
+\ Note:  STP and WAI are treated as NOP, and decimal mode is not implemented
 
 \ Since TaliForth is running in a 64K memory space we restrict the emulator
-\ memory to a smaller memory size by ignoring high address bits.    For example
-\ setting MBITS to 12 gives 2^12 = 4K bytes of emulator memory, with
+\ memory to a smaller memory footprint by ignoring high address bits.
+\ For example setting MBITS to 12 gives 2^12 = 4K bytes of emulator memory, with
 \ four ignored address bits.  This means that there are 16 ways to address each
-\ emulator byte.  For testing we avoid tests that address the same emulated memory location
-\ via distinct 16 bit synonyms.  Also note that the reset vector at $fffe-f
+\ actual byte.  For testing we avoid tests that address the same actual location
+\ with distinct 16 bit synonyms.  Also note that the reset vector at $fffe-f
 \ will always map to the last two bytes of emulator memory.
 
 12      constant MBITS      \ simulator memory is 1 << MBITS bytes, with upper address bits ignored
@@ -18,7 +20,7 @@ $FFFE   constant RESET      \ maps to the last two emulator bytes since high bit
 here MMASK 1+ allot     constant MBASE
 
 \ helper functions for reading and writing emulator memory
-: &M    ( adr -- adr' ) MMASK AND MBASE + ;     \ convert emulator address to host address
+: &M    ( adr -- adr' ) MMASK AND MBASE + ;     \ emulator address to host address
 : M     ( adr -- v )    &M C@ ;
 : >M    ( adr v -- )    SWAP &M C! ;
 
@@ -26,29 +28,28 @@ here MMASK 1+ allot     constant MBASE
 \ 8 or 16 bits.  So we can't just use @ to fetch two bytes since they aren't
 \ always contiguous in memory.
 
-: W>B   ( adr -- lo hi )    DUP $FF AND SWAP 8 RSHIFT ;
-: B>W   ( lo hi -- adr )    8 LSHIFT OR ;
-: LSB   ( v -- byte )       $ff and ;
+: LSB   ( v -- byte )   $FF AND ;
+: W>B   ( w -- lo hi )  DUP LSB SWAP 8 RSHIFT ;
+: B>W   ( lo hi -- w )  8 LSHIFT OR ;
 
-: MM    ( adr -- adr )  dup M swap 1+ M B>W ;       \ read word from two bytes
-: MMZ   ( zp -- adr )   dup M swap 1+ LSB M B>W ;   \ read word from two bytes in ZP
+: MM    ( adr -- adr )  DUP M SWAP 1+ M B>W ;       \ read word from two bytes
+: MMZ   ( zp -- adr )   DUP M SWAP 1+ LSB M B>W ;   \ read word from two bytes in ZP
 
-0 value PC                  \ define program counter (16 bits)
+\ Define the 16 bit program counter and some helpers
 
-: >PC   ( adr -- )  TO PC ;
-: PC+   ( -- adr )  PC PC 1+ >PC ;
-: PC++  ( -- adr )  PC PC 1+ 1+ >PC ;
+0 value PC
+: >PC   ( adr -- )      TO PC ;
+: PC+   ( -- adr )      PC PC 1+ >PC ;
+: PC++  ( -- adr )      PC PC 1+ 1+ >PC ;
 
-\ reserve a table for the opcode implementations, each a two byte xt
+\ Reserve table of opcode XTs, with helpers to populate and emulate them
+
 here $100 CELLS ALLOT constant OPS
+: op,   ( p xt -- p' )  OVER ! 1+ 1+ ;      \ helper to write XT and inc slot
+: op    ( -- )          PC+ M CELLS OPS + @  EXECUTE ;  \ emulate current opcode
 
-\ helper that writes an xt to the next free slot and moves to the next slot
-: op,   ( p xt -- p' ) over ! 1+ 1+ ;
+\ Reserve register memory and set up access helpers
 
-\ core emulator word which executes the opcode at the PC
-: op    ( -- )      PC+ M CELLS OPS + @  EXECUTE ;
-
-\ reserve register memory
 here 5 allot constant REGISTERS
 0 constant #A
 1 constant #X
@@ -69,11 +70,11 @@ here 5 allot constant REGISTERS
 
 \ Stack management
 
-: PUSH  ( v -- )    S $100 + SWAP >M  S 1- >S ;
-: POP   ( -- v )    S 1+ >S  S $100 + M ;
+: PUSH  ( v -- )        S $100 + SWAP >M  S 1- >S ;
+: POP   ( -- v )        S 1+ >S  S $100 + M ;
 \ push/pull address bytes individually since stack can wrap
-: PUSH2 ( adr -- )  W>B PUSH PUSH ;
-: POP2  ( -- adr )  POP POP B>W ;     \ NB. no flags affected for address pop
+: PUSH2 ( vv -- )       W>B PUSH PUSH ;
+: POP2  ( -- vv )       POP POP B>W ;
 
 \ Flag bits
 
@@ -164,54 +165,55 @@ DEFER &T    ( adr -- adr' )
 
 : %CPR  ( adr #r -- )   R SWAP T - >Z>N> 0< INVERT >C ;
 
-\ For add/subtract we use an xor trick to infer the carry bits from the sum S
-\ using S = A^M^CS, so CS = S^A^M from whence we get the 6502 flags
+\ Note: Decimal mode not implemented for ADC/SBC
+
+\ Use XOR trick for add/subtract to infer the carry bits from the sum S
+\ Start with S = A^M^CS so CS = S^A^M and we can calculate the 6502 flags
 \ via C = C8 (the addition has a carry if carry out of bit 7 is set)
 \ and V = C8^C7 (overflow if the carries in and out of bit 7 differ)
 : A+    ( v -- v )
     A 2DUP XOR -ROT
     ( A^B  B  A )
-    + C? -                  \ calculate S=A+B+C, noting C? is true == -1 when set
-    TUCK XOR                \ calculate A^B^S to get C and V flags
+    + C? -              \ calculate S=A+B+C, noting C? is true == -1 when set
+    TUCK XOR            \ calculate A^B^S to get C and V flags
     ( S  A^B^S )
     DUP ^8 BIT? DUP >C SWAP ^7 BIT? XOR >V
     ( S )
-    LSB  >Z>N>              \ set Z and N leaving byte result
+    LSB  >Z>N>          \ set Z and N leaving byte result
     ;
-: %ADC  ( adr -- )  T A+ >A ;
+: %ADC  ( adr -- )      T A+ >A ;
 \ Reframe subtraction as an addition using twos complement:
 \   -M = 256 - M = 1 + 255 - M = 1 + ~M  where ~M is the inverse of M
 \ Since borrow = 1 - carry we get:
 \   A - M - borrow = A + ~M + 1 - borrow = A + ~M + C
-: %SBC  ( adr -- )  T INVERT A+ >A ;
+: %SBC  ( adr -- )      T INVERT A+ >A ;
 
-: %PHT  ( r -- )    T PUSH ;
-: %PLT  ( r -- )    POP >Z>N> >T ;
+: %PHT  ( r -- )        T PUSH ;
+: %PLT  ( r -- )        POP >Z>N> >T ;
 \ the status register has special behavior
-: %PHP  ( -- )      P ^B OR PUSH ;                  \ set BRK bit
-: %PLP  ( -- )      POP >Z>N> ^G OR ^B INVERT AND >P ;    \ set IGN bit, clr BRK bit
+: %PHP  ( -- )          P ^B OR PUSH ;                      \ set BRK
+: %PLP  ( -- )          POP >Z>N> ^G OR ^B INVERT AND >P ;  \ set IGN clr BRK
 
-: %CLF  ( mask -- ) false swap F>P ;
-: %SEF  ( mask -- ) true  swap F>P ;
+: %CLF  ( mask -- )     FALSE SWAP F>P ;
+: %SEF  ( mask -- )     TRUE  SWAP F>P ;
 
-: %JMP  ( adr -- )  >PC ;
-: %JSR  ( adr -- )  PC 1- PUSH2 >PC ;
-: %RTS  ( -- )      POP2 1+ >PC ;
-: %RTI  ( -- )      %PLP POP2 >PC ;
-: %BRK  ( adr -- )  DROP PC PUSH2 %PHP ^I %SEF RESET MM >PC ;
+: %JMP  ( adr -- )      >PC ;
+: %JSR  ( adr -- )      PC 1- PUSH2 >PC ;
+: %RTS  ( -- )          POP2 1+ >PC ;
+: %RTI  ( -- )          %PLP POP2 >PC ;
+: %BRK  ( adr -- )      DROP PC PUSH2 %PHP ^I %SEF RESET MM >PC ;
 
 : ?JMP  ( adr f -- )    IF >PC ELSE DROP THEN ;
 
-: %BFS  ( adr mask -- )    P AND    ?JMP ;
-: %BFC  ( adr mask -- )    P AND 0= ?JMP ;
+: %BFS  ( adr mask -- ) P AND    ?JMP ;
+: %BFC  ( adr mask -- ) P AND 0= ?JMP ;
 
 : %BBR  ( adr dst bit -- )  ROT T AND 0= ?JMP ;
 : %BBS  ( adr dst bit -- )  ROT T AND    ?JMP ;
 
-: %NOP  ( adr -- )  drop ;
+: %NOP  ( adr -- )      DROP ;          \ Support variable length NOPs
 
 \ Build the opcode table, usually pairing a memory mode with an operator
-\ Note that WAI and STP are not implemented and treated as NOP
 
 OPS
 
@@ -316,7 +318,7 @@ OPS
 :noname		@ZPI	    %NOP    ; op,   \ 62 NOP (zp)       ------
 :noname     @IMPLA      %NOP    ; op,   \ 63 NOP            ------
 :noname		@ZP	        %STZ    ; op,   \ 64 STZ zp         ------
-:noname		@ZP	        %ADC    ; op,   \ 65 ADC zp         NZC--V
+:noname		@ZP	        %ADC    ; op,   \ 65 ADC zp         NZC--V  (no decimal mode)
 :noname		@ZP	        %ROR    ; op,   \ 66 ROR zp         NZC---
 :noname     @ZP     ^6  %RMB    ; op,   \ 67 RMB6 zp        ------
 :noname     @IMPLA      %PLT    ; op,   \ 68 PLA            NZ----
@@ -418,7 +420,7 @@ OPS
 :noname     @IMPLY      %INC    ; op,   \ C8 INY            NZ----
 :noname		@IMM	#A  %CPR    ; op,   \ C9 CMP #dd        NZC---
 :noname     @IMPLX      %DEC    ; op,   \ CA DEX            NZ----
-:noname     @IMPLA      %NOP    ; op,   \ CB WAI            ------  \ not implemented
+:noname     @IMPLA      %NOP    ; op,   \ CB WAI            ------  (not implemented)
 :noname		@ABS	#Y  %CPR    ; op,   \ CC CPY llhh       NZC---
 :noname		@ABS	#A  %CPR    ; op,   \ CD CMP llhh       NZC---
 :noname		@ABS	    %DEC    ; op,   \ CE DEC llhh       NZ----
@@ -434,13 +436,13 @@ OPS
 :noname             ^D  %CLF    ; op,   \ D8 CLD            ----D-
 :noname		@ABSY	#A  %CPR    ; op,   \ D9 CMP llhh,Y     NZC---
 :noname     @IMPLX      %PHT    ; op,   \ DA PHX            ------
-:noname     @IMPLA      %NOP    ; op,   \ DB STP            ------  \ not implemented
+:noname     @IMPLA      %NOP    ; op,   \ DB STP            ------  (not implemented)
 :noname		@ABS	    %NOP    ; op,   \ DC NOP llhh       ------
 :noname		@ABSX	#A  %CPR    ; op,   \ DD CMP llhh,X     NZC---
 :noname		@ABSX	    %DEC    ; op,   \ DE DEC llhh,X     NZ----
 :noname     @ZPREL  ^5  %BBS    ; op,   \ DF BBS5 zp,rr     ------
 :noname		@IMM	#X  %CPR    ; op,   \ E0 CPX #dd        NZC---
-:noname	    @ZPXI	    %SBC    ; op,   \ E1 SBC (zp,X)     NZC--V
+:noname	    @ZPXI	    %SBC    ; op,   \ E1 SBC (zp,X)     NZC--V  (no decimal mode)
 :noname		@ZPI	    %NOP    ; op,   \ E2 NOP (zp)       ------
 :noname     @IMPLA      %NOP    ; op,   \ E3 NOP            ------
 :noname		@ZP	    #X  %CPR    ; op,   \ E4 CPX zp         NZC---
@@ -483,12 +485,13 @@ drop    \ done with the OPS table pointer we've been incrementing
     ['] um* DUP INT>NAME WORDSIZE 1+ ( xt u )
     $400 &M SWAP MOVE
 
-    \ Set up the multiplication by placing args on the emulator's data stack
-    2017 $fc &M !  2027 $fe &M !
     \ Initalize the emulator PC (skip stack check) and stack pointers
     $403 >PC  $fc >X  $ff >S
+    \ Set up the multiplication by placing args on the emulator's data stack
+    2017 $fc &M !  2027 $fe &M !
 
     \ Emulate op codes until we see RTS
+    ." emulating UM* code ... "
     BEGIN op PC M $60 = UNTIL
     \ Share the good news
     ." 2017 * 2027 = " X &M 2@ ud.
