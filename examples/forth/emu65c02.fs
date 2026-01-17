@@ -107,30 +107,30 @@ DEFER &T    ( adr -- adr' )
 : T     ( adr -- v )    &T C@ ;
 : >T    ( adr v -- )    SWAP &T C! ;
 
-: TM    ( -- )          ['] &M IS &T ;  \ target memory
-: TR    ( -- )          ['] &R IS &T ;  \ target register
+: T:M   ( -- )          ['] &M IS &T ;  \ target memory
+: T:R   ( -- )          ['] &R IS &T ;  \ target register
 
 : SEXT  ( rel -- v )    DUP ^7 BIT? $ff00 AND OR ;  \ sign extend an 8-bit value
 
 \ addressing modes that target a memory location or register index
 
-: @IMPLA ( -- r )   #A                                  TR ;   \ implied A
-: @IMPLX ( -- r )   #X                                  TR ;   \ implied X
-: @IMPLY ( -- r )   #Y                                  TR ;   \ implied Y
-: @IMM   ( -- adr ) PC+                                 TM ;   \ #dd
-: @ZP    ( -- adr ) PC+     M                           TM ;   \ zp
-: @ZPX   ( -- adr ) PC+     M       X + LSB             TM ;   \ zp,X
-: @ZPY   ( -- adr ) PC+     M       Y + LSB             TM ;   \ zp,Y
-: @ZPI   ( -- adr ) PC+     M                 MMZ       TM ;   \ (zp)
-: @ZPXI  ( -- adr ) PC+     M       X + LSB   MMZ       TM ;   \ (zp,X)
-: @ZPIY  ( -- adr ) PC+     M                 MMZ   Y + TM ;   \ (zp),Y
-: @ABS   ( -- adr ) PC++    MM                          TM ;   \ llhh
-: @ABSX  ( -- adr ) PC++    MM                      X + TM ;   \ llhh,X
-: @ABSY  ( -- adr ) PC++    MM                      Y + TM ;   \ llhh,Y
-: @ABSI  ( -- adr ) PC++    MM                MM        TM ;   \ (llhh)
-: @ABSXI ( -- adr ) PC++    MM      X +       MM        TM ;   \ (llhh,X)
-: @REL   ( -- adr ) PC+     M  SEXT PC +                TM ;   \ rr
-: @ZPREL ( -- a a ) PC+     M  @REL                     TM ;   \ zp,rr
+: @IMPLA ( -- r )   #A                                  T:R ;   \ implied A
+: @IMPLX ( -- r )   #X                                  T:R ;   \ implied X
+: @IMPLY ( -- r )   #Y                                  T:R ;   \ implied Y
+: @IMM   ( -- adr ) PC+                                 T:M ;   \ #dd
+: @ZP    ( -- adr ) PC+     M                           T:M ;   \ zp
+: @ZPX   ( -- adr ) PC+     M       X + LSB             T:M ;   \ zp,X
+: @ZPY   ( -- adr ) PC+     M       Y + LSB             T:M ;   \ zp,Y
+: @ZPI   ( -- adr ) PC+     M                 MMZ       T:M ;   \ (zp)
+: @ZPXI  ( -- adr ) PC+     M       X + LSB   MMZ       T:M ;   \ (zp,X)
+: @ZPIY  ( -- adr ) PC+     M                 MMZ   Y + T:M ;   \ (zp),Y
+: @ABS   ( -- adr ) PC++    MM                          T:M ;   \ llhh
+: @ABSX  ( -- adr ) PC++    MM                      X + T:M ;   \ llhh,X
+: @ABSY  ( -- adr ) PC++    MM                      Y + T:M ;   \ llhh,Y
+: @ABSI  ( -- adr ) PC++    MM                MM        T:M ;   \ (llhh)
+: @ABSXI ( -- adr ) PC++    MM      X +       MM        T:M ;   \ (llhh,X)
+: @REL   ( -- adr ) PC+     M  SEXT PC +                T:M ;   \ rr
+: @ZPREL ( -- a a ) PC+     M  @REL                     T:M ;   \ zp,rr
 
 \ opcode implementations that act on a register or memory location
 
