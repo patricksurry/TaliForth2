@@ -1,6 +1,6 @@
 \ Test code adapted from TaliForth
 \ These can be run in batch using a command like:
-\ ❯ cat examples/forth/emu65c02.fs examples/forth/emu65c02_test.fs | tools/c65/c65 -r taliforth-c65.bin > results.txt
+\  cat examples/forth/emu65c02.fs examples/forth/emu65c02_test.fs | tools/c65/c65 -r taliforth-c65.bin > results.txt
 
 hex
 
