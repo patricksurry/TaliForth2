@@ -2,7 +2,7 @@
 \ This is illustrated by emulating TaliForth's own assembly code for UM*
 \ Also tested via https://github.com/SingleStepTests/ProcessorTests/tree/main/wdc65c02
 
-\ Note:  STP and WAI are treated as NOP, and decimal mode is not implemented
+\ Note:  STP and WAI are treated as NOP
 
 \ Since TaliForth is running in a 64K memory space we restrict the emulator
 \ memory to a smaller memory footprint by ignoring high address bits.
@@ -103,6 +103,7 @@ $100            constant ^8                 \ check for 8 bit carry
 : >C    ( f -- )        ^C F>P ;                \ set other flags with true/false
 : >V    ( f -- )        ^V F>P ;
 : C?    ( -- f )        P ^C BIT? ;             \ carry flag as true/false
+: D?    ( -- f )        P ^D BIT? ;
 
 \ define T and >T so generic instructions can operate on either register or memory
 DEFER &T    ( adr -- adr' )
@@ -167,7 +168,11 @@ DEFER &T    ( adr -- adr' )
 
 : %CPQ  ( adr #r -- )   Q SWAP T - >Z>N> 0< INVERT >C ;
 
-\ Note: Decimal mode not implemented for ADC/SBC
+: BCD+?  ( v -- v' )
+    D? IF
+        DUP $F AND 9 > 6 AND +
+        $99 > $60 AND +
+    THEN ;
 
 \ Use XOR trick for add/subtract to infer the carry bits from the sum S
 \ Start with S = A^M^CS so CS = S^A^M and we can calculate the 6502 flags
@@ -177,6 +182,7 @@ DEFER &T    ( adr -- adr' )
     A 2DUP XOR -ROT
     ( A^B  B  A )
     + C? -              \ calculate S=A+B+C, noting C? is true == -1 when set
+    BCD+?               \ do BCD adjustment if decimal flag set
     TUCK XOR            \ calculate A^B^S to get C and V flags
     ( S  A^B^S )
     DUP ^8 BIT? DUP >C SWAP ^7 BIT? XOR >V
@@ -203,7 +209,7 @@ DEFER &T    ( adr -- adr' )
 : %JSR  ( adr -- )      PC 1- PUSH2 >PC ;
 : %RTS  ( -- )          POP2 1+ >PC ;
 : %RTI  ( -- )          %PLP POP2 >PC ;
-: %BRK  ( adr -- )      DROP PC PUSH2 %PHP ^I %SEF RESET MM >PC ;
+: %BRK  ( adr -- )      DROP PC PUSH2 %PHP ^I %SEF ^D %CLF RESET MM >PC ;
 
 : ?JMP  ( adr f -- )    IF >PC ELSE DROP THEN ;
 
@@ -320,7 +326,7 @@ OPS
 :noname     @ZPI        %NOP    ; op,   \ 62 NOP (zp)       ------
 :noname     @IMPLA      %NOP    ; op,   \ 63 NOP            ------
 :noname     @ZP         %STZ    ; op,   \ 64 STZ zp         ------
-:noname     @ZP         %ADC    ; op,   \ 65 ADC zp         NZC--V  (no decimal mode)
+:noname     @ZP         %ADC    ; op,   \ 65 ADC zp         NZC--V
 :noname     @ZP         %ROR    ; op,   \ 66 ROR zp         NZC---
 :noname     @ZP     ^6  %RMB    ; op,   \ 67 RMB6 zp        ------
 :noname     @IMPLA      %PLT    ; op,   \ 68 PLA            NZ----
@@ -444,7 +450,7 @@ OPS
 :noname     @ABSX       %DEC    ; op,   \ DE DEC llhh,X     NZ----
 :noname     @ZPREL  ^5  %BBS    ; op,   \ DF BBS5 zp,rr     ------
 :noname     @IMM    #X  %CPQ    ; op,   \ E0 CPX #dd        NZC---
-:noname     @ZPXI       %SBC    ; op,   \ E1 SBC (zp,X)     NZC--V  (no decimal mode)
+:noname     @ZPXI       %SBC    ; op,   \ E1 SBC (zp,X)     NZC--V
 :noname     @ZPI        %NOP    ; op,   \ E2 NOP (zp)       ------
 :noname     @IMPLA      %NOP    ; op,   \ E3 NOP            ------
 :noname     @ZP     #X  %CPQ    ; op,   \ E4 CPX zp         NZC---
