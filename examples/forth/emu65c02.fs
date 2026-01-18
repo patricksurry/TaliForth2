@@ -57,16 +57,18 @@ here 5 allot constant REGISTERS
 3 constant #S               \ stack pointer (8 bit)
 4 constant #P               \ flag register
 
-: &R    ( # -- adr )    REGISTERS + ;
-: R     ( # -- v )      &R C@ ;
-: R!    ( v # -- )      &R C! ;
-: >R    ( # v -- )      SWAP R! ;
+\ use Q for generic register to avoid confusion with return stack words
 
-: A     ( -- v )    #A R ;      : >A    ( v -- )    #A R! ;
-: X     ( -- v )    #X R ;      : >X    ( v -- )    #X R! ;
-: Y     ( -- v )    #Y R ;      : >Y    ( v -- )    #Y R! ;
-: S     ( -- v )    #S R ;      : >S    ( v -- )    #S R! ;
-: P     ( -- v )    #P R ;      : >P    ( v -- )    #P R! ;
+: &Q    ( # -- adr )    REGISTERS + ;
+: Q     ( # -- v )      &Q C@ ;
+: Q!    ( v # -- )      &Q C! ;
+: >Q    ( # v -- )      SWAP Q! ;
+
+: A     ( -- v )    #A Q ;      : >A    ( v -- )    #A Q! ;
+: X     ( -- v )    #X Q ;      : >X    ( v -- )    #X Q! ;
+: Y     ( -- v )    #Y Q ;      : >Y    ( v -- )    #Y Q! ;
+: S     ( -- v )    #S Q ;      : >S    ( v -- )    #S Q! ;
+: P     ( -- v )    #P Q ;      : >P    ( v -- )    #P Q! ;
 
 \ Stack management
 
@@ -108,15 +110,15 @@ DEFER &T    ( adr -- adr' )
 : >T    ( adr v -- )    SWAP &T C! ;
 
 : T:M   ( -- )          ['] &M IS &T ;  \ target memory
-: T:R   ( -- )          ['] &R IS &T ;  \ target register
+: T:Q   ( -- )          ['] &Q IS &T ;  \ target register
 
 : SEXT  ( rel -- v )    DUP ^7 BIT? $ff00 AND OR ;  \ sign extend an 8-bit value
 
 \ addressing modes that target a memory location or register index
 
-: @IMPLA ( -- r )   #A                                  T:R ;   \ implied A
-: @IMPLX ( -- r )   #X                                  T:R ;   \ implied X
-: @IMPLY ( -- r )   #Y                                  T:R ;   \ implied Y
+: @IMPLA ( -- r )   #A                                  T:Q ;   \ implied A
+: @IMPLX ( -- r )   #X                                  T:Q ;   \ implied X
+: @IMPLY ( -- r )   #Y                                  T:Q ;   \ implied Y
 : @IMM   ( -- adr ) PC+                                 T:M ;   \ #dd
 : @ZP    ( -- adr ) PC+     M                           T:M ;   \ zp
 : @ZPX   ( -- adr ) PC+     M       X + LSB             T:M ;   \ zp,X
@@ -134,10 +136,10 @@ DEFER &T    ( adr -- adr' )
 
 \ opcode implementations that act on a register or memory location
 
-: %STR  ( adr r# -- )   R >T ;
+: %STQ  ( adr r# -- )   Q >T ;
 : %STZ  ( adr -- )      0 >T ;
 
-: %LDR  ( adr #r -- )   SWAP T >Z>N> >R ;
+: %LDQ  ( adr #r -- )   SWAP T >Z>N> >Q ;
 \ most transfers are expressed as load from implied register with special case for S
 : %TSX  ( -- )          S  >Z>N>  >X ;
 : %TXS  ( -- )          X  >S ; \ NB no flags are affected
@@ -152,7 +154,7 @@ DEFER &T    ( adr -- adr' )
 : %SMB  ( adr bit -- )  OVER T OR >T ;
 : %RMB  ( adr bit -- )  INVERT OVER T AND >T ;
 
-: %BIT  ( adr -- )      T DUP A AND >Z DUP >N DUP ^6 BIT? >V   ;
+: %BIT  ( adr -- )      T DUP A AND >Z DUP >N ^6 BIT? >V   ;
 \ BIT #dd is a special case where only Z is updated
 : %BIT' ( adr -- )      T A AND >Z ;
 : %TRB  ( adr -- )      DUP T A 2DUP AND >Z INVERT AND >T ;
@@ -163,7 +165,7 @@ DEFER &T    ( adr -- adr' )
 : %ROR  ( adr -- )      C? ^7 AND OVER T DUP ^0 BIT? >C 2/ OR      >Z>N>  >T ;
 : %ROL  ( adr -- )      C? ^0 AND OVER T DUP ^7 BIT? >C 2* OR LSB  >Z>N>  >T ;
 
-: %CPR  ( adr #r -- )   R SWAP T - >Z>N> 0< INVERT >C ;
+: %CPQ  ( adr #r -- )   Q SWAP T - >Z>N> 0< INVERT >C ;
 
 \ Note: Decimal mode not implemented for ADC/SBC
 
@@ -191,8 +193,8 @@ DEFER &T    ( adr -- adr' )
 : %PHT  ( r -- )        T PUSH ;
 : %PLT  ( r -- )        POP >Z>N> >T ;
 \ the status register has special behavior
-: %PHP  ( -- )          P ^B OR PUSH ;                      \ set BRK
-: %PLP  ( -- )          POP >Z>N> ^G OR ^B INVERT AND >P ;  \ set IGN clr BRK
+: %PHP  ( -- )          P ^B OR PUSH ;                  \ set BRK
+: %PLP  ( -- )          POP ^G OR ^B INVERT AND >P ;    \ set IGN clr BRK
 
 : %CLF  ( mask -- )     FALSE SWAP F>P ;
 : %SEF  ( mask -- )     TRUE  SWAP F>P ;
@@ -339,113 +341,113 @@ OPS
 :noname     @ZP     ^7  %RMB    ; op,   \ 77 RMB7 zp        ------
 :noname             ^I  %SEF    ; op,   \ 78 SEI            ---I--
 :noname     @ABSY       %ADC    ; op,   \ 79 ADC llhh,Y     NZC--V
-:noname     @iMPLY      %PLT    ; op,   \ 7A PLY            NZ----
+:noname     @IMPLY      %PLT    ; op,   \ 7A PLY            NZ----
 :noname     @IMPLA      %NOP    ; op,   \ 7B NOP            ------
 :noname     @ABSXI      %JMP    ; op,   \ 7C JMP (llhh,X)   ------
 :noname     @ABSX       %ADC    ; op,   \ 7D ADC llhh,X     NZC--V
 :noname     @ABSX       %ROR    ; op,   \ 7E ROR llhh,X     NZC---
 :noname     @ZPREL  ^7  %BBR    ; op,   \ 7F BBR7 zp,rr     ------
 :noname     @REL        %JMP    ; op,   \ 80 BRA rr         ------
-:noname     @ZPXI   #A  %STR    ; op,   \ 81 STA (zp,X)     ------
+:noname     @ZPXI   #A  %STQ    ; op,   \ 81 STA (zp,X)     ------
 :noname     @ZPI        %NOP    ; op,   \ 82 NOP (zp)       ------
 :noname     @IMPLA      %NOP    ; op,   \ 83 NOP            ------
-:noname     @ZP     #Y  %STR    ; op,   \ 84 STY zp         ------
-:noname     @ZP     #A  %STR    ; op,   \ 85 STA zp         ------
-:noname     @ZP     #X  %STR    ; op,   \ 86 STX zp         ------
+:noname     @ZP     #Y  %STQ    ; op,   \ 84 STY zp         ------
+:noname     @ZP     #A  %STQ    ; op,   \ 85 STA zp         ------
+:noname     @ZP     #X  %STQ    ; op,   \ 86 STX zp         ------
 :noname     @ZP     ^0  %SMB    ; op,   \ 87 SMB0 zp        ------
 :noname     @IMPLY      %DEC    ; op,   \ 88 DEY            NZ----
 :noname     @IMM        %BIT'   ; op,   \ 89 BIT #dd        -Z----  (special case)
-:noname     @IMPLX  #A  %LDR    ; op,   \ 8A TXA            NZ----
+:noname     @IMPLX  #A  %LDQ    ; op,   \ 8A TXA            NZ----
 :noname     @IMPLA      %NOP    ; op,   \ 8B NOP            ------
-:noname     @ABS    #Y  %STR    ; op,   \ 8C STY llhh       ------
-:noname     @ABS    #A  %STR    ; op,   \ 8D STA llhh       ------
-:noname     @ABS    #X  %STR    ; op,   \ 8E STX llhh       ------
+:noname     @ABS    #Y  %STQ    ; op,   \ 8C STY llhh       ------
+:noname     @ABS    #A  %STQ    ; op,   \ 8D STA llhh       ------
+:noname     @ABS    #X  %STQ    ; op,   \ 8E STX llhh       ------
 :noname     @ZPREL  ^0  %BBS    ; op,   \ 8F BBS0 zp,rr     ------
 :noname     @REL    ^C  %BFC    ; op,   \ 90 BCC rr         ------
-:noname     @ZPIY   #A  %STR    ; op,   \ 91 STA (zp),Y     ------
-:noname     @ZPI    #A  %STR    ; op,   \ 92 STA (zp)       ------
+:noname     @ZPIY   #A  %STQ    ; op,   \ 91 STA (zp),Y     ------
+:noname     @ZPI    #A  %STQ    ; op,   \ 92 STA (zp)       ------
 :noname     @IMPLA      %NOP    ; op,   \ 93 NOP            ------
-:noname     @ZPX    #Y  %STR    ; op,   \ 94 STY zp,X       ------
-:noname     @ZPX    #A  %STR    ; op,   \ 95 STA zp,X       ------
-:noname     @ZPY    #X  %STR    ; op,   \ 96 STX zp,Y       ------
+:noname     @ZPX    #Y  %STQ    ; op,   \ 94 STY zp,X       ------
+:noname     @ZPX    #A  %STQ    ; op,   \ 95 STA zp,X       ------
+:noname     @ZPY    #X  %STQ    ; op,   \ 96 STX zp,Y       ------
 :noname     @ZP     ^1  %SMB    ; op,   \ 97 SMB1 zp        ------
-:noname     @IMPLY  #A  %LDR    ; op,   \ 98 TYA            NZ----
-:noname     @ABSY   #A  %STR    ; op,   \ 99 STA llhh,Y     ------
+:noname     @IMPLY  #A  %LDQ    ; op,   \ 98 TYA            NZ----
+:noname     @ABSY   #A  %STQ    ; op,   \ 99 STA llhh,Y     ------
 :noname                 %TXS    ; op,   \ 9A TXS            ------
 :noname     @IMPLA      %NOP    ; op,   \ 9B NOP            ------
 :noname     @ABS        %STZ    ; op,   \ 9C STZ llhh       ------
-:noname     @ABSX   #A  %STR    ; op,   \ 9D STA llhh,X     ------
+:noname     @ABSX   #A  %STQ    ; op,   \ 9D STA llhh,X     ------
 :noname     @ABSX       %STZ    ; op,   \ 9E STZ llhh,X     ------
 :noname     @ZPREL  ^1  %BBS    ; op,   \ 9F BBS1 zp,rr     ------
-:noname     @IMM    #Y  %LDR    ; op,   \ A0 LDY #dd        NZ----
-:noname     @ZPXI   #A  %LDR    ; op,   \ A1 LDA (zp,X)     NZ----
-:noname     @IMM    #X  %LDR    ; op,   \ A2 LDX #dd        NZ----
+:noname     @IMM    #Y  %LDQ    ; op,   \ A0 LDY #dd        NZ----
+:noname     @ZPXI   #A  %LDQ    ; op,   \ A1 LDA (zp,X)     NZ----
+:noname     @IMM    #X  %LDQ    ; op,   \ A2 LDX #dd        NZ----
 :noname     @IMPLA      %NOP    ; op,   \ A3 NOP            ------
-:noname     @ZP     #Y  %LDR    ; op,   \ A4 LDY zp         NZ----
-:noname     @ZP     #A  %LDR    ; op,   \ A5 LDA zp         NZ----
-:noname     @ZP     #X  %LDR    ; op,   \ A6 LDX zp         NZ----
+:noname     @ZP     #Y  %LDQ    ; op,   \ A4 LDY zp         NZ----
+:noname     @ZP     #A  %LDQ    ; op,   \ A5 LDA zp         NZ----
+:noname     @ZP     #X  %LDQ    ; op,   \ A6 LDX zp         NZ----
 :noname     @ZP     ^2  %SMB    ; op,   \ A7 SMB2 zp        ------
-:noname     @IMPLA  #Y  %LDR    ; op,   \ A8 TAY            NZ----
-:noname     @IMM    #A  %LDR    ; op,   \ A9 LDA #dd        NZ----
-:noname     @IMPLA  #X  %LDR    ; op,   \ AA TAX            NZ----
+:noname     @IMPLA  #Y  %LDQ    ; op,   \ A8 TAY            NZ----
+:noname     @IMM    #A  %LDQ    ; op,   \ A9 LDA #dd        NZ----
+:noname     @IMPLA  #X  %LDQ    ; op,   \ AA TAX            NZ----
 :noname     @IMPLA      %NOP    ; op,   \ AB NOP            ------
-:noname     @ABS    #Y  %LDR    ; op,   \ AC LDY llhh       NZ----
-:noname     @ABS    #A  %LDR    ; op,   \ AD LDA llhh       NZ----
-:noname     @ABS    #X  %LDR    ; op,   \ AE LDX llhh       NZ----
+:noname     @ABS    #Y  %LDQ    ; op,   \ AC LDY llhh       NZ----
+:noname     @ABS    #A  %LDQ    ; op,   \ AD LDA llhh       NZ----
+:noname     @ABS    #X  %LDQ    ; op,   \ AE LDX llhh       NZ----
 :noname     @ZPREL  ^2  %BBS    ; op,   \ AF BBS2 zp,rr     ------
 :noname     @REL    ^C  %BFS    ; op,   \ B0 BCS rr         ------
-:noname     @ZPIY   #A  %LDR    ; op,   \ B1 LDA (zp),Y     NZ----
-:noname     @ZPI    #A  %LDR    ; op,   \ B2 LDA (zp)       NZ----
+:noname     @ZPIY   #A  %LDQ    ; op,   \ B1 LDA (zp),Y     NZ----
+:noname     @ZPI    #A  %LDQ    ; op,   \ B2 LDA (zp)       NZ----
 :noname     @IMPLA      %NOP    ; op,   \ B3 NOP            ------
-:noname     @ZPX    #Y  %LDR    ; op,   \ B4 LDY zp,X       NZ----
-:noname     @ZPX    #A  %LDR    ; op,   \ B5 LDA zp,X       NZ----
-:noname     @ZPY    #X  %LDR    ; op,   \ B6 LDX zp,Y       NZ----
+:noname     @ZPX    #Y  %LDQ    ; op,   \ B4 LDY zp,X       NZ----
+:noname     @ZPX    #A  %LDQ    ; op,   \ B5 LDA zp,X       NZ----
+:noname     @ZPY    #X  %LDQ    ; op,   \ B6 LDX zp,Y       NZ----
 :noname     @ZP     ^3  %SMB    ; op,   \ B7 SMB3 zp        ------
 :noname             ^V  %CLF    ; op,   \ B8 CLV            -----V
-:noname     @ABSY   #A  %LDR    ; op,   \ B9 LDA llhh,Y     NZ----
+:noname     @ABSY   #A  %LDQ    ; op,   \ B9 LDA llhh,Y     NZ----
 :noname                 %TSX    ; op,   \ BA TSX            NZ----
 :noname     @IMPLA      %NOP    ; op,   \ BB NOP            ------
-:noname     @ABSX   #Y  %LDR    ; op,   \ BC LDY llhh,X     NZ----
-:noname     @ABSX   #A  %LDR    ; op,   \ BD LDA llhh,X     NZ----
-:noname     @ABSY   #X  %LDR    ; op,   \ BE LDX llhh,Y     NZ----
+:noname     @ABSX   #Y  %LDQ    ; op,   \ BC LDY llhh,X     NZ----
+:noname     @ABSX   #A  %LDQ    ; op,   \ BD LDA llhh,X     NZ----
+:noname     @ABSY   #X  %LDQ    ; op,   \ BE LDX llhh,Y     NZ----
 :noname     @ZPREL  ^3  %BBS    ; op,   \ BF BBS3 zp,rr     ------
-:noname     @IMM    #Y  %CPR    ; op,   \ C0 CPY #dd        NZC---
-:noname     @ZPXI   #A  %CPR    ; op,   \ C1 CMP (zp,X)     NZC---
+:noname     @IMM    #Y  %CPQ    ; op,   \ C0 CPY #dd        NZC---
+:noname     @ZPXI   #A  %CPQ    ; op,   \ C1 CMP (zp,X)     NZC---
 :noname     @ZPI        %NOP    ; op,   \ C2 NOP (zp)       ------
 :noname     @IMPLA      %NOP    ; op,   \ C3 NOP            ------
-:noname     @ZP     #Y  %CPR    ; op,   \ C4 CPY zp         NZC---
-:noname     @ZP     #A  %CPR    ; op,   \ C5 CMP zp         NZC---
+:noname     @ZP     #Y  %CPQ    ; op,   \ C4 CPY zp         NZC---
+:noname     @ZP     #A  %CPQ    ; op,   \ C5 CMP zp         NZC---
 :noname     @ZP         %DEC    ; op,   \ C6 DEC zp         NZ----
 :noname     @ZP     ^4  %SMB    ; op,   \ C7 SMB4 zp        ------
 :noname     @IMPLY      %INC    ; op,   \ C8 INY            NZ----
-:noname     @IMM    #A  %CPR    ; op,   \ C9 CMP #dd        NZC---
+:noname     @IMM    #A  %CPQ    ; op,   \ C9 CMP #dd        NZC---
 :noname     @IMPLX      %DEC    ; op,   \ CA DEX            NZ----
 :noname     @IMPLA      %NOP    ; op,   \ CB WAI            ------  (not implemented)
-:noname     @ABS    #Y  %CPR    ; op,   \ CC CPY llhh       NZC---
-:noname     @ABS    #A  %CPR    ; op,   \ CD CMP llhh       NZC---
+:noname     @ABS    #Y  %CPQ    ; op,   \ CC CPY llhh       NZC---
+:noname     @ABS    #A  %CPQ    ; op,   \ CD CMP llhh       NZC---
 :noname     @ABS        %DEC    ; op,   \ CE DEC llhh       NZ----
 :noname     @ZPREL  ^4  %BBS    ; op,   \ CF BBS4 zp,rr     ------
 :noname     @REL    ^Z  %BFC    ; op,   \ D0 BNE rr         ------
-:noname     @ZPIY   #A  %CPR    ; op,   \ D1 CMP (zp),Y     NZC---
-:noname     @ZPI    #A  %CPR    ; op,   \ D2 CMP (zp)       NZC---
+:noname     @ZPIY   #A  %CPQ    ; op,   \ D1 CMP (zp),Y     NZC---
+:noname     @ZPI    #A  %CPQ    ; op,   \ D2 CMP (zp)       NZC---
 :noname     @IMPLA      %NOP    ; op,   \ D3 NOP            ------
 :noname     @ZPX        %NOP    ; op,   \ D4 NOP zp,X       ------
-:noname     @ZPX    #A  %CPR    ; op,   \ D5 CMP zp,X       NZC---
+:noname     @ZPX    #A  %CPQ    ; op,   \ D5 CMP zp,X       NZC---
 :noname     @ZPX        %DEC    ; op,   \ D6 DEC zp,X       NZ----
 :noname     @ZP     ^5  %SMB    ; op,   \ D7 SMB5 zp        ------
 :noname             ^D  %CLF    ; op,   \ D8 CLD            ----D-
-:noname     @ABSY   #A  %CPR    ; op,   \ D9 CMP llhh,Y     NZC---
+:noname     @ABSY   #A  %CPQ    ; op,   \ D9 CMP llhh,Y     NZC---
 :noname     @IMPLX      %PHT    ; op,   \ DA PHX            ------
 :noname     @IMPLA      %NOP    ; op,   \ DB STP            ------  (not implemented)
 :noname     @ABS        %NOP    ; op,   \ DC NOP llhh       ------
-:noname     @ABSX   #A  %CPR    ; op,   \ DD CMP llhh,X     NZC---
+:noname     @ABSX   #A  %CPQ    ; op,   \ DD CMP llhh,X     NZC---
 :noname     @ABSX       %DEC    ; op,   \ DE DEC llhh,X     NZ----
 :noname     @ZPREL  ^5  %BBS    ; op,   \ DF BBS5 zp,rr     ------
-:noname     @IMM    #X  %CPR    ; op,   \ E0 CPX #dd        NZC---
+:noname     @IMM    #X  %CPQ    ; op,   \ E0 CPX #dd        NZC---
 :noname     @ZPXI       %SBC    ; op,   \ E1 SBC (zp,X)     NZC--V  (no decimal mode)
 :noname     @ZPI        %NOP    ; op,   \ E2 NOP (zp)       ------
 :noname     @IMPLA      %NOP    ; op,   \ E3 NOP            ------
-:noname     @ZP     #X  %CPR    ; op,   \ E4 CPX zp         NZC---
+:noname     @ZP     #X  %CPQ    ; op,   \ E4 CPX zp         NZC---
 :noname     @ZP         %SBC    ; op,   \ E5 SBC zp         NZC--V
 :noname     @ZP         %INC    ; op,   \ E6 INC zp         NZ----
 :noname     @ZP     ^6  %SMB    ; op,   \ E7 SMB6 zp        ------
@@ -453,7 +455,7 @@ OPS
 :noname     @IMM        %SBC    ; op,   \ E9 SBC #dd        NZC--V
 :noname     @IMPLA      %NOP    ; op,   \ EA NOP            ------
 :noname     @IMPLA      %NOP    ; op,   \ EB NOP            ------
-:noname     @ABS    #X  %CPR    ; op,   \ EC CPX llhh       NZC---
+:noname     @ABS    #X  %CPQ    ; op,   \ EC CPX llhh       NZC---
 :noname     @ABS        %SBC    ; op,   \ ED SBC llhh       NZC--V
 :noname     @ABS        %INC    ; op,   \ EE INC llhh       NZ----
 :noname     @ZPREL  ^6  %BBS    ; op,   \ EF BBS6 zp,rr     ------
