@@ -9,11 +9,11 @@
 \ For example setting MBITS to 12 gives 2^12 = 4K bytes of emulator memory, with
 \ four ignored address bits.  This means that there are 16 ways to address each
 \ actual byte.  For testing we avoid tests that address the same actual location
-\ with distinct 16 bit synonyms.  Also note that the reset vector at $fffe-f
+\ with distinct 16 bit synonyms.  Also note that the BRK/IRQ vector at $fffe-f
 \ will always map to the last two bytes of emulator memory.
 
 12      constant MBITS      \ simulator memory is 1 << MBITS bytes, with upper address bits ignored
-$FFFE   constant RESET      \ maps to the last two emulator bytes since high bits are ignored
+$FFFE   constant IRQBRK     \ maps to the last two emulator bytes since high bits are ignored
 
 \ create emulator address mask and reserve its memory
 1 MBITS lshift 1-       constant MMASK
@@ -89,7 +89,7 @@ here 5 allot constant REGISTERS
 %01000000 dup   constant ^6 constant ^V     \ Overflow
 %10000000 dup   constant ^7 constant ^N     \ Negative
 
-$100            constant ^8                 \ check for 8 bit carry
+s" NV1BDIZC" drop constant FLAGS
 
 : BIT?  ( v mask -- f )  AND 0<> ;          \ test if bit number is set
 
@@ -104,7 +104,7 @@ $100            constant ^8                 \ check for 8 bit carry
 : >V    ( f -- )        ^V F>P ;
 : C?    ( -- f )        P ^C BIT? ;             \ carry flag as true/false
 : D?    ( -- f )        P ^D BIT? ;
-
+: P.    ( -- )          8 0 DO ( adr ) P ^N I RSHIFT BIT? IF FLAGS I + C@ ELSE [CHAR] - THEN EMIT LOOP ;
 \ define T and >T so generic instructions can operate on either register or memory
 DEFER &T    ( adr -- adr' )
 : T     ( adr -- v )    &T C@ ;
@@ -168,12 +168,6 @@ DEFER &T    ( adr -- adr' )
 
 : %CPQ  ( adr #r -- )   Q SWAP T - >Z>N> 0< INVERT >C ;
 
-: BCD+?  ( v -- v' )
-    D? IF
-        DUP $F AND 9 > 6 AND +
-        $99 > $60 AND +
-    THEN ;
-
 \ Use XOR trick for add/subtract to infer the carry bits from the sum S
 \ Start with S = A^M^CS so CS = S^A^M and we can calculate the 6502 flags
 \ via C = C8 (the addition has a carry if carry out of bit 7 is set)
@@ -182,19 +176,48 @@ DEFER &T    ( adr -- adr' )
     A 2DUP XOR -ROT
     ( A^B  B  A )
     + C? -              \ calculate S=A+B+C, noting C? is true == -1 when set
-    BCD+?               \ do BCD adjustment if decimal flag set
     TUCK XOR            \ calculate A^B^S to get C and V flags
     ( S  A^B^S )
-    DUP ^8 BIT? DUP >C SWAP ^7 BIT? XOR >V
+    DUP $100 BIT? DUP >C SWAP ^7 BIT? XOR >V
     ( S )
     LSB  >Z>N>          \ set Z and N leaving byte result
     ;
-: %ADC  ( adr -- )      T A+ >A ;
+
+: B>HL   ( v -- hi lo )  DUP $F0 AND SWAP $F AND ;
+
+\ BCD flags for addition and subtraction are a mess
+\ this implements 65c02 behavior per http://www.6502.org/tutorials/decimal_mode.html#B
+\ for V flag we use twos complement addition in seg 2C but note that
+\ sign extending a byte with bit 7 set effectively subtracts $100.
+\ so we can correct the signed result back to unsigned by tracking which bytes with negative
+: ABCD+  ( b -- s )
+    B>HL A B>HL ( bh bl ah al ) ROT + C? -              \ seq 2A
+    DUP 9 > IF $6 + $F AND $10 OR THEN ( bh ah sl )     \ seq 2B
+    \ sign extend bh, ah as bh', ah' tracking unsigned correction cb, ca each 0 or $100
+    -ROT SEXT DUP $100 AND ROT SEXT DUP $100 AND ( sl ah' ca bh' cb )
+    ROT + -ROT + ROT + ( cc s' )                        \ seq 2C (signed result with correction)
+    DUP $80 + $FF00 BIT? >V                             \ seq 2F
+    + DUP $9F > $60 AND + ( s )                         \ seq 1E (correct back to unsigned)
+    DUP $FF00 BIT? >C                                   \ seq 1G
+    LSB  >Z>N>
+    ;
+
+\ For subtraction, use binary difference to set C and V, then find the actual BCD difference
+: ABCD- ( b -- s )
+    C? INVERT >R DUP INVERT A+ DROP  ( b R: 1-c )       \ set C and V, saving original carry
+    A $F AND OVER $F AND - R@ + ( b sl R: 1-c )         \ seq 4A
+    A ROT - R> +  ( sl s )                              \ seq 4B
+    DUP 0< $60 AND -                                    \ seq 4C
+    SWAP 0< 6 AND -                                     \ seq 4D
+    LSB  >Z>N>
+;
+
+: %ADC  ( adr -- )      T D? IF ABCD+ ELSE A+ THEN >A ;
 \ Reframe subtraction as an addition using twos complement:
 \   -M = 256 - M = 1 + 255 - M = 1 + ~M  where ~M is the inverse of M
 \ Since borrow = 1 - carry we get:
 \   A - M - borrow = A + ~M + 1 - borrow = A + ~M + C
-: %SBC  ( adr -- )      T INVERT A+ >A ;
+: %SBC  ( adr -- )      T D? IF ABCD- ELSE INVERT A+ THEN >A ;
 
 : %PHT  ( r -- )        T PUSH ;
 : %PLT  ( r -- )        POP >Z>N> >T ;
@@ -209,7 +232,7 @@ DEFER &T    ( adr -- adr' )
 : %JSR  ( adr -- )      PC 1- PUSH2 >PC ;
 : %RTS  ( -- )          POP2 1+ >PC ;
 : %RTI  ( -- )          %PLP POP2 >PC ;
-: %BRK  ( adr -- )      DROP PC PUSH2 %PHP ^I %SEF ^D %CLF RESET MM >PC ;
+: %BRK  ( adr -- )      DROP PC PUSH2 %PHP ^I %SEF ^D %CLF IRQBRK MM >PC ;
 
 : ?JMP  ( adr f -- )    IF >PC ELSE DROP THEN ;
 
