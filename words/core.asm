@@ -1219,9 +1219,9 @@ _process_name:
                 ; we don't know for sure until we've seen whether they contain things
                 ; like looping constructs with non-relocatable JMPs.
 
-                ; Long story short, we flag everything as NN here, but then revert when
-                ; possible in ";".  Note this only applies to : ... ; words, other words
-                ; created via DEFER, CONSTANT, VARIABLE etc will remain as NN.
+                ; Long story short, we flag everything as NN here, but then ";" reverts if
+                ; possible.  This only applies to COLON words that end with SEMICOLON.
+                ; Words built with CREATE like CONSTANT and VARIABLE will stay as NN.
                 ora #NN
 
                 ; Words defined by CREATE are marked in the header as
@@ -1235,7 +1235,7 @@ _process_name:
                 ldy 7,x                 ; check MSB of CFA
                 beq +                   ; 0 means no CFA, don't set HC
 
-                ora #HC                 ; all words with CFA get the HC bit set
+                ora #HC                 ; all words with CFA have HC set
 +
                 ; Now start writing the header byte-by-byte
 
@@ -1349,10 +1349,10 @@ z_decimal:      rts
         ; The ANS reference implementation is
         ;       CREATE ['] ABORT , DOES> @ EXECUTE ;
         ; but does not require that DEFER / IS can interoperate with CREATE DOES>.
-        ; For speed we instead create a simple NN word that JMP's to its target:
+        ; For speed we instead create a never-native word that JMPs to the target:
         ;       : "name" [ <target> JMP ] ;
-        ; Since it's never-native (NN) the target eventually returns to its caller.
-        ; This makes DEFER!, DEFER@, IS, and ACTION-OF trivial.
+        ; The target word ultimately returns to the deferred word's caller.
+        ; This makes it easy to implement DEFER!, DEFER@, IS, and ACTION-OF
 xt_defer:
 w_defer:
                 jsr w_colon
