@@ -110,10 +110,10 @@ compile_comma_common:
                 ; But for ST words, the call entrypoint xt_word
                 ; differs from the inline entrypoint st_word or w_word.
                 ;
-                ; Now we decide whether to inline or call.
-                ; If the word is always or never native (AN/NN) we're
-                ; done, otherwise we compare nc-limit to the word length
-                ; based on the inline entrypoint.
+                ; Once we have the inline entrypoint and length
+                ; we can decide whether to inline or call.
+                ; If the word is always- or never-native (AN/NN) we're
+                ; done, otherwise we compare the word length to nc-limit.
 
                 jsr w_wordsize
                 jsr w_over
@@ -156,8 +156,8 @@ _no_uf:
                 plp
                 bcs _has_st
 
-                ; words with ST use original XT as call-addr
-                ; but others can call the inline entrypoint
+                ; for ST words we keep the original XT as call-addr
+                ; but for others we can call the inline entrypoint
                 lda 2,x         ; ( xt addr u -- addr addr u )
                 sta 4,x
                 lda 3,x
@@ -183,7 +183,7 @@ cmpl_by_limit:
 
 cmpl_by_limit2:
                 ; ( call-addr inline-addr u )
-                ; Compline call or inline based on size vs nc-limit
+                ; Compile call or inline based on size vs nc-limit
                 ; Eventually returns C=0 if inline, C=1 if call
 
                 ldy #nc_limit_offset+1
