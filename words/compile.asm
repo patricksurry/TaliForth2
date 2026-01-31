@@ -13,11 +13,9 @@
 ;
 ; We can compile words inline or as JSR calls based on the nc-limit
 ; variable:  COMPILE, has internal entry points cmpl_by_limit,
-; cmpl_inline[_drop] and cmpl_call_[nos|tos].  Inline compilation copies the
-; source code for a word between xt_<word> and <z_word>,
-; optionally removing the initial stack depth check.
-; For some words we also discard leading and trailing stack
-; juggling based on the ST flag.
+; cmpl_inline[_drop] and cmpl_call_[nos|tos].
+; Inline compilation copies the source code for a word between
+; xt_<word> and <z_word> with nuances based on UF and ST flags.
 ;
 ; A great way to understand what's going on is to write simple
 ; Forth words and use SEE to disassemble them.  Try different
@@ -79,148 +77,163 @@ w_compile_comma:
                 ; better to use the compile_comma_common entrypoint below
                 ; if the nt is already available, e.g. while interpreting
                 jsr w_int_to_name
-                ; ( xt nt )
+                ; ( xt nt|0 )
 
                 ; Does this xt even have a valid (non-zero) nt?
                 lda 0,x
                 ora 1,x
-                beq cmpl_call_nos       ; No nt so unknown size; must compile as a JSR
 
-compile_comma_common:
-                ; ( xt nt )
-
-                ; Otherwise investigate the nt
-                lda (0,x)               ; get status flags byte @ NT
-                sta tmp3                ; and keep a copy
-                and #AN+NN              ; check if never native (NN)
-                cmp #NN                 ; NN=1, AN=0?  i.e. not ST=AN+AN
+                ; Without an NT we don't know flags or size so must compile as a JSR
                 beq cmpl_call_nos
 
-                ; ( xt nt )             ; could possibly inline, keep checking
-                jsr w_wordsize
-                ; ( xt u )
+compile_comma_common:
+                ; Otherwise investigate the NT to decide how to proceed
+                lda (0,x)               ; stash status flags byte
+                sta tmp3
 
-                ; --- SPECIAL CASE 1: PREVENT RETURN STACK THRASHING ---
+                ; The target word we're compiling looks like this:
+                ;
+                ; xt_word:
+                ;       ST? - optional 5 byte stack prequel
+                ; inline_st_word:
+                ;       UF? - optional 3 byte jsr underflow_<N>
+                ; w_word:
+                ;       ... source code ...
+                ; z_word:
+                ;       rts
+                ;
+                ; We need to decide both whether to call or inline
+                ; the word, and which entrypoint to use.
+                ;
+                ; The entrypoint is typically xt_word or w_word
+                ; depending on whether we're stripping the UF check.
+                ; But for ST words, the call entrypoint xt_word
+                ; differs from the inline entrypoint st_word or w_word.
+                ;
+                ; Now we decide whether to inline or call.
+                ; If the word is always or never native (AN/NN) we're
+                ; done, otherwise we compare nc-limit to the word length
+                ; based on the inline entrypoint.
+
+                jsr w_wordsize
+                jsr w_over
+                jsr w_swap
+
+                ; We'll start from ( xt xt u ) and adjust
+                ; until we have ( call-addr inline-addr inline-len )
+
+                ; --- SPECIAL CASE 1: STACK THRASHING WORDS (ST) ---
 
                 lda tmp3
                 and #ST                 ; Check the Stack Thrash flag (ST=NN+AN)
                 cmp #ST                 ; C=1 if equal, C=0 otherwise
+                php                     ; We'll reuse this check shortly
                 bcc _no_st
-                jsr w_over              ; if ST, preserve original xt for call
-                bra +
-_no_st:
-                jsr w_zero              ; else safe to call whatever we strip down to
-+
-                jsr w_not_rot
 
-                ; ( xt xt u ) if ST else ( 0 xt u )
-                bcc _check_uf           ; no stack juggling to skip?
-
-                ; skip the standard 5 byte stack juggling byte header
                 jsr push_inline_bliteral
                 .byte 5
-                jsr w_slash_string
+                jsr w_slash_string      ; skip 5 byte ST prequel
 
-                ; ( xt|0 xt+sz u-sz )
-
+                ; ( xt xt+5 u-5 )
+_no_st:
                 ; --- SPECIAL CASE 2: REMOVE UNDERFLOW CHECKING ---
-_check_uf:
-                ; The user can choose to remove the unterflow testing in those
-                ; words that have the UF flag. This shortens the word by
-                ; 3 bytes if there is no underflow.
 
                 ; Does the user want to strip underflow checks?
                 ldy #uf_strip_offset
                 lda (up),y
                 iny
                 ora (up),y
-                beq _check_limit
+                beq _no_uf
 
                 jsr w_over
-                jsr has_uf_check
-                bcc _check_limit        ; not an underflow check
-
-                ; Ready to remove the 3 byte underflow check.
+                jsr has_uf_check        ; is there an UF check?
+                bcc _no_uf
 
                 jsr push_inline_bliteral
                 .byte 3
                 jsr w_slash_string
+_no_uf:
+                plp
+                bcs _has_st
+
+                ; words with ST use original XT as call-addr
+                ; but others can call the inline entrypoint
+                lda 2,x         ; ( xt addr u -- addr addr u )
+                sta 4,x
+                lda 3,x
+                sta 5,x
+
+_has_st:
+                ; --- END OF SPECIAL CASES ---
+                ; ( call-addr inline-addr inline-len )
 
 _check_limit:
-                ; --- END OF SPECIAL CASES ---
-                ; ( 0|xt xt' u )
-
                 lda tmp3
-                and #AN+NN              ; check Always Native (AN) bit
+                and #AN+NN              ; check for AN and NN
                 cmp #AN                 ; AN=1, NN=0?  (i.e. not ST=AN+NN)
                 beq cmpl_inline_drop    ; always natively compile
-                bne cmpl_by_limit2
+                cmp #NN
+                beq cmpl_call_3os       ; always compile as call
+                bra cmpl_by_limit2      ; else check word length
 
 cmpl_by_limit:
-        ; simple entrypoint for cmpl_by_limit2 when xt == xt'
+                ; external entrypoint for ( xt u -- xt xt u )
                 jsr w_over
                 jsr w_swap
 
 cmpl_by_limit2:
-                ; ( 0|xt xt' u )
-                ; Compile either inline or as subroutine depending on
-                ; whether native code size <= user limit
-                ; xt' is always used for inlining; with xt preferred for call if non-zero
-                ; Returns C=0 if native, C=1 if subroutine
+                ; ( call-addr inline-addr u )
+                ; Compline call or inline based on size vs nc-limit
+                ; Eventually returns C=0 if inline, C=1 if call
+
                 ldy #nc_limit_offset+1
                 lda 1,x                 ; MSB of word size
                 cmp (up),y              ; user-defined limit MSB
                 bcc cmpl_inline_drop    ; borrow (C=0) means size < limit
-                bne +                   ; else non-zero means size > limit
+                bne cmpl_call_3os       ; else non-zero means size > limit
 
-                ; Check the wordsize LSB against the user-defined limit.
-                dey
+                dey                     ; MSB equal so check LSB
                 lda (up),y              ; user-defined limit LSB
                 cmp 0,x
-                bcs cmpl_inline_drop    ; not bigger, so good to go
-+
-                ; Prepare for cmpl_call_nos.  We have:
-                ;  ( 0|xt xt' u )
-                ; and want to call xt' unless the original xt was preserved with stack juggling
-                jsr w_drop              ; discard size
-                ; ( 0|xt xt' )
-                lda 3,x                 ; if MSB of NOS is non-zero we had stack juggling
-                bne cmpl_call_nos       ; use original xt from ( xt xt' )
-                jsr w_swap              ; use stripped xt via ( xt' 0 )
+                bcs cmpl_inline_drop    ; not bigger, we can inline!
 
+                ; else fall through and compile as call
+cmpl_call_3os:
+                ; compile call from ( xt ? ? -- ), return C=1
+                jsr w_two_drop
+                bra cmpl_call_tos
 cmpl_call_nos:
-        ; Compile xt as a subroutine call, return with C=1
-                ; ( xt ? )
+                ; compile call from ( xt ? -- ), return C=1
                 jsr w_drop
 cmpl_call_tos:
                 ; ( target -- )
                 lda #OpJSR
                 jsr cmpl_a
                 jsr w_comma
-                sec
+                sec                     ; return C=1 for call
                 rts
 
 cmpl_inline_drop:
         ; compile inline, with extraneous arg to drop, returning C=0
-                ; ( 0|xt xt' u -- )
+                ; ( call-addr inline-addr u -- )
                 jsr w_rot
-                jsr w_drop              ; discard the 0|xt
+                jsr w_drop              ; drop call-addr
 cmpl_inline:
-                ; ( xt' u -- )
+                ; ( inline-addr u -- )
                 jsr w_here
                 jsr w_swap
                 ; ( xt' cp u -- )
                 jsr w_dup
                 jsr w_allot             ; allocate space for the word
                 jsr w_move              ; let's move those bytes already!
-                clc
+                clc                     ; return C=0 for inline
 z_compile_comma:
                 rts
 
 
 has_uf_check:
-                ; Check if the addr TOS points an underflow check,
-                ; consuming TOS and returning C=1 (true) or C=0 (false)
+                ; Check if TOS points to an underflow check,
+                ; returning C=1 (true) or C=0 (false)
                 ; ( addr -- )
 
                 ; Does addr point at a JSR?
