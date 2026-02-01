@@ -5584,9 +5584,8 @@ z_star:         rts
         ; Multiply n1 by n2 and divide by n3, returning the result
         ; without a remainder. This is */MOD without the mod.
         ;
-        ; This word
-        ; can be defined in Forth as : */  */MOD SWAP DROP ; which is
-        ; pretty much what we do here
+        ; This word can be defined in Forth as : */  */MOD SWAP DROP ;
+        ; which is pretty much what we do here
         ; """
 xt_star_slash:
                 jsr underflow_3
@@ -5840,7 +5839,7 @@ w_to_body:
                 and #HC
                 beq _no_cfa
 
-                ; We've got a DOVAR, DOCONST, DODEFER, DODOES or whatever,
+                ; We've got a DOVAR, DOCONST, DODOES or whatever,
                 ; so we add three to xt, which is NOS
                 clc
                 lda 2,x         ; LSB
