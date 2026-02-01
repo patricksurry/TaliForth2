@@ -1,3 +1,6 @@
+Error determining name on line:
+; ## EVALUATE* ( addr u -- ) "Separately EVALUATE each line of a multi-line string"
+
 [horizontal]
 `!`:: _ANS core_ ( n addr -- ) "Store TOS in memory"
 https://forth-standard.org/standard/core/Store
@@ -604,7 +607,7 @@ After processing the line, revert to old input source. We use this
 to compile high-level Forth words and user-defined words during
 start up and cold boot. In contrast to ACCEPT, we need to, uh,
 accept more than 255 characters here, even though it's a pain in
-the 8-bit.
+the 8-bit.  Also see EVALUATE* for multi-line commment handling.
 
 `execute`:: _ANS core_ ( xt -- ) "Jump to word based on execution token"
 This word is never natively compiled so that the return

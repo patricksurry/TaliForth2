@@ -248,6 +248,7 @@ RTS instruction at the end of each word.
 | FIND_NAME | `find-name` | Gforth | 65 | **auto** |
 | HAVEKEY | `havekey` | Tali Forth | 5 | tested |
 | HEXSTORE | `hexstore` | Tali | 82 | **auto** |
+| EVALUATE* | `evaluate*` | ANS file | missing | **auto** |
 | INPUT | `input` | Tali Forth | 5 | tested |
 | INPUT_TO_R | `input>r` | Tali Forth | 21 | tested |
 | INT_TO_NAME | `int>name` | Tali Forth | 34 | **auto** |
@@ -292,7 +293,7 @@ RTS instruction at the end of each word.
 | TO_ORDER | `>order` | Gforth search | 18 | **auto** |
 | WORDLIST | `wordlist` | ANS search | 19 | **auto** |
 
-Found **284** native words in `words/*.asm`.
-Of those, **246** were automatically tested and
+Found **285** native words in `words/*.asm`.
+Of those, **247** were automatically tested and
           **1** are not marked as tested at all.
 

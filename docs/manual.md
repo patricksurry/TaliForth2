@@ -1545,7 +1545,7 @@ order if you run it too many times.
 > A Tutorial Introduction to the UNIX Text Editor
 
 Tali Forth 2 currently ships with a clone of the `ed` line-based editor of Unix
-fame. It is envoked with `ed:`, though the formal name is `ed6502`.
+fame. It is invoked with `ed:`, though the formal name is `ed6502`.
 
 <div class="tip">
 
@@ -1646,8 +1646,8 @@ go immediately to saving the text. Then, we can run the program:
 
             evaluate
 
-Note that `evaluate` will handle line feeds, carriage returns and other white
-space apart from simple spaces without problems.
+Note that `evaluate` handles tabs, line feeds, carriage returns and other white
+space but backslash comments can cause problems (c.f. `evaluate*`).
 
 ### Known Issues
 
@@ -3346,7 +3346,7 @@ Tali Forth uses `evaluate` to load high-level Forth words from the platform’s
 `platform_forth.fs`, if present. Forth code in these files has all comments removed and all
 whitespace replaced with a single space between words. This compact version
 is assembled directly into the ROM image as a string that will be evaluated at
-startup.
+startup. (Also see `evaluate*` if you need to execute multi-line code containing comments.)
 
 ### The Words `create` and `does>`
 
@@ -4580,6 +4580,9 @@ See the GitHub page for further details.
 
 ## Glossary of Forth Words
 
+Error determining name on line:
+; \## EVALUATE\* ( addr u — ) "Separately EVALUATE each line of a multi-line string"
+
 |                       |                                                                                                               |
 |-----------------------|---------------------------------------------------------------------------------------------------------------|
 | `!`                   | *ANS core* ( n addr — ) "Store TOS in memory"                                                                 
@@ -5044,7 +5047,7 @@ See the GitHub page for further details.
                          to compile high-level Forth words and user-defined words during                                                
                          start up and cold boot. In contrast to ACCEPT, we need to, uh,                                                 
                          accept more than 255 characters here, even though it’s a pain in                                               
-                         the 8-bit.                                                                                                     |
+                         the 8-bit. Also see EVALUATE\* for multi-line commment handling.                                               |
 | `execute`             | *ANS core* ( xt — ) "Jump to word based on execution token"                                                   
                          This word is never natively compiled so that the return                                                        
                          from the xt will always return to the caller of EXECUTE                                                        

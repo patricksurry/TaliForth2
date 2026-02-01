@@ -2787,7 +2787,7 @@ sometimes a hangup for beginners.) <a href="#BWK">[BWK]</a>
 </div>
 <div class="paragraph">
 <p>Tali Forth 2 currently ships with a clone of the <code>ed</code> line-based editor of Unix
-fame. It is envoked with <code>ed:</code>, though the formal name is <code>ed6502</code>.</p>
+fame. It is invoked with <code>ed:</code>, though the formal name is <code>ed6502</code>.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -3109,8 +3109,8 @@ go immediately to saving the text. Then, we can run the program:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Note that <code>evaluate</code> will handle line feeds, carriage returns and other white
-space apart from simple spaces without problems.</p>
+<p>Note that <code>evaluate</code> handles tabs, line feeds, carriage returns and other white
+space but backslash comments can cause problems (c.f.  <code>evaluate*</code>).</p>
 </div>
 </div>
 <div class="sect2">
@@ -5668,7 +5668,7 @@ buffer.</p>
 <code>platform_forth.fs</code>, if present.  Forth code in these files has all comments removed and all
 whitespace replaced with a single space between words.  This compact version
 is assembled directly into the ROM image as a string that will be evaluated at
-startup.</p>
+startup.  (Also see <code>evaluate*</code> if you need to execute multi-line code containing comments.)</p>
 </div>
 </div>
 </div>
@@ -7393,6 +7393,10 @@ also generally available at the 6502.org Users Forum in the Forth category.
 <div class="sect1">
 <h2 id="_glossary_of_forth_words">Glossary of Forth Words</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>Error determining name on line:
+; ## EVALUATE* ( addr u&#8201;&#8212;&#8201;) "Separately EVALUATE each line of a multi-line string"</p>
+</div>
 <div class="hdlist">
 <table>
 <tr>
@@ -8954,7 +8958,7 @@ After processing the line, revert to old input source. We use this
 to compile high-level Forth words and user-defined words during
 start up and cold boot. In contrast to ACCEPT, we need to, uh,
 accept more than 255 characters here, even though it&#8217;s a pain in
-the 8-bit.</p>
+the 8-bit.  Also see EVALUATE* for multi-line commment handling.</p>
 </td>
 </tr>
 <tr>
