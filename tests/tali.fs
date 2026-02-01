@@ -107,7 +107,6 @@ decimal
 \ Test for DISASM not implemented
 \ Test for INPUT not implemented
 \ Test for OUTPUT not implemented
-\ Test for UF-STRIP not implemented
 
 T{ capture-output BELL restore-output s\" \a" compare -> 0 }T
 ( TODO COMPILE-ONLY test missing)
@@ -168,13 +167,29 @@ T{ ' four-b int>name wordsize ->  3 }T
 T{ latestnt wordsize          ->  3 }T
 T{ latestxt int>name wordsize ->  3 }T
 
+\ Test strip-underflow
+strip-underflow @ constant default-uf
+false strip-underflow !
+: test-native-with-uf drop ;   \ small word inlines UF check
+: test-call-with-uf allot ;   \ large word gets called with UF test
+T{ ' test-native-with-uf int>name wordsize -> 5 }T
+T{ ' test-call-with-uf 1+ @ -> ' allot }T
+
+true strip-underflow !
+: test-native-strip-uf drop ;  \ small word gets inlined as two bytes
+: test-call-strip-uf allot ;  \ large word gets called past UF test
+: test-nn-strip-uf execute ;  \ NN word gets called past UF test (issue 201)
+T{ ' test-native-strip-uf @ -> $e8e8 }T   \ just inx inx
+T{ ' test-call-strip-uf 1+ @ 3 - -> ' allot }T
+T{ ' test-nn-strip-uf 1+ @ 3 - -> ' execute }T
+default-uf strip-underflow !
+
 \ Test inline vs jsr+payload literals
 : five 6 [ 0 nc-limit ! ] 7 * ; 16 nc-limit !
 T{ ' five int>name wordsize -> 15 }t
 T{ five -> 42 }T
 
 \ Test inlined zero_branch call (issue #158)
-
 0 nc-limit !      \ force zero_branch call with absolute address
 : test1 0 if then ;
 16 nc-limit !

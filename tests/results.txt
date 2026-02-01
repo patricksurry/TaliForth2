@@ -2667,7 +2667,6 @@ decimal  ok
 \ Test for DISASM not implemented  ok
 \ Test for INPUT not implemented  ok
 \ Test for OUTPUT not implemented  ok
-\ Test for UF-STRIP not implemented  ok
   ok
 T{ capture-output BELL restore-output s\" \a" compare -> 0 }T  ok
 ( TODO COMPILE-ONLY test missing)  ok
@@ -2728,13 +2727,29 @@ T{ ' four-b int>name wordsize ->  3 }T  ok
 T{ latestnt wordsize          ->  3 }T  ok
 T{ latestxt int>name wordsize ->  3 }T  ok
   ok
+\ Test strip-underflow  ok
+strip-underflow @ constant default-uf  ok
+false strip-underflow !  ok
+: test-native-with-uf drop ;   \ small word inlines UF check  ok
+: test-call-with-uf allot ;   \ large word gets called with UF test  ok
+T{ ' test-native-with-uf int>name wordsize -> 5 }T  ok
+T{ ' test-call-with-uf 1+ @ -> ' allot }T  ok
+  ok
+true strip-underflow !  ok
+: test-native-strip-uf drop ;  \ small word gets inlined as two bytes  ok
+: test-call-strip-uf allot ;  \ large word gets called past UF test  ok
+: test-nn-strip-uf execute ;  \ NN word gets called past UF test (issue 201)  ok
+T{ ' test-native-strip-uf @ -> $e8e8 }T   \ just inx inx  ok
+T{ ' test-call-strip-uf 1+ @ 3 - -> ' allot }T  ok
+T{ ' test-nn-strip-uf 1+ @ 3 - -> ' execute }T  ok
+default-uf strip-underflow !  ok
+  ok
 \ Test inline vs jsr+payload literals  ok
 : five 6 [ 0 nc-limit ! ] 7 * ; 16 nc-limit !  ok
 T{ ' five int>name wordsize -> 15 }t  ok
 T{ five -> 42 }T  ok
   ok
 \ Test inlined zero_branch call (issue #158)  ok
-  ok
 0 nc-limit !      \ force zero_branch call with absolute address  ok
 : test1 0 if then ;  ok
 16 nc-limit !  ok
@@ -3592,12 +3607,12 @@ here 5       ' blank         cycle_test            CYCLES:    339 ok
 5            ' chars         cycle_test drop       CYCLES:     28 ok
 pad here 5   ' cmove         cycle_test            CYCLES:    188 ok
 pad here 5   ' cmove>        cycle_test            CYCLES:    183 ok
-             ' :             cycle_test wrd ;      CYCLES:  20862 ok
+             ' :             cycle_test wrd ;      CYCLES:  20857 ok
              ' :noname       cycle_test ; drop     CYCLES:     50 ok
 5            ' ,             cycle_test            CYCLES:     92 ok
-' aword      ' compile,      cycle_test            CYCLES:   1082 ok
+' aword      ' compile,      cycle_test            CYCLES:   1093 ok
 : bword ;    ' compile-only  cycle_test            CYCLES:     69 ok
-5            ' constant      cycle_test mycnst     CYCLES:  21541 ok
+5            ' constant      cycle_test mycnst     CYCLES:  21535 ok
 here         ' count         cycle_test 2drop      CYCLES:     57 ok
 \ skipping     cr  ok
 \ skipping     create  ok
@@ -3646,7 +3661,7 @@ nc-limit !  ok
 5 5          ' =             cycle_test drop       CYCLES:     64 ok
 here 5       ' erase         cycle_test            CYCLES:    337 ok
 here 5 5     ' fill          cycle_test            CYCLES:    309 ok
-s" 5"        ' evaluate      cycle_test drop       CYCLES:  21787 ok
+s" 5"        ' evaluate      cycle_test drop       CYCLES:  21781 ok
 5 ' drop     ' execute       cycle_test            CYCLES:     58 ok
 \ skipping     exit  ok
              ' false         cycle_test drop       CYCLES:     24 ok
@@ -3666,7 +3681,7 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:   1466 ok
              ' ifloop        cycle_test            CYCLES:  18134 ok
 : cword ;    ' immediate     cycle_test            CYCLES:     69 ok
              ' input         cycle_test drop       CYCLES:    192 ok
-' dup        ' int>name      cycle_test drop       CYCLES:   5414 ok
+' dup        ' int>name      cycle_test drop       CYCLES:   5467 ok
 5            ' invert        cycle_test drop       CYCLES:     48 ok
 \ skipping     j  ok
              ' key           cycle_test drop       CYCLES:     60 ok
@@ -3681,7 +3696,7 @@ s" aword"    ' find-name     cycle_test drop       CYCLES:   1466 ok
 \ skipping     +loop  ok
 5 5          ' lshift        cycle_test drop       CYCLES:    126 ok
 5 5          ' m*            cycle_test 2drop      CYCLES:    409 ok
-             ' marker        cycle_test marka      CYCLES:  24065 ok
+             ' marker        cycle_test marka      CYCLES:  24060 ok
              ' marka         cycle_test            CYCLES:    781 ok
 5 5          ' max           cycle_test drop       CYCLES:     69 ok
 5 5          ' min           cycle_test drop       CYCLES:     54 ok
@@ -3747,7 +3762,7 @@ s" abc" 1    ' /string       cycle_test 2drop      CYCLES:     84 ok
 5 5          ' swap          cycle_test 2drop      CYCLES:     60 ok
              ' '             cycle_test aword drop CYCLES:   2480 ok
 \ postponing   to ( see value )  ok
-' aword      ' >body         cycle_test drop       CYCLES:   2066 ok
+' aword      ' >body         cycle_test drop       CYCLES:   2085 ok
              ' >in           cycle_test drop       CYCLES:    192 ok
 0. s" 55"    ' >number       cycle_test 4drop      CYCLES:    744 ok
 \ skipping     >r  ok
@@ -3765,7 +3780,7 @@ here         ' 2@            cycle_test 2drop      CYCLES:     88 ok
 5. here      ' 2!            cycle_test            CYCLES:     99 ok
 5 5 5 5      ' 2swap         cycle_test 4drop      CYCLES:     92 ok
 \ skipping     2>r  ok
-             ' 2variable     cycle_test eword      CYCLES:  22909 ok
+             ' 2variable     cycle_test eword      CYCLES:  22904 ok
              ' eword         cycle_test drop       CYCLES:     43 ok
 s" *"        ' type          cycle_test           *CYCLES:    106 ok
 5            ' u.            cycle_test          5 CYCLES:   1163 ok
@@ -3776,10 +3791,10 @@ s" *"        ' type          cycle_test           *CYCLES:    106 ok
 5 5          ' um*           cycle_test 2drop      CYCLES:    333 ok
 \ skipping     unloop  ok
              ' unused        cycle_test drop       CYCLES:     36 ok
-5            ' value         cycle_test fword      CYCLES:  22980 ok
+5            ' value         cycle_test fword      CYCLES:  22975 ok
              ' fword         cycle_test drop       CYCLES:     58 ok
 5            ' to            cycle_test fword      CYCLES:   1373 ok
-             ' variable      cycle_test gword      CYCLES:  22872 ok
+             ' variable      cycle_test gword      CYCLES:  22867 ok
              ' gword         cycle_test drop       CYCLES:     43 ok
 char "       ' word          cycle_test "txt" drop CYCLES:    632 ok
 \ skipping     words  ok
@@ -3792,4 +3807,4 @@ char "       ' word          cycle_test "txt" drop CYCLES:    632 ok
 5            ' 0<            cycle_test drop       CYCLES:     47 ok
 5            ' 0<>           cycle_test drop       CYCLES:     48 ok
   ok
-bye c65: PC=f016 A=29 X=78 Y=98 S=f8 FLAGS=<N0 V0 B1 D0 I1 Z0 C1> ticks=182567582
+bye c65: PC=f016 A=25 X=78 Y=98 S=f8 FLAGS=<N0 V0 B1 D0 I1 Z0 C1> ticks=183686764
