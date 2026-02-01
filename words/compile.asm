@@ -200,8 +200,7 @@ cmpl_by_limit2:
                 ; else fall through and compile as call
 cmpl_call_3os:
                 ; compile call from ( xt ? ? -- ), return C=1
-                jsr w_two_drop
-                bra cmpl_call_tos
+                jsr w_drop
 cmpl_call_nos:
                 ; compile call from ( xt ? -- ), return C=1
                 jsr w_drop
