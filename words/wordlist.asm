@@ -187,15 +187,15 @@ w_order:
                 beq _done
 
                 ; ( wid_n ... wid_1 ) with A=n
-                sta tmpdsp
 _loop:
+                pha
                 lda 0,x                 ; fetch wid to A and drop it
                 inx
                 inx
 
                 jsr order_print_wid_string   ; internal helper function
-
-                dec tmpdsp
+                pla
+                dec a
                 bne _loop
 
                 ; We've printed the wordlists, now we add the current wordlist.
@@ -221,7 +221,7 @@ order_print_wid_string:
         ; this would make changes to the stringtable.asm file very dangerous, so we
         ; follow the slightly more complicated route with a translation table.
         ; """
-                ; If the WID is larger than 3, we have no string avaliable and
+                ; If the WID is larger than 3, we have no string available and
                 ; just print the number.
                 ; See http://6502.org/tutorials/compare_instructions.html
                 ; for details
@@ -492,8 +492,9 @@ w_wordlist:
                 jmp error
 
 _ok:
-                ina             ; Increment the wordlist#
-                sta (up),y      ; Save it into byte variable #wordlists
-                jsr push_a_tos  ; and put it on the stack (max is 12 so byte is enough)
+                ; current count is the next free 0-indexed wid
+                jsr push_a_tos  ; max wid is 11 so byte is enough
+                ina             ;
+                sta (up),y      ; Increment byte variable #wordlists
 
 z_wordlist:     rts

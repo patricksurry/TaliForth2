@@ -1118,7 +1118,7 @@ second one so the variable is initialized to zero
 `while`:: _ANS core_ ( C: dest -- orig dest ) ( x -- ) "Loop flow control"
 http://forth-standard.org/standard/core/WHILE
 
-`within`:: _ANS core ext_ ( n1 n2 n3 -- ) "Test n1 within range [n2, n3) or outwith [n3, n2)"
+`within`:: _ANS core ext_ ( n1 n2 n3 -- f ) "Test n1 within range [n2, n3) or outwith [n3, n2)"
 https://forth-standard.org/standard/core/WITHIN
 
 `word`:: _ANS core_ ( char "name " -- caddr ) "Parse input stream"

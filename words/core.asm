@@ -4009,8 +4009,8 @@ w_parse_name:
 
 _skip_loop:
                 lda (tmp2)              ; work copy of cib
-                jsr is_whitespace
-                bcc _char_found
+                cmp #AscSP+1            ; is_whitespace: ascii 0-32 => C=0
+                bcs _char_found
 
                 ; Char is still whitespace, continue
                 inc tmp2
@@ -4183,11 +4183,9 @@ _not_empty:
                 cpy #AscSP
                 bne _not_whitespace
 
-                ; The delimiter is a space, so we're looking for all
-                ; whitespace
-                jsr is_whitespace
-                bcc _not_whitespace
-                bra _found_delimiter
+                ; The delimiter is a space, so we're looking for all whitespace
+                cmp #AscSP+1            ; is_whitespace: ascii 0-32 => C=0
+                bcc _found_delimiter
 
 _not_whitespace:
                 ; The delimiter is not a space, so we're looking for
@@ -6972,7 +6970,7 @@ w_while:
 z_while:        rts
 
 
-; ## WITHIN ( n1 n2 n3 -- ) "Test n1 within range [n2, n3) or outwith [n3, n2)"
+; ## WITHIN ( n1 n2 n3 -- f ) "Test n1 within range [n2, n3) or outwith [n3, n2)"
 ; ## "within"  auto  ANS core ext
         ; """https://forth-standard.org/standard/core/WITHIN
         ;

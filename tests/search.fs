@@ -66,6 +66,7 @@ T{ GET-ORDER -> get-orderlist }T
 T{ GET-CURRENT -> wid1 @ }T
 
 T{ WORDLIST wid2 ! -> }T
+T{ wid2 @ -> 4 }T          \ four builtin wordlists, so 4 is next available wid
 T{ wid2 @ SET-CURRENT -> }T
 T{ GET-CURRENT -> wid2 @ }T
 
