@@ -390,7 +390,7 @@ accept_total_recall:
         ; """http://forth-standard.org/standard/core/ACTION-OF"""
 xt_action_of:
 w_action_of:
-                ; This is a state aware word with differet behavior
+                ; This is a state aware word with different behavior
                 ; when used while compiling vs interpreting.
                 ; Check STATE
                 lda state
@@ -1219,8 +1219,9 @@ _process_name:
                 ; we don't know for sure until we've seen whether they contain things
                 ; like looping constructs with non-relocatable JMPs.
 
-                ; Long story short, we flag everything as NN here, but then revert when
-                ; possible in ";".
+                ; Long story short, we flag everything as NN here, but then ";" reverts if
+                ; possible.  This only applies to COLON words that end with SEMICOLON.
+                ; Words built with CREATE like CONSTANT and VARIABLE will stay as NN.
                 ora #NN
 
                 ; Words defined by CREATE are marked in the header as
@@ -1234,7 +1235,7 @@ _process_name:
                 ldy 7,x                 ; check MSB of CFA
                 beq +                   ; 0 means no CFA, don't set HC
 
-                ora #HC                 ; otherwise set the HC bit
+                ora #HC                 ; all words with CFA have HC set
 +
                 ; Now start writing the header byte-by-byte
 
@@ -1347,21 +1348,18 @@ z_decimal:      rts
         ;
         ; The ANS reference implementation is
         ;       CREATE ['] ABORT , DOES> @ EXECUTE ;
-        ; But we use this routine as a low-level word so things go faster
-
+        ; but does not require that DEFER / IS can interoperate with CREATE DOES>.
+        ; For speed we instead create a never-native word that JMPs to the target:
+        ;       : "name" [ <target> JMP ] ;
+        ; The target word ultimately returns to the deferred word's caller.
+        ; This makes it easy to implement DEFER!, DEFER@, IS, and ACTION-OF
 xt_defer:
 w_defer:
-                ; we want CREATE but with DODEFER as the CFA
-                jsr create_inline
-                .byte 2+3               ; TOS; 2 byte PFA +3 for JSR
-                .word dodefer
-                ; DODEFER executes the next address it finds after
-                ; its call. As default, we include the error
-                ; "Defer not defined"
-                lda #<defer_error
+                jsr w_colon
+                lda #<defer_error               ; Initially show "DEFERed word not defined"
                 ldy #>defer_error
-                jsr cmpl_word_ya
-
+                jsr cmpl_jump_ya                ; The JMP makes the DEFER'd word remain NN
+                jsr w_semicolon
 z_defer:        rts
 
 
@@ -1378,7 +1376,7 @@ defer_error:
 xt_defer_fetch:
                 jsr underflow_1
 w_defer_fetch:
-                jsr w_to_body
+                jsr w_one_plus
                 jsr w_fetch
 z_defer_fetch:  rts
 
@@ -1391,7 +1389,7 @@ z_defer_fetch:  rts
 xt_defer_store:
                 jsr underflow_2
 w_defer_store:
-                jsr w_to_body
+                jsr w_one_plus          ; update the JMP target
                 jsr w_store
 z_defer_store:  rts
 
@@ -5586,9 +5584,8 @@ z_star:         rts
         ; Multiply n1 by n2 and divide by n3, returning the result
         ; without a remainder. This is */MOD without the mod.
         ;
-        ; This word
-        ; can be defined in Forth as : */  */MOD SWAP DROP ; which is
-        ; pretty much what we do here
+        ; This word can be defined in Forth as : */  */MOD SWAP DROP ;
+        ; which is pretty much what we do here
         ; """
 xt_star_slash:
                 jsr underflow_3
@@ -5835,14 +5832,14 @@ w_to_body:
                 ; Ideally, xt already points to the CFA. We just need to check
                 ; the HC flag for special cases
                 jsr w_dup              ; ( xt xt )
-                jsr w_int_to_name      ; ( xt nt )
+                jsr w_int_to_name      ; ( xt nt )      - Nb. expensive wordlist search
 
                 ; The status flags byte is @ NT
                 lda (0,x)               ; get status byte
                 and #HC
                 beq _no_cfa
 
-                ; We've got a DOVAR, DOCONST, DODEFER, DODOES or whatever,
+                ; We've got a DOVAR, DOCONST, DODOES or whatever,
                 ; so we add three to xt, which is NOS
                 clc
                 lda 2,x         ; LSB

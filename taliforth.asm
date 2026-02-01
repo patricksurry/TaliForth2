@@ -99,29 +99,6 @@ doconst:
                 rts
 
 
-dodefer:
-        ; """Execute a DEFER statement at runtime: Execute the address we
-        ; find after the caller in the Data Field
-        ; """
-                ; The xt we need is stored in the two bytes after the JSR
-                ; return address, which is what is on top of the Return
-                ; Stack. So all we have to do is replace our return jump
-                ; with what we find there
-                pla             ; LSB
-                sta tmp1
-                pla             ; MSB
-                sta tmp1+1
-
-                ldy #1
-                lda (tmp1),y
-                sta tmp2
-                iny
-                lda (tmp1),y
-                sta tmp2+1
-
-                jmp (tmp2)      ; This is actually a jump to the new target
-
-
 dodoes:
         ; """Execute the runtime portion of DOES>. See DOES> and
         ; docs/create-does.txt for details and
