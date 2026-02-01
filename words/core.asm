@@ -2405,7 +2405,7 @@ load_evaluate:
         ; to compile high-level Forth words and user-defined words during
         ; start up and cold boot. In contrast to ACCEPT, we need to, uh,
         ; accept more than 255 characters here, even though it's a pain in
-        ; the 8-bit.
+        ; the 8-bit.  Also see EVALUATE* for multi-line commment handling.
         ; """
 
 xt_evaluate:

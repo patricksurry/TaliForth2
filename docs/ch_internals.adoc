@@ -347,7 +347,7 @@ Tali Forth uses `evaluate` to load high-level Forth words from the platform's
 `platform_forth.fs`, if present.  Forth code in these files has all comments removed and all
 whitespace replaced with a single space between words.  This compact version
 is assembled directly into the ROM image as a string that will be evaluated at
-startup.
+startup.  (Also see `evaluate*` if you need to execute multi-line code containing comments.)
 
 === The Words `create` and `does>`
 

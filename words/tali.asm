@@ -355,9 +355,11 @@ _done:
 z_hexstore:     rts
 
 
-; ## EVALUATE* ( addr u -- ) "EVALUATE each line of a multi-line string"
+; ## EVALUATE* ( addr u -- ) "Separately EVALUATE each line of a multi-line string"
 ; ## "evaluate*" auto  ANS file
-        ; """https://forth-standard.org/standard/file/INCLUDED"""
+        ; EVALUATE* is handy for running multi-line code containing comments.
+        ; The normal EVALUATE treats line breaks as whitespace which can cause problems
+        ; with backslash comments, see https://github.com/SamCoVT/TaliForth2/issues/35
 
 xt_evaluate_lines:
                 jsr underflow_2
