@@ -36,12 +36,12 @@
 ; help people new to these things.
 
 ram_start = $0000           ; start of installed RAM, must include zpage
-zpage     = ram_start       ; begin of Zero Page usage ($0000-$00ff)
 stack0    = $0100           ; begin of Return Stack ($0100-$01ff)
 
 ; weak constants can be overridden by the included platform configuration
 
 .weak
+zpage     = ram_start       ; begin of Zero Page usage ($0000-$00ff)
 zpage_end = $7F             ; last byte (inclusive) of Zero Page reserved for Tali ($0000-$007f)
                             ; typically Tali's data stack grows down from here, below a small flood plain
 ram_end   = $8000-1         ; end of installed RAM
