@@ -405,7 +405,7 @@ nt_unloop:
 #nt_header d_to_s, "d>s"
 #nt_header s_to_d, "s>d"
 #nt_header to, "to", NN+IM
-#nt_header value                        ; same code as CONSTANT
+#nt_header value
 #nt_header constant
 #nt_header variable
 #nt_header does, "does>", CO+IM

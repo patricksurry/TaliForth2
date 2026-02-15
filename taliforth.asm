@@ -70,35 +70,6 @@ user_words_end:
 ; =====================================================================
 ; CODE FIELD ROUTINES
 
-doconst:
-        ; """Execute a CONSTANT: Push the data in the first two bytes of
-        ; the Data Field onto the Data Stack
-        ; """
-                dex             ; make room for constant
-                dex
-
-                ; The value we need is stored in the two bytes after the
-                ; JSR return address, which in turn is what is on top of
-                ; the Return Stack
-                pla             ; LSB of return address
-                sta tmp1
-                pla             ; MSB of return address
-                sta tmp1+1
-
-                ; Start LDY with 1 instead of 0 because of how JSR stores
-                ; the return address on the 65c02
-                ldy #1
-                lda (tmp1),y
-                sta 0,x
-                iny
-                lda (tmp1),y
-                sta 1,x
-
-                ; This takes us back to the original caller, not the
-                ; DOCONST caller
-                rts
-
-
 dodoes:
         ; """Execute the runtime portion of DOES>. See DOES> and
         ; docs/create-does.txt for details and

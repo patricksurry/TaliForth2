@@ -67,11 +67,11 @@ T{ 123 456 a-addr cell+ 2!  a-addr cell+ 2@ -> 123 456 }T
 
 : bits ( x -- u )
    0 swap begin
-   dup while 
+   dup while
       dup msb and if
-         >r 1+ r> 
-      then 2* 
-   repeat 
+         >r 1+ r>
+      then 2*
+   repeat
    drop ;
 
 ( characters >= 1 au, <= size of cell, >= 8 bits )
@@ -93,9 +93,9 @@ T{ -1 1st +! 1st @ -> 0 }T
 T{ pad here - -> FF }T \ PAD must have offset of $FF
 T{ here unused + 3FF + -> 7FFF }T
 
-:noname dup + ; constant dup+ 
-T{ : q dup+ compile, ; -> }T 
-T{ : as [ q ] ; -> }T 
+:noname dup + ; constant dup+
+T{ : q dup+ compile, ; -> }T
+T{ : as [ q ] ; -> }T
 T{ 123 as -> 246 }T
 
 \ ------------------------------------------------------------------------
@@ -203,9 +203,9 @@ T{ 3 gi6 -> 0 1 2 3 }T
 T{ 4 gi6 -> 0 1 2 3 4 }T
 
 decimal
-T{ :noname ( n -- 0, 1, .., n ) 
-     dup if dup >r 1- recurse r> then 
-   ; 
+T{ :noname ( n -- 0, 1, .., n )
+     dup if dup >r 1- recurse r> then
+   ;
    constant rn1 -> }T
 T{ 0 rn1 execute -> 0 }T
 T{ 4 rn1 execute -> 0 1 2 3 4 }T
@@ -229,7 +229,7 @@ hex
 \ ------------------------------------------------------------------------
 testing case of endof endcase
 
-: cs1 case 
+: cs1 case
    1 of 111 endof
    2 of 222 endof
    3 of 333 endof
@@ -307,60 +307,60 @@ T{ 1 gd6 -> 1 }T
 T{ 2 gd6 -> 3 }T
 T{ 3 gd6 -> 4 1 2 }T
 
-: qd ?do i loop ; 
-T{   789   789 qd -> }T 
-T{ -9876 -9876 qd -> }T 
+: qd ?do i loop ;
+T{   789   789 qd -> }T
+T{ -9876 -9876 qd -> }T
 T{     5     0 qd -> 0 1 2 3 4 }T
 
-: qd1 ?do i 10 +loop ; 
-T{ 50 1 qd1 -> 1 11 21 31 41 }T 
+: qd1 ?do i 10 +loop ;
+T{ 50 1 qd1 -> 1 11 21 31 41 }T
 T{ 50 0 qd1 -> 0 10 20 30 40 }T
 
-: qd2 ?do i 3 > if leave else i then loop ; 
+: qd2 ?do i 3 > if leave else i then loop ;
 T{ 5 -1 qd2 -> -1 0 1 2 3 }T
 
-: qd3 ?do i 1 +loop ; 
-T{ 4  4 qd3 -> }T 
+: qd3 ?do i 1 +loop ;
+T{ 4  4 qd3 -> }T
 T{ 4  1 qd3 ->  1 2 3 }T
 T{ 2 -1 qd3 -> -1 0 1 }T
 
-: qd4 ?do i -1 +loop ; 
+: qd4 ?do i -1 +loop ;
 T{  4 4 qd4 -> }T
-T{  1 4 qd4 -> 4 3 2  1 }T 
+T{  1 4 qd4 -> 4 3 2  1 }T
 T{ -1 2 qd4 -> 2 1 0 -1 }T
 
-: qd5 ?do i -10 +loop ; 
-T{   1 50 qd5 -> 50 40 30 20 10   }T 
-T{   0 50 qd5 -> 50 40 30 20 10 0 }T 
+: qd5 ?do i -10 +loop ;
+T{   1 50 qd5 -> 50 40 30 20 10   }T
+T{   0 50 qd5 -> 50 40 30 20 10 0 }T
 T{ -25 10 qd5 -> 10 0 -10 -20     }T
 
-variable qditerations 
+variable qditerations
 variable qdincrement
 
-: qd6 ( limit start increment -- )    qdincrement ! 
-   0 qditerations ! 
-   ?do 
-     1 qditerations +! 
-     i 
-     qditerations @ 6 = if leave then 
-     qdincrement @ 
-   +loop qditerations @ 
+: qd6 ( limit start increment -- )    qdincrement !
+   0 qditerations !
+   ?do
+     1 qditerations +!
+     i
+     qditerations @ 6 = if leave then
+     qdincrement @
+   +loop qditerations @
 ;
 
-T{  4  4 -1 qd6 ->                   0  }T 
-T{  1  4 -1 qd6 ->  4  3  2  1       4  }T 
-T{  4  1 -1 qd6 ->  1  0 -1 -2 -3 -4 6  }T 
-T{  4  1  0 qd6 ->  1  1  1  1  1  1 6  }T 
-T{  0  0  0 qd6 ->                   0  }T 
-T{  1  4  0 qd6 ->  4  4  4  4  4  4 6  }T 
-T{  1  4  1 qd6 ->  4  5  6  7  8  9 6  }T 
-T{  4  1  1 qd6 ->  1  2  3          3  }T 
-T{  4  4  1 qd6 ->                   0  }T 
-T{  2 -1 -1 qd6 -> -1 -2 -3 -4 -5 -6 6  }T 
-T{ -1  2 -1 qd6 ->  2  1  0 -1       4  }T 
-T{  2 -1  0 qd6 -> -1 -1 -1 -1 -1 -1 6  }T 
-T{ -1  2  0 qd6 ->  2  2  2  2  2  2 6  }T 
-T{ -1  2  1 qd6 ->  2  3  4  5  6  7 6  }T 
+T{  4  4 -1 qd6 ->                   0  }T
+T{  1  4 -1 qd6 ->  4  3  2  1       4  }T
+T{  4  1 -1 qd6 ->  1  0 -1 -2 -3 -4 6  }T
+T{  4  1  0 qd6 ->  1  1  1  1  1  1 6  }T
+T{  0  0  0 qd6 ->                   0  }T
+T{  1  4  0 qd6 ->  4  4  4  4  4  4 6  }T
+T{  1  4  1 qd6 ->  4  5  6  7  8  9 6  }T
+T{  4  1  1 qd6 ->  1  2  3          3  }T
+T{  4  4  1 qd6 ->                   0  }T
+T{  2 -1 -1 qd6 -> -1 -2 -3 -4 -5 -6 6  }T
+T{ -1  2 -1 qd6 ->  2  1  0 -1       4  }T
+T{  2 -1  0 qd6 -> -1 -1 -1 -1 -1 -1 6  }T
+T{ -1  2  0 qd6 ->  2  2  2  2  2  2 6  }T
+T{ -1  2  1 qd6 ->  2  3  4  5  6  7 6  }T
 T{  2 -1  1 qd6 -> -1  0  1          3  }T
 
 \ ------------------------------------------------------------------------
@@ -410,8 +410,8 @@ T{ w1 -> here 2 + }T
 T{  111 value v1 -> }T
 T{ -999 value v2 -> }T
 T{ v1 ->  111 }T
-T{ v2 -> -999 }T 
-T{ 222 to v1 -> }T 
+T{ v2 -> -999 }T
+T{ 222 to v1 -> }T
 T{ v1 -> 222 }T
 T{ : vd1 v1 ; -> }T
 T{ vd1 -> 222 }T
@@ -421,6 +421,80 @@ T{ v2 -> -999 }T
 T{ -333 vd2 -> }T
 T{ v2 -> -333 }T
 T{ v1 ->  222 }T
+
+\ ------------------------------------------------------------------------
+testing constant/variable/value inlining
+
+\ Byte constant (MSB = 0)
+T{ 42 constant c42 -> }T
+T{ c42 -> 42 }T
+T{ : use-c42 c42 ; -> }T
+T{ use-c42 -> 42 }T
+
+\ Word constant (MSB != 0)
+T{ $1234 constant c1234 -> }T
+T{ c1234 -> $1234 }T
+T{ : use-c1234 c1234 ; -> }T
+T{ use-c1234 -> $1234 }T
+
+\ Zero constant
+T{ 0 constant c0 -> }T
+T{ c0 -> 0 }T
+
+\ Max constant
+T{ $FFFF constant cffff -> }T
+T{ cffff -> $FFFF }T
+
+\ Variable - basic store/fetch
+T{ variable tv1 -> }T
+T{ 0 tv1 ! -> }T
+T{ tv1 @ -> 0 }T
+T{ $ABCD tv1 ! -> }T
+T{ tv1 @ -> $ABCD }T
+T{ : use-tv1 tv1 @ ; -> }T
+T{ use-tv1 -> $ABCD }T
+
+\ Value - basic and TO
+T{ 99 value tval1 -> }T
+T{ tval1 -> 99 }T
+T{ 42 to tval1 -> }T
+T{ tval1 -> 42 }T
+
+\ Value - compiled word sees updated value (NN behavior)
+T{ 10 value tval2 -> }T
+T{ : use-tval2 tval2 ; -> }T
+T{ use-tval2 -> 10 }T
+T{ $1234 to tval2 -> }T
+T{ use-tval2 -> $1234 }T
+
+\ Value - compiled TO
+T{ $1234 value tval3 -> }T
+T{ : set-tval3 to tval3 ; -> }T
+T{ $42 set-tval3 -> }T
+T{ tval3 -> $42 }T
+
+\ Constant in compiled constant (equ pattern)
+T{ : myconst constant ; -> }T
+T{ 77 myconst c77 -> }T
+T{ c77 -> 77 }T
+
+\ Tests with nc-limit 0 (force JSR-only compilation)
+nc-limit @ constant old-nc-limit
+0 nc-limit !
+T{ 55 constant nc0-c55 -> }T
+T{ nc0-c55 -> 55 }T
+T{ : nc0-use-c55 nc0-c55 ; -> }T
+T{ nc0-use-c55 -> 55 }T
+
+T{ variable nc0-v1 -> }T
+T{ $1234 nc0-v1 ! -> }T
+T{ nc0-v1 @ -> $1234 }T
+
+T{ 42 value nc0-val -> }T
+T{ nc0-val -> 42 }T
+T{ $1234 to nc0-val -> }T
+T{ nc0-val -> $1234 }T
+old-nc-limit nc-limit !
 
 \ ------------------------------------------------------------------------
 testing evaluate

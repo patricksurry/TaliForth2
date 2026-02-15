@@ -274,24 +274,17 @@ z_m_star_slash: rts
 ; ## "2constant"  auto  ANS double
         ; """https://forth-standard.org/standard/double/TwoCONSTANT
         ;
-        ; Based on the Forth code
-        ; : 2CONSTANT ( D -- )  CREATE SWAP , , DOES> DUP @ SWAP CELL+ @ ;
+        ; Body is two word push templates: first pushes NOS, then TOS.
+        ; No HC, no NN — fully inlineable.
         ; """
 xt_two_constant:
                 jsr underflow_2
 w_two_constant:
-                jsr create_inline
-                .byte 4 + 3             ; TOS; PFA size 4 + 3 for JSR
-                .word dovar
+                jsr w_colon
+                jsr w_two_literal
+                jmp w_semicolon
 
-                jsr w_comma
-                jsr w_comma
-
-                jsr does_runtime        ; does> turns into these two routines.
-                jsr dodoes
-
-                jsr w_two_fetch
-z_two_constant: rts
+z_two_constant:
 
 
 ; ## TWO_LITERAL (C: d -- ) ( -- d) "Compile a literal double word"
@@ -339,18 +332,31 @@ z_two_literal:
 ; ## TWO_VARIABLE ( "name" -- ) "Create a variable for a double word"
 ; ## "2variable"  auto  ANS double
         ; """https://forth-standard.org/standard/double/TwoVARIABLE
-        ; The variable is not initialized to zero.
         ;
-        ; This can be realized in Forth as either
-        ; CREATE 2 CELLS ALLOT  or just  CREATE 0 , 0 ,
+        ; Body is a word push template for the PFA address, followed
+        ; by 4 bytes of uninitialized storage.  No HC, no NN.
         ; """
 xt_two_variable:
 w_two_variable:
-                ; We just let CREATE and ALLOT do the heavy lifting
-                jsr create_inline
-                .byte 4 + 3            ; TOS; PFA size 4 + 3 for JSR
-                .word dovar
+                jsr w_colon
 
+                ; Compute PFA = CP + template_size + 1 (RTS)
+                lda cp
+                clc
+                adc #template_push_word_tos_size + 1
+                dex
+                dex
+                sta 0,x
+                lda cp+1
+                adc #0
+                sta 1,x
+
+                jsr copy_word_template
+                inx
+                inx
+                jsr w_semicolon
+
+                ; Allocate 4 bytes for double-word storage (after RTS)
                 jsr cmpl_word_ya
                 jsr cmpl_word_ya
 

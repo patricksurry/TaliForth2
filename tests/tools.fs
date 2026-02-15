@@ -221,16 +221,23 @@ size (decimal): 1 \n
 ;
 T{ capture-output see exit restore-output see-exit-output compare-glob -> 0 }T
 
-\ the test variable life (above) has HC flag
+\ TODO add a test for an actual HC word, like create foo here foo =
+
+\ used to check for HC flag when variables still did that...
 
 : see-life-output s\" \n
-nt: *  xt: *  header: C0 04 ?? 05 \n
-flags: HC 1 NN 1 AN 0 IM 0 CO 0 DC 0 LC 0 FP 0 | UF 0 ST 0 \n
-size (decimal): CFA 3  PFA 2 \n
+nt: *  xt: *  header: 00 04 ?? 0A \n
+flags: HC 0 NN 0 AN 0 IM 0 CO 0 DC 0 LC 0 FP 0 | UF 0 ST 0 \n
+size (decimal): 10 \n
 \n
-*  20 ?? ?? 2A 00                                     ??*.\n
+*  A0 ?? A9 ?? CA CA 95 00  94 01                    .?.?.... ..\n
 \n
-*  ????? jsr     \n"
+*     ?? ldy.#\n
+*     ?? lda.#\n
+*        dex\n
+*        dex\n
+*      0 sta.zx\n
+*      1 sty.zx\n"
 ;
 T{ capture-output see life restore-output see-life-output compare-glob -> 0 }T
 
