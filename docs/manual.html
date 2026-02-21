@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.20">
+<meta name="generator" content="Asciidoctor 2.0.23">
 <meta name="keywords" content="forth, 6502, assembler, programming, 8-bit, vintage, retro">
 <meta name="author" content="Sam Colwell, Scot W. Stevenson, Patrick Surry">
 <title>Manual for Tali Forth 2 for the 65c02</title>
@@ -142,7 +142,7 @@ p a>code:hover{color:rgba(0,0,0,.9)}
 #content::before{content:none}
 #header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
 #header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #dddddf}
-#header>h1:only-child,body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
+#header>h1:only-child{border-bottom:1px solid #dddddf;padding-bottom:8px}
 #header .details{border-bottom:1px solid #dddddf;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:flex;flex-flow:row wrap}
 #header .details span:first-child{margin-left:-.125em}
 #header .details span.email a{color:rgba(0,0,0,.85)}
@@ -164,6 +164,7 @@ p a>code:hover{color:rgba(0,0,0,.9)}
 #toctitle{color:#7a2518;font-size:1.2em}
 @media screen and (min-width:768px){#toctitle{font-size:1.375em}
 body.toc2{padding-left:15em;padding-right:0}
+body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
 #toc.toc2{margin-top:0!important;background:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #e7e7e9;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
 #toc.toc2 #toctitle{margin-top:0;margin-bottom:.8rem;font-size:1.2em}
 #toc.toc2>ul{font-size:.9em;margin-bottom:0}
@@ -329,7 +330,7 @@ a.image{text-decoration:none;display:inline-block}
 a.image object{pointer-events:none}
 sup.footnote,sup.footnoteref{font-size:.875em;position:static;vertical-align:super}
 sup.footnote a,sup.footnoteref a{text-decoration:none}
-sup.footnote a:active,sup.footnoteref a:active{text-decoration:underline}
+sup.footnote a:active,sup.footnoteref a:active,#footnotes .footnote a:first-of-type:active{text-decoration:underline}
 #footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
 #footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em;border-width:1px 0 0}
 #footnotes .footnote{padding:0 .375em 0 .225em;line-height:1.3334;font-size:.875em;margin-left:1.2em;margin-bottom:.2em}
@@ -5288,7 +5289,7 @@ HC
 </td>
 <td class="hdlist2">
 <p><strong>Has CFA.</strong> The word&#8217;s first three bytes are considered the Code Field Area (CFA).
-The CFA is normally a <code>jsr</code> to a data handler like <code>dovar</code>
+The CFA is normally a <code>jsr</code> to a data handler like <code>push_pfa</code>
 and is followed by the Parameter Field Area (PFA) with any data used by the CFA.
 The word <code>&gt;body</code> uses this flag to skip past the CFA of words defined with <code>create</code>.</p>
 </td>
@@ -5703,6 +5704,21 @@ word <code>constant</code>.</p>
 <pre>: constant  ( "name" -- )  create , does&gt; @ ;</pre>
 </div>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Tali Forth 2 optimizes the implementation of <code>constant</code> (and <code>variable</code>, and <code>value</code>) to compile
+standard literals directly, avoiding the overhead of the <code>create</code> mechanism described here.
+However, the high-level definition above remains the standard example for understanding
+how <code>create</code> and <code>does&gt;</code> interact, so we will use it for this walkthrough.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>We examine this in three phases or "sequences", following Rodriguez (based on
 <a href="#DB">[DB]</a>).</p>
@@ -5744,7 +5760,7 @@ version is easier to explain.
 <div class="paragraph">
 <p><code>does&gt;</code> is an immediate word that adds not one, but two subroutine jumps, one
 to <code>(does&gt;)</code> and one to <code>dodoes</code>, which is a pre-defined system routine like
-<code>dovar</code>. We&#8217;ll discuss those later.</p>
+<code>push_pfa</code>. We&#8217;ll discuss those later.</p>
 </div>
 <div class="paragraph">
 <p>In Tali Forth, many words are "hand-compiled" to produce more efficient assembly.
@@ -5799,7 +5815,7 @@ this word:</p>
 <div class="listingblock">
 <div class="content">
 <pre>        (Header "LIFE")
-        jsr DOVAR               ; in CFA, from LIFE's CREATE
+        jsr push_pfa            ; in CFA, from LIFE's CREATE
         4200                    ; in PFA (little-endian)</pre>
 </div>
 </div>
@@ -5815,7 +5831,7 @@ is the instruction of <code>constant</code> we had labeled <code>a</code>.</p>
 </div>
 <div class="paragraph">
 <p>Now the tricks start. <code>(does&gt;)</code> takes this address off the stack and uses it to
-replace the <code>dovar jsr</code> target in the CFA of our freshly created <code>life</code> word.
+replace the <code>push_pfa jsr</code> target in the CFA of our freshly created <code>life</code> word.
 We now have this:</p>
 </div>
 <div class="listingblock">
@@ -5879,7 +5895,7 @@ instruction the label <code>b</code>. After all of this, we have three addresses
 <p><code>dodoes</code> pops address <code>b</code> off the 65c02&#8217;s stack and puts it in a nice safe place
 on Zero Page, which we&#8217;ll call <code>z</code>. More on that in a moment. First, <code>dodoes</code>
 pops the <code>rts</code> to <code>life</code>. This is <code>c</code>, the address of the PFA or <code>life</code>, where
-we stored the payload of this constant. Basically, <code>dodoes</code> performs a <code>dovar</code>
+we stored the payload of this constant. Basically, <code>dodoes</code> performs a <code>push_pfa</code>
 here, and pushes <code>c</code> on the Data Stack. Now all we have left on the 65c02&#8217;s
 stack is the <code>rts</code> to the main routine.</p>
 </div>
@@ -5921,7 +5937,7 @@ jump to <code>dodoes</code>.</p>
 <dt class="hdlist1"><code>(does&gt;)</code></dt>
 <dd>
 <p>Pops the stack (address of subroutine jump to <code>dodoes</code> in
-<code>constant</code>, increase this by one, replace the original <code>dovar</code> jump target in
+<code>constant</code>, increase this by one, replace the original <code>push_pfa</code> jump target in
 <code>life</code>.</p>
 </dd>
 <dt class="hdlist1"><code>dodoes</code></dt>
@@ -7038,56 +7054,48 @@ Because it is likely to be seen in Forth code, its particular assembly behavior
 is covered here.</p>
 </div>
 <div class="paragraph">
-<p>To see how <code>does&gt;</code> is translated, we will consider the word <code>2CONSTANT</code>:</p>
+<p>To see how <code>does&gt;</code> is translated, we will consider a custom word <code>ARRAY</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>: 2constant ( d -- ) create swap , , does&gt; dup @ swap cell+ @ ;</pre>
+<pre>: array ( n -- ) create cells allot does&gt; swap cells + ;</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>This word is from the ANS double set of words and it creates a new named
-constant that puts its value on the stack when it is run.  It&#8217;s commonly used
-like this:</p>
+<p>This creates a new named array that, given a zero-based index, puts the address of that element on the stack. It&#8217;s commonly used like this:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>12345678. 2constant bignum
-bignum d.</pre>
+<pre>10 array my-array
+42 0 my-array !</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The . at the end of the number makes it a double-cell (32-bit on Tali) number.</p>
-</div>
-<div class="paragraph">
-<p>The assembly code for <code>2CONSTANT</code> (taken from words/double.asm) looks like:</p>
+<p>We could write <code>ARRAY</code> in assembly like this:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>; ## TWO_CONSTANT (C: d "name" -- ) ( -- d) "Create a constant for a double word"
-; ## "2constant"  auto  ANS double
-        ; """https://forth-standard.org/standard/double/TwoCONSTANT
-        ; Based on the Forth code
-        ; : 2CONSTANT ( D -- )  CREATE SWAP , , DOES&gt; DUP @ SWAP CELL+ @ ;
+<pre>; ## ARRAY ( n "name" -- ) "Create a cell array of size n"
+; ## "array"  custom
         ; """
-xt_two_constant:
-                jsr underflow_2
-w_two_constant:
+        ; Based on the Forth code
+        ; : ARRAY ( n -- )  CREATE CELLS ALLOT DOES&gt; SWAP CELLS + ;
+        ; """
+xt_array:
+                jsr underflow_1
+w_array:
                 jsr w_create
-                jsr w_swap
-                jsr w_comma
-                jsr w_comma
+                jsr w_cells
+                jsr w_allot
 
                 jsr does_runtime    ; does&gt; turns into these two routines.
                 jsr dodoes
 
-                jsr w_dup
-                jsr w_fetch
                 jsr w_swap
-                jsr w_cell_plus
-                jsr w_fetch
+                jsr w_cells
+                jsr w_plus
 
-z_two_constant: rts</pre>
+z_array:        rts</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -7100,10 +7108,10 @@ on the stack.  If there aren&#8217;t that many cells on the stack when the word 
 run, an error message will be printed and the rest of the word will not be run.</p>
 </div>
 <div class="paragraph">
-<p>This word takes a double-cell value on the stack, so underflow_2 was used.  The
+<p>This word takes a single cell value on the stack, so underflow_1 was used.  The
 underflow check must be the first line in your word.
-Note the internal w_two_constant entrypoint is placed after the underflow check.
-This speeds up other native words that use 2constant.</p>
+Note the internal w_array entrypoint is placed after the underflow check.
+This speeds up other native words that use array.</p>
 </div>
 <div class="paragraph">
 <p>All of the other words other than <code>does&gt;</code> in this definition are regular words,
@@ -7868,8 +7876,7 @@ Pull top two entries from Return Stack.</p>
 </td>
 <td class="hdlist2">
 <p><em>ANS double</em> ( "name"&#8201;&#8212;&#8201;) "Create a variable for a double word"
-<a href="https://forth-standard.org/standard/double/TwoVARIABLE" class="bare">https://forth-standard.org/standard/double/TwoVARIABLE</a>
-The variable is not initialized to zero.</p>
+<a href="https://forth-standard.org/standard/double/TwoVARIABLE" class="bare">https://forth-standard.org/standard/double/TwoVARIABLE</a></p>
 </td>
 </tr>
 <tr>
@@ -10196,19 +10203,8 @@ defaults to $400</p>
 </td>
 <td class="hdlist2">
 <p><em>ANS core</em> ( n "name"&#8201;&#8212;&#8201;) "Define a value"
+<a href="https://forth-standard.org/standard/core/VALUE" class="bare">https://forth-standard.org/standard/core/VALUE</a>
 <a href="https://forth-standard.org/standard/core/VALUE" class="bare">https://forth-standard.org/standard/core/VALUE</a></p>
-</td>
-</tr>
-<tr>
-<td class="hdlist1">
-<code>variable</code>
-</td>
-<td class="hdlist2">
-<p><em>ANS core</em> ( "name"&#8201;&#8212;&#8201;) "Define a variable"
-<a href="https://forth-standard.org/standard/core/VARIABLE" class="bare">https://forth-standard.org/standard/core/VARIABLE</a>
-There are various Forth definitions for this word, such as
-<code>CREATE 1 CELLS ALLOT</code>  or  <code>CREATE 0 ,</code>  We use a variant of the
-second one so the variable is initialized to zero</p>
 </td>
 </tr>
 <tr>
@@ -10762,7 +10758,7 @@ under <a href="https://www.ubuntu.com/">Ubuntu</a> Linux 16.04 LTS.</p>
 <div id="footer">
 <div id="footer-text">
 Version 1.1<br>
-Last updated 2025-06-24 19:35:50 -0400
+Last updated 2025-07-08 02:02:56 -0400
 </div>
 </div>
 </body>

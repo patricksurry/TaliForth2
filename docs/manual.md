@@ -66,12 +66,9 @@ But why program in 8-bit assembler at all? The 65c02 is fun to work with
 because of its clean instruction set architecture (ISA)<span class="indexterm" primary="instruction set architecture (ISA)"></span> This is not the place to explain the joys of assembler.
 The official handbook for the 65c02 is *Programming the 65816* [\[EnL\]](#EnL).
 
-<div class="tip">
-
-Garth Wilson<span class="indexterm" primary="Wilson, Garth"></span> answers this question in greater
-detail as part of his 6502 primer at <http://wilsonminesco.com/6502primer/> .
-
-</div>
+> [!TIP]
+> Garth Wilson<span class="indexterm" primary="Wilson, Garth"></span> answers this question in greater
+> detail as part of his 6502 primer at <http://wilsonminesco.com/6502primer/> .
 
 ### Forth
 
@@ -87,12 +84,9 @@ invented by Charles "Chuck" H. Moore<span class="indexterm" primary="Moore, Char
 work with radio astronomy, way before there were modern operating systems or
 programming languages.
 
-<div class="tip">
-
-A brief history of Forth can be found at
-<https://www.forth.com/resources/forth-programming-language>
-
-</div>
+> [!TIP]
+> A brief history of Forth can be found at
+> <https://www.forth.com/resources/forth-programming-language>
 
 As a language for people who actually need to get things done, it lets you run
 with scissors, play with fire, and cut corners until you’ve turned a square
@@ -121,15 +115,12 @@ dated) *Starting Forth* by Leo Brodie.<span class="indexterm" primary="Brodie, L
 Gforth,<span class="indexterm" primary="Gforth"></span> one of the more powerful free Forths, comes with its own
 [tutorial](http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Tutorial.html).
 
-<div class="tip">
-
-Once you have understood the basics of the language, do yourself a favor
-and read *Thinking Forth* by Brodie<span class="indexterm" primary="Brodie, Leo"></span>[\[LB2\]](#LB2) which deals with
-the philosophy of the language. Even if you never code a line of Forth in your
-life, exposure to Forth will change the way you think about programming, much
-like Lisp<span class="indexterm" primary="Lisp"></span>.
-
-</div>
+> [!TIP]
+> Once you have understood the basics of the language, do yourself a favor
+> and read *Thinking Forth* by Brodie<span class="indexterm" primary="Brodie, Leo"></span>[\[LB2\]](#LB2) which deals with
+> the philosophy of the language. Even if you never code a line of Forth in your
+> life, exposure to Forth will change the way you think about programming, much
+> like Lisp<span class="indexterm" primary="Lisp"></span>.
 
 ### Writing Your Own Forth
 
@@ -394,12 +385,9 @@ box:
     editor-wordlist forth-wordlist only also previous >order order forth see ed:
     cold bye
 
-<div class="note">
-
-This list might be outdated. To get the current list, run `words` from
-inside Tali Forth.
-
-</div>
+> [!NOTE]
+> This list might be outdated. To get the current list, run `words` from
+> inside Tali Forth.
 
 Though the list might look unsorted, it actually reflects the priority in the
 dictionary<span class="indexterm" primary="dictionary"></span>, that is, which words are found first. For instance,
@@ -409,12 +397,9 @@ the dictionary. [^2] The words before `drop` are those that are defined in high-
 Forth. For more information on individual words, use the `see` command inside
 Tali Forth and refer to the [Glossary of Forth Words](#_glossary_of_forth_words).
 
-<div class="tip">
-
-To find out if a given word is available, you can use the sequence
-`s" myword" find-name 0<>` which will return a `true` or `false` flag.
-
-</div>
+> [!TIP]
+> To find out if a given word is available, you can use the sequence
+> `s" myword" find-name 0<>` which will return a `true` or `false` flag.
 
 Note that the built-in words are lower case. While Tali is not case sensitive — `KASUMI` is the same word as `Kasumi` <span class="indexterm" primary="Kasumi"></span> — newly defined words will be
 lowercased as they are created and entered into the dictionary. There is a
@@ -691,11 +676,8 @@ Some things to look out for when using Tali Forth.
 
 Tali has a 16-bit cell size.
 
-<div class="note">
-
-Use `1 cells 8 * .` to get the cell size in bits with any Forth.
-
-</div>
+> [!NOTE]
+> Use `1 cells 8 * .` to get the cell size in bits with any Forth.
 
 This can trip up calculations when compared to the *de facto* standard Gforth
 with 64 bits. Take this example:
@@ -886,16 +868,16 @@ being edited.
 
 The following words can be used to edit a screen:
 
-|              |                                                                                     |
-|--------------|-------------------------------------------------------------------------------------|
-| list         | `( scr# — )` List the block in screen (16 lines of 64 chars) format. This word also 
-                select the given block for futher editing if desired.                                |
-| l            | `( — )` List the current screen (previously listead with `list`)                    |
-| el           | `( line# — )` Erase a line on the previously listed screen.                         |
-| o            | `( line# — )` Overwrite an entire line on the previously listed screen.             
-                Enter the replacement text at the \* prompt.                                         |
-| enter-screen | `( scr# — )` Prompt for all of the lines on the given screen number                 |
-| erase-screen | `( scr# — )` Erase the given screen by filling with BLANK (spaces)                  |
+|  |  |
+|----|----|
+| list | `( scr# — )` List the block in screen (16 lines of 64 chars) format. This word also
+select the given block for futher editing if desired. |
+| l | `( — )` List the current screen (previously listead with `list`) |
+| el | `( line# — )` Erase a line on the previously listed screen. |
+| o | `( line# — )` Overwrite an entire line on the previously listed screen.
+Enter the replacement text at the \* prompt. |
+| enter-screen | `( scr# — )` Prompt for all of the lines on the given screen number |
+| erase-screen | `( scr# — )` Erase the given screen by filling with BLANK (spaces) |
 
 Because block 0 has already been listed above, we will simply add a message on
 line 2.
@@ -984,31 +966,31 @@ good assumption for Tali, as it currently only has 1 block buffer.
 
 The following words will be used to deal with blocks:
 
-|               |                                                                                 |
-|---------------|---------------------------------------------------------------------------------|
-| block         | `( block# — addr )` Load the given block into a buffer. If the buffer           
-                 has been updated, it will save the contents out to block storage before loading  
-                 the new block. Returns the address of the buffer.                                |
-| buffer        | `( block# — addr )` Identical to block, except that it doesn’t                  
-                 actually load the block from storage. The contents in the buffer are undefined,  
-                 but will be saved back to the given block number if updated. Returns the         
-                 address of the buffer.                                                           |
-| update        | `( — )` Mark the most recent buffer as updated (dirty) so it will be            
-                 saved back to storage at a later time.                                           |
-| flush         | `( — )` Save any updated buffers to storage and mark all buffers empty.         |
-| save-buffers  | `( — )` Save any updated buffers to storage.                                    |
-| empty-buffers | `( — )` Mark all buffers as empty, even if they have been                       
-                 updated and not saved. Can be used to abandon edits.                             |
-| load          | `( blk# — )` Interpret the contents of the given block.                         |
+|  |  |
+|----|----|
+| block | `( block# — addr )` Load the given block into a buffer. If the buffer
+has been updated, it will save the contents out to block storage before loading
+the new block. Returns the address of the buffer. |
+| buffer | `( block# — addr )` Identical to block, except that it doesn’t
+actually load the block from storage. The contents in the buffer are undefined,
+but will be saved back to the given block number if updated. Returns the
+address of the buffer. |
+| update | `( — )` Mark the most recent buffer as updated (dirty) so it will be
+saved back to storage at a later time. |
+| flush | `( — )` Save any updated buffers to storage and mark all buffers empty. |
+| save-buffers | `( — )` Save any updated buffers to storage. |
+| empty-buffers | `( — )` Mark all buffers as empty, even if they have been
+updated and not saved. Can be used to abandon edits. |
+| load | `( blk# — )` Interpret the contents of the given block. |
 
 The following variables are used with blocks:
 
-|     |                                                                          |
-|-----|--------------------------------------------------------------------------|
-| BLK | The block number currently being interpreted by a `load` or `thru`       
-       command. BLK is 0 when interpreting from the keyboard or from a string.   |
-| SCR | The screen number currently being edited. Set by `list`, but you can set 
-       it yourself if you want.                                                  |
+|  |  |
+|----|----|
+| BLK | The block number currently being interpreted by a `load` or `thru`
+command. BLK is 0 when interpreting from the keyboard or from a string. |
+| SCR | The screen number currently being edited. Set by `list`, but you can set
+it yourself if you want. |
 
 ### A simple block example
 
@@ -1324,26 +1306,26 @@ The data structures for the wordlists and the search order are not directly
 accessable to the user, but rather are manipulated with the following set of
 words:
 
-|                 |                                                                                 |
-|-----------------|---------------------------------------------------------------------------------|
-| order           | ( — ) Display the current search order and current wordlist. The search order   
-                   is printed with the first wordlist on the left and the last wordlist on the      
-                   right. After the search order, the current (compilation) wordlist is printed.    |
-| get-order       | ( — widn …​ wid1 n ) Get the current search order. This has the                  
-                   number of wordlists in the search order on the top of the stack, with the        
-                   wids for the wordlists, in order, under that. Wid1 is the wordlist that will be  
-                   searched first and widn is the wordlist that will be searched last.              |
-| set-order       | ( widn …​ wid1 n — ) Set the current search order. This takes the                
-                   wids and the number of wordlists in the search order on the stack.               |
-| \>order         | ( wid — ) Add the given wordlist to the beginning of the search order.          |
-| get-current     | ( — wid ) Get the wid for the current wordlist. This is the                     
-                   wordlist that new words will be compiled to.                                     |
-| set-current     | ( wid — ) Set the current wordlist. New words created after this                
-                   point will go into the wordlist indicated here.                                  |
-| wordlist        | ( — wid ) Create a new wordlist and return the wid for this new                 
-                   wordlist. Up to eight user-defined wordlists may be created this way.            |
-| search-wordlist | ( addr u wid — 0 \| xt 1 \| xt -1) Search for a word in a specific wordlist.    
-                   The return results are identical to those returned by `find`.                    |
+|  |  |
+|----|----|
+| order | ( — ) Display the current search order and current wordlist. The search order
+is printed with the first wordlist on the left and the last wordlist on the
+right. After the search order, the current (compilation) wordlist is printed. |
+| get-order | ( — widn …​ wid1 n ) Get the current search order. This has the
+number of wordlists in the search order on the top of the stack, with the
+wids for the wordlists, in order, under that. Wid1 is the wordlist that will be
+searched first and widn is the wordlist that will be searched last. |
+| set-order | ( widn …​ wid1 n — ) Set the current search order. This takes the
+wids and the number of wordlists in the search order on the stack. |
+| \>order | ( wid — ) Add the given wordlist to the beginning of the search order. |
+| get-current | ( — wid ) Get the wid for the current wordlist. This is the
+wordlist that new words will be compiled to. |
+| set-current | ( wid — ) Set the current wordlist. New words created after this
+point will go into the wordlist indicated here. |
+| wordlist | ( — wid ) Create a new wordlist and return the wid for this new
+wordlist. Up to eight user-defined wordlists may be created this way. |
+| search-wordlist | ( addr u wid — 0 \| xt 1 \| xt -1) Search for a word in a specific wordlist.
+The return results are identical to those returned by `find`. |
 
 ### Using the built-in wordlists
 
@@ -1547,13 +1529,10 @@ order if you run it too many times.
 Tali Forth 2 currently ships with a clone of the `ed` line-based editor of Unix
 fame. It is invoked with `ed:`, though the formal name is `ed6502`.
 
-<div class="tip">
-
-`ed:` uses about 2 KB of ROM in the default setup. If you know for certain
-you are not going to be using it, you can reclaim that space by removing "ed"
-from the TALI_OPTIONAL_WORDS list in your platform file.
-
-</div>
+> [!TIP]
+> `ed:` uses about 2 KB of ROM in the default setup. If you know for certain
+> you are not going to be using it, you can reclaim that space by removing "ed"
+> from the TALI_OPTIONAL_WORDS list in your platform file.
 
 For those not familiar with UNIX `ed`, there is [a tutorial](#ed-tutorial) included
 in this manual. This section is a brief overview of the currently available
@@ -1616,13 +1595,10 @@ Apart from missing about 90 percent of the features:
   Where Unix ed uses the format `w <FILENAME>`, ed6502 takes the address
   to write the text to as `7000w`.
 
-<div class="warning">
-
-`ed:` currently only works with decimal numbers. It saves and
-restores BASE, but all numbers inside ed: will be decimal. This includes
-the address used with `w`.
-
-</div>
+> [!WARNING]
+> `ed:` currently only works with decimal numbers. It saves and
+> restores BASE, but all numbers inside ed: will be decimal. This includes
+> the address used with `w`.
 
 ### Using `ed` for programming
 
@@ -1711,13 +1687,10 @@ reputation for being completely unhelpful. Any error is just signaled with a
 question mark (`?`). There isn’t even a prompt unless it is explicitly turned
 on.
 
-<div class="note">
-
-Newer versions of Unix `ed` allow an option to display an explanation of the
-last error, but Tali doesn’t have space for that. Error messages are for wimps.
-And who really needs a prompt anyway?
-
-</div>
+> [!NOTE]
+> Newer versions of Unix `ed` allow an option to display an explanation of the
+> last error, but Tali doesn’t have space for that. Error messages are for wimps.
+> And who really needs a prompt anyway?
 
 Commands in `ed:` are single-letter commands like `a` or `p`. They can be
 prefixed with a combination of letters and special characters to designate the
@@ -1791,11 +1764,8 @@ Just entering the command directly without a line number will print the
 *current line*, which `ed` adjusts depending on what you are doing. After `a` it
 is the last line.
 
-<div class="tip">
-
-To find out which is the current line, type the `=` (equal sign) command.
-
-</div>
+> [!TIP]
+> To find out which is the current line, type the `=` (equal sign) command.
 
 This session could continue as such:
 
@@ -1818,12 +1788,9 @@ call `%n` (or `,n`) again if we are unsure:
 Note that lines three and four have moved up — they are now lines two and
 three.
 
-<div class="tip">
-
-To avoid confusion, when you have to delete a large number of lines, start
-at the bottom and move upwards towards the beginning of the text.
-
-</div>
+> [!TIP]
+> To avoid confusion, when you have to delete a large number of lines, start
+> at the bottom and move upwards towards the beginning of the text.
 
 We can also use comma-separated numbers to indicate a range of lines (say,
 `1,2d`). As you probably will have guessed, or the `,` (or `%`) prefix can be
@@ -1862,12 +1829,9 @@ a preference for `a` or `i`. This is easy because `ed` accepts `0a` as a way to
 add new lines *before* the first line. In most other circumstances, line `0` is
 illegal. There is also the `$` prefix for the last line.
 
-<div class="tip">
-
-The combination `$=` will print the number of the last line. Just `=` will
-print the current line.
-
-</div>
+> [!TIP]
+> The combination `$=` will print the number of the last line. Just `=` will
+> print the current line.
 
 ### Saving Your Text
 
@@ -1883,11 +1847,8 @@ a location in memory.
 - `ed` returns the number of characters written, including the end-of-line
   characters. Yes, this is actually feedback of sorts. But don’t get cocky!
 
-<div class="warning">
-
-`ed:` currently only works with decimal numbers.
-
-</div>
+> [!WARNING]
+> `ed:` currently only works with decimal numbers.
 
 The `w` command was originally created for files. Tali doesn’t have files, just
 addresses. This means that you can write anything anywhere, at the risk of
@@ -1977,13 +1938,10 @@ there are other sources:
 Tali Forth is shipped with a built-in assembler that uses the Simpler Assembler
 Format (SAN). See the Appendix for an introduction to SAN.
 
-<div class="note">
-
-The code was originally part of a stand-alone 65c02 assembler in Forth
-named tasm65c02. See <https://github.com/scotws/tasm65c02> for details. Tasm65c02
-is in the public domain.
-
-</div>
+> [!NOTE]
+> The code was originally part of a stand-alone 65c02 assembler in Forth
+> named tasm65c02. See <https://github.com/scotws/tasm65c02> for details. Tasm65c02
+> is in the public domain.
 
 ### Adding assembler code at the command line
 
@@ -2026,11 +1984,8 @@ The last line in our code, `previous`, removes the assembler wordlist again.
 In the example above, it is important to use `rts` and not `brk` as the last
 instruction to return to the command line.
 
-<div class="warning">
-
-Seriously. Never use `brk` inside Tali Forth assembler code!
-
-</div>
+> [!WARNING]
+> Seriously. Never use `brk` inside Tali Forth assembler code!
 
 Note you can freely mix Forth high-level words and assembler instructions. For
 example, this will work:
@@ -2073,13 +2028,10 @@ problem, we can use the `[` and `]` words:
             [ push-a ]  compiled
             u. ;  ok
 
-<div class="note">
-
-We do not need to add an explicit `rts` instruction when compiling new
-words with assembler because the `;` does it automatically. This is because Tali
-Forth uses Subroutine Threaded Code (STC).
-
-</div>
+> [!NOTE]
+> We do not need to add an explicit `rts` instruction when compiling new
+> words with assembler because the `;` does it automatically. This is because Tali
+> Forth uses Subroutine Threaded Code (STC).
 
 Running `print-a-one` prints the number `1`. We can use a slightly simpler variant:
 
@@ -2891,13 +2843,10 @@ That seems handy enough we should make it into a word.
 When creating a new Forth, there are a bunch of design decisions to be
 made.
 
-<div class="note">
-
-Probably the best introduction to these questions is found in "Design
-Decisions in the Forth Kernel" at
-<http://www.bradrodriguez.com/papers/moving1.htm> by Brad Rodriguez.
-
-</div>
+> [!NOTE]
+> Probably the best introduction to these questions is found in "Design
+> Decisions in the Forth Kernel" at
+> <http://www.bradrodriguez.com/papers/moving1.htm> by Brad Rodriguez.
 
 Spoiler alert: Tali Forth is a subroutine-threaded (STC) variant with a 16-bit
 cell size and a dictionary that allows separated headers and code. If you don’t
@@ -3031,13 +2980,10 @@ The X register<span class="indexterm" primary="X register"></span> is used as th
 points to the least significant byte of the current top element of the stack
 ("Top of the Stack", TOS).
 
-<div class="note">
-
-In the first versions of Tali Forth 1, the DSP pointed to the next *free*
-element of the stack. The new system makes detecting underflow easier and
-follows the convention in Liara Forth.<span class="indexterm" primary="Liara"></span>
-
-</div>
+> [!NOTE]
+> In the first versions of Tali Forth 1, the DSP pointed to the next *free*
+> element of the stack. The new system makes detecting underflow easier and
+> follows the convention in Liara Forth.<span class="indexterm" primary="Liara"></span>
 
 Initially, the DSP points to \$78, not \$7F as might be expected. This provides a
 few bytes as a "floodplain" for underflow.<span class="indexterm" primary="underflow"></span> The initial value of
@@ -3145,31 +3091,31 @@ along with a calculated **UF** flag indicating whether the word includes an (opt
 The first three metadata flags — **HC**, **NN** and **AN** — are rarely needed for user words,
 while the last two — **CO** and **IM** — are useful for words with special compilation semantics:
 
-|     |                                                                                                     |
-|-----|-----------------------------------------------------------------------------------------------------|
-| HC  | **Has CFA.** The word’s first three bytes are considered the Code Field Area (CFA).                 
-       The CFA is normally a `jsr` to a data handler like `dovar`                                           
-       and is followed by the Parameter Field Area (PFA) with any data used by the CFA.                     
-       The word `>body` uses this flag to skip past the CFA of words defined with `create`.                 |
-| NN  | **Never Native.** This Word is never inlined. This is usually because the word needs                
-       the caller’s return address for processing, or because the word                                      
-       contains some non-relocatable data or code like the absolute `jmp` generated by flow control words.  
-       TaliForth automatically flags user words as **NN** when it detects `jmp` instructions.               |
-| AN  | **Always Native.** This word must always be inlined, usually because it depends on the              
-       return stack state. Setting both **NN** and **AN** together indicates a word which can be either     
-       inlined or not with a specific return stack prologue/epilogue that is removed when inlined.          
-       This is limited to the words `R>`, `R@`, `>R`, `2R>`, `2R@`, and `2>R`.                              |
-| IM  | **Immediate.** This word is executed immediately during definitions of new words.                   |
-| CO  | **Compile Only.** This word may only be used inside definitions of new words.                       |
+|  |  |
+|----|----|
+| HC | **Has CFA.** The word’s first three bytes are considered the Code Field Area (CFA).
+The CFA is normally a `jsr` to a data handler like `push_pfa`
+and is followed by the Parameter Field Area (PFA) with any data used by the CFA.
+The word `>body` uses this flag to skip past the CFA of words defined with `create`. |
+| NN | **Never Native.** This Word is never inlined. This is usually because the word needs
+the caller’s return address for processing, or because the word
+contains some non-relocatable data or code like the absolute `jmp` generated by flow control words.
+TaliForth automatically flags user words as **NN** when it detects `jmp` instructions. |
+| AN | **Always Native.** This word must always be inlined, usually because it depends on the
+return stack state. Setting both **NN** and **AN** together indicates a word which can be either
+inlined or not with a specific return stack prologue/epilogue that is removed when inlined.
+This is limited to the words `R>`, `R@`, `>R`, `2R>`, `2R@`, and `2>R`. |
+| IM | **Immediate.** This word is executed immediately during definitions of new words. |
+| CO | **Compile Only.** This word may only be used inside definitions of new words. |
 
 The **NN** and **AN** flags are interpreted together like this:
 
-| NN  | AN  | Interpretation                                                       |
-|-----|-----|----------------------------------------------------------------------|
-| 0   | 0   | Normal word called by JSR (non-native) or inlined (native). No flag. |
-| 1   | 0   | Word can only be called by JSR (never native; NN).                   |
-| 0   | 1   | Word can only be inlined (always native; AN).                        |
-| 1   | 1   | Normal word with return stack juggling removed when inlining (ST).   |
+| NN | AN | Interpretation |
+|----|----|----|
+| 0 | 0 | Normal word called by JSR (non-native) or inlined (native). No flag. |
+| 1 | 0 | Word can only be called by JSR (never native; NN). |
+| 0 | 1 | Word can only be inlined (always native; AN). |
+| 1 | 1 | Normal word with return stack juggling removed when inlining (ST). |
 
 The last three flags — **DC**, **LC** and **FP** — control the header layout to optimize memory usage,
 often allowing us to halve the header from eight to four bytes (not counting the name string).
@@ -3179,26 +3125,26 @@ This full picture of the header illustrates how they work:
 <img src="pics/header_detail.png" alt="header detail" />
 </figure>
 
-|     |                                                                          |
-|-----|--------------------------------------------------------------------------|
-| DC  | **Disjoint code.** When DC=1, the word’s code can be located             
-       anywhere in memory, with the xt_word value added to the header.           
-       However when DC=0 the word’s code immediately follows the header,         
-       reducing the header size by two bytes. Most `:` words                     
-       added to the dictionary use this format, since compiled code              
-       is added to the dictionary immediately after the header.                  |
-| LC  | **Long code.** The length of the word body can be recorded in            
-       either one or two bytes. The length is only required                      
-       if the word is inlined, and for `DISASM`. If we don’t care about          
-       inlining long words we can save some complexity by always using one byte  
-       and just reporting a maximum length of 255 (see `fixup_long_word`).       |
-| FP  | **Far previous.** Normally we store a two byte `nt_prev` pointer         
-       for the previous header in the linked list.                               
-       However, if the previous header is within the preceding 256 bytes,        
-       we only need to store the LSB and can infer the MSB, saving a byte.       
-       This is often the case with small `:` words that are consecutively        
-       added to the dictionary, and with builtin words where we define           
-       all headers consecutively.                                                |
+|  |  |
+|----|----|
+| DC | **Disjoint code.** When DC=1, the word’s code can be located
+anywhere in memory, with the xt_word value added to the header.
+However when DC=0 the word’s code immediately follows the header,
+reducing the header size by two bytes. Most `:` words
+added to the dictionary use this format, since compiled code
+is added to the dictionary immediately after the header. |
+| LC | **Long code.** The length of the word body can be recorded in
+either one or two bytes. The length is only required
+if the word is inlined, and for `DISASM`. If we don’t care about
+inlining long words we can save some complexity by always using one byte
+and just reporting a maximum length of 255 (see `fixup_long_word`). |
+| FP | **Far previous.** Normally we store a two byte `nt_prev` pointer
+for the previous header in the linked list.
+However, if the previous header is within the preceding 256 bytes,
+we only need to store the LSB and can infer the MSB, saving a byte.
+This is often the case with small `:` words that are consecutively
+added to the dictionary, and with builtin words where we define
+all headers consecutively. |
 
 The length of the header, excluding the name itself, is 4 + 2\*DC + LC + FP bytes.
 The specific position of these flags in the status byte makes this easy to calculate in assembly:
@@ -3208,13 +3154,10 @@ The specific position of these flags in the status byte makes this easy to calcu
             lsr             ; shift FP to carry flag, so Acc = 2*DC + LC
             adc #4          ; header length is 4 + 2*DC + LC + FP bytes
 
-<div class="note">
-
-We could also reorganize the built-in dictionary to save a little more memory
-but currently have preferred readability, keeping word headers disjoint
-from their assembly implementations.
-
-</div>
+> [!NOTE]
+> We could also reorganize the built-in dictionary to save a little more memory
+> but currently have preferred readability, keeping word headers disjoint
+> from their assembly implementations.
 
 The second byte of the header — following the status byte — is the **length of the word’s name string**, which
 is currently limited to 31 characters.
@@ -3231,13 +3174,10 @@ points to the start of the actual assembly code. Some words that have the same
 functionality point to the same code block. If the `DC` flag is zero we omit
 this pointer and calculate it based on the length of the header.
 
-<div class="note">
-
-Because Tali uses a subroutine threaded model (STC), the classic Forth
-distinction between the Code Field Area (CFA) and the Parameter Field Area
-(PFA, also Data Field Area) is meaningless — it’s all "payload".
-
-</div>
+> [!NOTE]
+> Because Tali uses a subroutine threaded model (STC), the classic Forth
+> distinction between the Code Field Area (CFA) and the Parameter Field Area
+> (PFA, also Data Field Area) is meaningless — it’s all "payload".
 
 The next field stores the **length of the word’s code** (`z_word` - `xt_word`) as either
 one or two bytes based on the `LC` flag. This is used for native
@@ -3320,13 +3260,13 @@ The initial commands after reboot flow into each other: `cold` to `abort` to
 `refill` to get the input. `refill` does different things based on which of the
 four input sources (see above) is active:
 
-|                    |                                                                       |
-|--------------------|-----------------------------------------------------------------------|
-| Keyboard entry     | This is the default. Get line of input via `accept` and return `true` 
-                      even if the input string was empty.                                    |
-| `evaluate` string  | Return a `false` flag                                                 |
-| Input from a block | Blocks are evaluated as a 1024 byte string.                           |
-| Input from a file  | *Not implemented at this time*                                        |
+|  |  |
+|----|----|
+| Keyboard entry | This is the default. Get line of input via `accept` and return `true`
+even if the input string was empty. |
+| `evaluate` string | Return a `false` flag |
+| Input from a block | Blocks are evaluated as a 1024 byte string. |
+| Input from a file | *Not implemented at this time* |
 
 #### The Command Line Interface (CLI)
 
@@ -3355,18 +3295,21 @@ powerful part of Forth. Understanding how it works in Tali Forth is important
 if you want to be able to modify the code. In this text, we walk through the
 generation process for a subroutine threaded code (STC) such as Tali Forth.
 
-<div class="note">
-
-For a more general explanation, see Brad Rodriguez' series of articles at
-<http://www.bradrodriguez.com/papers/moving3.htm> There is a discussion of this
-walkthrough at <http://forum.6502.org/viewtopic.php?f=9&t=3153>
-
-</div>
+> [!NOTE]
+> For a more general explanation, see Brad Rodriguez' series of articles at
+> <http://www.bradrodriguez.com/papers/moving3.htm> There is a discussion of this
+> walkthrough at <http://forum.6502.org/viewtopic.php?f=9&t=3153>
 
 We start with the following standard example, a high-level Forth version of the
 word `constant`.
 
     : constant  ( "name" -- )  create , does> @ ;
+
+> [!NOTE]
+> Tali Forth 2 optimizes the implementation of `constant` (and `variable`, and `value`) to compile
+> standard literals directly, avoiding the overhead of the `create` mechanism described here.
+> However, the high-level definition above remains the standard example for understanding
+> how `create` and `does>` interact, so we will use it for this walkthrough.
 
 We examine this in three phases or "sequences", following Rodriguez (based on
 [\[DB\]](#DB)).
@@ -3386,17 +3329,14 @@ ignoring any compilation to native 65c02 assembler, the above compiles to:
 To make things easier to explain later, we’ve added the labels `a` and
 `b` in the listing.
 
-<div class="note">
-
-This example uses the traditional word `(does>)`, which in Tali Forth 2
-is actually an internal routine that does not appear as a separate word. This
-version is easier to explain.
-
-</div>
+> [!NOTE]
+> This example uses the traditional word `(does>)`, which in Tali Forth 2
+> is actually an internal routine that does not appear as a separate word. This
+> version is easier to explain.
 
 `does>` is an immediate word that adds not one, but two subroutine jumps, one
 to `(does>)` and one to `dodoes`, which is a pre-defined system routine like
-`dovar`. We’ll discuss those later.
+`push_pfa`. We’ll discuss those later.
 
 In Tali Forth, many words are "hand-compiled" to produce more efficient assembly.
 For example, the word `bounds` could be defined in forth as
@@ -3430,7 +3370,7 @@ Without going into detail, the first two subroutine jumps of `constant` give us
 this word:
 
             (Header "LIFE")
-            jsr DOVAR               ; in CFA, from LIFE's CREATE
+            jsr push_pfa            ; in CFA, from LIFE's CREATE
             4200                    ; in PFA (little-endian)
 
 Next, we `jsr` to `(does>)`. The address that this pushes on the Return Stack
@@ -3440,7 +3380,7 @@ is the instruction of `constant` we had labeled `a`.
             (1) rts to main routine
 
 Now the tricks start. `(does>)` takes this address off the stack and uses it to
-replace the `dovar jsr` target in the CFA of our freshly created `life` word.
+replace the `push_pfa jsr` target in the CFA of our freshly created `life` word.
 We now have this:
 
             (Header "LIFE")
@@ -3482,7 +3422,7 @@ instruction the label `b`. After all of this, we have three addresses on the
 `dodoes` pops address `b` off the 65c02’s stack and puts it in a nice safe place
 on Zero Page, which we’ll call `z`. More on that in a moment. First, `dodoes`
 pops the `rts` to `life`. This is `c`, the address of the PFA or `life`, where
-we stored the payload of this constant. Basically, `dodoes` performs a `dovar`
+we stored the payload of this constant. Basically, `dodoes` performs a `push_pfa`
 here, and pushes `c` on the Data Stack. Now all we have left on the 65c02’s
 stack is the `rts` to the main routine.
 
@@ -3511,7 +3451,7 @@ jump to `dodoes`.
 
 `(does>)`  
 Pops the stack (address of subroutine jump to `dodoes` in
-`constant`, increase this by one, replace the original `dovar` jump target in
+`constant`, increase this by one, replace the original `push_pfa` jump target in
 `life`.
 
 `dodoes`  
@@ -3552,14 +3492,11 @@ of `if`. This is put on the Data Stack, so that `then` knows where to compile
 it’s address in the second step. Until then, a dummy value is compiled after
 `0branch` to reserve the space we need.
 
-<div class="note">
-
-This section and the next one are based on a discussion at
-[http://forum.6502.org/viewtopic.php?f=9\\t=3176](http://forum.6502.org/viewtopic.php?f=9\&t=3176) see there for more details.
-Another take on this subject that handles things a bit differently is at
-<http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx>
-
-</div>
+> [!NOTE]
+> This section and the next one are based on a discussion at
+> [http://forum.6502.org/viewtopic.php?f=9\\t=3176](http://forum.6502.org/viewtopic.php?f=9\&t=3176) see there for more details.
+> Another take on this subject that handles things a bit differently is at
+> <http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx>
 
 In Forth, this can be realized by
 
@@ -3597,18 +3534,15 @@ the current loop limits.
 All branch addresses including the loop exit are now directly compiled into code
 rather than stored on the stack.
 
-<div class="note">
-
-In order to simplify the loop completion check after each iteration,
-we don’t store the actual loop index and limit values in the LCB.
-Instead we calculate a fudge factor (sometimes referred to as 'fufa' in the code)
-that makes every loop appear to finish at exactly \$8000, and use this to adjust the loop index.
-This lets us use a simple 16 bit overflow test to see if we’re done.
-One side effect is that the `i` and `j` words get a little more complicated.
-For more details see <http://forum.6502.org/viewtopic.php?f=9&t=2026>
-and the `do_runtime` implementation.
-
-</div>
+> [!NOTE]
+> In order to simplify the loop completion check after each iteration,
+> we don’t store the actual loop index and limit values in the LCB.
+> Instead we calculate a fudge factor (sometimes referred to as 'fufa' in the code)
+> that makes every loop appear to finish at exactly \$8000, and use this to adjust the loop index.
+> This lets us use a simple 16 bit overflow test to see if we’re done.
+> One side effect is that the `i` and `j` words get a little more complicated.
+> For more details see <http://forum.6502.org/viewtopic.php?f=9&t=2026>
+> and the `do_runtime` implementation.
 
 Remembering state across nested loops means a stack of LCBs.
 Whereas the return stack grows downward from \$1ff, our current loop control stack
@@ -3894,24 +3828,18 @@ completed (with a semicolon). An example of doing this might be:
 Please note that adding the always-native flag to a word overrides the
 never-native flag.
 
-<div class="warning">
+> [!WARNING]
+> Do not apply `allow-native` or `always-native` to a word that
+> has any kind of control structures in it, such as `if`, `case` or any
+> kind of loop. If these words ever get native compiled, the JMP
+> instructions used in the control structures are copied verbatim,
+> causing them to jump back into the original words.
 
-Do not apply `allow-native` or `always-native` to a word that
-has any kind of control structures in it, such as `if`, `case` or any
-kind of loop. If these words ever get native compiled, the JMP
-instructions used in the control structures are copied verbatim,
-causing them to jump back into the original words.
-
-</div>
-
-<div class="warning">
-
-When adding your own words in assembly, if a word has a `jmp`
-instruction in it, it should have the NN (Never Native) flag set in
-the headers.asm file and should never have the AN (Always Native) flag
-set.
-
-</div>
+> [!WARNING]
+> When adding your own words in assembly, if a word has a `jmp`
+> instruction in it, it should have the NN (Never Native) flag set in
+> the headers.asm file and should never have the AN (Always Native) flag
+> set.
 
 ### `cmove`, `cmove>` and `move`
 
@@ -3968,11 +3896,8 @@ run it. You’ll need to replace the path to the jar file for your system.
     #!/bin/sh
     java -jar /path/to/jarfile/ditaa0_9.jar $@
 
-<div class="note">
-
-For OS X users, `brew install ditaa` gives you an executable `ditaa` without the helper script.
-
-</div>
+> [!NOTE]
+> For OS X users, `brew install ditaa` gives you an executable `ditaa` without the helper script.
 
 `asciidoctor` and `asciidoctor-pdf` are used to generate the html and PDF versions
 of this manual. These are rubygems are are installed by first installing ruby
@@ -4347,45 +4272,38 @@ Defining words in Forth are words that can be used to declare new words.
 Because it is likely to be seen in Forth code, its particular assembly behavior
 is covered here.
 
-To see how `does>` is translated, we will consider the word `2CONSTANT`:
+To see how `does>` is translated, we will consider a custom word `ARRAY`:
 
-    : 2constant ( d -- ) create swap , , does> dup @ swap cell+ @ ;
+    : array ( n -- ) create cells allot does> swap cells + ;
 
-This word is from the ANS double set of words and it creates a new named
-constant that puts its value on the stack when it is run. It’s commonly used
-like this:
+This word creates a new named array that, given a zero-based index, puts the address of that element on the stack. It’s commonly used like this:
 
-    12345678. 2constant bignum
-    bignum d.
+    10 array my-array
+    42 0 my-array !
 
-The . at the end of the number makes it a double-cell (32-bit on Tali) number.
+The assembly code for `ARRAY` looks like:
 
-The assembly code for `2CONSTANT` (taken from words/double.asm) looks like:
-
-    ; ## TWO_CONSTANT (C: d "name" -- ) ( -- d) "Create a constant for a double word"
-    ; ## "2constant"  auto  ANS double
-            ; """https://forth-standard.org/standard/double/TwoCONSTANT
-            ; Based on the Forth code
-            ; : 2CONSTANT ( D -- )  CREATE SWAP , , DOES> DUP @ SWAP CELL+ @ ;
+    ; ## ARRAY ( n "name" -- ) "Create a cell array of size n"
+    ; ## "array"  coded  Custom
             ; """
-    xt_two_constant:
-                    jsr underflow_2
-    w_two_constant:
+            ; Based on the Forth code
+            ; : ARRAY ( n -- )  CREATE CELLS ALLOT DOES> SWAP CELLS + ;
+            ; """
+    xt_array:
+                    jsr underflow_1
+    w_array:
                     jsr w_create
-                    jsr w_swap
-                    jsr w_comma
-                    jsr w_comma
+                    jsr w_cells
+                    jsr w_allot
 
                     jsr does_runtime    ; does> turns into these two routines.
                     jsr dodoes
 
-                    jsr w_dup
-                    jsr w_fetch
                     jsr w_swap
-                    jsr w_cell_plus
-                    jsr w_fetch
+                    jsr w_cells
+                    jsr w_plus
 
-    z_two_constant: rts
+    z_array:        rts
 
 This word takes an argument, so underflow checking is added right at the top.
 Underflow checking is optional, but
@@ -4395,10 +4313,10 @@ checking to your word, just call the appropriate underflow checking helper
 on the stack. If there aren’t that many cells on the stack when the word is
 run, an error message will be printed and the rest of the word will not be run.
 
-This word takes a double-cell value on the stack, so underflow_2 was used. The
+This word takes a single cell value on the stack, so underflow_1 was used. The
 underflow check must be the first line in your word.
-Note the internal w_two_constant entrypoint is placed after the underflow check.
-This speeds up other native words that use 2constant.
+Note the internal w_array entrypoint is placed after the underflow check.
+This speeds up other native words that use array.
 
 All of the other words other than `does>` in this definition are regular words,
 so they just turn into JSRs. The word `does>` turns into a `jsr does_runtime`
@@ -4437,28 +4355,28 @@ For example:
     #nt_header m_star_slash, "m*/" ; uses special characters in the name
     #nt_header exit, "exit", AN+CO ; needs special flags so "exit" must also be added
 
-|     |                                                                                       |
-|-----|---------------------------------------------------------------------------------------|
-| CO  | Compile Only. Add this if your word should only be allowed when compiling             
-       other words. Tali will print an error message if the user tries to run this            
-       word in interpreted mode.                                                              |
-| IM  | Immediate Word. Add this when a word should always be run rather than                 
-       compiled (even when in compiling mode).                                                |
-| NN  | Never Native Compile (must always be called by JSR when compiled). Add                
-       this when your word contains a JMP instruction, or if it plays with the return         
-       address it is called from.                                                             |
-| AN  | Always Native Compile (will be native compiled when compiled).                        
-       The opcodes for this word will be copied (native compiling)                            
-       into a new word when this word is used in the definition. For short simple words that  
-       are just a sequence of JSRs, you can safely set this bit. This bit should not          
-       be set if the assembly has a JMP instruction in it (see NN above).                     
-       Note: If neither NN or AN is set, then the word might be native compiled based         
-       on its size and the value in the Forth variable `nc-limit`.                            |
-| HC  | Has CFA (flags words created by CREATE and DOES\> only). This is an internal          
-       flag that you will probably never need for words that you write in assembly.           |
-| ST  | Manipulates the return stack differently for native vs non-native compilation.        
-       This is used for words like R\>, R@ and \>R but you’re unlikely to need this for       
-       your own words in assembly.                                                            |
+|  |  |
+|----|----|
+| CO | Compile Only. Add this if your word should only be allowed when compiling
+other words. Tali will print an error message if the user tries to run this
+word in interpreted mode. |
+| IM | Immediate Word. Add this when a word should always be run rather than
+compiled (even when in compiling mode). |
+| NN | Never Native Compile (must always be called by JSR when compiled). Add
+this when your word contains a JMP instruction, or if it plays with the return
+address it is called from. |
+| AN | Always Native Compile (will be native compiled when compiled).
+The opcodes for this word will be copied (native compiling)
+into a new word when this word is used in the definition. For short simple words that
+are just a sequence of JSRs, you can safely set this bit. This bit should not
+be set if the assembly has a JMP instruction in it (see NN above).
+Note: If neither NN or AN is set, then the word might be native compiled based
+on its size and the value in the Forth variable `nc-limit`. |
+| HC | Has CFA (flags words created by CREATE and DOES\> only). This is an internal
+flag that you will probably never need for words that you write in assembly. |
+| ST | Manipulates the return stack differently for native vs non-native compilation.
+This is used for words like R\>, R@ and \>R but you’re unlikely to need this for
+your own words in assembly. |
 
 If you created a short word made out of just JSRs, and
 you wanted it to be an immediate, compile-only word, you might add the `IM+CO` flags.
@@ -4591,904 +4509,899 @@ See the GitHub page for further details.
 Error determining name on line:
 ; \## EVALUATE\* ( addr u — ) "Separately EVALUATE each line of a multi-line string"
 
-|                       |                                                                                                               |
-|-----------------------|---------------------------------------------------------------------------------------------------------------|
-| `!`                   | *ANS core* ( n addr — ) "Store TOS in memory"                                                                 
-                         <https://forth-standard.org/standard/core/Store>                                                               |
-| `#`                   | *ANS core* ( ud — ud ) "Add character to pictured output string"                                              
-                         <https://forth-standard.org/standard/core/num>                                                                 
-                         Add one char to the beginning of the pictured output string.                                                   |
-| `#>`                  | *ANS core* ( d — addr u ) "Finish pictured number conversion"                                                 
-                         <https://forth-standard.org/standard/core/num-end>                                                             
-                         Finish conversion of pictured number string, putting address and                                               
-                         length on the Data Stack.                                                                                      |
-| `#s`                  | *ANS core* ( d — addr u ) "Completely convert pictured output"                                                
-                         <https://forth-standard.org/standard/core/numS>                                                                
-                         Completely convert number for pictured numerical output.                                                       |
-| `'`                   | *ANS core* ( "name" — xt ) "Return a word’s execution token (xt)"                                             
-                         <https://forth-standard.org/standard/core/Tick>                                                                |
-| `(`                   | *ANS core* ( — ) "Discard input up to close paren ( comment )"                                                
-                         <http://forth-standard.org/standard/core/p>                                                                    |
-| `*`                   | *ANS core* ( n n — n ) "16\*16 -→ 16 "                                                                        
-                         <https://forth-standard.org/standard/core/Times>                                                               
-                         Multiply two signed 16 bit numbers, returning a 16 bit result.                                                 |
-| `*/`                  | *ANS core* ( n1 n2 n3 — n4 ) "n1 \* n2 / n3 -→ n"                                                             
-                         <https://forth-standard.org/standard/core/TimesDiv>                                                            
-                         Multiply n1 by n2 and divide by n3, returning the result                                                       
-                         without a remainder. This is \*/MOD without the mod.                                                           |
-| `*/mod`               | *ANS core* ( n1 n2 n3 — n4 n5 ) "n1 \* n2 / n3 -→ n-mod n"                                                    
-                         <https://forth-standard.org/standard/core/TimesDivMOD>                                                         
-                         Multiply n1 by n2 producing the intermediate double-cell result d.                                             
-                         Divide d by n3 producing the single-cell remainder n4 and the                                                  
-                         single-cell quotient n5.                                                                                       |
-| `+`                   | *ANS core* ( n n — n ) "Add TOS and NOS"                                                                      
-                         <https://forth-standard.org/standard/core/Plus>                                                                |
-| `+!`                  | *ANS core* ( n addr — ) "Add number to value at given address"                                                
-                         <https://forth-standard.org/standard/core/PlusStore>                                                           |
-| `+loop`               | *ANS core* ( — ) "Finish loop construct"                                                                      
-                         <https://forth-standard.org/standard/core/PlusLOOP>                                                            |
-| `,`                   | *ANS core* ( n — ) "Allot and store one cell in memory"                                                       
-                         <https://forth-standard.org/standard/core/Comma>                                                               
-                         Store TOS at current place in memory.                                                                          |
-| `-`                   | *ANS core* ( n n — n ) "Subtract TOS from NOS"                                                                
-                         <https://forth-standard.org/standard/core/Minus>                                                               |
-| `-leading`            | *Tali String* ( addr1 u1 — addr2 u2 ) "Remove leading whitespace"                                             
-                         Remove leading whitespace. This is the reverse of -TRAILING except                                             
-                         that it removes any whitespace, not just BL                                                                    |
-| `-rot`                | *Gforth* ( a b c — c a b ) "Rotate upwards"                                                                   
-                         <http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Data-stack.html>                                      |
-| `-trailing`           | *ANS string* ( addr u1 — addr u2 ) "Remove trailing spaces"                                                   
-                         <https://forth-standard.org/standard/string/MinusTRAILING>                                                     
-                         Remove trailing spaces. Note this ANSI word only removes ASCII \$20                                            
-                         not other whitespace like -LEADING.                                                                            |
-| `.`                   | *ANS core* ( u — ) "Print TOS"                                                                                
-                         <https://forth-standard.org/standard/core/d>                                                                   |
-| `."`                  | *ANS core ext* ( "string" — ) "Print string from compiled word"                                               
-                         <https://forth-standard.org/standard/core/Dotq>                                                                
-                         Compile string that is printed during run time. ANS Forth wants                                                
-                         this to be compile-only, even though everybody and their friend                                                
-                         uses it for everything. We follow the book here, and recommend                                                 
-                         `.(` for general printing.                                                                                     |
-| `.(`                  | *ANS core* ( — ) "Print input up to close paren .( comment )"                                                 
-                         <http://forth-standard.org/standard/core/Dotp>                                                                 |
-| `.r`                  | *ANS core ext* ( n u — ) "Print NOS as unsigned number with TOS width"                                        
-                         <https://forth-standard.org/standard/core/DotR>                                                                |
-| `.s`                  | *ANS tools* ( — ) "Print content of Data Stack"                                                               
-                         <https://forth-standard.org/standard/tools/DotS>                                                               
-                         Print content of Data Stack non-distructively. We follow the format                                            
-                         of Gforth and print the number of elements first in brackets,                                                  
-                         followed by the Data Stack content (if any).                                                                   |
-| `/`                   | *ANS core* ( n1 n2 — n ) "Divide NOS by TOS"                                                                  
-                         <https://forth-standard.org/standard/core/Div>                                                                 |
-| `/mod`                | *ANS core* ( n1 n2 — n3 n4 ) "Divide NOS by TOS with a remainder"                                             
-                         <https://forth-standard.org/standard/core/DivMOD>                                                              |
-| `/string`             | *ANS string* ( addr u n — addr u ) "Shorten string by n"                                                      
-                         <https://forth-standard.org/standard/string/DivSTRING>                                                         |
-| `0`                   | *Tali Forth* ( — 0 ) "Push 0 to Data Stack"                                                                   
-                         The disassembler assumes that this routine does not use Y. Note                                                
-                         that CASE, FALSE, and FORTH-WORDLIST use the same routine to place                                             
-                         a 0 on the data stack.                                                                                         |
-| `0<`                  | *ANS core* ( n — f ) "Return a TRUE flag if TOS negative"                                                     
-                         <https://forth-standard.org/standard/core/Zeroless>                                                            |
-| `0<>`                 | *ANS core ext* ( m — f ) "Return TRUE flag if not zero"                                                       
-                         <https://forth-standard.org/standard/core/Zerone>                                                              |
-| `0=`                  | *ANS core* ( n — f ) "Check if TOS is zero"                                                                   
-                         <https://forth-standard.org/standard/core/ZeroEqual>                                                           |
-| `0>`                  | *ANS core ext* ( n — f ) "Return a TRUE flag if TOS is positive"                                              
-                         <https://forth-standard.org/standard/core/Zeromore>                                                            |
-| `1`                   | *Tali Forth* ( — n ) "Push the number 1 to the Data Stack"                                                    
-                         This is also the code for EDITOR-WORDLIST                                                                      |
-| `1+`                  | *ANS core* ( u — u+1 ) "Increase TOS by one"                                                                  
-                         <https://forth-standard.org/standard/core/OnePlus>                                                             |
-| `1-`                  | *ANS core* ( u — u-1 ) "Decrease TOS by one"                                                                  
-                         <https://forth-standard.org/standard/core/OneMinus>                                                            |
-| `2`                   | *Tali Forth* ( — u ) "Push the number 2 to stack"                                                             |
-| `2!`                  | *ANS core* ( n1 n2 addr — ) "Store two numbers at given address"                                              
-                         <https://forth-standard.org/standard/core/TwoStore>                                                            
-                         Stores so n2 goes to addr and n1 to the next consecutive cell.                                                 
-                         Is equivalent to `SWAP OVER ! CELL+ !`                                                                         |
-| `2*`                  | *ANS core* ( n — n ) "Multiply TOS by two"                                                                    
-                         <https://forth-standard.org/standard/core/TwoTimes>                                                            |
-| `2/`                  | *ANS core* ( n — n ) "Divide TOS by two"                                                                      
-                         <https://forth-standard.org/standard/core/TwoDiv>                                                              |
-| `2>r`                 | *ANS core ext* ( n1 n2 — )(R: — n1 n2 "Push top two entries to Return Stack"                                  
-                         <https://forth-standard.org/standard/core/TwotoR>                                                              
-                         Push top two entries to Return Stack.                                                                          |
-| `2@`                  | *ANS core* ( addr — n1 n2 ) "Fetch the cell pair n1 n2 stored at addr"                                        
-                         <https://forth-standard.org/standard/core/TwoFetch>                                                            
-                         Note n2 stored at addr and n1 in the next cell — in our case,                                                  
-                         the next two bytes. This is equvalent to `DUP CELL+ @ SWAP @`                                                  |
-| `2constant`           | *ANS double* (C: d "name" — ) ( — d) "Create a constant for a double word"                                    
-                         <https://forth-standard.org/standard/double/TwoCONSTANT>                                                       |
-| `2drop`               | *ANS core* ( n n — ) "Drop TOS and NOS"                                                                       
-                         <https://forth-standard.org/standard/core/TwoDROP>                                                             |
-| `2dup`                | *ANS core* ( a b — a b a b ) "Duplicate first two stack elements"                                             
-                         <https://forth-standard.org/standard/core/TwoDUP>                                                              |
-| `2literal`            | *ANS double* (C: d — ) ( — d) "Compile a literal double word"                                                 
-                         <https://forth-standard.org/standard/double/TwoLITERAL>                                                        |
-| `2over`               | *ANS core* ( d1 d2 — d1 d2 d1 ) "Copy double word NOS to TOS"                                                 
-                         <https://forth-standard.org/standard/core/TwoOVER>                                                             |
-| `2r>`                 | *ANS core ext* ( — n1 n2 ) (R: n1 n2 — ) "Pull two cells from Return Stack"                                   
-                         <https://forth-standard.org/standard/core/TwoRfrom>                                                            
-                         Pull top two entries from Return Stack.                                                                        |
-| `2r@`                 | *ANS core ext* ( — n n ) "Copy top two entries from Return Stack"                                             
-                         <https://forth-standard.org/standard/core/TwoRFetch>                                                           |
-| `2swap`               | *ANS core* ( n1 n2 n3 n4 — n3 n4 n1 n1 ) "Exchange two double words"                                          
-                         <https://forth-standard.org/standard/core/TwoSWAP>                                                             |
-| `2variable`           | *ANS double* ( "name" — ) "Create a variable for a double word"                                               
-                         <https://forth-standard.org/standard/double/TwoVARIABLE>                                                       
-                         The variable is not initialized to zero.                                                                       |
-| `:`                   | *ANS core* ( "name" — ) "Start compilation of a new word"                                                     
-                         <https://forth-standard.org/standard/core/Colon>                                                               |
-| `:NONAME`             | *ANS core* ( — ) "Start compilation of a new word""                                                           
-                         <https://forth-standard.org/standard/core/ColonNONAME>                                                         
-                         Compile a word with no nt. ";" will put its xt on the stack.                                                   |
-| `;`                   | *ANS core* ( — ) or ( — xt ) for :noname "End compilation of new word"                                        
-                         <https://forth-standard.org/standard/core/Semi>                                                                
-                         End the compilation of a new word into the Dictionary.                                                         |
-| `<`                   | *ANS core* ( n m — f ) "Return true if NOS \< TOS"                                                            
-                         <https://forth-standard.org/standard/core/less>                                                                |
-| `<#`                  | *ANS core* ( — ) "Start number conversion"                                                                    
-                         <https://forth-standard.org/standard/core/num-start>                                                           
-                         Start the process to create pictured numeric output.                                                           |
-| `<>`                  | *ANS core ext* ( n m — f ) "Return a true flag if TOS != NOS"                                                 
-                         <https://forth-standard.org/standard/core/ne>                                                                  |
-| `=`                   | *ANS core* ( n n — f ) "See if TOS and NOS are equal"                                                         
-                         <https://forth-standard.org/standard/core/Equal>                                                               |
-| `>`                   | *ANS core* ( n n — f ) "See if NOS is greater than TOS"                                                       
-                         <https://forth-standard.org/standard/core/more>                                                                |
-| `>body`               | *ANS core* ( xt — addr ) "Return a word’s Code Field Area (CFA)"                                              
-                         <https://forth-standard.org/standard/core/toBODY>                                                              
-                         Given a word’s execution token (xt), return the address of the                                                 
-                         start of that word’s parameter field (PFA). This is defined as the                                             
-                         address that HERE would return right after CREATE.                                                             |
-| `>in`                 | *ANS core* ( — addr ) "Return address of the input pointer"                                                   |
-| `>number`             | *ANS core* ( ud addr u — ud addr u ) "Convert a number"                                                       
-                         <https://forth-standard.org/standard/core/toNUMBER>                                                            
-                         Convert a string to a double number. Logic here is based on the                                                
-                         routine by Phil Burk of the same name in pForth, see                                                           
-                         <https://github.com/philburk/pforth/blob/master/fth/numberio.fth>                                              
-                         for the original Forth code. We arrive here from NUMBER which has                                              
-                         made sure that we don’t have to deal with a sign and we don’t have                                             
-                         to deal with a dot as a last character that signalizes double -                                                
-                         this should be a pure number string.                                                                           |
-| `>order`              | *Gforth search* ( wid — ) "Add wordlist at beginning of search order"                                         
-                         <https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Word-Lists.html>                                     |
-| `>r`                  | *ANS core* ( n — )(R: — n) "Push TOS to the Return Stack"                                                     
-                         <https://forth-standard.org/standard/core/toR>                                                                 
-                         This word is handled differently for native and for                                                            
-                         subroutine coding, see `COMPILE,`. This is a complile-only                                                     
-                         word.                                                                                                          |
-| `?`                   | *ANS tools* ( addr — ) "Print content of a variable"                                                          
-                         <https://forth-standard.org/standard/tools/q>                                                                  |
-| `?do`                 | *ANS core ext* (C: — ) ( limit start — ) "Conditional loop start"                                             
-                         <https://forth-standard.org/standard/core/qDO>                                                                 |
-| `?dup`                | *ANS core* ( n — 0 \| n n ) "Duplicate TOS non-zero"                                                          
-                         <https://forth-standard.org/standard/core/qDUP>                                                                |
-| `@`                   | *ANS core* ( addr — n ) "Push cell content from memory to stack"                                              
-                         <https://forth-standard.org/standard/core/Fetch>                                                               |
-| `[`                   | *ANS core* ( — ) "Enter interpretation state"                                                                 
-                         <https://forth-standard.org/standard/core/Bracket>                                                             
-                         This is an immediate and compile-only word                                                                     |
-| `[']`                 | *ANS core* ( — ) "Store xt of following word during compilation"                                              
-                         <https://forth-standard.org/standard/core/BracketTick>                                                         |
-| `[char]`              | *ANS core* ( "c" — ) "Compile character"                                                                      
-                         <https://forth-standard.org/standard/core/BracketCHAR>                                                         
-                         Compile the ASCII value of a character as a literal. This is an                                                
-                         immediate, compile-only word.                                                                                  |
-| `\`                   | *ANS block ext* ( — ) "Ignore rest of line"                                                                   
-                         <https://forth-standard.org/standard/block/bs>                                                                 |
-| `]`                   | *ANS core* ( — ) "Enter the compile state"                                                                    
-                         <https://forth-standard.org/standard/right-bracket>                                                            
-                         This is an immediate word.                                                                                     |
-| `abort`               | *ANS core* ( — ) "Reset the Data Stack and restart the CLI"                                                   
-                         <https://forth-standard.org/standard/core/ABORT>                                                               
-                         Clear Data Stack and continue into QUIT. We can jump here via                                                  
-                         subroutine if we want to because we are going to reset the 65c02’s                                             
-                         stack pointer (the Return Stack) anyway during QUIT. Note we don’t                                             
-                         actually delete the stuff on the Data Stack.                                                                   |
-| `abort"`              | *ANS core* ( "string" — ) "If flag TOS is true, ABORT with message"                                           
-                         <https://forth-standard.org/standard/core/ABORTq>                                                              
-                         Abort and print a string.                                                                                      |
-| `abs`                 | *ANS core* ( n — u ) "Return absolute value of a number"                                                      
-                         <https://forth-standard.org/standard/core/ABS>                                                                 
-                         Return the absolute value of a number.                                                                         |
-| `accept`              | *ANS core* ( addr n — n ) "Receive a string of characters from the keyboard"                                  
-                         <https://forth-standard.org/standard/core/ACCEPT>                                                              
-                         Receive a string of at most n1 characters, placing them at                                                     
-                         addr. Return the actual number of characters as n2. Characters                                                 
-                         are echoed as they are received. ACCEPT is called by REFILL in                                                 
-                         modern Forths.                                                                                                 |
-| `action-of`           | *ANS core ext* ( "name" — xt ) "Get named deferred word’s xt"                                                 
-                         <http://forth-standard.org/standard/core/ACTION-OF>                                                            |
-| `again`               | *ANS core ext* ( addr — ) "Code backwards branch to address left by BEGIN"                                    
-                         <https://forth-standard.org/standard/core/AGAIN>                                                               |
-| `align`               | *ANS core* ( — ) "Make sure CP is aligned on word size"                                                       
-                         <https://forth-standard.org/standard/core/ALIGN>                                                               
-                         On a 8-bit machine, this does nothing. ALIGNED uses this                                                       
-                         routine as well, and also does nothing                                                                         |
-| `aligned`             | *ANS core* ( addr — addr ) "Return the first aligned address"                                                 
-                         <https://forth-standard.org/standard/core/ALIGNED>                                                             |
-| `allot`               | *ANS core* ( n — ) "Reserve or release memory"                                                                
-                         <https://forth-standard.org/standard/core/ALLOT>                                                               
-                         Reserve a certain number of bytes (not cells) or release them.                                                 
-                         If n = 0, do nothing. If n is negative, release n bytes, but only                                              
-                         to the beginning of the Dictionary. If n is positive (the most                                                 
-                         common case), reserve n bytes, but not past the end of the                                                     
-                         Dictionary. See <http://forth-standard.org/standard/core/ALLOT>                                                |
-| `allow-native`        | *Tali Forth* ( — ) "Flag last word to allow native compiling"                                                 |
-| `also`                | *ANS search ext* ( — ) "Make room in the search order for another wordlist"                                   
-                         <http://forth-standard.org/standard/search/ALSO>                                                               |
-| `always-native`       | *Tali Forth* ( — ) "Flag last word as always natively compiled"                                               |
-| `and`                 | *ANS core* ( n n — n ) "Logically AND TOS and NOS"                                                            
-                         <https://forth-standard.org/standard/core/AND>                                                                 |
-| `assembler-wordlist`  | *Tali Assembler* ( — u ) "WID for the Assembler wordlist"                                                     
-                         Commonly used like `assembler-wordlist >order` to add the                                                      
-                         assembler words to the search order so they can be used.                                                       
-                         See the tutorial on Wordlists and the Search Order for                                                         
-                         more information.                                                                                              |
-| `at-xy`               | *ANS facility* ( m n — ) "Move cursor to position given"                                                      
-                         <https://forth-standard.org/standard/facility/AT-XY>                                                           
-                         On an ANSI compatible terminal, place cursor at row n column m.                                                
-                         ANSI code is ESC\[\<n+1\>;\<m+1\>H                                                                             |
-| `base`                | *ANS core* ( — addr ) "Push address of radix base to stack"                                                   
-                         <https://forth-standard.org/standard/core/BASE>                                                                
-                         The ANS Forth standard sees the base up to 36, so we can cheat and                                             
-                         ingore the MSB                                                                                                 |
-| `begin`               | *ANS core* ( — addr ) "Mark entry point for loop"                                                             
-                         <https://forth-standard.org/standard/core/BEGIN>                                                               |
-| `bell`                | *Tali Forth* ( — ) "Emit ASCII BELL"                                                                          |
-| `bl`                  | *ANS core* ( — c ) "Push ASCII value of SPACE to stack"                                                       
-                         <https://forth-standard.org/standard/core/BL>                                                                  |
-| `blank`               | *ANS string* ( addr u — ) "Fill memory region with spaces"                                                    
-                         <https://forth-standard.org/standard/string/BLANK>                                                             |
-| `blkbuffer`           | *Tali block* ( — addr ) "Push address of block buffer"                                                        |
-| `block`               | *ANS block* ( u — a-addr ) "Fetch a block into a buffer"                                                      
-                         <https://forth-standard.org/standard/block/BLK>                                                                
-                         <https://forth-standard.org/standard/block/BLOCK>                                                              |
-| `block-c65-init`      | *Tali block* ( — f ) "Initialize c65 simulator block storage"                                                 
-                         Set up block IO to read/write to/from c65 block file.                                                          
-                         Run simulator with a writable block file option                                                                
-                         e.g. `touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin`                                        
-                         Returns true if c65 block storage is available and false otherwise.                                            |
-| `block-ramdrive-init` | *Tali block* ( u — ) "Create a ramdrive for blocks"                                                           
-                         Create a RAM drive, with the given number of                                                                   
-                         blocks, in the dictionary along with setting up the block words to                                             
-                         use it. The read/write routines do not provide bounds checking.                                                
-                         Expected use: `4 block-ramdrive-init` ( to create blocks 0-3 )                                                 |
-| `block-read`          | *Tali block* ( addr u — ) "Read a block from storage (deferred word)"                                         
-                         BLOCK-READ is a vectored word that the user needs to override                                                  
-                         with their own version to read a block from storage.                                                           
-                         The stack parameters are ( buffer_address block# — ).                                                          |
-| `block-read-vector`   | *Tali block* ( — addr ) "Address of the block-read vector"                                                    
-                         BLOCK-READ is a vectored word that the user needs to override                                                  
-                         with their own version to read a block from storage.                                                           
-                         This word gives the address of the vector so it can be replaced.                                               |
-| `block-write`         | *Tali block* ( addr u — ) "Write a block to storage (deferred word)"                                          
-                         BLOCK-WRITE is a vectored word that the user needs to override                                                 
-                         with their own version to write a block to storage.                                                            
-                         The stack parameters are ( buffer_address block# — ).                                                          |
-| `block-write-vector`  | *Tali block* ( — addr ) "Address of the block-write vector"                                                   
-                         BLOCK-WRITE is a vectored word that the user needs to override                                                 
-                         with their own version to write a block to storage.                                                            
-                         This word gives the address of the vector so it can be replaced.                                               |
-| `bounds`              | *Gforth* ( addr u — addr+u addr ) "Prepare address for looping"                                               
-                         <http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Memory-Blocks.html>                                   
-                         Given a string, return the correct Data Stack parameters for                                                   
-                         a DO/LOOP loop over its characters. This is realized as                                                        
-                         OVER + SWAP in Forth, but we do it a lot faster in assembler                                                   |
-| `buffblocknum`        | *Tali block* ( — addr ) "Push address of variable holding block in buffer"                                    |
-| `buffer`              | *ANS block* ( u — a-addr ) "Get a buffer for a block"                                                         
-                         <https://forth-standard.org/standard/block/BUFFER>                                                             |
-| `buffer:`             | *ANS core ext* ( u "\<name\>" — ; — addr ) "Create an uninitialized buffer"                                   
-                         <https://forth-standard.org/standard/core/BUFFERColon>                                                         
-                         Create a buffer of size u that puts its address on the stack                                                   
-                         when its name is used.                                                                                         |
-| `buffstatus`          | *Tali block* ( — addr ) "Push address of variable holding buffer status"                                      |
-| `bye`                 | *ANS tools ext* ( — ) "Break"                                                                                 
-                         <https://forth-standard.org/standard/tools/BYE>                                                                |
-| `c!`                  | *ANS core* ( c addr — ) "Store character at address given"                                                    
-                         <https://forth-standard.org/standard/core/CStore>                                                              |
-| `c,`                  | *ANS core* ( c — ) "Store one byte/char in the Dictionary"                                                    
-                         <https://forth-standard.org/standard/core/CComma>                                                              |
-| `c@`                  | *ANS core* ( addr — c ) "Get a character/byte from given address"                                             
-                         <https://forth-standard.org/standard/core/CFetch>                                                              |
-| `case`                | *ANS core ext* (C: — 0) ( — ) "Conditional flow control"                                                      
-                         <http://forth-standard.org/standard/core/CASE>                                                                 |
-| `cell+`               | *ANS core* ( u — u ) "Add cell size in bytes"                                                                 
-                         <https://forth-standard.org/standard/core/CELLPlus>                                                            
-                         Add the number of bytes ("address units") that one cell needs.                                                 
-                         Since this is an 8 bit machine with 16 bit cells, we add two bytes.                                            |
-| `cells`               | *ANS core* ( u — u ) "Convert cells to size in bytes"                                                         
-                         <https://forth-standard.org/standard/core/CELLS>                                                               |
-| `char`                | *ANS core* ( "c" — u ) "Convert character to ASCII value"                                                     
-                         <https://forth-standard.org/standard/core/CHAR>                                                                |
-| `char+`               | *ANS core* ( addr — addr+1 ) "Add the size of a character unit to address"                                    
-                         <https://forth-standard.org/standard/core/CHARPlus>                                                            |
-| `chars`               | *ANS core* ( n — n ) "Number of bytes that n chars need"                                                      
-                         <https://forth-standard.org/standard/core/CHARS>                                                               
-                         Return how many address units n chars are. Since this is an 8 bit                                              
-                         machine, this does absolutely nothing and is included for                                                      
-                         compatibility with other Forth versions                                                                        |
-| `cleave`              | *Tali Forth* ( addr u — addr2 u2 addr1 u1 ) "Split off word from string"                                      |
-| `cmove`               | *ANS string* ( addr1 addr2 u — ) "Copy bytes going from low to high"                                          
-                         <https://forth-standard.org/standard/string/CMOVE>                                                             
-                         Copy u bytes from addr1 to addr2, going low to high (addr2 is                                                  
-                         larger than addr1). Based on code in Leventhal, Lance A.                                                       
-                         6502 Assembly Language Routines", p. 201, where it is called                                                   
-                         move left".                                                                                                    |
-| `cmove>`              | *ANS string* ( addr1 addr2 u — ) "Copy bytes from high to low"                                                
-                         <https://forth-standard.org/standard/string/CMOVEtop>                                                          
-                         Based on code in Leventhal, Lance A. "6502 Assembly Language                                                   
-                         Routines", p. 201, where it is called "move right".                                                            |
-| `cold`                | *Tali Forth* ( — ) "Reset the Forth system"                                                                   
-                         Reset the Forth system. Does not restart the kernel,                                                           
-                         use the 65c02 reset for that. Flows into ABORT.                                                                |
-| `compare`             | *ANS string* ( addr1 u1 addr2 u2 — -1 \| 0 \| 1) "Compare two strings"                                        
-                         <https://forth-standard.org/standard/string/COMPARE>                                                           
-                         Compare string1 (denoted by addr1 u1) to string2 (denoted by                                                   
-                         addr2 u2). Return -1 if string1 \< string2, 0 if string1 = string2                                             
-                         and 1 if string1 \> string2 (ASCIIbetical comparison). A string                                                
-                         that entirely matches the beginning of the other string, but is                                                
-                         shorter, is considered less than the longer string.                                                            |
-| `compile,`            | *ANS core ext* ( xt — ) "Compile xt"                                                                          
-                         <https://forth-standard.org/standard/core/COMPILEComma>                                                        
-                         Compile the given xt in the current word definition. It is an                                                  
-                         error if we are not in the compile state. Because we are using                                                 
-                         subroutine threading, we can’t use , (COMMA) to compile new words                                              
-                         the traditional way. By default, native compiled is allowed, unless                                            
-                         there is a NN (Never Native) flag associated. If not, we use the                                               
-                         value NC_LIMIT (from definitions.asm) to decide if the code                                                    
-                         is too large to be natively coded: If the size is larger than                                                  
-                         NC_LIMIT, we silently use subroutine coding. If the AN (Always                                                 
-                         Native) flag is set, the word is always natively compiled.                                                     |
-| `compile-only`        | *Tali Forth* ( — ) "Mark most recent word as COMPILE-ONLY"                                                    
-                         Set the Compile Only flag (CO) of the most recently defined                                                    
-                         word.                                                                                                          |
-| `constant`            | *ANS core* ( n "name" — ) "Define a constant"                                                                 
-                         <https://forth-standard.org/standard/core/CONSTANT>                                                            |
-| `count`               | *ANS core* ( c-addr — addr u ) "Convert character string to normal format"                                    
-                         <https://forth-standard.org/standard/core/COUNT>                                                               
-                         Convert old-style character string to address-length pair. Note                                                
-                         that the length of the string c-addr is stored in character length                                             
-                         (8 bit), not cell length (16 bit). This is rarely used these days,                                             
-                         though COUNT can also be used to step through a string character by                                            
-                         character.                                                                                                     |
-| `cr`                  | *ANS core* ( — ) "Print a line feed"                                                                          
-                         <https://forth-standard.org/standard/core/CR>                                                                  |
-| `create`              | *ANS core* ( "name" — ) "Create Dictionary entry for 'name'"                                                  
-                         <https://forth-standard.org/standard/core/CREATE>                                                              |
-| `d+`                  | *ANS double* ( d d — d ) "Add two double-celled numbers"                                                      
-                         <https://forth-standard.org/standard/double/DPlus>                                                             |
-| `d-`                  | *ANS double* ( d d — d ) "Subtract two double-celled numbers"                                                 
-                         <https://forth-standard.org/standard/double/DMinus>                                                            |
-| `d.`                  | *ANS double* ( d — ) "Print double"                                                                           
-                         <http://forth-standard.org/standard/double/Dd>                                                                 |
-| `d.r`                 | *ANS double* ( d u — ) "Print double right-justified u wide"                                                  
-                         <http://forth-standard.org/standard/double/DDotR>                                                              
-                         Based on the Forth code                                                                                        
-                         : D.R \>R TUCK DABS \<# \#S ROT SIGN \#\> R\> OVER - SPACES TYPE                                               |
-| `d>s`                 | *ANS double* ( d — n ) "Convert a double number to single"                                                    
-                         <https://forth-standard.org/standard/double/DtoS>                                                              
-                         Though this is basically just DROP, we keep it                                                                 
-                         separate so we can test for underflow                                                                          |
-| `dabs`                | *ANS double* ( d — d ) "Return the absolute value of a double"                                                
-                         <https://forth-standard.org/standard/double/DABS>                                                              |
-| `decimal`             | *ANS core* ( — ) "Change radix base to decimal"                                                               
-                         <https://forth-standard.org/standard/core/DECIMAL>                                                             |
-| `defer`               | *ANS core ext* ( "name" — ) "Create a placeholder for words by name"                                          
-                         <https://forth-standard.org/standard/core/DEFER>                                                               
-                         Reserve an name that can be linked to various xt by IS.                                                        |
-| `defer!`              | *ANS core ext* ( xt2 x1 — ) "Set xt1 to execute xt2"                                                          
-                         <http://forth-standard.org/standard/core/DEFERStore>                                                           |
-| `defer@`              | *ANS core ext* ( xt1 — xt2 ) "Get the current XT for a deferred word"                                         
-                         <http://forth-standard.org/standard/core/DEFERFetch>                                                           |
-| `definitions`         | *ANS search* ( — ) "Make first wordlist in search order the current wordlist"                                 |
-| `depth`               | *ANS core* ( — u ) "Get number of cells (not bytes) used by stack"                                            
-                         <https://forth-standard.org/standard/core/DEPTH>                                                               |
-| `digit?`              | *Tali Forth* ( char — u f \| char f ) "Convert ASCII char to number"                                          
-                         Inspired by the pForth instruction DIGIT, see                                                                  
-                         <https://github.com/philburk/pforth/blob/master/fth/numberio.fth>                                              
-                         Rewritten from DIGIT\>NUMBER in Tali Forth. Note in contrast to                                                
-                         pForth, we get the base (radix) ourselves instead of having the                                                
-                         user provide it. There is no standard name for this routine, which                                             
-                         itself is not ANS; we use DIGIT? following pForth and Gforth.                                                  |
-| `disasm`              | *Tali Forth* ( addr u — ) "Disassemble a block of memory"                                                     
-                         Convert a segment of memory to assembler output. This                                                          
-                         word is vectored so people can add their own disassembler.                                                     
-                         Natively, this produces Simpler Assembly Notation (SAN)                                                        
-                         code, see the section on The Disassembler in the manual and                                                    
-                         the file disassembler.asm for more details.                                                                    |
-| `dnegate`             | *ANS double* ( d — d ) "Negate double cell number"                                                            
-                         <https://forth-standard.org/standard/double/DNEGATE>                                                           |
-| `do`                  | *ANS core* (C: — ) ( limit start — ) "Start a loop"                                                           
-                         <https://forth-standard.org/standard/core/DO>                                                                  |
-| `does>`               | *ANS core* ( — ) "Add payload when defining new words"                                                        
-                         <https://forth-standard.org/standard/core/DOES>                                                                
-                         Create the payload for defining new defining words. See                                                        
-                         <http://www.bradrodriguez.com/papers/moving3.htm> and                                                          
-                         the Developer Guide in the manual for a discussion of                                                          
-                         DOES\>'s internal workings. This uses tmp1 and tmp2.                                                           |
-| `drop`                | *ANS core* ( u — ) "Pop top entry on Data Stack"                                                              
-                         <https://forth-standard.org/standard/core/DROP>                                                                |
-| `dump`                | *ANS tools* ( addr u — ) "Display a memory region"                                                            
-                         <https://forth-standard.org/standard/tools/DUMP>                                                               |
-| `dup`                 | *ANS core* ( u — u u ) "Duplicate TOS"                                                                        
-                         <https://forth-standard.org/standard/core/DUP>                                                                 |
-| `ed:`                 | *Tali Forth* ( — u ) "Line-based editor"                                                                      
-                         Start the line-based editor ed6502. See separate file                                                          
-                         ed.asm or the manual for details.                                                                              |
-| `editor-wordlist`     | *Tali Editor* ( — u ) "WID for the Editor wordlist"                                                           
-                         Commonly used like `editor-wordlist >order` to add the editor                                                  
-                         words to the search order so they can be used. This will need                                                  
-                         to be done before any of the words marked "Tali Editor" can be                                                 
-                         used. See the tutorial on Wordlists and the Search Order for                                                   
-                         more information.                                                                                              |
-| `el`                  | *Tali Editor* ( line# — ) "Erase the given line number"                                                       |
-| `else`                | *ANS core* (C: orig — orig' ) ( — ) "Conditional flow control"                                                
-                         <http://forth-standard.org/standard/core/ELSE>                                                                 |
-| `emit`                | *ANS core* ( char — ) "Print character to current output"                                                     
-                         <https://forth-standard.org/standard/core/EMIT>                                                                
-                         Run-time default for EMIT. The user can revector this by changing                                              
-                         the value of the OUTPUT variable. We ignore the MSB completely, and                                            
-                         do not check to see if we have been given a valid ASCII character.                                             
-                         Don’t make this native compile.                                                                                |
-| `empty-buffers`       | *ANS block ext* ( — ) "Empty all buffers without saving"                                                      
-                         <https://forth-standard.org/standard/block/EMPTY-BUFFERS>                                                      |
-| `endcase`             | *ANS core ext* (C: case-sys — ) ( x — ) "Conditional flow control"                                            
-                         <http://forth-standard.org/standard/core/ENDCASE>                                                              |
-| `endof`               | *ANS core ext* (C: case-sys1 of-sys1-- case-sys2) ( — ) "Conditional flow control"                            
-                         <http://forth-standard.org/standard/core/ENDOF>                                                                
-                         This is a dummy entry, the code is shared with ELSE                                                            |
-| `enter-screen`        | *Tali Editor* ( scr# — ) "Enter all lines for given screen"                                                   |
-| `environment?`        | *ANS core* ( addr u — 0 \| i\*x true ) "Return system information"                                            
-                         <https://forth-standard.org/standard/core/ENVIRONMENTq>                                                        |
-| `erase`               | *ANS core ext* ( addr u — ) "Fill memory region with zeros"                                                   
-                         <https://forth-standard.org/standard/core/ERASE>                                                               
-                         Note that ERASE works with "address" units                                                                     
-                         (bytes), not cells.                                                                                            |
-| `erase-screen`        | *Tali Editor* ( scr# — ) "Erase all lines for given screen"                                                   |
-| `evaluate`            | *ANS core* ( addr u — ) "Execute a string"                                                                    
-                         <https://forth-standard.org/standard/core/EVALUATE>                                                            
-                         Set SOURCE-ID to -1, make addr u the input source, set \>IN to zero.                                           
-                         After processing the line, revert to old input source. We use this                                             
-                         to compile high-level Forth words and user-defined words during                                                
-                         start up and cold boot. In contrast to ACCEPT, we need to, uh,                                                 
-                         accept more than 255 characters here, even though it’s a pain in                                               
-                         the 8-bit. Also see EVALUATE\* for multi-line commment handling.                                               |
-| `execute`             | *ANS core* ( xt — ) "Jump to word based on execution token"                                                   
-                         This word is never natively compiled so that the return                                                        
-                         from the xt will always return to the caller of EXECUTE                                                        
-                         <https://forth-standard.org/standard/core/EXECUTE>                                                             |
-| `execute-parsing`     | *Gforth* ( addr u xt — ) "Pass a string to a parsing word"                                                    
-                         <https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/The-Input-Stream.html>                               
-                         Execute the parsing word defined by the execution token (xt) on the                                            
-                         string as if it were passed on the command line. See the file                                                  
-                         tests/tali.fs for examples.                                                                                    |
-| `exit`                | *ANS core* ( — ) "Return control to the calling word immediately"                                             
-                         <https://forth-standard.org/standard/core/EXIT>                                                                
-                         If we’re in a loop, user should UNLOOP first to clean up                                                       
-                         any loop control. This should be natively compiled.                                                            |
-| `false`               | *ANS core ext* ( — f ) "Push flag FALSE to Data Stack"                                                        
-                         <https://forth-standard.org/standard/core/FALSE>                                                               |
-| `fill`                | *ANS core* ( addr u char — ) "Fill a memory region with a character"                                          
-                         <https://forth-standard.org/standard/core/FILL>                                                                
-                         Fill u bytes of memory with char starting at addr. Note that                                                   
-                         this works on bytes, not on cells. On an 8-bit machine such as the                                             
-                         65c02, this is a serious pain in the rear. It is not defined what                                              
-                         happens when we reach the end of the address space                                                             |
-| `find`                | *ANS core* ( caddr — addr 0 \| xt 1 \| xt -1 ) "Find word in Dictionary"                                      
-                         <https://forth-standard.org/standard/core/FIND>                                                                
-                         Included for backwards compatibility only, because it still                                                    
-                         can be found in so may examples. It should, however, be replaced                                               
-                         by FIND-NAME. Counted string either returns address with a FALSE                                               
-                         flag if not found in the Dictionary, or the xt with a flag to                                                  
-                         indicate if this is immediate or not. FIND is a wrapper around                                                 
-                         FIND-NAME, we get this all over with as quickly as possible. See                                               
-                         <https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Word-Lists.html>                                     
-                         <https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html>                                     |
-| `find-name`           | *Gforth* ( addr u — nt\|0 ) "Get the name token of input word"                                                |
-| `flush`               | *ANS block* ( — ) "Save dirty buffers and empty buffers"                                                      
-                         <https://forth-standard.org/standard/block/FLUSH>                                                              |
-| `fm/mod`              | *ANS core* ( d n1  — rem n2 ) "Floored signed division"                                                       
-                         <https://forth-standard.org/standard/core/FMDivMOD>                                                            
-                         Note that by default, Tali Forth uses SM/REM for most things.                                                  |
-| `forth`               | *ANS search ext* ( — ) "Replace first WID in search order with Forth-Wordlist"                                
-                         <https://forth-standard.org/standard/search/FORTH>                                                             |
-| `forth-wordlist`      | *ANS search* ( — u ) "WID for the Forth Wordlist"                                                             
-                         <https://forth-standard.org/standard/search/FORTH-WORDLIST>                                                    
-                         This is a dummy entry, the actual code is shared with ZERO.                                                    |
-| `get-current`         | *ANS search* ( — wid ) "Get the id of the compilation wordlist"                                               
-                         <https://forth-standard.org/standard/search/GET-CURRENT>                                                       |
-| `get-order`           | *ANS search* ( — wid_n .. wid_1 n) "Get the current search order"                                             
-                         <https://forth-standard.org/standard/search/GET-ORDER>                                                         |
-| `havekey`             | *Tali Forth* ( — addr ) "Return address of key? vector"                                                       |
-| `here`                | *ANS core* ( — addr ) "Put Compiler Pointer on Data Stack"                                                    
-                         <https://forth-standard.org/standard/core/HERE>                                                                
-                         This code is also used by the assembler directive ARROW                                                        
-                         ("→") though as immediate                                                                                      
-                         and by HERE as an immediate compile word                                                                       |
-| `hex`                 | *ANS core ext* ( — ) "Change base radix to hexadecimal"                                                       
-                         <https://forth-standard.org/standard/core/HEX>                                                                 |
-| `hexstore`            | *Tali* ( addr1 u1 addr2 — u2 ) "Store a list of numbers"                                                      
-                         Given a string addr1 u1 with numbers in the current base seperated                                             
-                         by spaces, store the numbers at the address addr2, returning the                                               
-                         number of elements. Non-number elements are skipped, an zero-length                                            
-                         string produces a zero output.                                                                                 |
-| `hold`                | *ANS core* ( char — ) "Insert character at current output"                                                    
-                         <https://forth-standard.org/standard/core/HOLD>                                                                
-                         Insert a character at the current position of a pictured numeric                                               
-                         output string on                                                                                               
-                         <https://github.com/philburk/pforth/blob/master/fth/numberio.fth>                                              |
-| `i`                   | *ANS core* ( — n ) "Copy loop counter to stack"                                                               
-                         <https://forth-standard.org/standard/core/I>                                                                   
-                         See definitions.asm and the Control Flow section of the manual.                                                |
-| `if`                  | *ANS core* (C: — orig) (flag — ) "Conditional flow control"                                                   
-                         <http://forth-standard.org/standard/core/IF>                                                                   |
-| `immediate`           | *ANS core* ( — ) "Mark most recent word as IMMEDIATE"                                                         
-                         <https://forth-standard.org/standard/core/IMMEDIATE>                                                           
-                         Make sure the most recently defined word is immediate. Will only                                               
-                         affect the last word in the dictionary. Note that if the word is                                               
-                         defined in ROM, this will have no affect, but will not produce an                                              
-                         error message.                                                                                                 |
-| `input`               | *Tali Forth* ( — addr ) "Return address of input vector"                                                      |
-| `input>r`             | *Tali Forth* ( — ) ( R: — n n n n ) "Save input state to the Return Stack"                                    
-                         Save the current input state as defined by insrc, cib, ciblen, and                                             
-                         toin to the Return Stack. Used by EVALUATE.                                                                    |
-| `int>name`            | *Tali Forth* ( xt — nt \| 0 ) "Get name token from execution token"                                           
-                         www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html                                               
-                         This is called \>NAME in Gforth, but we change it to                                                           
-                         INT\>NAME to match NAME\>INT                                                                                   |
-| `invert`              | *ANS core* ( n — n ) "Complement of TOS"                                                                      
-                         <https://forth-standard.org/standard/core/INVERT>                                                              |
-| `is`                  | *ANS core ext* ( xt "name" — ) or (C: "name" ) "Set named word to execute xt"                                 
-                         <http://forth-standard.org/standard/core/IS>                                                                   |
-| `j`                   | *ANS core* ( — n ) "Copy second loop counter to stack"                                                        
-                         <https://forth-standard.org/standard/core/J>                                                                   
-                         Copy second loop counter from Return Stack to stack. Note we use                                               
-                         a fudge factor for loop control; see the Control Flow section of                                               
-                         the manual for more details.                                                                                   |
-| `key`                 | *ANS core* ( — char ) "Get one character from the input"                                                      |
-| `key?`                | *ANS core* ( — char ) "Return true if a character is available"                                               |
-| `l`                   | *Tali Editor* ( — ) "List the current screen"                                                                 
-                         note "l" is used by LIST in the block words                                                                    |
-| `latestnt`            | *Tali Forth* ( — nt ) "Push most recent nt to the stack"                                                      
-                         www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html                                               
-                         The Gforth version of this word is called LATEST                                                               |
-| `latestxt`            | *Gforth* ( — xt ) "Push most recent xt to the stack"                                                          
-                         <http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Anonymous-Definitions.html>                           |
-| `leave`               | *ANS core* ( — ) "Leave DO/LOOP construct"                                                                    
-                         <https://forth-standard.org/standard/core/LEAVE>                                                               
-                         Note that this does not work with anything but a DO/LOOP in                                                    
-                         contrast to other versions such as discussed at                                                                
-                         <http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx>                                     |
-| `line`                | *Tali Editor* ( line# — c-addr ) "Turn a line number into address in current screen"                          |
-| `list`                | *ANS block ext* ( scr# — ) "List the given screen"                                                            
-                         <https://forth-standard.org/standard/block/LIST>                                                               |
-| `literal`             | *ANS core* ( n — ) "Arrange for TOS to be pushed on stack at runtime"                                         
-                         <https://forth-standard.org/standard/core/LITERAL>                                                             
-                         Compile-only word to store TOS so that it is pushed on stack                                                   
-                         during runtime. This is a immediate, compile-only word. At runtime,                                            
-                         it works by calling JSR push_inline_literal, or using an inline equivalent.                                    |
-| `load`                | *ANS block* ( scr# — ) "Load the Forth code in a screen/block"                                                
-                         <https://forth-standard.org/standard/block/LOAD>                                                               |
-| `loop`                | *ANS core* ( — ) "Finish loop construct"                                                                      
-                         <https://forth-standard.org/standard/core/LOOP>                                                                
-                         Compile-time part of LOOP. This is specialized to                                                              
-                         increment by one.                                                                                              |
-| `lshift`              | *ANS core* ( x u — u ) "Shift TOS left"                                                                       
-                         <https://forth-standard.org/standard/core/LSHIFT>                                                              |
-| `m*`                  | *ANS core* ( n n — d ) "16 \* 16 -→ 32"                                                                       
-                         <https://forth-standard.org/standard/core/MTimes>                                                              
-                         Multiply two 16 bit numbers, producing a 32 bit result. All                                                    
-                         values are signed. Adapted from FIG Forth for Tali Forth.                                                      |
-| `m*/`                 | *ANS double* ( d1 n1 n2 — d2 ) "Multiply d1 by n1 and divide the triple result by n2. All values are signed." 
-                         <https://forth-standard.org/standard/double/MTimesDiv>                                                         
-                         From All About FORTH, MVP-Forth, public domain,                                                                
-                         from this forth code which is modified slightly for Tali2:                                                     
-                         DDUP XOR SWAP ABS \>R SWAP ABS \>R OVER XOR ROT ROT DABS                                                       
-                         SWAP R@ UM\* ROT R\> UM\* ROT 0 D+ R@ UM/MOD ROT ROT R\> UM/MOD                                                
-                         SWAP DROP SWAP ROT 0\< if dnegate then                                                                         |
-| `marker`              | *ANS core ext* ( "name" — ) "Create a deletion boundary"                                                      
-                         <https://forth-standard.org/standard/core/MARKER>                                                              
-                         This word replaces FORGET in earlier Forths. Old entries are not                                               
-                         actually deleted, but merely overwritten by restoring CP and DP.                                               
-                         Run the named word at a later time to restore all of the wordlists                                             
-                         to their state when the word was created with marker. Any words                                                
-                         created after the marker (including the marker) will be forgotten.                                             |
-| `max`                 | *ANS core* ( n n — n ) "Keep larger of two numbers"                                                           
-                         <https://forth-standard.org/standard/core/MAX>                                                                 
-                         Compare TOS and NOS and keep which one is larger. Adapted from                                                 
-                         Lance A. Leventhal "6502 Assembly Language Subroutines". Negative                                              
-                         Flag indicates which number is larger. See also                                                                
-                         <http://6502.org/tutorials/compare_instructions.html> and                                                      
-                         <http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html>                                          |
-| `min`                 | *ANS core* ( n n — n ) "Keep smaller of two numbers"                                                          
-                         <https://forth-standard.org/standard/core/MIN>                                                                 
-                         Adapted from Lance A. Leventhal "6502 Assembly Language                                                        
-                         Subroutines." Negative Flag indicates which number is larger. See                                              
-                         <http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html>                                          |
-| `mod`                 | *ANS core* ( n1 n2 — n ) "Divide NOS by TOS and return the remainder"                                         
-                         <https://forth-standard.org/standard/core/MOD>                                                                 |
-| `move`                | *ANS core* ( addr1 addr2 u — ) "Copy bytes"                                                                   
-                         <https://forth-standard.org/standard/core/MOVE>                                                                
-                         Copy u "address units" from addr1 to addr2. Since our address                                                  
-                         units are bytes, this is just a front-end for CMOVE and CMOVE\>. This                                          
-                         is actually the only one of these three words that is in the CORE                                              
-                         set.                                                                                                           |
-| `name>int`            | *Gforth* ( nt — xt ) "Convert Name Token to Execute Token"                                                    
-                         See                                                                                                            
-                         <https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html>                                     |
-| `name>string`         | *Gforth* ( nt — addr u ) "Given a name token, return string of word"                                          
-                         <http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html>                                      |
-| `nc-limit`            | *Tali Forth* ( — addr ) "Return address where NC-LIMIT value is kept"                                         |
-| `negate`              | *ANS core* ( n — n ) "Two’s complement"                                                                       
-                         <https://forth-standard.org/standard/core/NEGATE>                                                              |
-| `never-native`        | *Tali Forth* ( — ) "Flag last word as never natively compiled"                                                |
-| `nip`                 | *ANS core ext* ( b a — a ) "Delete NOS"                                                                       
-                         <https://forth-standard.org/standard/core/NIP>                                                                 |
-| `number`              | *Tali Forth* ( addr u — u \| d ) "Convert a number string"                                                    
-                         Convert a number string to a double or single cell number. This                                                
-                         is a wrapper for \>NUMBER and follows the convention set out in the                                            
-                         Forth Programmer’s Handbook" (Conklin & Rather) 3rd edition p. 87.                                             
-                         Based in part on the "Starting Forth" code                                                                     
-                         <https://www.forth.com/starting-forth/10-input-output-operators/>                                              
-                         Gforth uses S\>NUMBER? and S\>UNUMBER? which return numbers and a flag                                         
-                         <https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Number-Conversion.html>                              
-                         Another difference to Gforth is that we follow ANS Forth that the                                              
-                         dot to signal a double cell number is required to be the last                                                  
-                         character of the string.                                                                                       |
-| `o`                   | *Tali Editor* ( line# — ) "Overwrite the given line"                                                          |
-| `of`                  | *ANS core ext* (C: — of-sys) (x1 x2 — \|x1) "Conditional flow control"                                        
-                         <http://forth-standard.org/standard/core/OF>                                                                   |
-| `only`                | *ANS search ext* ( — ) "Set earch order to minimum wordlist"                                                  
-                         <https://forth-standard.org/standard/search/ONLY>                                                              |
-| `or`                  | *ANS core* ( m n — n ) "Logically OR TOS and NOS"                                                             
-                         <https://forth-standard.org/standard/core/OR>                                                                  |
-| `order`               | *ANS core* ( — ) "Print current word order list and current WID"                                              
-                         <https://forth-standard.org/standard/search/ORDER>                                                             
-                         Note the search order is displayed from first search to last                                                   
-                         searched and is therefore exactly the reverse of the order in which                                            
-                         Forth stacks are displayed.                                                                                    |
-| `output`              | *Tali Forth* ( — addr ) "Return the address of the EMIT vector address"                                       |
-| `over`                | *ANS core* ( b a — b a b ) "Copy NOS to TOS"                                                                  
-                         <https://forth-standard.org/standard/core/OVER>                                                                |
-| `pad`                 | *ANS core ext* ( — addr ) "Return address of user scratchpad"                                                 
-                         <https://forth-standard.org/standard/core/PAD>                                                                 
-                         Return address to a temporary area in free memory for user. Must                                               
-                         be at least 84 bytes in size (says ANS). It is located relative to                                             
-                         the compile area pointer (CP) and therefore varies in position.                                                
-                         This area is reserved for the user and not used by the system                                                  |
-| `page`                | *ANS facility* ( — ) "Clear the screen"                                                                       
-                         <https://forth-standard.org/standard/facility/PAGE>                                                            
-                         Clears a page if supported by ANS terminal codes. This is                                                      
-                         Clear Screen ("ESC\[2J") plus moving the cursor to the top                                                     
-                         left of the screen                                                                                             |
-| `parse`               | *ANS core ext* ( "name" c — addr u ) "Parse input with delimiter character"                                   
-                         <https://forth-standard.org/standard/core/PARSE>                                                               
-                         Find word in input string delimited by character given. Do not                                                 
-                         skip leading delimiters — this is the main difference to PARSE-NAME.                                           
-                         PARSE and PARSE-NAME replace WORD in modern systems. ANS discussion                                            
-                         <http://www.forth200x.org/documents/html3/rationale.html#rat:core:PARSE>                                       |
-| `parse-name`          | *ANS core ext* ( "name" — addr u ) "Parse the input"                                                          
-                         <https://forth-standard.org/standard/core/PARSE-NAME>                                                          
-                         Find next word in input string, skipping leading whitespace. This is                                           
-                         a special form of PARSE and drops through to that word. See PARSE                                              
-                         for more detail. We use this word internally for the interpreter                                               
-                         because it is a lot easier to use. Reference implementations at                                                
-                         <http://forth-standard.org/standard/core/PARSE-NAME> and                                                       
-                         <http://www.forth200x.org/reference-implementations/parse-name.fs>                                             
-                         Roughly, the word is comparable to BL WORD COUNT. — Note that                                                  
-                         though the ANS standard talks about skipping "spaces", whitespace                                              
-                         is actually perfectly legal (see for example                                                                   
-                         <http://forth-standard.org/standard/usage#subsubsection.3.4.1.1>).                                             
-                         Otherwise, PARSE-NAME chokes on tabs.                                                                          |
-| `pick`                | *ANS core ext* ( n n u — n n n ) "Move element u of the stack to TOS"                                         
-                         <https://forth-standard.org/standard/core/PICK>                                                                
-                         Take the u-th element out of the stack and put it on TOS,                                                      
-                         overwriting the original TOS. 0 PICK is equivalent to DUP, 1 PICK to                                           
-                         OVER. Note that using PICK is considered poor coding form. Also note                                           
-                         that FIG Forth has a different behavior for PICK than ANS Forth.                                               |
-| `postpone`            | *ANS core* ( — ) "Change IMMEDIATE status (it’s complicated)"                                                 
-                         <https://forth-standard.org/standard/core/POSTPONE>                                                            
-                         Add the compilation behavior of a word to a new word at                                                        
-                         compile time. If the word that follows it is immediate, include                                                
-                         it so that it will be compiled when the word being defined is                                                  
-                         itself used for a new word. Tricky, but very useful.                                                           |
-| `previous`            | *ANS search ext* ( — ) "Remove the first wordlist in the search order"                                        
-                         <http://forth-standard.org/standard/search/PREVIOUS>                                                           |
-| `quit`                | *ANS core* ( — ) "Reset the input and get new input"                                                          
-                         <https://forth-standard.org/standard/core/QUIT>                                                                
-                         Rest the input and start command loop                                                                          |
-| `r>`                  | *ANS core* ( — n )(R: n --) "Move top of Return Stack to TOS"                                                 
-                         <https://forth-standard.org/standard/core/Rfrom>                                                               
-                         Move Top of Return Stack to Top of Data Stack.                                                                 |
-| `r>input`             | *Tali Forth* ( — ) ( R: n n n n — ) "Restore input state from Return Stack"                                   
-                         Restore the current input state as defined by insrc, cib, ciblen,                                              
-                         and toin from the Return Stack.                                                                                |
-| `r@`                  | *ANS core* ( — n ) "Get copy of top of Return Stack"                                                          
-                         <https://forth-standard.org/standard/core/RFetch>                                                              
-                         This word is Compile Only in Tali Forth, though Gforth has it                                                  
-                         work normally as well                                                                                          |
-| `recurse`             | *ANS core* ( — ) "Copy recursive call to word being defined"                                                  
-                         <https://forth-standard.org/standard/core/RECURSE>                                                             |
-| `refill`              | *ANS core ext* ( — f ) "Refill the input buffer"                                                              
-                         <https://forth-standard.org/standard/core/REFILL>                                                              
-                         Attempt to fill the input buffer from the input source, returning                                              
-                         a true flag if successful. When the input source is the user input                                             
-                         device, attempt to receive input into the terminal input buffer. If                                            
-                         successful, make the result the input buffer, set \>IN to zero, and                                            
-                         return true. Receipt of a line containing no characters is considered                                          
-                         successful. If there is no input available from the current input                                              
-                         source, return false. When the input source is a string from EVALUATE,                                         
-                         return false and perform no other action." See                                                                 
-                         <https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/The-Input-Stream.html>                               
-                         and Conklin & Rather p. 156. Note we don’t have to care about blocks                                           
-                         because REFILL is never used on blocks - Tali is able to evaluate the                                          
-                         entire block as a 1024 byte string.                                                                            |
-| `repeat`              | *ANS core* (C: orig dest — ) ( — ) "Loop flow control"                                                        
-                         <http://forth-standard.org/standard/core/REPEAT>                                                               |
-| `root-wordlist`       | *Tali Editor* ( — u ) "WID for the Root (minimal) wordlist"                                                   |
-| `rot`                 | *ANS core* ( a b c — b c a ) "Rotate first three stack entries downwards"                                     
-                         <https://forth-standard.org/standard/core/ROT>                                                                 
-                         Remember "R for 'Revolution'" - the bottom entry comes out                                                     
-                         on top!                                                                                                        |
-| `rshift`              | *ANS core* ( x u — x ) "Shift TOS to the right"                                                               
-                         <https://forth-standard.org/standard/core/RSHIFT>                                                              |
-| `s"`                  | *ANS core* ( "string" — )( — addr u ) "Store string in memory"                                                
-                         <https://forth-standard.org/standard/core/Sq>                                                                  
-                         Store address and length of string given, returning ( addr u ).                                                
-                         ANS core claims this is compile-only, but the file set expands it                                              
-                         to be interpreted, so it is a state-sensitive word, which in theory                                            
-                         are evil. We follow general usage.                                                                             |
-| `s>d`                 | *ANS core* ( u — d ) "Convert single cell number to double cell"                                              
-                         <https://forth-standard.org/standard/core/StoD>                                                                |
-| `s\"`                 | *ANS core* ( "string" — )( — addr u ) "Store string in memory"                                                
-                         <https://forth-standard.org/standard/core/Seq>                                                                 
-                         Store address and length of string given, returning ( addr u ).                                                
-                         ANS core claims this is compile-only, but the file set expands it                                              
-                         to be interpreted, so it is a state-sensitive word, which in theory                                            
-                         are evil. We follow general usage. This is just like S" except                                                 
-                         that it allows for some special escaped characters.                                                            |
-| `save-buffers`        | *ANS block* ( — ) "Save all dirty buffers to storage"                                                         
-                         <https://forth-standard.org/standard/block/SAVE-BUFFERS>                                                       |
-| `scr`                 | *ANS block ext* ( — addr ) "Push address of variable holding last screen listed"                              
-                         <https://forth-standard.org/standard/block/SCR>                                                                |
-| `search`              | *ANS string* ( addr1 u1 addr2 u2 — addr3 u3 flag) "Search for a substring"                                    
-                         <https://forth-standard.org/standard/string/SEARCH>                                                            
-                         Search for string2 (denoted by addr2 u2) in string1 (denoted by                                                
-                         addr1 u1). If a match is found the flag will be true and                                                       
-                         addr3 will have the address of the start of the match and u3 will have                                         
-                         the number of characters remaining from the match point to the end                                             
-                         of the original string1. If a match is not found, the flag will be                                             
-                         false and addr3 and u3 will be the original string1’s addr1 and u1.                                            |
-| `search-wordlist`     | *ANS search* ( caddr u wid — 0 \| xt 1 \| xt -1) "Search for a word in a wordlist"                            
-                         <https://forth-standard.org/standard/search/SEARCH_WORDLIST>                                                   |
-| `see`                 | *ANS tools* ( "name" — ) "Print information about a Forth word"                                               
-                         <https://forth-standard.org/standard/tools/SEE>                                                                
-                         SEE takes the name of a word and prints its name token (nt),                                                   
-                         execution token (xt), size in bytes, flags used, and then dumps the                                            
-                         code and disassembles it.                                                                                      |
-| `set-current`         | *ANS search* ( wid — ) "Set the compilation wordlist"                                                         
-                         <https://forth-standard.org/standard/search/SET-CURRENT>                                                       |
-| `set-order`           | *ANS search* ( wid_n .. wid_1 n — ) "Set the current search order"                                            
-                         <https://forth-standard.org/standard/search/SET-ORDER>                                                         |
-| `sign`                | *ANS core* ( n — ) "Add minus to pictured output"                                                             
-                         <https://forth-standard.org/standard/core/SIGN>                                                                |
-| `sliteral`            | *ANS string* (C: addr u — ) ( — addr u ) "Compile a string for runtime"                                       
-                         <https://forth-standard.org/standard/string/SLITERAL>                                                          
-                         Add the runtime for an existing string.                                                                        |
-| `sm/rem`              | *ANS core* ( d n1 — n2 n3 ) "Symmetric signed division"                                                       
-                         <https://forth-standard.org/standard/core/SMDivREM>                                                            
-                         Symmetric signed division. Compare FM/MOD. Based on F-PC 3.6                                                   
-                         by Ulrich Hoffmann. See <http://www.xlerb.de/uho/ansi.seq>                                                     |
-| `source`              | *ANS core* ( — addr u ) "Return location and size of input buffer""                                           
-                         <https://forth-standard.org/standard/core/SOURCE>                                                              |
-| `source-id`           | *ANS core ext* ( — n ) "Return source identifier"                                                             
-                         <https://forth-standard.org/standard/core/SOURCE-ID> Identify the                                              
-                         input source unless it is a block (s. Conklin & Rather p. 156). This                                           
-                         will give the input source: 0 is keyboard, -1 (\$FFFF) is character                                            
-                         string, and a text file gives the fileid.                                                                      |
-| `space`               | *ANS core* ( — ) "Print a single space"                                                                       
-                         <https://forth-standard.org/standard/core/SPACE>                                                               |
-| `spaces`              | *ANS core* ( u — ) "Print a number of spaces"                                                                 
-                         <https://forth-standard.org/standard/core/SPACES>                                                              |
-| `split`               | *Gforth* ( addr u c — addr2 u2 addr u1 ) "Split string at c"                                                  |
-| `state`               | *ANS core* ( — addr ) "Return the address of compilation state flag"                                          
-                         <https://forth-standard.org/standard/core/STATE>                                                               
-                         STATE is true when in compilation state, false otherwise. Note                                                 
-                         we do not return the state itself, but only the address where                                                  
-                         it lives. The state should not be changed directly by the user; see                                            
-                         <http://forth.sourceforge.net/standard/dpans/dpans6.htm#6.1.2250>                                              |
-| `strip-underflow`     | *Tali Forth* ( — addr ) "Return address where underflow flag is kept"                                         
-                         `STRIP-UNDERFLOW` is a flag variable that determines if underflow                                              
-                         checking should be removed during the compilation of new words.                                                
-                         Default is false.                                                                                              |
-| `swap`                | *ANS core* ( b a — a b ) "Exchange TOS and NOS"                                                               
-                         <https://forth-standard.org/standard/core/SWAP>                                                                |
-| `then`                | *ANS core* (C: orig — ) ( — ) "Conditional flow control"                                                      
-                         <http://forth-standard.org/standard/core/THEN>                                                                 
-                         This is a dummy entry, the code is shared with xt_else                                                         |
-| `thru`                | *ANS block ext* ( scr# scr# — ) "Load screens in the given range"                                             
-                         <https://forth-standard.org/standard/block/THRU>                                                               |
-| `to`                  | *ANS core ext* ( n "name" — ) or ( "name" ) "Change a value"                                                  
-                         <https://forth-standard.org/standard/core/TO>                                                                  
-                         Gives a new value to a, uh, VALUE.                                                                             |
-| `true`                | *ANS core ext* ( — f ) "Push TRUE flag to Data Stack"                                                         
-                         <https://forth-standard.org/standard/core/TRUE>                                                                |
-| `tuck`                | *ANS core ext* ( b a — a b a ) "Copy TOS below NOS"                                                           
-                         <https://forth-standard.org/standard/core/TUCK>                                                                |
-| `type`                | *ANS core* ( addr u — ) "Print string"                                                                        
-                         <https://forth-standard.org/standard/core/TYPE>                                                                
-                         Works through EMIT to allow OUTPUT revectoring.                                                                |
-| `u.`                  | *ANS core* ( u — ) "Print TOS as unsigned number"                                                             
-                         <https://forth-standard.org/standard/core/Ud>                                                                  |
-| `u.r`                 | *ANS core ext* ( u u — ) "Print NOS as unsigned number right-justified with TOS width"                        
-                         <https://forth-standard.org/standard/core/UDotR>                                                               |
-| `u<`                  | *ANS core* ( n m — f ) "Return true if NOS \< TOS (unsigned)"                                                 
-                         <https://forth-standard.org/standard/core/Uless>                                                               |
-| `u>`                  | *ANS core ext* ( n m — f ) "Return true if NOS \> TOS (unsigned)"                                             
-                         <https://forth-standard.org/standard/core/Umore>                                                               |
-| `ud.`                 | *Tali double* ( d — ) "Print double as unsigned"                                                              |
-| `ud.r`                | *Tali double* ( d u — ) "Print unsigned double right-justified u wide"                                        |
-| `um*`                 | *ANS core* ( u u — ud ) "Multiply 16 x 16 → 32"                                                               
-                         <https://forth-standard.org/standard/core/UMTimes>                                                             
-                         Multiply two unsigned 16 bit numbers, producing a 32 bit result.                                               
-                         Old Forth versions such as FIG Forth call this U\*                                                             |
-| `um/mod`              | *ANS core* ( ud u — ur u ) "32/16 → 16 division"                                                              
-                         <https://forth-standard.org/standard/core/UMDivMOD>                                                            
-                         Divide double cell number by single cell number, returning the                                                 
-                         quotient as TOS and any remainder as NOS. All numbers are unsigned.                                            
-                         This is the basic division operation all others use. Based on FIG                                              
-                         Forth code, modified by Garth Wilson, see                                                                      
-                         <http://6502.org/source/integers/ummodfix/ummodfix.htm>                                                        |
-| `unloop`              | *ANS core* ( — ) "Drop current loop control block"                                                            
-                         <https://forth-standard.org/standard/core/UNLOOP>                                                              |
-| `until`               | *ANS core* (C: dest — ) ( — ) "Loop flow control"                                                             
-                         <http://forth-standard.org/standard/core/UNTIL>                                                                |
-| `unused`              | *ANS core ext* ( — u ) "Return size of space available to Dictionary"                                         
-                         <https://forth-standard.org/standard/core/UNUSED>                                                              
-                         UNUSED does not include the ACCEPT history buffers. Total RAM                                                  
-                         should be HERE + UNUSED + \<history buffer size\>, the last of which                                           
-                         defaults to \$400                                                                                              |
-| `update`              | *ANS block* ( — ) "Mark current block as dirty"                                                               
-                         <https://forth-standard.org/standard/block/UPDATE>                                                             |
-| `useraddr`            | *Tali Forth* ( — addr ) "Push address of base address of user variables"                                      |
-| `value`               | *ANS core* ( n "name" — ) "Define a value"                                                                    
-                         <https://forth-standard.org/standard/core/VALUE>                                                               |
-| `variable`            | *ANS core* ( "name" — ) "Define a variable"                                                                   
-                         <https://forth-standard.org/standard/core/VARIABLE>                                                            
-                         There are various Forth definitions for this word, such as                                                     
-                         `CREATE 1 CELLS ALLOT` or `CREATE 0 ,` We use a variant of the                                                 
-                         second one so the variable is initialized to zero                                                              |
-| `while`               | *ANS core* ( C: dest — orig dest ) ( x — ) "Loop flow control"                                                
-                         <http://forth-standard.org/standard/core/WHILE>                                                                |
-| `within`              | *ANS core ext* ( n1 n2 n3 — f ) "Test n1 within range \[n2, n3) or outwith \[n3, n2)"                         
-                         <https://forth-standard.org/standard/core/WITHIN>                                                              |
-| `word`                | *ANS core* ( char "name " — caddr ) "Parse input stream"                                                      
-                         <https://forth-standard.org/standard/core/WORD>                                                                
-                         Obsolete parsing word included for backwards compatibility only.                                               
-                         Do not use this, use `PARSE` or `PARSE-NAME`. Skips leading delimiters                                         
-                         and copies word to storage area for a maximum size of 255 bytes.                                               
-                         Returns the result as a counted string (requires COUNT to convert                                              
-                         to modern format), and inserts a space after the string. See "Forth                                            
-                         Programmer’s Handbook" 3rd edition p. 159 and                                                                  
-                         <http://www.forth200x.org/documents/html/rationale.html#rat:core:PARSE>                                        
-                         for discussions of why you shouldn’t be using WORD anymore.                                                    |
-| `wordlist`            | *ANS search* ( — wid ) "Create new wordlist (from pool of 8)"                                                 
-                         <https://forth-standard.org/standard/search/WORDLIST>                                                          
-                         See the tutorial on Wordlists and the Search Order for                                                         
-                         more information.                                                                                              |
-| `words`               | *ANS tools* ( — ) "Print known words from Dictionary"                                                         
-                         <https://forth-standard.org/standard/tools/WORDS>                                                              
-                         This is pretty much only used at the command line so we can                                                    
-                         be slow and try to save space.                                                                                 |
-| `wordsize`            | *Tali Forth* ( nt — u ) "Get size of word in bytes"                                                           
-                         Given an word’s name token (nt), return the size of the                                                        
-                         word’s payload size in bytes (CFA plus PFA) in bytes. Does not                                                 
-                         count the final RTS.                                                                                           |
-| `xor`                 | *ANS core* ( n n — n ) "Logically XOR TOS and NOS"                                                            
-                         <https://forth-standard.org/standard/core/XOR>                                                                 |
+|  |  |
+|----|----|
+| `!` | *ANS core* ( n addr — ) "Store TOS in memory"
+<https://forth-standard.org/standard/core/Store> |
+| `#` | *ANS core* ( ud — ud ) "Add character to pictured output string"
+<https://forth-standard.org/standard/core/num>
+Add one char to the beginning of the pictured output string. |
+| `#>` | *ANS core* ( d — addr u ) "Finish pictured number conversion"
+<https://forth-standard.org/standard/core/num-end>
+Finish conversion of pictured number string, putting address and
+length on the Data Stack. |
+| `#s` | *ANS core* ( d — addr u ) "Completely convert pictured output"
+<https://forth-standard.org/standard/core/numS>
+Completely convert number for pictured numerical output. |
+| `'` | *ANS core* ( "name" — xt ) "Return a word’s execution token (xt)"
+<https://forth-standard.org/standard/core/Tick> |
+| `(` | *ANS core* ( — ) "Discard input up to close paren ( comment )"
+<http://forth-standard.org/standard/core/p> |
+| `*` | *ANS core* ( n n — n ) "16\*16 -→ 16 "
+<https://forth-standard.org/standard/core/Times>
+Multiply two signed 16 bit numbers, returning a 16 bit result. |
+| `*/` | *ANS core* ( n1 n2 n3 — n4 ) "n1 \* n2 / n3 -→ n"
+<https://forth-standard.org/standard/core/TimesDiv>
+Multiply n1 by n2 and divide by n3, returning the result
+without a remainder. This is \*/MOD without the mod. |
+| `*/mod` | *ANS core* ( n1 n2 n3 — n4 n5 ) "n1 \* n2 / n3 -→ n-mod n"
+<https://forth-standard.org/standard/core/TimesDivMOD>
+Multiply n1 by n2 producing the intermediate double-cell result d.
+Divide d by n3 producing the single-cell remainder n4 and the
+single-cell quotient n5. |
+| `+` | *ANS core* ( n n — n ) "Add TOS and NOS"
+<https://forth-standard.org/standard/core/Plus> |
+| `+!` | *ANS core* ( n addr — ) "Add number to value at given address"
+<https://forth-standard.org/standard/core/PlusStore> |
+| `+loop` | *ANS core* ( — ) "Finish loop construct"
+<https://forth-standard.org/standard/core/PlusLOOP> |
+| `,` | *ANS core* ( n — ) "Allot and store one cell in memory"
+<https://forth-standard.org/standard/core/Comma>
+Store TOS at current place in memory. |
+| `-` | *ANS core* ( n n — n ) "Subtract TOS from NOS"
+<https://forth-standard.org/standard/core/Minus> |
+| `-leading` | *Tali String* ( addr1 u1 — addr2 u2 ) "Remove leading whitespace"
+Remove leading whitespace. This is the reverse of -TRAILING except
+that it removes any whitespace, not just BL |
+| `-rot` | *Gforth* ( a b c — c a b ) "Rotate upwards"
+<http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Data-stack.html> |
+| `-trailing` | *ANS string* ( addr u1 — addr u2 ) "Remove trailing spaces"
+<https://forth-standard.org/standard/string/MinusTRAILING>
+Remove trailing spaces. Note this ANSI word only removes ASCII \$20
+not other whitespace like -LEADING. |
+| `.` | *ANS core* ( u — ) "Print TOS"
+<https://forth-standard.org/standard/core/d> |
+| `."` | *ANS core ext* ( "string" — ) "Print string from compiled word"
+<https://forth-standard.org/standard/core/Dotq>
+Compile string that is printed during run time. ANS Forth wants
+this to be compile-only, even though everybody and their friend
+uses it for everything. We follow the book here, and recommend
+`.(` for general printing. |
+| `.(` | *ANS core* ( — ) "Print input up to close paren .( comment )"
+<http://forth-standard.org/standard/core/Dotp> |
+| `.r` | *ANS core ext* ( n u — ) "Print NOS as unsigned number with TOS width"
+<https://forth-standard.org/standard/core/DotR> |
+| `.s` | *ANS tools* ( — ) "Print content of Data Stack"
+<https://forth-standard.org/standard/tools/DotS>
+Print content of Data Stack non-distructively. We follow the format
+of Gforth and print the number of elements first in brackets,
+followed by the Data Stack content (if any). |
+| `/` | *ANS core* ( n1 n2 — n ) "Divide NOS by TOS"
+<https://forth-standard.org/standard/core/Div> |
+| `/mod` | *ANS core* ( n1 n2 — n3 n4 ) "Divide NOS by TOS with a remainder"
+<https://forth-standard.org/standard/core/DivMOD> |
+| `/string` | *ANS string* ( addr u n — addr u ) "Shorten string by n"
+<https://forth-standard.org/standard/string/DivSTRING> |
+| `0` | *Tali Forth* ( — 0 ) "Push 0 to Data Stack"
+The disassembler assumes that this routine does not use Y. Note
+that CASE, FALSE, and FORTH-WORDLIST use the same routine to place
+a 0 on the data stack. |
+| `0<` | *ANS core* ( n — f ) "Return a TRUE flag if TOS negative"
+<https://forth-standard.org/standard/core/Zeroless> |
+| `0<>` | *ANS core ext* ( m — f ) "Return TRUE flag if not zero"
+<https://forth-standard.org/standard/core/Zerone> |
+| `0=` | *ANS core* ( n — f ) "Check if TOS is zero"
+<https://forth-standard.org/standard/core/ZeroEqual> |
+| `0>` | *ANS core ext* ( n — f ) "Return a TRUE flag if TOS is positive"
+<https://forth-standard.org/standard/core/Zeromore> |
+| `1` | *Tali Forth* ( — n ) "Push the number 1 to the Data Stack"
+This is also the code for EDITOR-WORDLIST |
+| `1+` | *ANS core* ( u — u+1 ) "Increase TOS by one"
+<https://forth-standard.org/standard/core/OnePlus> |
+| `1-` | *ANS core* ( u — u-1 ) "Decrease TOS by one"
+<https://forth-standard.org/standard/core/OneMinus> |
+| `2` | *Tali Forth* ( — u ) "Push the number 2 to stack" |
+| `2!` | *ANS core* ( n1 n2 addr — ) "Store two numbers at given address"
+<https://forth-standard.org/standard/core/TwoStore>
+Stores so n2 goes to addr and n1 to the next consecutive cell.
+Is equivalent to `SWAP OVER ! CELL+ !` |
+| `2*` | *ANS core* ( n — n ) "Multiply TOS by two"
+<https://forth-standard.org/standard/core/TwoTimes> |
+| `2/` | *ANS core* ( n — n ) "Divide TOS by two"
+<https://forth-standard.org/standard/core/TwoDiv> |
+| `2>r` | *ANS core ext* ( n1 n2 — )(R: — n1 n2 "Push top two entries to Return Stack"
+<https://forth-standard.org/standard/core/TwotoR>
+Push top two entries to Return Stack. |
+| `2@` | *ANS core* ( addr — n1 n2 ) "Fetch the cell pair n1 n2 stored at addr"
+<https://forth-standard.org/standard/core/TwoFetch>
+Note n2 stored at addr and n1 in the next cell — in our case,
+the next two bytes. This is equvalent to `DUP CELL+ @ SWAP @` |
+| `2constant` | *ANS double* (C: d "name" — ) ( — d) "Create a constant for a double word"
+<https://forth-standard.org/standard/double/TwoCONSTANT> |
+| `2drop` | *ANS core* ( n n — ) "Drop TOS and NOS"
+<https://forth-standard.org/standard/core/TwoDROP> |
+| `2dup` | *ANS core* ( a b — a b a b ) "Duplicate first two stack elements"
+<https://forth-standard.org/standard/core/TwoDUP> |
+| `2literal` | *ANS double* (C: d — ) ( — d) "Compile a literal double word"
+<https://forth-standard.org/standard/double/TwoLITERAL> |
+| `2over` | *ANS core* ( d1 d2 — d1 d2 d1 ) "Copy double word NOS to TOS"
+<https://forth-standard.org/standard/core/TwoOVER> |
+| `2r>` | *ANS core ext* ( — n1 n2 ) (R: n1 n2 — ) "Pull two cells from Return Stack"
+<https://forth-standard.org/standard/core/TwoRfrom>
+Pull top two entries from Return Stack. |
+| `2r@` | *ANS core ext* ( — n n ) "Copy top two entries from Return Stack"
+<https://forth-standard.org/standard/core/TwoRFetch> |
+| `2swap` | *ANS core* ( n1 n2 n3 n4 — n3 n4 n1 n1 ) "Exchange two double words"
+<https://forth-standard.org/standard/core/TwoSWAP> |
+| `2variable` | *ANS double* ( "name" — ) "Create a variable for a double word"
+<https://forth-standard.org/standard/double/TwoVARIABLE> |
+| `:` | *ANS core* ( "name" — ) "Start compilation of a new word"
+<https://forth-standard.org/standard/core/Colon> |
+| `:NONAME` | *ANS core* ( — ) "Start compilation of a new word""
+<https://forth-standard.org/standard/core/ColonNONAME>
+Compile a word with no nt. ";" will put its xt on the stack. |
+| `;` | *ANS core* ( — ) or ( — xt ) for :noname "End compilation of new word"
+<https://forth-standard.org/standard/core/Semi>
+End the compilation of a new word into the Dictionary. |
+| `<` | *ANS core* ( n m — f ) "Return true if NOS \< TOS"
+<https://forth-standard.org/standard/core/less> |
+| `<#` | *ANS core* ( — ) "Start number conversion"
+<https://forth-standard.org/standard/core/num-start>
+Start the process to create pictured numeric output. |
+| `<>` | *ANS core ext* ( n m — f ) "Return a true flag if TOS != NOS"
+<https://forth-standard.org/standard/core/ne> |
+| `=` | *ANS core* ( n n — f ) "See if TOS and NOS are equal"
+<https://forth-standard.org/standard/core/Equal> |
+| `>` | *ANS core* ( n n — f ) "See if NOS is greater than TOS"
+<https://forth-standard.org/standard/core/more> |
+| `>body` | *ANS core* ( xt — addr ) "Return a word’s Code Field Area (CFA)"
+<https://forth-standard.org/standard/core/toBODY>
+Given a word’s execution token (xt), return the address of the
+start of that word’s parameter field (PFA). This is defined as the
+address that HERE would return right after CREATE. |
+| `>in` | *ANS core* ( — addr ) "Return address of the input pointer" |
+| `>number` | *ANS core* ( ud addr u — ud addr u ) "Convert a number"
+<https://forth-standard.org/standard/core/toNUMBER>
+Convert a string to a double number. Logic here is based on the
+routine by Phil Burk of the same name in pForth, see
+<https://github.com/philburk/pforth/blob/master/fth/numberio.fth>
+for the original Forth code. We arrive here from NUMBER which has
+made sure that we don’t have to deal with a sign and we don’t have
+to deal with a dot as a last character that signalizes double -
+this should be a pure number string. |
+| `>order` | *Gforth search* ( wid — ) "Add wordlist at beginning of search order"
+<https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Word-Lists.html> |
+| `>r` | *ANS core* ( n — )(R: — n) "Push TOS to the Return Stack"
+<https://forth-standard.org/standard/core/toR>
+This word is handled differently for native and for
+subroutine coding, see `COMPILE,`. This is a complile-only
+word. |
+| `?` | *ANS tools* ( addr — ) "Print content of a variable"
+<https://forth-standard.org/standard/tools/q> |
+| `?do` | *ANS core ext* (C: — ) ( limit start — ) "Conditional loop start"
+<https://forth-standard.org/standard/core/qDO> |
+| `?dup` | *ANS core* ( n — 0 \| n n ) "Duplicate TOS non-zero"
+<https://forth-standard.org/standard/core/qDUP> |
+| `@` | *ANS core* ( addr — n ) "Push cell content from memory to stack"
+<https://forth-standard.org/standard/core/Fetch> |
+| `[` | *ANS core* ( — ) "Enter interpretation state"
+<https://forth-standard.org/standard/core/Bracket>
+This is an immediate and compile-only word |
+| `[']` | *ANS core* ( — ) "Store xt of following word during compilation"
+<https://forth-standard.org/standard/core/BracketTick> |
+| `[char]` | *ANS core* ( "c" — ) "Compile character"
+<https://forth-standard.org/standard/core/BracketCHAR>
+Compile the ASCII value of a character as a literal. This is an
+immediate, compile-only word. |
+| `\` | *ANS block ext* ( — ) "Ignore rest of line"
+<https://forth-standard.org/standard/block/bs> |
+| `]` | *ANS core* ( — ) "Enter the compile state"
+<https://forth-standard.org/standard/right-bracket>
+This is an immediate word. |
+| `abort` | *ANS core* ( — ) "Reset the Data Stack and restart the CLI"
+<https://forth-standard.org/standard/core/ABORT>
+Clear Data Stack and continue into QUIT. We can jump here via
+subroutine if we want to because we are going to reset the 65c02’s
+stack pointer (the Return Stack) anyway during QUIT. Note we don’t
+actually delete the stuff on the Data Stack. |
+| `abort"` | *ANS core* ( "string" — ) "If flag TOS is true, ABORT with message"
+<https://forth-standard.org/standard/core/ABORTq>
+Abort and print a string. |
+| `abs` | *ANS core* ( n — u ) "Return absolute value of a number"
+<https://forth-standard.org/standard/core/ABS>
+Return the absolute value of a number. |
+| `accept` | *ANS core* ( addr n — n ) "Receive a string of characters from the keyboard"
+<https://forth-standard.org/standard/core/ACCEPT>
+Receive a string of at most n1 characters, placing them at
+addr. Return the actual number of characters as n2. Characters
+are echoed as they are received. ACCEPT is called by REFILL in
+modern Forths. |
+| `action-of` | *ANS core ext* ( "name" — xt ) "Get named deferred word’s xt"
+<http://forth-standard.org/standard/core/ACTION-OF> |
+| `again` | *ANS core ext* ( addr — ) "Code backwards branch to address left by BEGIN"
+<https://forth-standard.org/standard/core/AGAIN> |
+| `align` | *ANS core* ( — ) "Make sure CP is aligned on word size"
+<https://forth-standard.org/standard/core/ALIGN>
+On a 8-bit machine, this does nothing. ALIGNED uses this
+routine as well, and also does nothing |
+| `aligned` | *ANS core* ( addr — addr ) "Return the first aligned address"
+<https://forth-standard.org/standard/core/ALIGNED> |
+| `allot` | *ANS core* ( n — ) "Reserve or release memory"
+<https://forth-standard.org/standard/core/ALLOT>
+Reserve a certain number of bytes (not cells) or release them.
+If n = 0, do nothing. If n is negative, release n bytes, but only
+to the beginning of the Dictionary. If n is positive (the most
+common case), reserve n bytes, but not past the end of the
+Dictionary. See <http://forth-standard.org/standard/core/ALLOT> |
+| `allow-native` | *Tali Forth* ( — ) "Flag last word to allow native compiling" |
+| `also` | *ANS search ext* ( — ) "Make room in the search order for another wordlist"
+<http://forth-standard.org/standard/search/ALSO> |
+| `always-native` | *Tali Forth* ( — ) "Flag last word as always natively compiled" |
+| `and` | *ANS core* ( n n — n ) "Logically AND TOS and NOS"
+<https://forth-standard.org/standard/core/AND> |
+| `assembler-wordlist` | *Tali Assembler* ( — u ) "WID for the Assembler wordlist"
+Commonly used like `assembler-wordlist >order` to add the
+assembler words to the search order so they can be used.
+See the tutorial on Wordlists and the Search Order for
+more information. |
+| `at-xy` | *ANS facility* ( m n — ) "Move cursor to position given"
+<https://forth-standard.org/standard/facility/AT-XY>
+On an ANSI compatible terminal, place cursor at row n column m.
+ANSI code is ESC\[\<n+1\>;\<m+1\>H |
+| `base` | *ANS core* ( — addr ) "Push address of radix base to stack"
+<https://forth-standard.org/standard/core/BASE>
+The ANS Forth standard sees the base up to 36, so we can cheat and
+ingore the MSB |
+| `begin` | *ANS core* ( — addr ) "Mark entry point for loop"
+<https://forth-standard.org/standard/core/BEGIN> |
+| `bell` | *Tali Forth* ( — ) "Emit ASCII BELL" |
+| `bl` | *ANS core* ( — c ) "Push ASCII value of SPACE to stack"
+<https://forth-standard.org/standard/core/BL> |
+| `blank` | *ANS string* ( addr u — ) "Fill memory region with spaces"
+<https://forth-standard.org/standard/string/BLANK> |
+| `blkbuffer` | *Tali block* ( — addr ) "Push address of block buffer" |
+| `block` | *ANS block* ( u — a-addr ) "Fetch a block into a buffer"
+<https://forth-standard.org/standard/block/BLK>
+<https://forth-standard.org/standard/block/BLOCK> |
+| `block-c65-init` | *Tali block* ( — f ) "Initialize c65 simulator block storage"
+Set up block IO to read/write to/from c65 block file.
+Run simulator with a writable block file option
+e.g. `touch blocks.dat; c65/c65 -b blocks.dat -r taliforth-py65mon.bin`
+Returns true if c65 block storage is available and false otherwise. |
+| `block-ramdrive-init` | *Tali block* ( u — ) "Create a ramdrive for blocks"
+Create a RAM drive, with the given number of
+blocks, in the dictionary along with setting up the block words to
+use it. The read/write routines do not provide bounds checking.
+Expected use: `4 block-ramdrive-init` ( to create blocks 0-3 ) |
+| `block-read` | *Tali block* ( addr u — ) "Read a block from storage (deferred word)"
+BLOCK-READ is a vectored word that the user needs to override
+with their own version to read a block from storage.
+The stack parameters are ( buffer_address block# — ). |
+| `block-read-vector` | *Tali block* ( — addr ) "Address of the block-read vector"
+BLOCK-READ is a vectored word that the user needs to override
+with their own version to read a block from storage.
+This word gives the address of the vector so it can be replaced. |
+| `block-write` | *Tali block* ( addr u — ) "Write a block to storage (deferred word)"
+BLOCK-WRITE is a vectored word that the user needs to override
+with their own version to write a block to storage.
+The stack parameters are ( buffer_address block# — ). |
+| `block-write-vector` | *Tali block* ( — addr ) "Address of the block-write vector"
+BLOCK-WRITE is a vectored word that the user needs to override
+with their own version to write a block to storage.
+This word gives the address of the vector so it can be replaced. |
+| `bounds` | *Gforth* ( addr u — addr+u addr ) "Prepare address for looping"
+<http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Memory-Blocks.html>
+Given a string, return the correct Data Stack parameters for
+a DO/LOOP loop over its characters. This is realized as
+OVER + SWAP in Forth, but we do it a lot faster in assembler |
+| `buffblocknum` | *Tali block* ( — addr ) "Push address of variable holding block in buffer" |
+| `buffer` | *ANS block* ( u — a-addr ) "Get a buffer for a block"
+<https://forth-standard.org/standard/block/BUFFER> |
+| `buffer:` | *ANS core ext* ( u "\<name\>" — ; — addr ) "Create an uninitialized buffer"
+<https://forth-standard.org/standard/core/BUFFERColon>
+Create a buffer of size u that puts its address on the stack
+when its name is used. |
+| `buffstatus` | *Tali block* ( — addr ) "Push address of variable holding buffer status" |
+| `bye` | *ANS tools ext* ( — ) "Break"
+<https://forth-standard.org/standard/tools/BYE> |
+| `c!` | *ANS core* ( c addr — ) "Store character at address given"
+<https://forth-standard.org/standard/core/CStore> |
+| `c,` | *ANS core* ( c — ) "Store one byte/char in the Dictionary"
+<https://forth-standard.org/standard/core/CComma> |
+| `c@` | *ANS core* ( addr — c ) "Get a character/byte from given address"
+<https://forth-standard.org/standard/core/CFetch> |
+| `case` | *ANS core ext* (C: — 0) ( — ) "Conditional flow control"
+<http://forth-standard.org/standard/core/CASE> |
+| `cell+` | *ANS core* ( u — u ) "Add cell size in bytes"
+<https://forth-standard.org/standard/core/CELLPlus>
+Add the number of bytes ("address units") that one cell needs.
+Since this is an 8 bit machine with 16 bit cells, we add two bytes. |
+| `cells` | *ANS core* ( u — u ) "Convert cells to size in bytes"
+<https://forth-standard.org/standard/core/CELLS> |
+| `char` | *ANS core* ( "c" — u ) "Convert character to ASCII value"
+<https://forth-standard.org/standard/core/CHAR> |
+| `char+` | *ANS core* ( addr — addr+1 ) "Add the size of a character unit to address"
+<https://forth-standard.org/standard/core/CHARPlus> |
+| `chars` | *ANS core* ( n — n ) "Number of bytes that n chars need"
+<https://forth-standard.org/standard/core/CHARS>
+Return how many address units n chars are. Since this is an 8 bit
+machine, this does absolutely nothing and is included for
+compatibility with other Forth versions |
+| `cleave` | *Tali Forth* ( addr u — addr2 u2 addr1 u1 ) "Split off word from string" |
+| `cmove` | *ANS string* ( addr1 addr2 u — ) "Copy bytes going from low to high"
+<https://forth-standard.org/standard/string/CMOVE>
+Copy u bytes from addr1 to addr2, going low to high (addr2 is
+larger than addr1). Based on code in Leventhal, Lance A.
+6502 Assembly Language Routines", p. 201, where it is called
+move left". |
+| `cmove>` | *ANS string* ( addr1 addr2 u — ) "Copy bytes from high to low"
+<https://forth-standard.org/standard/string/CMOVEtop>
+Based on code in Leventhal, Lance A. "6502 Assembly Language
+Routines", p. 201, where it is called "move right". |
+| `cold` | *Tali Forth* ( — ) "Reset the Forth system"
+Reset the Forth system. Does not restart the kernel,
+use the 65c02 reset for that. Flows into ABORT. |
+| `compare` | *ANS string* ( addr1 u1 addr2 u2 — -1 \| 0 \| 1) "Compare two strings"
+<https://forth-standard.org/standard/string/COMPARE>
+Compare string1 (denoted by addr1 u1) to string2 (denoted by
+addr2 u2). Return -1 if string1 \< string2, 0 if string1 = string2
+and 1 if string1 \> string2 (ASCIIbetical comparison). A string
+that entirely matches the beginning of the other string, but is
+shorter, is considered less than the longer string. |
+| `compile,` | *ANS core ext* ( xt — ) "Compile xt"
+<https://forth-standard.org/standard/core/COMPILEComma>
+Compile the given xt in the current word definition. It is an
+error if we are not in the compile state. Because we are using
+subroutine threading, we can’t use , (COMMA) to compile new words
+the traditional way. By default, native compiled is allowed, unless
+there is a NN (Never Native) flag associated. If not, we use the
+value NC_LIMIT (from definitions.asm) to decide if the code
+is too large to be natively coded: If the size is larger than
+NC_LIMIT, we silently use subroutine coding. If the AN (Always
+Native) flag is set, the word is always natively compiled. |
+| `compile-only` | *Tali Forth* ( — ) "Mark most recent word as COMPILE-ONLY"
+Set the Compile Only flag (CO) of the most recently defined
+word. |
+| `constant` | *ANS core* ( n "name" — ) "Define a constant"
+<https://forth-standard.org/standard/core/CONSTANT> |
+| `count` | *ANS core* ( c-addr — addr u ) "Convert character string to normal format"
+<https://forth-standard.org/standard/core/COUNT>
+Convert old-style character string to address-length pair. Note
+that the length of the string c-addr is stored in character length
+(8 bit), not cell length (16 bit). This is rarely used these days,
+though COUNT can also be used to step through a string character by
+character. |
+| `cr` | *ANS core* ( — ) "Print a line feed"
+<https://forth-standard.org/standard/core/CR> |
+| `create` | *ANS core* ( "name" — ) "Create Dictionary entry for 'name'"
+<https://forth-standard.org/standard/core/CREATE> |
+| `d+` | *ANS double* ( d d — d ) "Add two double-celled numbers"
+<https://forth-standard.org/standard/double/DPlus> |
+| `d-` | *ANS double* ( d d — d ) "Subtract two double-celled numbers"
+<https://forth-standard.org/standard/double/DMinus> |
+| `d.` | *ANS double* ( d — ) "Print double"
+<http://forth-standard.org/standard/double/Dd> |
+| `d.r` | *ANS double* ( d u — ) "Print double right-justified u wide"
+<http://forth-standard.org/standard/double/DDotR>
+Based on the Forth code
+: D.R \>R TUCK DABS \<# \#S ROT SIGN \#\> R\> OVER - SPACES TYPE |
+| `d>s` | *ANS double* ( d — n ) "Convert a double number to single"
+<https://forth-standard.org/standard/double/DtoS>
+Though this is basically just DROP, we keep it
+separate so we can test for underflow |
+| `dabs` | *ANS double* ( d — d ) "Return the absolute value of a double"
+<https://forth-standard.org/standard/double/DABS> |
+| `decimal` | *ANS core* ( — ) "Change radix base to decimal"
+<https://forth-standard.org/standard/core/DECIMAL> |
+| `defer` | *ANS core ext* ( "name" — ) "Create a placeholder for words by name"
+<https://forth-standard.org/standard/core/DEFER>
+Reserve an name that can be linked to various xt by IS. |
+| `defer!` | *ANS core ext* ( xt2 x1 — ) "Set xt1 to execute xt2"
+<http://forth-standard.org/standard/core/DEFERStore> |
+| `defer@` | *ANS core ext* ( xt1 — xt2 ) "Get the current XT for a deferred word"
+<http://forth-standard.org/standard/core/DEFERFetch> |
+| `definitions` | *ANS search* ( — ) "Make first wordlist in search order the current wordlist" |
+| `depth` | *ANS core* ( — u ) "Get number of cells (not bytes) used by stack"
+<https://forth-standard.org/standard/core/DEPTH> |
+| `digit?` | *Tali Forth* ( char — u f \| char f ) "Convert ASCII char to number"
+Inspired by the pForth instruction DIGIT, see
+<https://github.com/philburk/pforth/blob/master/fth/numberio.fth>
+Rewritten from DIGIT\>NUMBER in Tali Forth. Note in contrast to
+pForth, we get the base (radix) ourselves instead of having the
+user provide it. There is no standard name for this routine, which
+itself is not ANS; we use DIGIT? following pForth and Gforth. |
+| `disasm` | *Tali Forth* ( addr u — ) "Disassemble a block of memory"
+Convert a segment of memory to assembler output. This
+word is vectored so people can add their own disassembler.
+Natively, this produces Simpler Assembly Notation (SAN)
+code, see the section on The Disassembler in the manual and
+the file disassembler.asm for more details. |
+| `dnegate` | *ANS double* ( d — d ) "Negate double cell number"
+<https://forth-standard.org/standard/double/DNEGATE> |
+| `do` | *ANS core* (C: — ) ( limit start — ) "Start a loop"
+<https://forth-standard.org/standard/core/DO> |
+| `does>` | *ANS core* ( — ) "Add payload when defining new words"
+<https://forth-standard.org/standard/core/DOES>
+Create the payload for defining new defining words. See
+<http://www.bradrodriguez.com/papers/moving3.htm> and
+the Developer Guide in the manual for a discussion of
+DOES\>'s internal workings. This uses tmp1 and tmp2. |
+| `drop` | *ANS core* ( u — ) "Pop top entry on Data Stack"
+<https://forth-standard.org/standard/core/DROP> |
+| `dump` | *ANS tools* ( addr u — ) "Display a memory region"
+<https://forth-standard.org/standard/tools/DUMP> |
+| `dup` | *ANS core* ( u — u u ) "Duplicate TOS"
+<https://forth-standard.org/standard/core/DUP> |
+| `ed:` | *Tali Forth* ( — u ) "Line-based editor"
+Start the line-based editor ed6502. See separate file
+ed.asm or the manual for details. |
+| `editor-wordlist` | *Tali Editor* ( — u ) "WID for the Editor wordlist"
+Commonly used like `editor-wordlist >order` to add the editor
+words to the search order so they can be used. This will need
+to be done before any of the words marked "Tali Editor" can be
+used. See the tutorial on Wordlists and the Search Order for
+more information. |
+| `el` | *Tali Editor* ( line# — ) "Erase the given line number" |
+| `else` | *ANS core* (C: orig — orig' ) ( — ) "Conditional flow control"
+<http://forth-standard.org/standard/core/ELSE> |
+| `emit` | *ANS core* ( char — ) "Print character to current output"
+<https://forth-standard.org/standard/core/EMIT>
+Run-time default for EMIT. The user can revector this by changing
+the value of the OUTPUT variable. We ignore the MSB completely, and
+do not check to see if we have been given a valid ASCII character.
+Don’t make this native compile. |
+| `empty-buffers` | *ANS block ext* ( — ) "Empty all buffers without saving"
+<https://forth-standard.org/standard/block/EMPTY-BUFFERS> |
+| `endcase` | *ANS core ext* (C: case-sys — ) ( x — ) "Conditional flow control"
+<http://forth-standard.org/standard/core/ENDCASE> |
+| `endof` | *ANS core ext* (C: case-sys1 of-sys1-- case-sys2) ( — ) "Conditional flow control"
+<http://forth-standard.org/standard/core/ENDOF>
+This is a dummy entry, the code is shared with ELSE |
+| `enter-screen` | *Tali Editor* ( scr# — ) "Enter all lines for given screen" |
+| `environment?` | *ANS core* ( addr u — 0 \| i\*x true ) "Return system information"
+<https://forth-standard.org/standard/core/ENVIRONMENTq> |
+| `erase` | *ANS core ext* ( addr u — ) "Fill memory region with zeros"
+<https://forth-standard.org/standard/core/ERASE>
+Note that ERASE works with "address" units
+(bytes), not cells. |
+| `erase-screen` | *Tali Editor* ( scr# — ) "Erase all lines for given screen" |
+| `evaluate` | *ANS core* ( addr u — ) "Execute a string"
+<https://forth-standard.org/standard/core/EVALUATE>
+Set SOURCE-ID to -1, make addr u the input source, set \>IN to zero.
+After processing the line, revert to old input source. We use this
+to compile high-level Forth words and user-defined words during
+start up and cold boot. In contrast to ACCEPT, we need to, uh,
+accept more than 255 characters here, even though it’s a pain in
+the 8-bit. Also see EVALUATE\* for multi-line commment handling. |
+| `execute` | *ANS core* ( xt — ) "Jump to word based on execution token"
+This word is never natively compiled so that the return
+from the xt will always return to the caller of EXECUTE
+<https://forth-standard.org/standard/core/EXECUTE> |
+| `execute-parsing` | *Gforth* ( addr u xt — ) "Pass a string to a parsing word"
+<https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/The-Input-Stream.html>
+Execute the parsing word defined by the execution token (xt) on the
+string as if it were passed on the command line. See the file
+tests/tali.fs for examples. |
+| `exit` | *ANS core* ( — ) "Return control to the calling word immediately"
+<https://forth-standard.org/standard/core/EXIT>
+If we’re in a loop, user should UNLOOP first to clean up
+any loop control. This should be natively compiled. |
+| `false` | *ANS core ext* ( — f ) "Push flag FALSE to Data Stack"
+<https://forth-standard.org/standard/core/FALSE> |
+| `fill` | *ANS core* ( addr u char — ) "Fill a memory region with a character"
+<https://forth-standard.org/standard/core/FILL>
+Fill u bytes of memory with char starting at addr. Note that
+this works on bytes, not on cells. On an 8-bit machine such as the
+65c02, this is a serious pain in the rear. It is not defined what
+happens when we reach the end of the address space |
+| `find` | *ANS core* ( caddr — addr 0 \| xt 1 \| xt -1 ) "Find word in Dictionary"
+<https://forth-standard.org/standard/core/FIND>
+Included for backwards compatibility only, because it still
+can be found in so may examples. It should, however, be replaced
+by FIND-NAME. Counted string either returns address with a FALSE
+flag if not found in the Dictionary, or the xt with a flag to
+indicate if this is immediate or not. FIND is a wrapper around
+FIND-NAME, we get this all over with as quickly as possible. See
+<https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Word-Lists.html>
+<https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html> |
+| `find-name` | *Gforth* ( addr u — nt\|0 ) "Get the name token of input word" |
+| `flush` | *ANS block* ( — ) "Save dirty buffers and empty buffers"
+<https://forth-standard.org/standard/block/FLUSH> |
+| `fm/mod` | *ANS core* ( d n1  — rem n2 ) "Floored signed division"
+<https://forth-standard.org/standard/core/FMDivMOD>
+Note that by default, Tali Forth uses SM/REM for most things. |
+| `forth` | *ANS search ext* ( — ) "Replace first WID in search order with Forth-Wordlist"
+<https://forth-standard.org/standard/search/FORTH> |
+| `forth-wordlist` | *ANS search* ( — u ) "WID for the Forth Wordlist"
+<https://forth-standard.org/standard/search/FORTH-WORDLIST>
+This is a dummy entry, the actual code is shared with ZERO. |
+| `get-current` | *ANS search* ( — wid ) "Get the id of the compilation wordlist"
+<https://forth-standard.org/standard/search/GET-CURRENT> |
+| `get-order` | *ANS search* ( — wid_n .. wid_1 n) "Get the current search order"
+<https://forth-standard.org/standard/search/GET-ORDER> |
+| `havekey` | *Tali Forth* ( — addr ) "Return address of key? vector" |
+| `here` | *ANS core* ( — addr ) "Put Compiler Pointer on Data Stack"
+<https://forth-standard.org/standard/core/HERE>
+This code is also used by the assembler directive ARROW
+("→") though as immediate
+and by HERE as an immediate compile word |
+| `hex` | *ANS core ext* ( — ) "Change base radix to hexadecimal"
+<https://forth-standard.org/standard/core/HEX> |
+| `hexstore` | *Tali* ( addr1 u1 addr2 — u2 ) "Store a list of numbers"
+Given a string addr1 u1 with numbers in the current base seperated
+by spaces, store the numbers at the address addr2, returning the
+number of elements. Non-number elements are skipped, an zero-length
+string produces a zero output. |
+| `hold` | *ANS core* ( char — ) "Insert character at current output"
+<https://forth-standard.org/standard/core/HOLD>
+Insert a character at the current position of a pictured numeric
+output string on
+<https://github.com/philburk/pforth/blob/master/fth/numberio.fth> |
+| `i` | *ANS core* ( — n ) "Copy loop counter to stack"
+<https://forth-standard.org/standard/core/I>
+See definitions.asm and the Control Flow section of the manual. |
+| `if` | *ANS core* (C: — orig) (flag — ) "Conditional flow control"
+<http://forth-standard.org/standard/core/IF> |
+| `immediate` | *ANS core* ( — ) "Mark most recent word as IMMEDIATE"
+<https://forth-standard.org/standard/core/IMMEDIATE>
+Make sure the most recently defined word is immediate. Will only
+affect the last word in the dictionary. Note that if the word is
+defined in ROM, this will have no affect, but will not produce an
+error message. |
+| `input` | *Tali Forth* ( — addr ) "Return address of input vector" |
+| `input>r` | *Tali Forth* ( — ) ( R: — n n n n ) "Save input state to the Return Stack"
+Save the current input state as defined by insrc, cib, ciblen, and
+toin to the Return Stack. Used by EVALUATE. |
+| `int>name` | *Tali Forth* ( xt — nt \| 0 ) "Get name token from execution token"
+www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
+This is called \>NAME in Gforth, but we change it to
+INT\>NAME to match NAME\>INT |
+| `invert` | *ANS core* ( n — n ) "Complement of TOS"
+<https://forth-standard.org/standard/core/INVERT> |
+| `is` | *ANS core ext* ( xt "name" — ) or (C: "name" ) "Set named word to execute xt"
+<http://forth-standard.org/standard/core/IS> |
+| `j` | *ANS core* ( — n ) "Copy second loop counter to stack"
+<https://forth-standard.org/standard/core/J>
+Copy second loop counter from Return Stack to stack. Note we use
+a fudge factor for loop control; see the Control Flow section of
+the manual for more details. |
+| `key` | *ANS core* ( — char ) "Get one character from the input" |
+| `key?` | *ANS core* ( — char ) "Return true if a character is available" |
+| `l` | *Tali Editor* ( — ) "List the current screen"
+note "l" is used by LIST in the block words |
+| `latestnt` | *Tali Forth* ( — nt ) "Push most recent nt to the stack"
+www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html
+The Gforth version of this word is called LATEST |
+| `latestxt` | *Gforth* ( — xt ) "Push most recent xt to the stack"
+<http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Anonymous-Definitions.html> |
+| `leave` | *ANS core* ( — ) "Leave DO/LOOP construct"
+<https://forth-standard.org/standard/core/LEAVE>
+Note that this does not work with anything but a DO/LOOP in
+contrast to other versions such as discussed at
+<http://blogs.msdn.com/b/ashleyf/archive/2011/02/06/loopty-do-i-loop.aspx> |
+| `line` | *Tali Editor* ( line# — c-addr ) "Turn a line number into address in current screen" |
+| `list` | *ANS block ext* ( scr# — ) "List the given screen"
+<https://forth-standard.org/standard/block/LIST> |
+| `literal` | *ANS core* ( n — ) "Arrange for TOS to be pushed on stack at runtime"
+<https://forth-standard.org/standard/core/LITERAL>
+Compile-only word to store TOS so that it is pushed on stack
+during runtime. This is a immediate, compile-only word. At runtime,
+it works by calling JSR push_inline_literal, or using an inline equivalent. |
+| `load` | *ANS block* ( scr# — ) "Load the Forth code in a screen/block"
+<https://forth-standard.org/standard/block/LOAD> |
+| `loop` | *ANS core* ( — ) "Finish loop construct"
+<https://forth-standard.org/standard/core/LOOP>
+Compile-time part of LOOP. This is specialized to
+increment by one. |
+| `lshift` | *ANS core* ( x u — u ) "Shift TOS left"
+<https://forth-standard.org/standard/core/LSHIFT> |
+| `m*` | *ANS core* ( n n — d ) "16 \* 16 -→ 32"
+<https://forth-standard.org/standard/core/MTimes>
+Multiply two 16 bit numbers, producing a 32 bit result. All
+values are signed. Adapted from FIG Forth for Tali Forth. |
+| `m*/` | *ANS double* ( d1 n1 n2 — d2 ) "Multiply d1 by n1 and divide the triple result by n2. All values are signed."
+<https://forth-standard.org/standard/double/MTimesDiv>
+From All About FORTH, MVP-Forth, public domain,
+from this forth code which is modified slightly for Tali2:
+DDUP XOR SWAP ABS \>R SWAP ABS \>R OVER XOR ROT ROT DABS
+SWAP R@ UM\* ROT R\> UM\* ROT 0 D+ R@ UM/MOD ROT ROT R\> UM/MOD
+SWAP DROP SWAP ROT 0\< if dnegate then |
+| `marker` | *ANS core ext* ( "name" — ) "Create a deletion boundary"
+<https://forth-standard.org/standard/core/MARKER>
+This word replaces FORGET in earlier Forths. Old entries are not
+actually deleted, but merely overwritten by restoring CP and DP.
+Run the named word at a later time to restore all of the wordlists
+to their state when the word was created with marker. Any words
+created after the marker (including the marker) will be forgotten. |
+| `max` | *ANS core* ( n n — n ) "Keep larger of two numbers"
+<https://forth-standard.org/standard/core/MAX>
+Compare TOS and NOS and keep which one is larger. Adapted from
+Lance A. Leventhal "6502 Assembly Language Subroutines". Negative
+Flag indicates which number is larger. See also
+<http://6502.org/tutorials/compare_instructions.html> and
+<http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html> |
+| `min` | *ANS core* ( n n — n ) "Keep smaller of two numbers"
+<https://forth-standard.org/standard/core/MIN>
+Adapted from Lance A. Leventhal "6502 Assembly Language
+Subroutines." Negative Flag indicates which number is larger. See
+<http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html> |
+| `mod` | *ANS core* ( n1 n2 — n ) "Divide NOS by TOS and return the remainder"
+<https://forth-standard.org/standard/core/MOD> |
+| `move` | *ANS core* ( addr1 addr2 u — ) "Copy bytes"
+<https://forth-standard.org/standard/core/MOVE>
+Copy u "address units" from addr1 to addr2. Since our address
+units are bytes, this is just a front-end for CMOVE and CMOVE\>. This
+is actually the only one of these three words that is in the CORE
+set. |
+| `name>int` | *Gforth* ( nt — xt ) "Convert Name Token to Execute Token"
+See
+<https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html> |
+| `name>string` | *Gforth* ( nt — addr u ) "Given a name token, return string of word"
+<http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Name-token.html> |
+| `nc-limit` | *Tali Forth* ( — addr ) "Return address where NC-LIMIT value is kept" |
+| `negate` | *ANS core* ( n — n ) "Two’s complement"
+<https://forth-standard.org/standard/core/NEGATE> |
+| `never-native` | *Tali Forth* ( — ) "Flag last word as never natively compiled" |
+| `nip` | *ANS core ext* ( b a — a ) "Delete NOS"
+<https://forth-standard.org/standard/core/NIP> |
+| `number` | *Tali Forth* ( addr u — u \| d ) "Convert a number string"
+Convert a number string to a double or single cell number. This
+is a wrapper for \>NUMBER and follows the convention set out in the
+Forth Programmer’s Handbook" (Conklin & Rather) 3rd edition p. 87.
+Based in part on the "Starting Forth" code
+<https://www.forth.com/starting-forth/10-input-output-operators/>
+Gforth uses S\>NUMBER? and S\>UNUMBER? which return numbers and a flag
+<https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Number-Conversion.html>
+Another difference to Gforth is that we follow ANS Forth that the
+dot to signal a double cell number is required to be the last
+character of the string. |
+| `o` | *Tali Editor* ( line# — ) "Overwrite the given line" |
+| `of` | *ANS core ext* (C: — of-sys) (x1 x2 — \|x1) "Conditional flow control"
+<http://forth-standard.org/standard/core/OF> |
+| `only` | *ANS search ext* ( — ) "Set earch order to minimum wordlist"
+<https://forth-standard.org/standard/search/ONLY> |
+| `or` | *ANS core* ( m n — n ) "Logically OR TOS and NOS"
+<https://forth-standard.org/standard/core/OR> |
+| `order` | *ANS core* ( — ) "Print current word order list and current WID"
+<https://forth-standard.org/standard/search/ORDER>
+Note the search order is displayed from first search to last
+searched and is therefore exactly the reverse of the order in which
+Forth stacks are displayed. |
+| `output` | *Tali Forth* ( — addr ) "Return the address of the EMIT vector address" |
+| `over` | *ANS core* ( b a — b a b ) "Copy NOS to TOS"
+<https://forth-standard.org/standard/core/OVER> |
+| `pad` | *ANS core ext* ( — addr ) "Return address of user scratchpad"
+<https://forth-standard.org/standard/core/PAD>
+Return address to a temporary area in free memory for user. Must
+be at least 84 bytes in size (says ANS). It is located relative to
+the compile area pointer (CP) and therefore varies in position.
+This area is reserved for the user and not used by the system |
+| `page` | *ANS facility* ( — ) "Clear the screen"
+<https://forth-standard.org/standard/facility/PAGE>
+Clears a page if supported by ANS terminal codes. This is
+Clear Screen ("ESC\[2J") plus moving the cursor to the top
+left of the screen |
+| `parse` | *ANS core ext* ( "name" c — addr u ) "Parse input with delimiter character"
+<https://forth-standard.org/standard/core/PARSE>
+Find word in input string delimited by character given. Do not
+skip leading delimiters — this is the main difference to PARSE-NAME.
+PARSE and PARSE-NAME replace WORD in modern systems. ANS discussion
+<http://www.forth200x.org/documents/html3/rationale.html#rat:core:PARSE> |
+| `parse-name` | *ANS core ext* ( "name" — addr u ) "Parse the input"
+<https://forth-standard.org/standard/core/PARSE-NAME>
+Find next word in input string, skipping leading whitespace. This is
+a special form of PARSE and drops through to that word. See PARSE
+for more detail. We use this word internally for the interpreter
+because it is a lot easier to use. Reference implementations at
+<http://forth-standard.org/standard/core/PARSE-NAME> and
+<http://www.forth200x.org/reference-implementations/parse-name.fs>
+Roughly, the word is comparable to BL WORD COUNT. — Note that
+though the ANS standard talks about skipping "spaces", whitespace
+is actually perfectly legal (see for example
+<http://forth-standard.org/standard/usage#subsubsection.3.4.1.1>).
+Otherwise, PARSE-NAME chokes on tabs. |
+| `pick` | *ANS core ext* ( n n u — n n n ) "Move element u of the stack to TOS"
+<https://forth-standard.org/standard/core/PICK>
+Take the u-th element out of the stack and put it on TOS,
+overwriting the original TOS. 0 PICK is equivalent to DUP, 1 PICK to
+OVER. Note that using PICK is considered poor coding form. Also note
+that FIG Forth has a different behavior for PICK than ANS Forth. |
+| `postpone` | *ANS core* ( — ) "Change IMMEDIATE status (it’s complicated)"
+<https://forth-standard.org/standard/core/POSTPONE>
+Add the compilation behavior of a word to a new word at
+compile time. If the word that follows it is immediate, include
+it so that it will be compiled when the word being defined is
+itself used for a new word. Tricky, but very useful. |
+| `previous` | *ANS search ext* ( — ) "Remove the first wordlist in the search order"
+<http://forth-standard.org/standard/search/PREVIOUS> |
+| `quit` | *ANS core* ( — ) "Reset the input and get new input"
+<https://forth-standard.org/standard/core/QUIT>
+Rest the input and start command loop |
+| `r>` | *ANS core* ( — n )(R: n --) "Move top of Return Stack to TOS"
+<https://forth-standard.org/standard/core/Rfrom>
+Move Top of Return Stack to Top of Data Stack. |
+| `r>input` | *Tali Forth* ( — ) ( R: n n n n — ) "Restore input state from Return Stack"
+Restore the current input state as defined by insrc, cib, ciblen,
+and toin from the Return Stack. |
+| `r@` | *ANS core* ( — n ) "Get copy of top of Return Stack"
+<https://forth-standard.org/standard/core/RFetch>
+This word is Compile Only in Tali Forth, though Gforth has it
+work normally as well |
+| `recurse` | *ANS core* ( — ) "Copy recursive call to word being defined"
+<https://forth-standard.org/standard/core/RECURSE> |
+| `refill` | *ANS core ext* ( — f ) "Refill the input buffer"
+<https://forth-standard.org/standard/core/REFILL>
+Attempt to fill the input buffer from the input source, returning
+a true flag if successful. When the input source is the user input
+device, attempt to receive input into the terminal input buffer. If
+successful, make the result the input buffer, set \>IN to zero, and
+return true. Receipt of a line containing no characters is considered
+successful. If there is no input available from the current input
+source, return false. When the input source is a string from EVALUATE,
+return false and perform no other action." See
+<https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/The-Input-Stream.html>
+and Conklin & Rather p. 156. Note we don’t have to care about blocks
+because REFILL is never used on blocks - Tali is able to evaluate the
+entire block as a 1024 byte string. |
+| `repeat` | *ANS core* (C: orig dest — ) ( — ) "Loop flow control"
+<http://forth-standard.org/standard/core/REPEAT> |
+| `root-wordlist` | *Tali Editor* ( — u ) "WID for the Root (minimal) wordlist" |
+| `rot` | *ANS core* ( a b c — b c a ) "Rotate first three stack entries downwards"
+<https://forth-standard.org/standard/core/ROT>
+Remember "R for 'Revolution'" - the bottom entry comes out
+on top! |
+| `rshift` | *ANS core* ( x u — x ) "Shift TOS to the right"
+<https://forth-standard.org/standard/core/RSHIFT> |
+| `s"` | *ANS core* ( "string" — )( — addr u ) "Store string in memory"
+<https://forth-standard.org/standard/core/Sq>
+Store address and length of string given, returning ( addr u ).
+ANS core claims this is compile-only, but the file set expands it
+to be interpreted, so it is a state-sensitive word, which in theory
+are evil. We follow general usage. |
+| `s>d` | *ANS core* ( u — d ) "Convert single cell number to double cell"
+<https://forth-standard.org/standard/core/StoD> |
+| `s\"` | *ANS core* ( "string" — )( — addr u ) "Store string in memory"
+<https://forth-standard.org/standard/core/Seq>
+Store address and length of string given, returning ( addr u ).
+ANS core claims this is compile-only, but the file set expands it
+to be interpreted, so it is a state-sensitive word, which in theory
+are evil. We follow general usage. This is just like S" except
+that it allows for some special escaped characters. |
+| `save-buffers` | *ANS block* ( — ) "Save all dirty buffers to storage"
+<https://forth-standard.org/standard/block/SAVE-BUFFERS> |
+| `scr` | *ANS block ext* ( — addr ) "Push address of variable holding last screen listed"
+<https://forth-standard.org/standard/block/SCR> |
+| `search` | *ANS string* ( addr1 u1 addr2 u2 — addr3 u3 flag) "Search for a substring"
+<https://forth-standard.org/standard/string/SEARCH>
+Search for string2 (denoted by addr2 u2) in string1 (denoted by
+addr1 u1). If a match is found the flag will be true and
+addr3 will have the address of the start of the match and u3 will have
+the number of characters remaining from the match point to the end
+of the original string1. If a match is not found, the flag will be
+false and addr3 and u3 will be the original string1’s addr1 and u1. |
+| `search-wordlist` | *ANS search* ( caddr u wid — 0 \| xt 1 \| xt -1) "Search for a word in a wordlist"
+<https://forth-standard.org/standard/search/SEARCH_WORDLIST> |
+| `see` | *ANS tools* ( "name" — ) "Print information about a Forth word"
+<https://forth-standard.org/standard/tools/SEE>
+SEE takes the name of a word and prints its name token (nt),
+execution token (xt), size in bytes, flags used, and then dumps the
+code and disassembles it. |
+| `set-current` | *ANS search* ( wid — ) "Set the compilation wordlist"
+<https://forth-standard.org/standard/search/SET-CURRENT> |
+| `set-order` | *ANS search* ( wid_n .. wid_1 n — ) "Set the current search order"
+<https://forth-standard.org/standard/search/SET-ORDER> |
+| `sign` | *ANS core* ( n — ) "Add minus to pictured output"
+<https://forth-standard.org/standard/core/SIGN> |
+| `sliteral` | *ANS string* (C: addr u — ) ( — addr u ) "Compile a string for runtime"
+<https://forth-standard.org/standard/string/SLITERAL>
+Add the runtime for an existing string. |
+| `sm/rem` | *ANS core* ( d n1 — n2 n3 ) "Symmetric signed division"
+<https://forth-standard.org/standard/core/SMDivREM>
+Symmetric signed division. Compare FM/MOD. Based on F-PC 3.6
+by Ulrich Hoffmann. See <http://www.xlerb.de/uho/ansi.seq> |
+| `source` | *ANS core* ( — addr u ) "Return location and size of input buffer""
+<https://forth-standard.org/standard/core/SOURCE> |
+| `source-id` | *ANS core ext* ( — n ) "Return source identifier"
+<https://forth-standard.org/standard/core/SOURCE-ID> Identify the
+input source unless it is a block (s. Conklin & Rather p. 156). This
+will give the input source: 0 is keyboard, -1 (\$FFFF) is character
+string, and a text file gives the fileid. |
+| `space` | *ANS core* ( — ) "Print a single space"
+<https://forth-standard.org/standard/core/SPACE> |
+| `spaces` | *ANS core* ( u — ) "Print a number of spaces"
+<https://forth-standard.org/standard/core/SPACES> |
+| `split` | *Gforth* ( addr u c — addr2 u2 addr u1 ) "Split string at c" |
+| `state` | *ANS core* ( — addr ) "Return the address of compilation state flag"
+<https://forth-standard.org/standard/core/STATE>
+STATE is true when in compilation state, false otherwise. Note
+we do not return the state itself, but only the address where
+it lives. The state should not be changed directly by the user; see
+<http://forth.sourceforge.net/standard/dpans/dpans6.htm#6.1.2250> |
+| `strip-underflow` | *Tali Forth* ( — addr ) "Return address where underflow flag is kept"
+`STRIP-UNDERFLOW` is a flag variable that determines if underflow
+checking should be removed during the compilation of new words.
+Default is false. |
+| `swap` | *ANS core* ( b a — a b ) "Exchange TOS and NOS"
+<https://forth-standard.org/standard/core/SWAP> |
+| `then` | *ANS core* (C: orig — ) ( — ) "Conditional flow control"
+<http://forth-standard.org/standard/core/THEN>
+This is a dummy entry, the code is shared with xt_else |
+| `thru` | *ANS block ext* ( scr# scr# — ) "Load screens in the given range"
+<https://forth-standard.org/standard/block/THRU> |
+| `to` | *ANS core ext* ( n "name" — ) or ( "name" ) "Change a value"
+<https://forth-standard.org/standard/core/TO>
+Gives a new value to a, uh, VALUE. |
+| `true` | *ANS core ext* ( — f ) "Push TRUE flag to Data Stack"
+<https://forth-standard.org/standard/core/TRUE> |
+| `tuck` | *ANS core ext* ( b a — a b a ) "Copy TOS below NOS"
+<https://forth-standard.org/standard/core/TUCK> |
+| `type` | *ANS core* ( addr u — ) "Print string"
+<https://forth-standard.org/standard/core/TYPE>
+Works through EMIT to allow OUTPUT revectoring. |
+| `u.` | *ANS core* ( u — ) "Print TOS as unsigned number"
+<https://forth-standard.org/standard/core/Ud> |
+| `u.r` | *ANS core ext* ( u u — ) "Print NOS as unsigned number right-justified with TOS width"
+<https://forth-standard.org/standard/core/UDotR> |
+| `u<` | *ANS core* ( n m — f ) "Return true if NOS \< TOS (unsigned)"
+<https://forth-standard.org/standard/core/Uless> |
+| `u>` | *ANS core ext* ( n m — f ) "Return true if NOS \> TOS (unsigned)"
+<https://forth-standard.org/standard/core/Umore> |
+| `ud.` | *Tali double* ( d — ) "Print double as unsigned" |
+| `ud.r` | *Tali double* ( d u — ) "Print unsigned double right-justified u wide" |
+| `um*` | *ANS core* ( u u — ud ) "Multiply 16 x 16 → 32"
+<https://forth-standard.org/standard/core/UMTimes>
+Multiply two unsigned 16 bit numbers, producing a 32 bit result.
+Old Forth versions such as FIG Forth call this U\* |
+| `um/mod` | *ANS core* ( ud u — ur u ) "32/16 → 16 division"
+<https://forth-standard.org/standard/core/UMDivMOD>
+Divide double cell number by single cell number, returning the
+quotient as TOS and any remainder as NOS. All numbers are unsigned.
+This is the basic division operation all others use. Based on FIG
+Forth code, modified by Garth Wilson, see
+<http://6502.org/source/integers/ummodfix/ummodfix.htm> |
+| `unloop` | *ANS core* ( — ) "Drop current loop control block"
+<https://forth-standard.org/standard/core/UNLOOP> |
+| `until` | *ANS core* (C: dest — ) ( — ) "Loop flow control"
+<http://forth-standard.org/standard/core/UNTIL> |
+| `unused` | *ANS core ext* ( — u ) "Return size of space available to Dictionary"
+<https://forth-standard.org/standard/core/UNUSED>
+UNUSED does not include the ACCEPT history buffers. Total RAM
+should be HERE + UNUSED + \<history buffer size\>, the last of which
+defaults to \$400 |
+| `update` | *ANS block* ( — ) "Mark current block as dirty"
+<https://forth-standard.org/standard/block/UPDATE> |
+| `useraddr` | *Tali Forth* ( — addr ) "Push address of base address of user variables" |
+| `value` | *ANS core* ( n "name" — ) "Define a value"
+<https://forth-standard.org/standard/core/VALUE>
+<https://forth-standard.org/standard/core/VALUE> |
+| `while` | *ANS core* ( C: dest — orig dest ) ( x — ) "Loop flow control"
+<http://forth-standard.org/standard/core/WHILE> |
+| `within` | *ANS core ext* ( n1 n2 n3 — f ) "Test n1 within range \[n2, n3) or outwith \[n3, n2)"
+<https://forth-standard.org/standard/core/WITHIN> |
+| `word` | *ANS core* ( char "name " — caddr ) "Parse input stream"
+<https://forth-standard.org/standard/core/WORD>
+Obsolete parsing word included for backwards compatibility only.
+Do not use this, use `PARSE` or `PARSE-NAME`. Skips leading delimiters
+and copies word to storage area for a maximum size of 255 bytes.
+Returns the result as a counted string (requires COUNT to convert
+to modern format), and inserts a space after the string. See "Forth
+Programmer’s Handbook" 3rd edition p. 159 and
+<http://www.forth200x.org/documents/html/rationale.html#rat:core:PARSE>
+for discussions of why you shouldn’t be using WORD anymore. |
+| `wordlist` | *ANS search* ( — wid ) "Create new wordlist (from pool of 8)"
+<https://forth-standard.org/standard/search/WORDLIST>
+See the tutorial on Wordlists and the Search Order for
+more information. |
+| `words` | *ANS tools* ( — ) "Print known words from Dictionary"
+<https://forth-standard.org/standard/tools/WORDS>
+This is pretty much only used at the command line so we can
+be slow and try to save space. |
+| `wordsize` | *Tali Forth* ( nt — u ) "Get size of word in bytes"
+Given an word’s name token (nt), return the size of the
+word’s payload size in bytes (CFA plus PFA) in bytes. Does not
+count the final RTS. |
+| `xor` | *ANS core* ( n n — n ) "Logically XOR TOS and NOS"
+<https://forth-standard.org/standard/core/XOR> |
 
 ## Reporting Problems
 
@@ -5593,22 +5506,16 @@ for more information.
 
 ### Old Tests
 
-<div class="note">
-
-During early development, testing was done by hand with a list of words that has
-since been placed in the `old` <span class="indexterm" primary="old"></span> folder. These tests might be still useful if you
-are in the very early stages of developing your own Forth.
-
-</div>
+> [!NOTE]
+> During early development, testing was done by hand with a list of words that has
+> since been placed in the `old` <span class="indexterm" primary="old"></span> folder. These tests might be still useful if you
+> are in the very early stages of developing your own Forth.
 
 ## The Simpler Assembler Notation (SAN) format
 
-<div class="note">
-
-This is a condensed version of the main SAN Guide at
-<https://github.com/scotws/SAN> , see there for more detail.)
-
-</div>
+> [!NOTE]
+> This is a condensed version of the main SAN Guide at
+> <https://github.com/scotws/SAN> , see there for more detail.)
 
 ### Background
 

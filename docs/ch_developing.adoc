@@ -417,49 +417,42 @@ Defining words in Forth are words that can be used to declare new words.
 Because it is likely to be seen in Forth code, its particular assembly behavior
 is covered here.
 
-To see how `does>` is translated, we will consider the word `2CONSTANT`:
+To see how `does>` is translated, we will consider a custom word `ARRAY`:
 
 ----
-: 2constant ( d -- ) create swap , , does> dup @ swap cell+ @ ;
+: array ( n -- ) create cells allot does> swap cells + ;
 ----
 
-This word is from the ANS double set of words and it creates a new named
-constant that puts its value on the stack when it is run.  It's commonly used
-like this:
+This creates a new named array that, given a zero-based index, puts the address of that element on the stack. It's commonly used like this:
 
 ----
-12345678. 2constant bignum
-bignum d.
+10 array my-array
+42 0 my-array !
 ----
 
-The . at the end of the number makes it a double-cell (32-bit on Tali) number.
-
-The assembly code for `2CONSTANT` (taken from words/double.asm) looks like:
+We could write `ARRAY` in assembly like this:
 ----
-; ## TWO_CONSTANT (C: d "name" -- ) ( -- d) "Create a constant for a double word"
-; ## "2constant"  auto  ANS double
-        ; """https://forth-standard.org/standard/double/TwoCONSTANT
-        ; Based on the Forth code
-        ; : 2CONSTANT ( D -- )  CREATE SWAP , , DOES> DUP @ SWAP CELL+ @ ;
+; ## ARRAY ( n "name" -- ) "Create a cell array of size n"
+; ## "array"  custom
         ; """
-xt_two_constant:
-                jsr underflow_2
-w_two_constant:
+        ; Based on the Forth code
+        ; : ARRAY ( n -- )  CREATE CELLS ALLOT DOES> SWAP CELLS + ;
+        ; """
+xt_array:
+                jsr underflow_1
+w_array:
                 jsr w_create
-                jsr w_swap
-                jsr w_comma
-                jsr w_comma
+                jsr w_cells
+                jsr w_allot
 
                 jsr does_runtime    ; does> turns into these two routines.
                 jsr dodoes
 
-                jsr w_dup
-                jsr w_fetch
                 jsr w_swap
-                jsr w_cell_plus
-                jsr w_fetch
+                jsr w_cells
+                jsr w_plus
 
-z_two_constant: rts
+z_array:        rts
 ----
 
 This word takes an argument, so underflow checking is added right at the top.
@@ -470,10 +463,10 @@ checking to your word, just call the appropriate underflow checking helper
 on the stack.  If there aren't that many cells on the stack when the word is
 run, an error message will be printed and the rest of the word will not be run.
 
-This word takes a double-cell value on the stack, so underflow_2 was used.  The
+This word takes a single cell value on the stack, so underflow_1 was used.  The
 underflow check must be the first line in your word.
-Note the internal w_two_constant entrypoint is placed after the underflow check.
-This speeds up other native words that use 2constant.
+Note the internal w_array entrypoint is placed after the underflow check.
+This speeds up other native words that use array.
 
 All of the other words other than `does>` in this definition are regular words,
 so they just turn into JSRs.  The word `does>` turns into a `jsr does_runtime`

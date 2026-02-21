@@ -1011,27 +1011,66 @@ z_compile_only: rts
 ; ## "constant"  auto  ANS core
         ; """https://forth-standard.org/standard/core/CONSTANT
         ;
-        ; Forth equivalent is  CREATE , DOES> @  but we do
-        ; more in assembler and let CREATE do the heavy lifting.
-        ; See http://www.bradrodriguez.com/papers/moving3.htm for
-        ; a primer on how this works in various Forths. This is the
-        ; same code as VALUE in our case.
+        ; Essentially `: name <n> LITERAL ;` — the body is whatever
+        ; code LITERAL compiles (inline template or JSR to push routine).
         ; """
-xt_value:
 xt_constant:
                 jsr underflow_1
-w_value:
 w_constant:
+                jsr w_colon
+                jsr w_literal
+                jsr w_semicolon
+z_constant:
+                rts
 
-            	; Use create but with DOCONST for constants.
-                jsr create_inline
-                .byte 2+3               ; TOS; 2 byte PFA +3 for JSR
-                .word doconst           ; CFA
 
-                ; Now we save the constant number itself in the next cell
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+; Shared helpers for CONSTANT, VARIABLE, VALUE, 2CONSTANT, 2VARIABLE
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+xt_variable:
+w_variable:
+                ; push the address of the variable storage (HERE)
+                jsr w_here
+
+                ; allocate 2 bytes of storage, initialized to 0
+                jsr w_zero
                 jsr w_comma
+                ; ( addr )
+
+                ; Now define a constant that pushes this address
+                jsr w_constant
+z_variable:     rts
+
+
+; ## VALUE ( n "name" -- ) "Define a value"
+; ## "value"  auto  ANS core ext
+        ; """https://forth-standard.org/standard/core/VALUE
+        ;
+        ; Like CONSTANT but the stored value can be changed with TO.
+        ; Always uses the 10-byte word push template so TO knows the
+        ; layout: MSB at xt+1 (ldy # operand), LSB at xt+3 (lda # operand).
+        ; Kept as NN (never-native) so compiled references always go
+        ; through JSR and see the live value after TO updates it.
+        ; """
+xt_value:
+                jsr underflow_1
+w_value:
+                jsr w_colon
+
+                ; Force 16-bit storage so TO always has a consistent target
+                jsr literal_as_word
+
+                ; Ensure NN (Never Native) is preserved. w_colon sets NN initially,
+                ; but w_semicolon clears it if the "Allow Native" status bit (%00010000) is set.
+                ; We clear that bit here to force the word to remain NN.
+                lda #%00010000
+                trb status
+
+                jsr w_semicolon
 z_value:
-z_constant:     rts
+                rts
 
 
 
@@ -1100,7 +1139,7 @@ w_create:
 
                 jsr create_inline
                 .byte 2 + 3             ; TOS; PFA is 2 bytes plus 3 for JSR
-                .word dovar
+                .word push_pfa
                 rts
 
 create_common:
@@ -1221,7 +1260,7 @@ _process_name:
 
                 ; Long story short, we flag everything as NN here, but then ";" reverts if
                 ; possible.  This only applies to COLON words that end with SEMICOLON.
-                ; Words built with CREATE like CONSTANT and VARIABLE will stay as NN.
+                ; Words built directly with CREATE will stay as NN.
                 ora #NN
 
                 ; Words defined by CREATE are marked in the header as
@@ -1318,7 +1357,7 @@ _end:
 
                 ; After the name string comes the code field, starting at the
                 ; current xt of this word, which for CREATE is a subroutine call
-                ; to DOVAR.  Other words use different subroutines or omit the CFA.
+                ; to push_pfa.  Other words use different subroutines or omit the CFA.
 
                 ldy 1,x                 ; check MSB
                 beq +
@@ -1611,7 +1650,7 @@ z_does:         rts
 
 does_runtime:
         ; """Runtime portion of DOES>. This replaces the subroutine jump
-        ; to DOVAR that CREATE automatically encodes by a jump to the
+        ; to push_pfa that CREATE automatically encodes by a jump to the
         ; address that contains a subroutine jump to DODOES. We don't
         ; jump to DODOES directly because we need to work our magic with
         ; the return addresses. This routine is also known as "(DOES)" in
@@ -1641,7 +1680,7 @@ does_runtime:
 +
                 phy
 
-                ; Replace the DOVAR address with our own
+                ; Replace the push_pfa address with our own
                 ldy #1                  ; xt points at jsr lsb/msb
                 sta (tmp1),y
                 iny
@@ -2898,47 +2937,44 @@ z_less_than:    rts
         ; """
 xt_literal:
                 jsr underflow_1
+
+
 w_literal:
                 lda 1,x                         ; is it a byte value?
-                bne _word
+                bne literal_as_word
 
                 ; we could also check 0,x and compile w_zero to save another byte
                 ; but it doesn't seem worth it since a constant "0" will already
                 ; have been compiled as w_zero, leaving only calculated zeros,
                 ; or zero MSB of double words.
 
-_byte:
                 jsr push_inline_3literal
                 .word template_push_byte_tos_size       ; TOS
                 .word template_push_byte_tos            ; NOS, if we're inlining
                 .word push_inline_bliteral              ; 3OS
 
-                bra _cmpl
-_word:
+                bra literal_compile_cmpl_byte
+
+literal_as_word:
                 jsr push_inline_3literal
                 .word template_push_word_tos_size       ; TOS
                 .word template_push_word_tos            ; NOS, if we're inlining
                 .word push_inline_literal               ; 30S
 
-_cmpl:
-                ; ( n call-addr inline-addr inline-sz )
-
                 jsr cmpl_by_limit2
-                ; ( n )
-                bcc _inline                     ; C=0 if inlined
-
-                ; Compile the byte or word to be pushed to data stack at runtime
-                lda 1,x
-                bne +
-                jsr w_c_comma
-                bra _done
-+
+                bcc +                           ; C=0 if inlined
                 jsr w_comma
-_done:
                 sec                             ; tell w_two_literal we didn't inline
                 rts
 
-_inline:
+literal_compile_cmpl_byte:
+                jsr cmpl_by_limit2
+                bcc +                           ; C=0 if inlined
+                jsr w_c_comma
+                sec                             ; tell w_two_literal we didn't inline
+                rts
+
++
                 ; The template we compiled looks like `[ldy #<MSB>] lda #<LSB> ...`
                 ; skipping the `ldy` if the MSB is zero.
                 ; But we still need to poke in the values for MSB (if non-zero) and LSB.
@@ -5731,84 +5767,81 @@ z_tick:         rts
         ; """https://forth-standard.org/standard/core/TO
         ; Gives a new value to a, uh, VALUE.
         ;
-        ; One possible Forth
-        ; implementation is  ' >BODY !  but given the problems we have
-        ; with >BODY on STC Forths, we do this the hard way. Since
-        ; Tali Forth uses the same code for CONSTANTs and VALUEs, you
-        ; could use this to redefine a CONSTANT, but that is a no-no.
+        ; VALUE's body is a literal push template:
+        ;   ldy #MSB / lda #LSB / dex / dex / sta 0,x / sty 1,x / rts
+        ; TO pokes the new value's MSB at xt+1 and LSB at xt+3.
         ;
         ; Note that the standard has different behaviors for TO depending
         ; on the state (https://forth-standard.org/standard/core/TO).
         ; This makes TO state-dependent (which is bad) and also rather
         ; complex (see the Gforth implementation for comparison). This
-        ; word may not be natively compiled and must be immediate. Frankly,
-        ; it would have made more sense to have two words for this.
+        ; word may not be natively compiled and must be immediate.
         ; """
 
 xt_to:
+                ; No underflow check since compile-time behavior differs
 w_to:
-                ; One way or the other, we need the xt of the word after this
-                ; one. At this point, we don't know if we are interpreted or
-                ; compile, so we don't know if there is a value n on the stack,
-                ; so we can't do an underflow check yet
+                ; Get the xt of the next word.  We don't know yet whether
+                ; we're interpreting (n on stack) or compiling (no n).
                 jsr w_tick             ; ( [n] xt )
-
-                ; The PFA (DFA in this case) is three bytes down,
-                ; after the jump to DOCONST
-                lda 0,x                 ; LSB
-                clc
-                adc #3
-                sta tmp1
-                lda 1,x                 ; MSB
-                adc #0                  ; we just want the carry
-                sta tmp1+1
 
                 ; Now check which state we are in
                 lda state
                 ora state+1
-                beq _interpret
+                beq +
 
-                ; Compiling, so we arrive with just ( xt ) on the stack.
-                ; We need to generate code that writes a number
-                ; from TOS to the address in tmp1
-                ; i.e. LITERAL tmp1 !
+                ; --- Compiling ---
+                ; ( xt )
 
-                lda tmp1            ; replace TOS with tmp1
-                sta 0,x
-                lda tmp1+1
-                sta 1,x
+                ; We need to compile code that will patch the word at runtime.
+                ; The stack at runtime will be ( n ), and we need ( n xt ) for store_value.
+                ; So we compile [LITERAL xt] [JSR to_runtime].
 
-                jsr w_literal      ; generate the runtime for LITERAL tmp1
+                jsr w_literal           ; Compile XT as literal
+                jsr cmpl_call_inline_literal
+                .word to_runtime        ; Compile JSR to_runtime
+                rts
 
-                jsr cmpl_call_inline_literal   ; write the runtime for !
-                .word w_store
-
-                bra _done
-
-_interpret:
-                ; We're interpreting, so we arrive here with ( n xt )
-                ; on the stack. This is an annoying place to put
-                ; the underflow check because we can't
-                ; automatically strip it out
++
+                ; --- Interpreting ---
+                ; ( n xt ) on stack
                 jsr underflow_2
 
+                ; Fall through to to_runtime which handles both
+                ; native and non-native VALUE body layouts.
+
+to_runtime:     ; ( n xt )
+        ; Shared interpreted and compiled runtime path which patches VALUE
+        ; body to return n.  Body can be either native LDY#/LDA# (poke LSB/MSB
+        ; of n @ xt+3,+1) or non-native JSR literal / .word  (poke at +3,+4)
+
+                lda (0,x)               ; fetch opcode at XT
+                cmp #$21                ; C=1 native ($A0), C=0 non-native ($20)
+
+                lda 0,x                 ; XT -> tmp1
+                sta tmp1
+                lda 1,x
+                sta tmp1+1
+
+                ; Poke LSB at XT+3 (same for both layouts)
+                ldy #3
+                lda 2,x                 ; LSB of n
+                sta (tmp1),y
+
+                ; Poke MSB at XT+1 (native) or XT+4 (non-native)
+                bcc +                   ; C=0 -> non-native
+                ldy #0                  
++               iny                     ; Y = 3+1 (NN) or 0+1 (native)
+                lda 3,x                 ; MSB of n
+                sta (tmp1),y
+
+                ; Clean up stack: drop XT and n
                 inx
-                inx                     ; leaving just ( n )
-
-                ; We skip over the jump to DOCONST and store the number
-                ; in the Program Field Area (PDF, in this case more a
-                ; Data Field Area
-                lda 0,x
-                sta (tmp1)              ; LSB
-
-                ldy #1
-                lda 1,x                 ; MSB
-                sta (tmp1),y            ; fall through to common
-
-                inx                     ; DROP
                 inx
-_done:
-z_to:           rts
+                inx
+                inx
+z_to:
+                rts
 
 
 
@@ -5823,7 +5856,7 @@ z_to:           rts
         ; don't actually have a Code Field Area (CFA) to skip.
 
         ; We solve this with a header flag in CREATE, "has CFA" (HC),
-        ; so >BODY knows to skip the CFA jsr like DOVAR, DOCONST, or DODOES
+        ; so >BODY knows to skip the CFA jsr like push_pfa or DODOES
         ; """
 
 xt_to_body:
@@ -5839,7 +5872,7 @@ w_to_body:
                 and #HC
                 beq _no_cfa
 
-                ; We've got a DOVAR, DOCONST, DODOES or whatever,
+                ; We've got a push_pfa, DODOES or whatever,
                 ; so we add three to xt, which is NOS
                 clc
                 lda 2,x         ; LSB
@@ -6933,24 +6966,6 @@ z_unused:       rts
         ; """
 
 
-; ## VARIABLE ( "name" -- ) "Define a variable"
-; ## "variable"  auto  ANS core
-        ; """https://forth-standard.org/standard/core/VARIABLE
-        ; There are various Forth definitions for this word, such as
-        ; `CREATE 1 CELLS ALLOT`  or  `CREATE 0 ,`  We use a variant of the
-        ; second one so the variable is initialized to zero
-        ; """
-xt_variable:
-w_variable:
-                ; we let CREATE do the heavy lifting
-                jsr w_create
-
-                ; initialize the value to zero
-                lda #0
-                jsr cmpl_a
-                jsr cmpl_a
-
-z_variable:     rts
 
 
 ; ## WHILE ( C: dest -- orig dest ) ( x -- ) "Loop flow control"

@@ -8,7 +8,7 @@
   for limit in 0 20; for uf in 0 1; do
     export TALIVARS="$limit nc-limit \! $uf strip-underflow \! \n"
     echo "\n$TALIVARS"
-    echo $TALIVARS | cat - tests/benchmarks.fs | c65/c65 -r $TALIBIN | grep 'cycles\. ok'
+    echo $TALIVARS | cat - tests/benchmarks.fs | tools/c65/c65 -r $TALIBIN | grep 'cycles\. ok'
   done
 
 This log records some historical results.  Each build date corresponds to commits linked below,
@@ -22,44 +22,54 @@ Build     Test       0 NC 0 SUF   0 NC 1 SUF  20 NC 0 SUF  20 NC 1 SUF
 20231101  ddbench      4751473      4751473      3965029      2916469
 20240623  ddbench      5081308      4032748      2197724      1149164
 20240701  ddbench      5081308      4032748      2197724      1149164
+20260221  ddbench      5048651      4000091      2197724      1149164
 
 20231101  intcalcs    28762819     28762819     25882671     22898462
 20240623  intcalcs    27442769     25010657     24290570     21666430
 20240701  intcalcs    27442769     25010657     24290570     21666430
+20260221  intcalcs    23707507     21275395     18562933     15938793     
 
 20231101  fib2        33746816     33746816     28490708     21501780
 20240623  fib2        35220166     28224838     20633701     13638373
 20240701  fib2        35220166     28224838     20633701     13638373
+20260221  fib2        35075339     28080011     20633701     13638373
 
 20231101  nesting     25165800     25165800     25165800     25165800
 20240623  nesting     25165800     25165800     25165800     25165800
 20240701  nesting            0            0            0            0
+20260221  nesting            0            0            0            0
 
 20231101  sieve       13602239     13602239     11737511      9491287
 20240623  sieve       13271375     11025135      9518125      7271885
 20240701  sieve       13263183     11016943      9509933      7263693
+20260221  sieve       19126110     16879870      8144183      5897943
 
 20231101  gcd1        40939545     40939545     37438209     32771073
 20240623  gcd1        37793577     30474953     25722994     16415754
 20240701  gcd1        37793577     30474953     25722994     16415754
+20260221  gcd1        37829585     30510961     25729394     16415754
 
 20231101  pal         56252577     56252577     55211451     54105673
 20240623  pal         29691810     28236978     27773260     26220729
 20240701  pal         29679970     28225138     27765505     26215982
+20260221  pal         22270616     20815784     19919607     18358906
 
 20231101  coll        37286938     37286938     35333950     33462094
 20240623  coll        34477726     32390862     29940867     27841333
 20240701  coll        34477726     32390862     29940867     27841333
+20260221  coll        27803330     25716466     21992814     19905950
 
 20231101  Total      240508207    240508207    223225329    203504735
 20240623  Total      208144531    184561971    165243041    139369468
 20240701  Total      182958699    159376139    140055024    114190729
+20260221  Total      170861138    147278578    117173956     91304883
 
 Tested taliforth-c65.bin from these builds (20231101 used taliforth-py65mon.bin):
 
 20231101 https://github.com/SamCoVT/TaliForth2/commit/e9fff574d0a2390e9a5cfb0a09538292bc13db7e
 20240623 https://github.com/SamCoVT/TaliForth2/commit/032e914755f2ffb7f6a10fb4005d2ca9a1770edb
 20240701 https://github.com/SamCoVT/TaliForth2/commit/cca0544d4634fb00e26ccad8107ba69b00e77ac8
+20260221 https://github.com/SamCoVT/TaliForth2/commit/afa5acaefcc5681f855712ad604c7c1bdaf5cba1
 
 )
 
@@ -119,9 +129,7 @@ variable result
 : 18th 17th 17th ;      : 19th 18th 18th ;      : 20th 19th 19th ;
 
  8192 constant sieve-size
- variable sieve-flags
- 0 sieve-flags !
- sieve-size allot
+ here sieve-size allot constant sieve-flags   \ flag odd primes 3,5,9,7...
 
  : sieve-bench
    sieve-flags sieve-size 1 fill  ( set array )
@@ -132,8 +140,8 @@ variable result
         while 0   over sieve-flags +  c!  over +  repeat
         drop drop 1+
      then
- loop
- drop
+   loop
+   drop
 ;
 
 

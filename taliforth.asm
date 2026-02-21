@@ -70,35 +70,6 @@ user_words_end:
 ; =====================================================================
 ; CODE FIELD ROUTINES
 
-doconst:
-        ; """Execute a CONSTANT: Push the data in the first two bytes of
-        ; the Data Field onto the Data Stack
-        ; """
-                dex             ; make room for constant
-                dex
-
-                ; The value we need is stored in the two bytes after the
-                ; JSR return address, which in turn is what is on top of
-                ; the Return Stack
-                pla             ; LSB of return address
-                sta tmp1
-                pla             ; MSB of return address
-                sta tmp1+1
-
-                ; Start LDY with 1 instead of 0 because of how JSR stores
-                ; the return address on the 65c02
-                ldy #1
-                lda (tmp1),y
-                sta 0,x
-                iny
-                lda (tmp1),y
-                sta 1,x
-
-                ; This takes us back to the original caller, not the
-                ; DOCONST caller
-                rts
-
-
 dodoes:
         ; """Execute the runtime portion of DOES>. See DOES> and
         ; docs/create-does.txt for details and
@@ -123,7 +94,7 @@ dodoes:
                 ; so defining `foo someword` will first create something like:
                 ;
                 ; someword:
-                ;       jsr dovar       ; code field area (CFA)
+                ;       jsr push_pfa    ; code field area (CFA)
                 ;       .word 0         ; parameter field area (PFA)
                 ;
                 ; and then does_runtime will convert it into:
@@ -180,13 +151,12 @@ dodoes:
                 jmp (tmp2)
 
 
-dovar:
-        ; """Execute a variable: Push the address of the first bytes of
-        ; the Data Field onto the stack. This is called with JSR so we
+push_pfa:
+        ; """Default CREATE runtime: Push the address of the first bytes of
+        ; the Data Field (PFA) onto the stack. This is called with JSR so we
         ; can pick up the address of the calling variable off the 65c02's
         ; stack. The final RTS takes us to the original caller of the
-        ; routine that itself called DOVAR. This is the default
-        ; routine installed with CREATE.
+        ; routine that itself called push_pfa. 
         ; """
                 ; Pull the return address off the machine's stack, adding
                 ; one because of the way the 65c02 handles subroutines

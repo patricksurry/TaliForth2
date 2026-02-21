@@ -142,7 +142,7 @@ while the last two -- *CO* and *IM* -- are useful for words with special compila
 [horizontal]
 HC::
   *Has CFA.* The word's first three bytes are considered the Code Field Area (CFA).
-  The CFA is normally a `jsr` to a data handler like `dovar`
+  The CFA is normally a `jsr` to a data handler like `push_pfa`
   and is followed by the Parameter Field Area (PFA) with any data used by the CFA.
   The word `>body` uses this flag to skip past the CFA of words defined with `create`.
 NN::
@@ -367,6 +367,11 @@ word `constant`.
 : constant  ( "name" -- )  create , does> @ ;
 ----
 
+NOTE: Tali Forth 2 optimizes the implementation of `constant` (and `variable`, and `value`) to compile
+standard literals directly, avoiding the overhead of the `create` mechanism described here.
+However, the high-level definition above remains the standard example for understanding
+how `create` and `does>` interact, so we will use it for this walkthrough.
+
 We examine this in three phases or "sequences", following Rodriguez (based on
 <<DB>>).
 
@@ -393,7 +398,7 @@ version is easier to explain.
 
 `does>` is an immediate word that adds not one, but two subroutine jumps, one
 to `(does>)` and one to `dodoes`, which is a pre-defined system routine like
-`dovar`. We'll discuss those later.
+`push_pfa`. We'll discuss those later.
 
 In Tali Forth, many words are "hand-compiled" to produce more efficient assembly.
 For example, the word `bounds` could be defined in forth as
@@ -437,7 +442,7 @@ this word:
 
 ----
         (Header "LIFE")
-        jsr DOVAR               ; in CFA, from LIFE's CREATE
+        jsr push_pfa            ; in CFA, from LIFE's CREATE
         4200                    ; in PFA (little-endian)
 ----
 
@@ -450,7 +455,7 @@ is the instruction of `constant` we had labeled `a`.
 ----
 
 Now the tricks start. `(does>)` takes this address off the stack and uses it to
-replace the `dovar jsr` target in the CFA of our freshly created `life` word.
+replace the `push_pfa jsr` target in the CFA of our freshly created `life` word.
 We now have this:
 
 ----
@@ -503,7 +508,7 @@ instruction the label `b`. After all of this, we have three addresses on the
 `dodoes` pops address `b` off the 65c02's stack and puts it in a nice safe place
 on Zero Page, which we'll call `z`. More on that in a moment. First, `dodoes`
 pops the `rts` to `life`. This is `c`, the address of the PFA or `life`, where
-we stored the payload of this constant. Basically, `dodoes` performs a `dovar`
+we stored the payload of this constant. Basically, `dodoes` performs a `push_pfa`
 here, and pushes `c` on the Data Stack. Now all we have left on the 65c02's
 stack is the `rts` to the main routine.
 
@@ -534,7 +539,7 @@ Put together, this is what we have to code:
 jump to `dodoes`.
 
 `(does>)`:: Pops the stack (address of subroutine jump to `dodoes` in
-`constant`, increase this by one, replace the original `dovar` jump target in
+`constant`, increase this by one, replace the original `push_pfa` jump target in
 `life`.
 
 `dodoes`:: Pop stack (PFA of `constant`), increase address by one, store on

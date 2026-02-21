@@ -172,7 +172,6 @@ https://forth-standard.org/standard/core/TwoSWAP
 
 `2variable`:: _ANS double_ ( "name" -- ) "Create a variable for a double word"
 https://forth-standard.org/standard/double/TwoVARIABLE
-The variable is not initialized to zero.
 
 `:`:: _ANS core_ ( "name" -- ) "Start compilation of a new word"
 https://forth-standard.org/standard/core/Colon
@@ -1111,12 +1110,7 @@ https://forth-standard.org/standard/block/UPDATE
 `useraddr`:: _Tali Forth_ ( -- addr ) "Push address of base address of user variables"
 `value`:: _ANS core_ ( n "name" -- ) "Define a value"
 https://forth-standard.org/standard/core/VALUE
-
-`variable`:: _ANS core_ ( "name" -- ) "Define a variable"
-https://forth-standard.org/standard/core/VARIABLE
-There are various Forth definitions for this word, such as
-`CREATE 1 CELLS ALLOT`  or  `CREATE 0 ,`  We use a variant of the
-second one so the variable is initialized to zero
+https://forth-standard.org/standard/core/VALUE
 
 `while`:: _ANS core_ ( C: dest -- orig dest ) ( x -- ) "Loop flow control"
 http://forth-standard.org/standard/core/WHILE
