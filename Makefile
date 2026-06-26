@@ -72,7 +72,7 @@ C65=$(C65_DIR)/c65
 
 all: taliforth-py65mon.bin docs/WORDLIST.md
 clean:
-	$(RM) *.bin *.prg
+	$(RM) *.bin *.prg platform/pce/*.pce
 	make -C $(C65_DIR) clean
 
 platforms:
@@ -84,6 +84,24 @@ platforms:
 # For known platforms, the dummy target should build the binary for the selected variant
 # e.g. make sbc VARIANT=dbg should build taliforth-sbc-dbg.bin
 $(PLATFORMS): %: taliforth-%${_VARIANT}.bin
+
+# Specific rule for PCE platform to output taliforth.pce
+# Invokes the universal zero-page shifting patch tool from the core tools directory
+taliforth-pce${_VARIANT}.bin: platform/pce/*.asm platform/pce/*/*.asm platform/pce/platform_forth.asc $(COMMON_SOURCES)
+	$(PYTHON) tools/shift_zp_patch.py --platform pce --prefix zpage+
+	
+	64tass --nostart \
+	-D GIT_IDENT=${GIT_IDENT} \
+	-D TODAY=${TODAY} \
+	--list=platform/pce/pce${_VARIANT}-listing.txt \
+	--vice-labels \
+	--labels=platform/pce/pce${_VARIANT}-labelmap.txt \
+	-D VARIANT:=\"${VARIANT}\" \
+	--output platform/pce/taliforth.pce \
+	platform/pce/build_pce/platform/pce/platform.asm
+
+#	$(PYTHON) tools/shift_zp_patch.py --platform pce --clean
+	python3 tools/sort_vice_labels.py platform/pce/pce${_VARIANT}-labelmap.txt
 
 # Note, the _VARIANT variable may be empty if no variant defined.
 taliforth-%${_VARIANT}.bin: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
