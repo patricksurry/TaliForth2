@@ -100,8 +100,8 @@ taliforth-pce${_VARIANT}.bin: platform/pce/*.asm platform/pce/*/*.asm platform/p
 	--output platform/pce/taliforth.pce \
 	platform/pce/build_pce/platform/pce/platform.asm
 
-#	$(PYTHON) tools/shift_zp_patch.py --platform pce --clean
-	python3 tools/sort_vice_labels.py platform/pce/pce${_VARIANT}-labelmap.txt
+	$(PYTHON) tools/shift_zp_patch.py --platform pce --clean
+	$(PYTHON) tools/sort_vice_labels.py platform/pce/pce${_VARIANT}-labelmap.txt
 
 # Note, the _VARIANT variable may be empty if no variant defined.
 taliforth-%${_VARIANT}.bin: platform/%/*.asm platform/%/*/*.asm platform/%/platform_forth.asc $(COMMON_SOURCES)
