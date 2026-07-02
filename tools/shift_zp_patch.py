@@ -1,4 +1,27 @@
 #!/usr/bin/env python3
+# ==============================================================================
+# TaliForth2 Cross-Platform Zero-Page / Direct-Page Address Offset Patcher
+# Author: Jason March
+# License: Public Domain (CC0)
+# ==============================================================================
+# WHO SHOULD USE THIS:
+#   This script is intended for developers porting TaliForth2 to non-standard 
+#   6502/65C02 architectures where the primary Zero-Page/Direct-Page stack area 
+#   does not always start at absolute $0000 (such as the PC Engine / 
+#   TurboGrafx-16, which maps its hardware RAM window starting at $2000).
+#
+# WHAT IT DOES:
+#   This script safely clones the core tree into a temporary local build workspace. 
+#   It then uses a regular expression loop to dynamically prefix all active 
+#   stack indexing instructions (e.g., " 0,x" -> " zpage+0,x" and "(0,x)" -> 
+#   "(zpage+0,x)") while strictly safeguarding formatting in documentation comments.
+#
+# EXAMPLE RUN COMMAND:
+#   python3 tools/shift_zp_patch.py --platform pce --prefix zpage+
+#
+# Note: Invoke this in your build, make sure to set your platforms zpage and
+# set .dpage assembler variable to make it aware of address space for build.
+# ==============================================================================
 import os
 import sys
 import shutil
