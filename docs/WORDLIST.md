@@ -7,7 +7,7 @@ RTS instruction at the end of each word.
 
 | NAME | FORTH WORD | SOURCE | BYTES | STATUS |
 | :--- | :--------- | :---   | ----: | :----  |
-| COLD | `cold` | Tali Forth | 146 | tested |
+| COLD | `cold` | Tali Forth | 147 | tested |
 | ABORT | `abort` | ANS core | 75 | tested |
 | QUIT | `quit` | ANS core | 73 | tested |
 | BLK | `block` | ANS block | 5 | **auto** |
@@ -30,7 +30,7 @@ RTS instruction at the end of each word.
 | SCR | `scr` | ANS block ext | 5 | **auto** |
 | THRU | `thru` | ANS block ext | 65 | tested |
 | UPDATE | `update` | ANS block | 8 | **auto** |
-| COMPILE_COMMA | `compile,` | ANS core ext | 158 | **auto** |
+| COMPILE_COMMA | `compile,` | ANS core ext | 154 | **auto** |
 | ABORT_QUOTE | `abort"` | ANS core | 8 | tested |
 | ABS | `abs` | ANS core | 20 | **auto** |
 | ACCEPT | `accept` | ANS core | 248 | **auto** |
@@ -62,6 +62,7 @@ RTS instruction at the end of each word.
 | COMMA | `,` | ANS core | 12 | **auto** |
 | COMPILE_ONLY | `compile-only` | Tali Forth | 9 | tested |
 | CONSTANT | `constant` | ANS core | 12 | **auto** |
+| VALUE | `value` | ANS core ext | 16 | **auto** |
 | COUNT | `count` | ANS core | 18 | **auto** |
 | CR | `cr` | ANS core | 5 | **auto** |
 | CREATE | `create` | ANS core | 194 | **auto** |
@@ -111,7 +112,7 @@ RTS instruction at the end of each word.
 | LEFT_BRACKET | `[` | ANS core | 4 | **auto** |
 | LESS_NUMBER_SIGN | `<#` | ANS core | 13 | **auto** |
 | LESS_THAN | `<` | ANS core | 20 | **auto** |
-| LITERAL | `literal` | ANS core | 67 | **auto** |
+| LITERAL | `literal` | ANS core | 68 | **auto** |
 | LOOP | `loop` | ANS core | 89 | **auto** |
 | PLUS_LOOP | `+loop` | ANS core | 81 | **auto** |
 | LSHIFT | `lshift` | ANS core | 19 | **auto** |
@@ -171,7 +172,7 @@ RTS instruction at the end of each word.
 | SWAP | `swap` | ANS core | 19 | **auto** |
 | THEN | `then` | ANS core | 12 | **auto** |
 | TICK | `'` | ANS core | 31 | **auto** |
-| TO | `to` | ANS core ext | 57 | **auto** |
+| TO | `to` | ANS core ext | 52 | **auto** |
 | TO_BODY | `>body` | ANS core | 28 | **auto** |
 | TO_IN | `>in` | ANS core | 5 | **auto** |
 | TO_NUMBER | `>number` | ANS core | 147 | **auto** |
@@ -199,8 +200,7 @@ RTS instruction at the end of each word.
 | UNLOOP | `unloop` | ANS core | 15 | **auto** |
 | UNTIL | `until` | ANS core | 106 | **auto** |
 | UNUSED | `unused` | ANS core ext | 15 | **auto** |
-| VALUE | `value` | ANS core | 12 | **auto** |
-| VARIABLE | `variable` | ANS core | 11 | **auto** |
+| VALUE | `value` | ANS core | 16 | **auto** |
 | WHILE | `while` | ANS core | 9 | **auto** |
 | WITHIN | `within` | ANS core ext | 24 | **auto** |
 | WORD | `word` | ANS core | 64 | **auto** |
@@ -218,9 +218,9 @@ RTS instruction at the end of each word.
 | D_DOT | `d.` | ANS double | 30 | **auto** |
 | D_DOT_R | `d.r` | ANS double | 42 | **auto** |
 | M_STAR_SLASH | `m*/` | ANS double | 94 | **auto** |
-| TWO_CONSTANT | `2constant` | ANS double | 24 | **auto** |
+| TWO_CONSTANT | `2constant` | ANS double | 12 | **auto** |
 | TWO_LITERAL | `2literal` | ANS double | 40 | **auto** |
-| TWO_VARIABLE | `2variable` | ANS double | 12 | **auto** |
+| TWO_VARIABLE | `2variable` | ANS double | 15 | **auto** |
 | UD_DOT | `ud.` | Tali double | 18 | **auto** |
 | UD_DOT_R | `ud.r` | Tali double | 30 | **auto** |
 | ED | `ed:` | Tali Forth | 3 | *fragment* |
