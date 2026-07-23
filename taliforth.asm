@@ -745,7 +745,7 @@ is_printable:
         ; discussion of various ways to do this
                 cmp #AscSP              ; $20
                 bcc _done
-                cmp #$7F + 1             ; '~'
+                cmp #$7E + 1             ; '~'
                 bcs _failed
 
                 sec
