@@ -355,8 +355,8 @@ _done:
 z_hexstore:     rts
 
 
-; ## EVALUATE* ( addr u -- ) "Separately EVALUATE each line of a multi-line string"
-; ## "evaluate*" auto  ANS file
+; ## EVALUATE_LINES ( addr u -- ) "Separately EVALUATE each line of a multi-line string"
+; ## "evaluate*" auto  ANS  file
         ; EVALUATE* is handy for running multi-line code containing comments.
         ; The normal EVALUATE treats line breaks as whitespace which can cause problems
         ; with backslash comments, see https://github.com/SamCoVT/TaliForth2/issues/35

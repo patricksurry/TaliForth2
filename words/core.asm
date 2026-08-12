@@ -1028,7 +1028,13 @@ z_constant:
 ; Shared helpers for CONSTANT, VARIABLE, VALUE, 2CONSTANT, 2VARIABLE
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-
+; ## VARIABLE ( "name" -- ) "Define a variable"
+; ## "variable"  auto  ANS core
+        ; """https://forth-standard.org/standard/core/VARIABLE
+        ; There are various Forth definitions for this word, such as
+        ; `CREATE 1 CELLS ALLOT`  or  `CREATE 0 ,`  We use a variant of the
+        ; second one so the variable is initialized to zero
+        ; """
 xt_variable:
 w_variable:
                 ; push the address of the variable storage (HERE)
