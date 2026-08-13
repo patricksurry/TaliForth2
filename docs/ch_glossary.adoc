@@ -1,6 +1,3 @@
-Error determining name on line:
-; ## EVALUATE* ( addr u -- ) "Separately EVALUATE each line of a multi-line string"
-
 [horizontal]
 `!`:: _ANS core_ ( n addr -- ) "Store TOS in memory"
 https://forth-standard.org/standard/core/Store
@@ -608,6 +605,11 @@ start up and cold boot. In contrast to ACCEPT, we need to, uh,
 accept more than 255 characters here, even though it's a pain in
 the 8-bit.  Also see EVALUATE* for multi-line commment handling.
 
+`evaluate*`:: _ANS  file_ ( addr u -- ) "Separately EVALUATE each line of a multi-line string"
+EVALUATE* is handy for running multi-line code containing comments.
+The normal EVALUATE treats line breaks as whitespace which can cause problems
+with backslash comments, see https://github.com/SamCoVT/TaliForth2/issues/35
+
 `execute`:: _ANS core_ ( xt -- ) "Jump to word based on execution token"
 This word is never natively compiled so that the return
 from the xt will always return to the caller of EXECUTE
@@ -1111,6 +1113,12 @@ https://forth-standard.org/standard/block/UPDATE
 `value`:: _ANS core_ ( n "name" -- ) "Define a value"
 https://forth-standard.org/standard/core/VALUE
 https://forth-standard.org/standard/core/VALUE
+
+`variable`:: _ANS core_ ( "name" -- ) "Define a variable"
+https://forth-standard.org/standard/core/VARIABLE
+There are various Forth definitions for this word, such as
+`CREATE 1 CELLS ALLOT`  or  `CREATE 0 ,`  We use a variant of the
+second one so the variable is initialized to zero
 
 `while`:: _ANS core_ ( C: dest -- orig dest ) ( x -- ) "Loop flow control"
 http://forth-standard.org/standard/core/WHILE

@@ -4276,15 +4276,15 @@ To see how `does>` is translated, we will consider a custom word `ARRAY`:
 
     : array ( n -- ) create cells allot does> swap cells + ;
 
-This word creates a new named array that, given a zero-based index, puts the address of that element on the stack. It’s commonly used like this:
+This creates a new named array that, given a zero-based index, puts the address of that element on the stack. It’s commonly used like this:
 
     10 array my-array
     42 0 my-array !
 
-The assembly code for `ARRAY` looks like:
+We could write `ARRAY` in assembly like this:
 
     ; ## ARRAY ( n "name" -- ) "Create a cell array of size n"
-    ; ## "array"  coded  Custom
+    ; ## "array"  custom
             ; """
             ; Based on the Forth code
             ; : ARRAY ( n -- )  CREATE CELLS ALLOT DOES> SWAP CELLS + ;
@@ -4505,9 +4505,6 @@ See the GitHub page for further details.
 # Appendix
 
 ## Glossary of Forth Words
-
-Error determining name on line:
-; \## EVALUATE\* ( addr u — ) "Separately EVALUATE each line of a multi-line string"
 
 |  |  |
 |----|----|
@@ -4973,6 +4970,10 @@ to compile high-level Forth words and user-defined words during
 start up and cold boot. In contrast to ACCEPT, we need to, uh,
 accept more than 255 characters here, even though it’s a pain in
 the 8-bit. Also see EVALUATE\* for multi-line commment handling. |
+| `evaluate*` | *ANS file* ( addr u — ) "Separately EVALUATE each line of a multi-line string"
+EVALUATE\* is handy for running multi-line code containing comments.
+The normal EVALUATE treats line breaks as whitespace which can cause problems
+with backslash comments, see <https://github.com/SamCoVT/TaliForth2/issues/35> |
 | `execute` | *ANS core* ( xt — ) "Jump to word based on execution token"
 This word is never natively compiled so that the return
 from the xt will always return to the caller of EXECUTE
@@ -5374,6 +5375,11 @@ defaults to \$400 |
 | `value` | *ANS core* ( n "name" — ) "Define a value"
 <https://forth-standard.org/standard/core/VALUE>
 <https://forth-standard.org/standard/core/VALUE> |
+| `variable` | *ANS core* ( "name" — ) "Define a variable"
+<https://forth-standard.org/standard/core/VARIABLE>
+There are various Forth definitions for this word, such as
+`CREATE 1 CELLS ALLOT` or `CREATE 0 ,` We use a variant of the
+second one so the variable is initialized to zero |
 | `while` | *ANS core* ( C: dest — orig dest ) ( x — ) "Loop flow control"
 <http://forth-standard.org/standard/core/WHILE> |
 | `within` | *ANS core ext* ( n1 n2 n3 — f ) "Test n1 within range \[n2, n3) or outwith \[n3, n2)"

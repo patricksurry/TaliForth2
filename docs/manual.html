@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.20">
+<meta name="generator" content="Asciidoctor 2.0.26">
 <meta name="keywords" content="forth, 6502, assembler, programming, 8-bit, vintage, retro">
 <meta name="author" content="Sam Colwell, Scot W. Stevenson, Patrick Surry">
 <title>Manual for Tali Forth 2 for the 65c02</title>
@@ -118,7 +118,6 @@ h1 strong,h2 strong,h3 strong,#toctitle strong,.sidebarblock>.content>.title str
 :not(pre):not([class^=L])>code{font-size:.9375em;font-style:normal!important;letter-spacing:0;padding:.1em .5ex;word-spacing:-.15em;background:#f7f7f8;border-radius:4px;line-height:1.45;text-rendering:optimizeSpeed}
 pre{color:rgba(0,0,0,.9);font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;line-height:1.45;text-rendering:optimizeSpeed}
 pre code,pre pre{color:inherit;font-size:inherit;line-height:inherit}
-pre>code{display:block}
 pre.nowrap,pre.nowrap pre{white-space:pre;word-wrap:normal}
 em em{font-style:normal}
 strong strong{font-weight:400}
@@ -142,7 +141,7 @@ p a>code:hover{color:rgba(0,0,0,.9)}
 #content::before{content:none}
 #header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
 #header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #dddddf}
-#header>h1:only-child,body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
+#header>h1:only-child{border-bottom:1px solid #dddddf;padding-bottom:8px}
 #header .details{border-bottom:1px solid #dddddf;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:flex;flex-flow:row wrap}
 #header .details span:first-child{margin-left:-.125em}
 #header .details span.email a{color:rgba(0,0,0,.85)}
@@ -164,6 +163,7 @@ p a>code:hover{color:rgba(0,0,0,.9)}
 #toctitle{color:#7a2518;font-size:1.2em}
 @media screen and (min-width:768px){#toctitle{font-size:1.375em}
 body.toc2{padding-left:15em;padding-right:0}
+body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
 #toc.toc2{margin-top:0!important;background:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #e7e7e9;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
 #toc.toc2 #toctitle{margin-top:0;margin-bottom:.8rem;font-size:1.2em}
 #toc.toc2>ul{font-size:.9em;margin-bottom:0}
@@ -220,6 +220,7 @@ table.tableblock.fit-content>caption.title{white-space:nowrap;width:0}
 .literalblock pre,.listingblock>.content>pre:not(.highlight),.listingblock>.content>pre[class=highlight],.listingblock>.content>pre[class^="highlight "]{background:#f7f7f8}
 .literalblock.output pre{color:#f7f7f8;background:rgba(0,0,0,.9)}
 .listingblock>.content{position:relative}
+.listingblock pre>code{display:block}
 .listingblock code[data-lang]::before{display:none;content:attr(data-lang);position:absolute;font-size:.75em;top:.425rem;right:.5rem;line-height:1;text-transform:uppercase;color:inherit;opacity:.5}
 .listingblock:hover code[data-lang]::before{display:block}
 .listingblock.terminal pre .command::before{content:attr(data-prompt);padding-right:.5em;color:inherit;opacity:.5}
@@ -329,7 +330,7 @@ a.image{text-decoration:none;display:inline-block}
 a.image object{pointer-events:none}
 sup.footnote,sup.footnoteref{font-size:.875em;position:static;vertical-align:super}
 sup.footnote a,sup.footnoteref a{text-decoration:none}
-sup.footnote a:active,sup.footnoteref a:active{text-decoration:underline}
+sup.footnote a:active,sup.footnoteref a:active,#footnotes .footnote a:first-of-type:active{text-decoration:underline}
 #footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
 #footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em;border-width:1px 0 0}
 #footnotes .footnote{padding:0 .375em 0 .225em;line-height:1.3334;font-size:.875em;margin-left:1.2em;margin-bottom:.2em}
@@ -7412,10 +7413,6 @@ also generally available at the 6502.org Users Forum in the Forth category.
 <div class="sect1">
 <h2 id="_glossary_of_forth_words">Glossary of Forth Words</h2>
 <div class="sectionbody">
-<div class="paragraph">
-<p>Error determining name on line:
-; ## EVALUATE* ( addr u&#8201;&#8212;&#8201;) "Separately EVALUATE each line of a multi-line string"</p>
-</div>
 <div class="hdlist">
 <table>
 <tr>
@@ -8981,6 +8978,17 @@ the 8-bit.  Also see EVALUATE* for multi-line commment handling.</p>
 </tr>
 <tr>
 <td class="hdlist1">
+<code>evaluate*</code>
+</td>
+<td class="hdlist2">
+<p><em>ANS  file</em> ( addr u&#8201;&#8212;&#8201;) "Separately EVALUATE each line of a multi-line string"
+EVALUATE* is handy for running multi-line code containing comments.
+The normal EVALUATE treats line breaks as whitespace which can cause problems
+with backslash comments, see <a href="https://github.com/SamCoVT/TaliForth2/issues/35" class="bare">https://github.com/SamCoVT/TaliForth2/issues/35</a></p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
 <code>execute</code>
 </td>
 <td class="hdlist2">
@@ -10208,6 +10216,18 @@ defaults to $400</p>
 </tr>
 <tr>
 <td class="hdlist1">
+<code>variable</code>
+</td>
+<td class="hdlist2">
+<p><em>ANS core</em> ( "name"&#8201;&#8212;&#8201;) "Define a variable"
+<a href="https://forth-standard.org/standard/core/VARIABLE" class="bare">https://forth-standard.org/standard/core/VARIABLE</a>
+There are various Forth definitions for this word, such as
+<code>CREATE 1 CELLS ALLOT</code>  or  <code>CREATE 0 ,</code>  We use a variant of the
+second one so the variable is initialized to zero</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
 <code>while</code>
 </td>
 <td class="hdlist2">
@@ -10757,7 +10777,7 @@ under <a href="https://www.ubuntu.com/">Ubuntu</a> Linux 16.04 LTS.</p>
 <div id="footer">
 <div id="footer-text">
 Version 1.1<br>
-Last updated 2025-06-24 19:35:50 -0400
+Last updated 2025-07-10 14:51:02 -0400
 </div>
 </div>
 </body>
