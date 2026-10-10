@@ -26,8 +26,7 @@ C65_LOCATION = '../tools/c65/c65'
 TALIFORTH_LOCATION = '../taliforth-c65.bin'
 TALI_ERRORS = ['Undefined word',
                'Stack underflow',
-               'ALLOT using all available memory',
-               'ALLOT would free too much memory',
+               'ALLOT out of range',
                'Illegal SOURCE-ID during REFILL',
                'Interpreting a compile-only word',
                'DEFERed word not defined yet',

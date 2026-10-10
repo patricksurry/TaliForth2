@@ -123,21 +123,20 @@ err_refill       = 6
 err_state        = 7
 err_syntax       = 8
 err_underflow    = 9
-err_negallot     = 10
-err_wordlist     = 11
-err_blockwords   = 12
-err_returnstack  = 13
-err_toolong      = 14           ;TODO no longer used since CREATE just truncates long names
-err_usersigint   = 15
+err_wordlist     = 10
+err_blockwords   = 11
+err_returnstack  = 12
+err_toolong      = 13           ;TODO no longer used since CREATE just truncates long names
+err_usersigint   = 14
 
 error_table:
         .word es_allot, es_badsource, es_compileonly, es_defer          ;  0-3
         .word es_divzero, es_noname, es_refill, es_state                ;  4-7
-        .word es_syntax, es_underflow, es_negallot, es_wordlist         ;  8-11
-        .word es_blockwords, es_returnstack, es_toolong, es_usersigint  ; 12-15
+        .word es_syntax, es_underflow, es_wordlist, es_blockwords       ;  8-11
+        .word es_returnstack, es_toolong, es_usersigint                 ; 12-14
 
 .if ! TALI_OPTION_TERSE
-es_allot:       .shift "ALLOT using all available memory"
+es_allot:       .shift "ALLOT out of range"
 es_badsource:   .shift "Illegal SOURCE-ID during REFILL"
 es_compileonly: .shift "Interpreting a compile-only word"
 es_defer:       .shift "DEFERed word not defined yet"
@@ -147,7 +146,6 @@ es_refill:      .shift "QUIT could not get input (REFILL returned -1)"
 es_state:       .shift "Already in compile mode"
 es_syntax:      .shift "Undefined word or invalid number"
 es_underflow:   .shift "Data stack underflow"
-es_negallot:    .shift "ALLOT would free too much memory"
 es_wordlist:    .shift "No wordlists available"
 es_blockwords:  .shift "Please assign vectors BLOCK-READ-VECTOR and BLOCK-WRITE-VECTOR"
 es_returnstack: .shift "Return stack:"
@@ -164,7 +162,6 @@ es_refill:      .shift "EREFL"
 es_state:       .shift "ESTAT"
 es_syntax:      .shift "ESNTX"
 es_underflow:   .shift "EUNDR"
-es_negallot:    .shift "ENALT"
 es_wordlist:    .shift "EWLST"
 es_blockwords:  .shift "EBLKW"
 es_returnstack: .shift "RS"

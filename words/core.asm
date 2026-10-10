@@ -482,10 +482,6 @@ w_allot:
 _error:
                 ; Fall through to error if we wrapped, or out-of-range
                 lda #err_allot
-                ldy 1,x
-                bpl +
-                lda #err_negallot
-+
                 jmp error
 
 _no_wrap:

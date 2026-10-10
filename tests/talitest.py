@@ -26,8 +26,7 @@ TALIFORTH_LOCATION = '../taliforth-py65mon.bin'
 PY65MON_ERROR = '*** Unknown syntax:'
 TALI_ERRORS = ['Undefined word',
                'Stack underflow',
-               'ALLOT using all available memory',
-               'ALLOT would free too much memory',
+               'ALLOT out of range',
                'Illegal SOURCE-ID during REFILL',
                'Interpreting a compile-only word',
                'DEFERed word not defined yet',
