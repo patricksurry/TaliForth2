@@ -437,14 +437,13 @@ http://forth-standard.org/standard/file#subsection.11.3.5 .
 
 The ANSI standard does not define what happens if there is an attempt to free
 more memory with `allot` by passing a negative value than is available. Tali
-will let the user free memory up the beginning of RAM assigned to the Dictionary
+will let the user free memory up to the beginning of RAM assigned to the Dictionary
 (marked with `cp0` in the code), even though this can mean that the Dictionary
-itself is compromised. This is Forth, you're the boss.
+itself is compromised: the wordlists will still point at any word headers that
+were freed. This is Forth, you're the boss.
 
-However, any attempt to free more memory than that will set the beginning of RAM
-to `cp0`. Also, the Dictionary Pointer `dp` will point to the _last native word_
-of the Dictionary, which is usually `drop`. Because of this, the high level
-words defined during boot will _not_ be available. There will be an error
-message to document this. Realistically, you'll probably want to restart with
-`cold` if any of this happens.
+However, any attempt to free more memory than that (or to reserve more than is
+available) will leave the Compiler Pointer `cp` unchanged and abort with an error
+message. Memory below `cp0`, holding the RAM system variables and the block
+buffer, is never freed.
 

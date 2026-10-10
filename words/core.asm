@@ -448,114 +448,69 @@ z_aligned:
 ; ## "allot"  auto  ANS core
         ; """https://forth-standard.org/standard/core/ALLOT
         ; Reserve a certain number of bytes (not cells) or release them.
-        ; If n = 0, do nothing. If n is negative, release n bytes, but only
-        ; to the beginning of the Dictionary. If n is positive (the most
-        ; common case), reserve n bytes, but not past the end of the
-        ; Dictionary. See http://forth-standard.org/standard/core/ALLOT
+        ; If n = 0, do nothing. If n is positive (the most common case),
+        ; reserve n bytes, but not past the end of the Dictionary (cp_end).
+        ; If n is negative, release n bytes, but not below cp0,
+        ; to protect the RAM system variables and block buffer.  If the
+        ; request is out of range we leave CP unchanged and abort with
+        ; an error.
+        ;
+        ; Note that freeing memory below the most recent word is at the
+        ; user's own risk: wordlists will still point at freed memory.
         ; """
 xt_allot:
                 jsr underflow_1
 w_allot:
-                ; Releasing memory is going to be a very rare operation,
-                ; so we check for it at the beginning and try to make
-                ; the most common case as fast as possible
-                lda 1,x
-                bmi _release
-
-                ; Common case: We are reserving memory, not releasing it
+                ; Calculate provisional new CP = CP + n, with LSB in Y
+                ; and MSB on the 65c02 stack.  On error ABORT resets the SP
+                ; so we don't need to clean up here.
                 clc
                 lda cp
                 adc 0,x
-                sta cp
-
+                tay
                 lda cp+1
                 adc 1,x
-                sta cp+1
+                pha
 
-                ; Wait, did we just grant more space than we have? This is
-                ; a check we only do here, not for other situations like cmpl_a
-                ; where smaller amounts are reserved.
-                ldy #<cp_end
-                cpy cp
-                lda #>cp_end
-                sbc cp+1
-                bcs _done               ; we're fine.
+                ; Since n is between -32K and +32K, the add wrapped around
+                ; iff the carry after the addition differs from n's sign:
+                ; a positive n should leave C=0 and vice versa for negative n.
+                ror                     ; bit 7 is now C
+                eor 1,x                 ; bit 7 is C xor sign(n)
+                bpl _no_wrap
 
-                ; Oops, that was too much, we're beyond the end of
-                ; legal Dictionary RAM. Reduce to max memory and report
-                ; an error
-                sty cp                  ; still #<cp_end
-                lda #>cp_end
-                sta cp+1
-
+_error:
+                ; Fall through to error if we wrapped, or out-of-range
                 lda #err_allot
-                jmp error
-
-_release:
-   		; The ANS standard doesn't really say what to do if too much
-                ; memory is freed ("negatively alloted"). In fact, there isn't
-                ; even an official test. GForth is little help either. The good
-                ; news is, this is going to be a rare case. We want to use as
-                ; few bytes as possible.
-
-                ; What we do is let the user free anything up to the beginning
-                ; of the RAM area assigned to the Dictionary (CP0), but at
-                ; their own risk. This means that the Dictionary pointer DP
-                ; might end up pointing to garbage. However, an attempt to
-                ; free more than RAM than CP0 will lead to CP being set to CP0,
-                ; the DP pointing to the last word in RAM (should be DROP) and
-                ; an error message.
-
-                ; Note: using CP0 clobbers the user vars and block buffer,
-                ; it might be safer to simply cold start here,
-                ; or use the starting CP value from cold_zp_table as the lower bound?
-
-                ; We arrive here with ( n ) which is negative, but we need to be
-                ; careful as CP and CP0 are unsigned addresses (CP > $8000 could happen).
-                ; We can't just update CP to CP+N and compare to CP0: for example,
-                ; CP0 = $400, N = -$800 is bad when CP = $600 but ok when CP = $9600
-                ; but in both cases CP+N > $8000 > CP0.  One approach is to
-                ; calculate CP+N and ensure it's within [CP0, CP)
-
-                lda cp
-                ldy cp+1
-                jsr push_ya_tos                 ; ( N CP )
-                jsr w_plus                      ; add the negative offset to update CP
-                dex
-                dex                             ; undrop CP leaving ( N+CP CP )
-                jsr w_over                      ; ( N+CP CP N+CP )
-                jsr push_inline_literal
-                .word cp0
-                jsr w_rot                       ; ( N+CP N+CP CP0 CP )
-                jsr w_within                    ; ( N+CP f )  test CP+N within [CP0, CP)
-                lda 0,x
-                bne _nega_done                   ; if flag is true, we're ok with new CP NOS
-
-                ; Otherwise we're in trouble. Set CP to CP0, set DP to the first
-                ; word in ROM (should be DROP), and abort with an error
-                lda #<cp0
-                sta cp
-                lda #>cp0
-                sta cp+1
-
-                lda #<dictionary_start
-                sta dp
-                lda #>dictionary_start
-                sta dp+1
-
+                ldy 1,x
+                bpl +
                 lda #err_negallot
++
                 jmp error
 
-_nega_done:
-                ; Save new CP, which is NOS
-                lda 2,x
-                sta cp
-                lda 3,x
+_no_wrap:
+
+                ; Without wrapping, a positive n can only break the upper
+                ; bound and a negative n the lower one, but it's easier
+                ; to just check both.  First new CP >= cp0
+                cpy #<cp0
+                pla
+                pha
+                sbc #>cp0
+                bcc _error
+
+                ; Next new CP < cp_end+1
+                cpy #<(cp_end+1)
+                pla
+                pha
+                sbc #>(cp_end+1)
+                bcs _error
+
+                ; All good, update CP
+                sty cp
+                pla
                 sta cp+1
 
-                inx                     ; drop flag and fall thru to _done
-                inx
-_done:
                 inx
                 inx
 z_allot:

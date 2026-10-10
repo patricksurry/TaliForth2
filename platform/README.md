@@ -97,11 +97,11 @@ for Tali's ROM code.
            |  |                |
     $0200  +-------------------+  rsp0, buffer, buffer0
            |    Input Buffer   |
-    $0300  +-------------------+  cp0, up
+    $0300  +-------------------+  up0, up
            | Native forth vars |  (see cold_user_table)
     $0400  +-------------------+  blkbuffer_offset
            |  1K block buffer  |
-    $0800  +-------------------+  Starting cp value
+    $0800  +-------------------+  cp0, starting cp value
            |  |  Dictionary    |
            |  v    (RAM)       |
            |                   |

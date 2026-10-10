@@ -52,7 +52,7 @@ hist_buff = ram_end-$03ff   ; begin of history buffers
 
 ; Tali currently doesn't have separate user variables for multitasking. To
 ; prepare for this, though, we've already named the location of the user's
-; Zero-Page System Variables user0. Note cp0 starts one byte further down so
+; Zero-Page System Variables user0. Note up0 starts one byte further down so
 ; that it currently has the address $300 and not $2FF. This avoids crossing
 ; the page boundry when accessing the RAM System Variables table, which would
 ; cost an extra cycle.
@@ -63,9 +63,9 @@ bsize     = $ff             ; size of input/output buffers
 .weak
 user0     = zpage           ; start of TaliForth2 system variables
 buffer0   = stack0+$100     ; input buffer ($0200-$02ff)
-cp0       = buffer0+bsize+1 ; Dictionary starts after last buffer
-                            ; The RAM System Variables and BLOCK buffer are
-                            ; placed right at the beginning of the dictionary.
+up0       = buffer0+bsize+1 ; RAM System Variables start after last buffer
+cp0       = up0+256+1024    ; Dictionary starts after the RAM System Variables
+                            ; and BLOCK buffer.  ALLOT won't free memory below cp0.
 .if TALI_OPTION_HISTORY
 cp_end    = hist_buff       ; Last RAM byte available for code
 .else
@@ -94,12 +94,11 @@ dsp0      = zpage_end-7     ; initial Data Stack Pointer, used to initialize the
 cold_zp_table:
         .logical user0              ; make labels refer to relocated address
 
-cp:         .word cp0+256+1024      ; Compiler Pointer
-                                    ; moved to make room for user vars and block buffer
+cp:         .word cp0               ; Compiler Pointer
 dp:         .word dictionary_start  ; Dictionary Pointer
 workword:   .word 0                 ; nt (not xt!) of word being compiled, except in
                                     ; a :NONAME declared word (see status)
-up:         .word cp0               ; Forth user vars at start of available RAM
+up:         .word up0               ; Forth user vars at start of available RAM
 
 ; The four variables insrc, cib, ciblen, and toin must stay together in this
 ; sequence for the words INPUT>R and R>INPUT to work correctly.
@@ -204,7 +203,7 @@ cold_zp_table_end:
 ; RAM System Variables
 
 ; This table defines the initial values for forth user variables above zero page,
-; which are relocated to 'up' (defaulting to cp0) by COLD.
+; which are relocated to 'up' (defaulting to up0) by COLD.
 
 cold_user_table:
     .logical 0          ; make labels here offsets that we can add to 'up'
@@ -238,7 +237,7 @@ marker_end_offset:
 .if "block" in TALI_OPTIONAL_WORDS
 ; Block buffer variables
 
-blkbuffer_offset:       .word cp0+256   ; Address of buffer (right after USER vars)
+blkbuffer_offset:       .word up0+256   ; Address of buffer (right after USER vars)
 buffblocknum_offset:    .word 0         ; Block number current in buffer
 buffstatus_offset:      .word 0         ; Buffer status (bit 0 = used, bit 1 = dirty) (not in use)
 

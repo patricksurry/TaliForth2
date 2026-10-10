@@ -350,5 +350,30 @@ T{ 0 sp7 evaluate* -> 7 }T
 
 old-limit nc-limit !
 
+\ ------------------------------------------------------------------------
+testing allot range checks
+
+\ An out of range ALLOT leaves HERE unchanged and aborts with an error.
+\ We capture the error message so it doesn't show up as a test failure,
+\ and use a flag to check that ABORT skipped the rest of the line.
+\ (Search for part of the message so this source doesn't match either.)
+variable allot-here
+variable allot-flag
+
+\ The check must call RESTORE-OUTPUT before }T reports, and read HERE
+\ before S" since an interpreted S" stores its string at HERE.
+0 allot-flag !
+here allot-here !  capture-output  -32768 allot  -1 allot-flag !
+T{ here allot-here @ = allot-flag @ restore-output s" free too much" search nip nip -> true 0 true }T
+
+here allot-here !  capture-output  here negate allot  -1 allot-flag !
+T{ here allot-here @ = allot-flag @ restore-output s" free too much" search nip nip -> true 0 true }T
+
+here allot-here !  capture-output  unused 1+ allot  -1 allot-flag !
+T{ here allot-here @ = allot-flag @ restore-output s" all available" search nip nip -> true 0 true }T
+
+\ We can use all available memory and then release it again
+T{ here unused dup allot unused swap negate allot here rot = -> 0 true }T
+
 \ Free memory used for these tests
 tali_tests

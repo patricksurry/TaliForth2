@@ -105,7 +105,7 @@ _done:
 ;           |  Forth program    |
 ;           |       code        |
 ;           |                   |
-;   ~$6000  +-------------------+  cp0
+;   ~$6000  +-------------------+  up0
 ;           |  |                |
 ;           |  v  dictionary    |
 ;           |       (RAM)       |
@@ -142,7 +142,7 @@ user0     = $0010          ; user and system variables
 ram_end   = $D000-1        ; end of installed RAM
 hist_buff = $E000          ; begin of "RAM under kernel"
 
-cp0       = tali_end       ; Dictionary starts after code
+up0       = tali_end       ; RAM System Variables (then Dictionary) start after code
 cp_end    = ram_end        ; Last RAM byte available for code
 
 .include "../../taliforth.asm" ; zero page variables, definitions
