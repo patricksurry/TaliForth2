@@ -50,9 +50,10 @@ hist_buff = ram_end-$03ff   ; begin of history buffers
 
 ; SOFT PHYSICAL ADDRESSES
 
-; Tali currently doesn't have separate user variables for multitasking. To
-; prepare for this, though, we've already named the location of the user's
-; Zero-Page System Variables user0. Note up0 starts one byte further down so
+; Tali keeps its variables in two areas: frequently used ones in zero page
+; starting at user0, and the rest in the user variables page at up, which are
+; accessed by offset from up.  Tali doesn't support multitasking yet, but both
+; areas are intended to be per-task.  Note up0 starts one byte further down so
 ; that it currently has the address $300 and not $2FF. This avoids crossing
 ; the page boundry when accessing the user variables table, which would
 ; cost an extra cycle.
@@ -61,7 +62,7 @@ rsp0      = $ff             ; initial Return Stack Pointer (65c02 stack)
 bsize     = $ff             ; size of input/output buffers
 
 .weak
-user0     = zpage           ; start of TaliForth2 zero page system variables
+user0     = zpage           ; start of TaliForth2 zero page variables
 buffer0   = stack0+$100     ; input buffer ($0200-$02ff)
 up0       = buffer0+bsize+1 ; user variables page starts after last buffer
 blkbuffer0 = up0+256        ; BLOCK buffer (if any) follows the user page
