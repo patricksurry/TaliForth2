@@ -54,22 +54,21 @@ hist_buff = ram_end-$03ff   ; begin of history buffers
 ; prepare for this, though, we've already named the location of the user's
 ; Zero-Page System Variables user0. Note up0 starts one byte further down so
 ; that it currently has the address $300 and not $2FF. This avoids crossing
-; the page boundry when accessing the RAM System Variables table, which would
+; the page boundry when accessing the user variables table, which would
 ; cost an extra cycle.
 
 rsp0      = $ff             ; initial Return Stack Pointer (65c02 stack)
 bsize     = $ff             ; size of input/output buffers
 
 .weak
-user0     = zpage           ; start of TaliForth2 system variables
+user0     = zpage           ; start of TaliForth2 zero page system variables
 buffer0   = stack0+$100     ; input buffer ($0200-$02ff)
-up0       = buffer0+bsize+1 ; RAM System Variables start after last buffer
-blkbuffer0 = up0+256        ; BLOCK buffer follows the RAM System Variables
+up0       = buffer0+bsize+1 ; user variables page starts after last buffer
+blkbuffer0 = up0+256        ; BLOCK buffer (if any) follows the user page
 .if "block" in TALI_OPTIONAL_WORDS
-cp0       = blkbuffer0+1024 ; Dictionary starts after the RAM System Variables
-                            ; and BLOCK buffer.  ALLOT won't free memory below cp0.
+cp0       = blkbuffer0+1024 ; Dictionary follows the BLOCK buffer if defined,
 .else
-cp0       = blkbuffer0      ; No BLOCK buffer without block support
+cp0       = blkbuffer0      ; else the user page.  ALLOT won't free below cp0.
 .endif
 .if TALI_OPTION_HISTORY
 cp_end    = hist_buff       ; Last RAM byte available for code
@@ -205,7 +204,7 @@ tmped:      .word ?,?,?     ; temporary for editors
 cold_zp_table_end:
 
 
-; RAM System Variables
+; User Variables
 
 ; This table defines the initial values for forth user variables above zero page,
 ; which are relocated to 'up' (defaulting to up0) by COLD.
@@ -254,7 +253,7 @@ blockwrite_offset:      .word xt_block_word_error   ; Vector to block writing ro
     .endlogical
 cold_user_table_end:
 
-.cerror cold_user_table_end-cold_user_table > blkbuffer0-up0, "RAM System Variables overflow their space"
+.cerror cold_user_table_end-cold_user_table > blkbuffer0-up0, "user variables overflow the user page"
 
 
 ; ASCII CHARACTERS
