@@ -53,10 +53,10 @@ hist_buff = ram_end-$03ff   ; begin of history buffers
 ; Tali keeps its variables in two areas: frequently used ones in zero page
 ; starting at user0, and the rest in the user variables page at up, which are
 ; accessed by offset from up.  Tali doesn't support multitasking yet, but both
-; areas are intended to be per-task.  Note up0 starts one byte further down so
-; that it currently has the address $300 and not $2FF. This avoids crossing
-; the page boundry when accessing the user variables table, which would
-; cost an extra cycle.
+; areas are intended to be per-task.  Note up0 starts one byte after the last
+; byte of the input buffer (buffer0+bsize), so that it is page aligned at $300
+; rather than $2FF. This avoids crossing the page boundary when accessing the
+; user variables table, which would cost an extra cycle.
 
 rsp0      = $ff             ; initial Return Stack Pointer (65c02 stack)
 bsize     = $ff             ; size of input/output buffers
