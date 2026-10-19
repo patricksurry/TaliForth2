@@ -44,7 +44,7 @@ RTS instruction at the end of each word.
 | AGAIN | `again` | ANS core ext | 32 | tested |
 | ALIGN | `align` | ANS core | 0 | **auto** |
 | ALIGNED | `aligned` | ANS core | 0 | **auto** |
-| ALLOT | `allot` | ANS core | 96 | **auto** |
+| ALLOT | `allot` | ANS core | 47 | **auto** |
 | AND | `and` | ANS core | 17 | **auto** |
 | AT_XY | `at-xy` | ANS facility | 45 | **auto** |
 | BACKSLASH | `\` | ANS block ext | 42 | **auto** |
@@ -103,7 +103,7 @@ RTS instruction at the end of each word.
 | FIND | `find` | ANS core | 43 | **auto** |
 | FM_SLASH_MOD | `fm/mod` | ANS core | 52 | **auto** |
 | EVALUATE | `evaluate` | ANS core | 83 | **auto** |
-| GREATER_THAN | `>` | ANS core | 20 | **auto** |
+| GREATER_THAN | `>` | ANS core | 26 | **auto** |
 | HERE | `here` | ANS core | 10 | **auto** |
 | HEX | `hex` | ANS core ext | 6 | **auto** |
 | HOLD | `hold` | ANS core | 17 | **auto** |
@@ -118,7 +118,7 @@ RTS instruction at the end of each word.
 | LEAVE | `leave` | ANS core | 21 | **auto** |
 | LEFT_BRACKET | `[` | ANS core | 4 | **auto** |
 | LESS_NUMBER_SIGN | `<#` | ANS core | 13 | **auto** |
-| LESS_THAN | `<` | ANS core | 20 | **auto** |
+| LESS_THAN | `<` | ANS core | 26 | **auto** |
 | LITERAL | `literal` | ANS core | 68 | **auto** |
 | LOOP | `loop` | ANS core | 89 | **auto** |
 | PLUS_LOOP | `+loop` | ANS core | 81 | **auto** |
