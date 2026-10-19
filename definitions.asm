@@ -64,8 +64,13 @@ bsize     = $ff             ; size of input/output buffers
 user0     = zpage           ; start of TaliForth2 system variables
 buffer0   = stack0+$100     ; input buffer ($0200-$02ff)
 up0       = buffer0+bsize+1 ; RAM System Variables start after last buffer
-cp0       = up0+256+1024    ; Dictionary starts after the RAM System Variables
+blkbuffer0 = up0+256        ; BLOCK buffer follows the RAM System Variables
+.if "block" in TALI_OPTIONAL_WORDS
+cp0       = blkbuffer0+1024 ; Dictionary starts after the RAM System Variables
                             ; and BLOCK buffer.  ALLOT won't free memory below cp0.
+.else
+cp0       = blkbuffer0      ; No BLOCK buffer without block support
+.endif
 .if TALI_OPTION_HISTORY
 cp_end    = hist_buff       ; Last RAM byte available for code
 .else
@@ -237,7 +242,7 @@ marker_end_offset:
 .if "block" in TALI_OPTIONAL_WORDS
 ; Block buffer variables
 
-blkbuffer_offset:       .word up0+256   ; Address of buffer (right after USER vars)
+blkbuffer_offset:       .word blkbuffer0 ; Address of buffer (right after USER vars)
 buffblocknum_offset:    .word 0         ; Block number current in buffer
 buffstatus_offset:      .word 0         ; Buffer status (bit 0 = used, bit 1 = dirty) (not in use)
 
@@ -248,6 +253,8 @@ blockwrite_offset:      .word xt_block_word_error   ; Vector to block writing ro
 .endif
     .endlogical
 cold_user_table_end:
+
+.cerror cold_user_table_end-cold_user_table > blkbuffer0-up0, "RAM System Variables overflow their space"
 
 
 ; ASCII CHARACTERS
